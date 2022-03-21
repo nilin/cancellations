@@ -1,6 +1,5 @@
 import numpy as np
 import math
-import matplotlib
 import pickle
 import time
 import copy
