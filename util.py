@@ -5,7 +5,6 @@ import time
 import copy
 import jax
 import jax.numpy as jnp
-import optax
 	
 
 pwr=lambda x,p:jnp.power(x,p*jnp.ones(x.shape))
