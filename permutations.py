@@ -1,11 +1,7 @@
 # nilin
 
 import numpy as np
-import matplotlib.pyplot as plt
 import math
-import itertools
-import matplotlib
-import seaborn as sns
 import pickle
 import time
 import copy
@@ -14,7 +10,6 @@ import util
 import jax
 import sys
 import jax.numpy as jnp
-import optax
 import bisect
 import time
 	
