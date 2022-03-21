@@ -76,4 +76,4 @@ if Wtype.split()[-1]=='small':
 	print('Generating small')
 	gen(200,200,seed)
 else:
-	gen(1000,1000,seed)
+	gen(400,400,seed)
