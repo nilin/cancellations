@@ -49,7 +49,7 @@ def combine(ac_name,Wtype,n):
 			blocksums.append(S)
 			checkpoints.append(b)
 			a=b	
-
+	print(b)
 	assert(b==N)
 	print('checkpoints: '+str(checkpoints))
 	return sum(blocksums)/jnp.sqrt(N)
