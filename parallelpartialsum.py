@@ -10,7 +10,6 @@ import util
 import sys
 import os
 import shutil
-import cancellation as canc
 import proxies
 import multiprocessing as mp
 import permutations
@@ -104,7 +103,7 @@ gen_partial_sum.py ReLU n 10
 
 if __name__=='__main__':
 	ac_name=sys.argv[1]
-	Wtype=canc.Wtypes[sys.argv[2]]
+	Wtype=util.Wtypes[sys.argv[2]]
 	n=int(sys.argv[3])
 	start=int(input('At which k to start the partial sum? '))
 	stop=math.factorial(n)

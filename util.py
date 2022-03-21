@@ -7,6 +7,7 @@ import jax
 import jax.numpy as jnp
 	
 
+Wtypes={'s':'separated','n':'normal','ss':'separated small','ns':'normal small'}
 pwr=lambda x,p:jnp.power(x,p*jnp.ones(x.shape))
 
 ReLU=lambda x:(jnp.abs(x)+x)/2

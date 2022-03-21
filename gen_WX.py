@@ -9,7 +9,6 @@ import jax
 import jax.numpy as jnp
 import optax
 import util
-import cancellation as canc
 import bookkeep as bk
 
 
@@ -54,7 +53,7 @@ def softCoulomb(X):
 energy=lambda W:jnp.average(softCoulomb(W))+jnp.sum(jnp.square(W))
 
 
-Wtype=canc.Wtypes[sys.argv[1]]
+Wtype=util.Wtypes[sys.argv[1]]
 nmax=20
 d=3
 seed=int(input('input seed for randomness '))
