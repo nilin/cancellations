@@ -10,7 +10,6 @@ import util
 import sys
 import os
 import shutil
-import proxies
 import parallelpartialsum as p_sums
 import permutations
 
