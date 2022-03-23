@@ -59,3 +59,4 @@ def partial_sum(inputs):
 		sgn=sgn*ds
 	return S
 
+

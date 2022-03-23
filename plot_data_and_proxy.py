@@ -23,19 +23,31 @@ key,*keys=jax.random.split(key,1000)
 
 
 activationnames=['osc','HS','ReLU','exp','tanh','DReLU']
-proxynames=['Z','OP','polyOP','polyZ','OCP','polyOCP','polyOCP_proxy','extendedpolyOP']
-defaultstyles={'OP':'k:','Z':'k-.','polyOP':'r:','polyZ':'r-.','OCP':'k--','polyOCP':'r--','polyOCP_proxy':'y:','extendedpolyOP':'m'}
+proxynames=['Z','OP','polyOP','polyZ','OCP','polyOCP','polyOCP_','polyOCP_proxy','extendedpolyOP']
+defaultstyles={'OP':'k:','Z':'k-.','polyOP':'r:','polyZ':'r-.','OCP':'k--','polyOCP':'r--','polyOCP_':'r','polyOCP_proxy':'y:','extendedpolyOP':'m'}
 
 
 
 
 def evalproxies(activation,proxychoices,n_,datafolder):
+	nmax=max(n_)
 	Ws,Xs=[bk.getdata(datafolder+'/WX')[k] for k in ['Ws','Xs']]
+	Ws_ordered=bk.getdata(datafolder+'/forplots/W_ordered')
 	norms_table={}
+	ranges={}
 	for proxyname in proxychoices:	
 		compnorm=globals()[proxyname+'norm']
-		norms_table[proxyname]=[compnorm(keys[n],activation,Ws[n],Xs[n]) for n in n_]
-	return norms_table	
+		if proxyname=='polyOCP_':
+			Ws_=Ws_ordered
+			n_=range(3,nmax+1)
+		else:
+			Ws_=Ws
+			n_=range(2,nmax+1)
+
+		norms_table[proxyname]=[compnorm(keys[n],activation,Ws_[n],Xs[n]) for n in n_]
+		ranges[proxyname]=n_
+
+	return ranges,norms_table	
 
 
 """
@@ -53,9 +65,9 @@ def multiple_activations(ac_name_color,proxy_name_style,datafolder,plotfolder):
 			print('missing '+ac_name+', skipping')
 			continue
 		plt.plot(n_,norms,color=color,marker='o',ms=3)
-	
-		norms_table=evalproxies(util.activations[ac_name],proxy_name_style.keys(),n_,datafolder)	
-		[plt.plot(n_,norms_table[p],color=color,ls=ls) for p,ls in proxy_name_style.items()]
+
+		ranges,norms_table=evalproxies(util.activations[ac_name],proxy_name_style.keys(),n_,datafolder)	
+		[plt.plot(ranges[p],norms_table[p],color=color,ls=ls) for p,ls in proxy_name_style.items()]
 		
 	savename=' '.join(ac_name_color)+' _ '+' '.join(proxy_name_style)
 	plt.savefig(plotfolder+'/'+savename+'.pdf')
@@ -80,8 +92,9 @@ def one_plot_per_activation(ac_names,proxychoices,datafolder,plotfolder,**kwargs
 			continue
 		plt.plot(n_,norms,'bo-')
 
-		norms_table=evalproxies(util.activations[ac_name],proxychoices,n_,datafolder)
-		[plt.plot(n_,norms_table[p],defaultstyles[p]) for p in proxychoices]
+		n_=range(3,12)
+		ranges,norms_table=evalproxies(util.activations[ac_name],proxychoices,n_,datafolder)
+		[plt.plot(ranges[p],norms_table[p],defaultstyles[p]) for p in proxychoices]
 
 		savename=ac_name+' _ '+' '.join(proxychoices)
 		plt.savefig(plotfolder+'/singledata/'+savename+'.pdf')
@@ -103,14 +116,16 @@ bk.mkdir(plotfolder+'/singledata')
 
 
 
-activations=util.activations
-#activations={'ReLU':util.ReLU,'HS':util.heaviside}
+#activations=util.activations
+activations={'ReLU':util.ReLU,'HS':util.heaviside,'tanh':jnp.tanh}
 
 ### all activation functions in one plot ###
-multiple_activations(make_colors(activations.keys()),{'polyOCP':'dotted'},datafolder,plotfolder)
+multiple_activations(make_colors(activations.keys()),{'polyOCP':'dotted','polyOCP_':'dashed'},datafolder,plotfolder)
+
+activations=util.activations
 multiple_activations(make_colors(activations.keys()),{},datafolder,plotfolder)
 
 
 #### main proxies ###
-one_plot_per_activation(activations.keys(),['OP','polyOP','OCP','polyOCP'],datafolder,plotfolder)
+one_plot_per_activation(activations.keys(),['polyOP','OCP','polyOCP','polyOCP_'],datafolder,plotfolder)
 

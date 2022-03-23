@@ -8,6 +8,7 @@ import copy
 import util
 import jax
 import jax.numpy as jnp
+import permutations
 import optax
 	
 
@@ -34,3 +35,5 @@ def antisymmetrize(f):
 			y+=sign*f(PX)
 		return y/jnp.sqrt(math.factorial(n))
 	return antisymmetric
+
+

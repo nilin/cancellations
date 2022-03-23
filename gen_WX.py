@@ -59,7 +59,7 @@ d=3
 seed=int(input('input seed for randomness '))
 key=jax.random.PRNGKey(seed)
 key1,key2=jax.random.split(key)
-n_=range(2,nmax+1)
+n_=range(1,nmax+1)
 
 def gen(instances,samples,seed):
 	Ws=genWs(Wtype,key1,n_,d,instances)
@@ -68,7 +68,8 @@ def gen(instances,samples,seed):
 	bk.savedata({'Ws':Ws,'Xs':Xs,'Wtype':Wtype,'instances':instances,'samples':samples,'d':d,'n_':n_,'deltas':deltas,'seed':seed},Wtype+'/WX')
 
 if Wtype.split()[-1]=='small':
-	print('Generating small')
 	gen(200,200,seed)
+elif Wtype.split()[-1]=='large':
+	gen(1000,1000,seed)
 else:
 	gen(400,400,seed)

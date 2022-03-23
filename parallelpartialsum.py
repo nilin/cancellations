@@ -61,7 +61,7 @@ if __name__=='__main__':
 	ac_name=sys.argv[1]
 	Wtype=util.Wtypes[sys.argv[2]]
 	n=int(sys.argv[3])
-	start=0#int(input('At which k to start the partial sum? '))
+	start=int(sys.argv[4])
 	stop=math.factorial(n)
 
 	dirpath='partialsums/'+Wtype

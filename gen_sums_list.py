@@ -22,7 +22,7 @@ def pickparams(N):
 if __name__=='__main__':
 
 	ac_name=sys.argv[1]
-	Wtype={'s':'separated','n':'normal','ss':'separated small','ns':'normal small'}[sys.argv[2]]
+	Wtype=util.Wtypes[sys.argv[2]]
 
 	data=bk.getdata(Wtype+'/WX')
 	Ws=data['Ws']

@@ -5,9 +5,10 @@ import time
 import copy
 import jax
 import jax.numpy as jnp
+import permutations
 	
 
-Wtypes={'s':'separated','n':'normal','ss':'separated small','ns':'normal small'}
+Wtypes={'s':'separated','n':'normal','ss':'separated small','ns':'normal small','nl':'normal large','sl':'separated large'}
 pwr=lambda x,p:jnp.power(x,p*jnp.ones(x.shape))
 
 ReLU=lambda x:(jnp.abs(x)+x)/2
@@ -17,7 +18,6 @@ heaviside=lambda x:jnp.heaviside(x,1)
 osc=lambda x:jnp.sin(100*x)
 softplus=lambda x:jnp.log(jnp.exp(x)+1)
 
-#activations={'softplus':softplus,'osc':osc,'HS':heaviside,'ReLU':ReLU,'exp':jnp.exp,'tanh':jnp.tanh,'DReLU':DReLU}
 activations={'exp':jnp.exp,'HS':heaviside,'ReLU':ReLU,'tanh':jnp.tanh,'softplus':softplus,'DReLU':DReLU,'osc':osc}
 
 
@@ -67,6 +67,7 @@ def argmindist(X):
 	ij=jnp.moveaxis(jnp.array([i,j]),0,-1)
 	return ij
 
+
 def transposition(x,ij):
 	n=x.shape[-2]
 	ij=ij.astype(int)
@@ -86,8 +87,20 @@ def sample_mu(n,samples,key):
 	P=jnp.squeeze(jnp.product(Z,axis=-1))
 	return jnp.sum(P,axis=-1)/jnp.sqrt(n)
 
+def correlated_X_pairs(key,variances,covariances,samples=10000):
+	a,b=variances,covariances
+	cov=jnp.moveaxis(jnp.array([[a,b],[b,a]]),-1,0)
+	X=normal(key,samples,cov)
+	return jnp.take(X,0,axis=-1),jnp.take(X,1,axis=-1)
 
-def correlated_X_pairs(key,marginal_var,diff_var,samples=250):
+def normal(key,samples,covs):
+	n=covs.shape[-1]
+	instances=covs.shape[:-2]
+	L=jnp.linalg.cholesky(covs)
+	Z=jax.random.normal(key,shape=(instances+(n,samples)))
+	return jnp.swapaxes(jax.lax.batch_matmul(L,Z),-1,-2)
+	
+"""
 	key1,key2=jax.random.split(key)
 	r_=jnp.sqrt(marginal_var-diff_var/4)
 	eps=jnp.sqrt(diff_var)
@@ -98,23 +111,29 @@ def correlated_X_pairs(key,marginal_var,diff_var,samples=250):
 	X1=Z-Z_/2
 	X2=Z+Z_/2
 	return X1,X2
-	
+"""	
 
-def variations(key,f,marginal_var,diff_var):
-	X1,X2=correlated_X_pairs(key,marginal_var,diff_var)
+
+def fit_variations(key,f,functions,variances,covariances):
+	X1,X2=correlated_X_pairs(key,variances,covariances)
+	y=(f(X2)-f(X1))/jnp.sqrt(2)
+	basis=(functions(X2)-functions(X1))/jnp.sqrt(2)
+	return jax.vmap(basisfit,in_axes=(0,0),out_axes=(0,0))(y,basis) 
+
+def variations(key,f,variances,covariances):
+	X1,X2=correlated_X_pairs(key,variances,covariances)
 	return jnp.average(jnp.square(f(X2)-f(X1)),axis=-1)/2
 
-
-def fit_variations(key,f,functions,marginal_var,diff_var):
-	X1,X2=correlated_X_pairs(key,marginal_var,diff_var)
-	ydiffs=(f(X2)-f(X1))/jnp.sqrt(2)
-	basisdiffs=(functions(X2)-functions(X1))/jnp.sqrt(2)
-	return jax.vmap(basisfit,in_axes=(0,0),out_axes=(0,0))(ydiffs,basisdiffs) 
 	
-def poly_fit_variations(key,f,deg,marginal_var,diff_var):
-	functions=monomials(deg)
-	return fit_variations(key,f,functions,marginal_var,diff_var)
+def poly_fit_variations(key,f,deg,variances,covariances):
+	key1,key2=jax.random.split(key)
+	coefficients_,dist=fit_variations(key1,f,monomials(deg),variances,covariances)
+	coefficients=jnp.concatenate([means(key2,f,variances)[:,None],coefficients_[:,1:]],axis=-1)
+	return coefficients,dist
 
+def means(key,f,variances):
+	X=jnp.sqrt(variances)[:,None]*jax.random.normal(key,shape=variances.shape+(100,))
+	return jnp.average(f(X),axis=-1)
 
 def as_function(a,functions):
 	def function(x):
@@ -133,8 +152,8 @@ def poly_as_function(a):
 
 def polys_as_parallel_functions(a):
 	return as_parallel_functions(a,monomials(a.shape[-1]-1))
-	
-####################################################################################################
+
+
 
 
 def monomials(deg,kmin=0):
@@ -151,13 +170,11 @@ def monomials(deg,kmin=0):
 def basisfit(y,Y):
 	Q,R=jnp.linalg.qr(Y)
 	Py=jnp.dot(Q.T,y)
-	#a=jnp.linalg.multi_dot([jnp.linalg.inv(R),Q.T,y])
 	a=jnp.dot(jnp.linalg.inv(R),Py)
 	dist=L2norm(y-jnp.dot(Q,Py))
 	return a,dist
 
 def functionfit(x,y,functions):
-	#Y=jax.vmap(functions,out_axes=0)(x)
 	Y=functions(x)
 	return basisfit(y,Y)
 
@@ -173,7 +190,8 @@ def prepfunctions(functionblocklist,functionlist):
 		return jnp.concatenate([f(x) for f in functionblocklist]+[jnp.expand_dims(f(x),axis=-1) for f in functionlist], axis=-1)
 	return functions
 
-
+def applymatrixalongdim(M,vectors,axis):
+	return jnp.moveaxis(jnp.dot(jnp.moveaxis(vectors,axis,-1),M.T),-1,axis)
 
 ####################################################################################################
 
@@ -191,4 +209,26 @@ def normalize(W):
 	return jax.vmap(jnp.multiply,in_axes=(0,0))(W,1/norms)
 
 
+
+####################################################################################################
+
+
+
+def generalized_variations(key,fs,cov,signs):
+	samples=200
+	X=normal(key,samples,cov)	
+	y=jax.vmap(jnp.inner,in_axes=(0,0))(signs,fs(X))/jnp.sqrt(cov.shape[-1])
+	return jnp.average(jnp.square(y),axis=-1)
+
+
+def fit_generalized_variations(key,f,functions,cov,signs):
+	samples=2000
+	X=normal(key,samples,cov)
+	scaling=1/jnp.sqrt(cov.shape[-1])
+	y=scaling*jnp.inner(signs,f(X))
+	basis=scaling*jnp.dot(signs,functions(X))
+	return jax.vmap(basisfit,in_axes=(0,0),out_axes=(0,0))(y,basis) 
+
+def poly_fit_generalized_variations(key,f,deg,cov,signs):
+	return fit_generalized_variations(key,f,monomials(deg),cov,signs)
 

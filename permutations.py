@@ -63,6 +63,16 @@ def selections_to_perm(S):
 	return p
 
 
+def embed(p,indices,n):
+	m=len(p)
+	p_=list(range(n))
+	for k in range(m):
+		i=indices[k]
+		j=indices[p[k]]
+		p_[i]=j
+	return p_
+
+
 def perm_to_k(p):
 	selections=perm_to_selections(p)
 	n=len(p)	
@@ -94,7 +104,7 @@ def perm_as_matrix(p):
 
 
 """
-Best to update sign using nextperm (400 times faster)
+Best to update sign using nextperm
 """
 @jax.jit
 def sign(p):
