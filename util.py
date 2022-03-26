@@ -210,6 +210,16 @@ def compare(x,y):
 	print(jnp.max(rel_err))
 	print()
 
+def assertequal(x,y):
+	#x,y=jnp.atleast_1d(jnp.array(x)),jnp.atleast_1d(jnp.array(y))
+	ratio=x/y
+	relerror=jnp.log(ratio)
+	print('\nAssert equal\nvalues '+str(jnp.concatenate([jnp.expand_dims(x,-1),jnp.expand_dims(y,-1)],axis=-1)))
+	print('rel error: '+str(relerror))
+	assert(jnp.all(ratio>0))
+	assert(jnp.max(jnp.abs(relerror))<0.001)
+	print(100*'-'+'\nTest passed: equal '+str(jnp.concatenate([jnp.expand_dims(x,-1),jnp.expand_dims(y,-1)],axis=-1))+'\n'+100*'-')
+	
 
 
 def normalize(W):

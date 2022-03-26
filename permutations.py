@@ -152,6 +152,10 @@ def k_to_perm(k,n):
 	return selections_to_perm(s)
 
 
+def k_to_matrix(k,n):
+	return perm_as_matrix(k_to_perm(k,n))
+
+
 ReLU=lambda x:(jnp.abs(x)+x)/2
 
 @jax.jit
