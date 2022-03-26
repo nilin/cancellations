@@ -73,6 +73,14 @@ def saveplot(datanames,savename,colors,moreplots=[],draw=False,connect=False,sca
 	if draw:
 		plt.show()
 			
-def printbar(relwidth,msg):
-	fullwidth=100;
-	print('['+(int(math.ceil(fullwidth*min(relwidth,1))))*'\u2588'+(fullwidth-int(math.ceil(relwidth*fullwidth)))*'_'+'] '+msg,end='\r')
+def progressbar(relwidth,fullwidth):
+	return '['+(int(math.ceil(fullwidth*min(relwidth,1))))*'\u2588'+(fullwidth-int(math.ceil(relwidth*fullwidth)))*'_'+']'
+
+def printbar(val,msg=''):
+	try:
+		printbars([(val,str(msg))])
+	except:
+		pass
+	
+def printbars(data):
+	print('| '.join([progressbar(val,150//len(data))+'='+str(msg) for val,msg in data]),end='\r')

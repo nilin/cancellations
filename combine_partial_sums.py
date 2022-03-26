@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 import math
 import itertools
 import matplotlib
-import seaborn as sns
 import pickle
 import time
 import bookkeep as bk
@@ -25,7 +24,6 @@ import permutations
 
 def combine(ac_name,Wtype,n):
 
-	activation=util.activations[ac_name]
 	dirpath='partialsums/'+Wtype
 	prefix=dirpath+'/'+ac_name+' n='+str(n)+' range='
 

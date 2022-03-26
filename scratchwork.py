@@ -1,20 +1,11 @@
 import permutations#
-import numpy as np
-import matplotlib.pyplot as plt
 import math
-import itertools
-import matplotlib
-import seaborn as sns
-import pickle
-import time
 import bookkeep as bk
 import copy
 import sys
 import jax
 import jax.numpy as jnp
-import optax
 import util
-import cancellation as canc
 
 ###
 

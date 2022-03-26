@@ -18,7 +18,15 @@ heaviside=lambda x:jnp.heaviside(x,1)
 osc=lambda x:jnp.sin(100*x)
 softplus=lambda x:jnp.log(jnp.exp(x)+1)
 
-activations={'exp':jnp.exp,'HS':heaviside,'ReLU':ReLU,'tanh':jnp.tanh,'softplus':softplus,'DReLU':DReLU,'osc':osc}
+
+
+gamma_HS=lambda x_:jnp.arctan(jnp.sqrt((x_+1)/(-x_+1)))/math.pi
+
+
+
+
+#activations={'exp':jnp.exp,'HS':heaviside,'ReLU':ReLU,'tanh':jnp.tanh,'softplus':softplus,'DReLU':DReLU,'osc':osc}
+activations={'exp':jnp.exp,'HS':heaviside,'ReLU':ReLU,'tanh':jnp.tanh,'osc':osc}
 
 
 L2norm=lambda y:jnp.sqrt(jnp.average(jnp.square(y)))
@@ -132,7 +140,7 @@ def poly_fit_variations(key,f,deg,variances,covariances):
 	return coefficients,dist
 
 def means(key,f,variances):
-	X=jnp.sqrt(variances)[:,None]*jax.random.normal(key,shape=variances.shape+(100,))
+	X=jnp.sqrt(variances)[:,None]*jax.random.normal(key,shape=variances.shape+(10000,))
 	return jnp.average(f(X),axis=-1)
 
 def as_function(a,functions):
@@ -232,3 +240,46 @@ def fit_generalized_variations(key,f,functions,cov,signs):
 def poly_fit_generalized_variations(key,f,deg,cov,signs):
 	return fit_generalized_variations(key,f,monomials(deg),cov,signs)
 
+#################################################################################################
+
+def smooth(x,y,eps,r=5):
+	kernel=jnp.array(list(range(1,r+1))+list(reversed(range(1,r))))/r**2
+	x_=x[:-2*r+2]+eps*r
+	y_=jnp.convolve(y,kernel,mode='valid')
+	return x_,y_
+
+
+def numdiff(x,y,eps,r=5):
+	dkernel=jnp.array(r*[1]+r*[-1])/(r**2*eps)
+	dy=jnp.convolve(y,dkernel,mode='valid')
+	x_=x[:-2*r+1]+eps*(r-1/2)
+	return x_,dy
+
+def extend(x,y,eps,dy=None,pad=25):
+	a=x[0]
+	b=x[-1]
+	I=jnp.arange(-pad,0)*eps+a
+	J=jnp.arange(1,pad+1)*eps+b
+	x_=jnp.concatenate([I,x,J])
+
+	yI=jnp.array(pad*[y[0]])
+	yJ=jnp.array(pad*[y[-1]])
+
+	if dy is not None:
+		yJ=yJ+dy[-1]*eps*jnp.arange(1,pad+1)
+		yI=yI+dy[0]*eps*jnp.arange(-pad,0)
+	y_=jnp.concatenate([yI,y,yJ])
+	return x_,y_
+	
+
+def listasfunction(x_range,y,fuzziness=.01):
+
+	def delta(x):
+		return jnp.exp(-jnp.square(x/fuzziness))
+		#return ReLU(-jnp.abs(x)+fuzziness)
+
+	def f(X):
+		mask=delta(X[:,None]-x_range[None,:])
+		return jnp.inner(mask,y)/jnp.sum(mask,axis=-1)
+		
+	return f

@@ -40,6 +40,7 @@ def compute_unsigned_term_HS(W,X,p):
 def compute_unsigned_term_tanh(W,X,p):
 	return compute_unsigned_term(W,X,jnp.tanh,p)
 
+
 @jax.jit
 def zeros(W,X):
 	instances,samples=W.shape[0],X.shape[0]

@@ -21,6 +21,6 @@ import scratchwork as sw
 datafolder=util.Wtypes[input('W-type: n,s,ns,ss')]
 
 Ws=bk.getdata(datafolder+'/WX')['Ws']
-Ws_ordered={k:sw.greedycloseordering(W) for k,W in Ws.items() if k<=12}
+Ws_ordered={k:sw.greedycloseordering(W) for k,W in Ws.items() if k>=2 and k<=12}
 
 bk.savedata(Ws_ordered,datafolder+'/forplots/W_ordered')

@@ -12,14 +12,16 @@ import sys
 import jax.numpy as jnp
 import bisect
 import time
+import log
 	
-def nextperm(p):
+def nextperm(p_):
+	p=list(p_)
 	n=len(p)
 	i=n-1
 	while p[i-1]>p[i]:
 		i=i-1
 		if i==0: #wrap around
-			return list(range(n)),sign(p)
+			return list(range(n)),(-1)**(n//2)
 		
 	first_left_downstep=i-1
 	last_upstep=i
@@ -40,17 +42,72 @@ parity moves by this much. Reversal yields r//2 swaps where reversed part has le
 """
 		
 
+def nextblock(p,k):
+	n=len(p)
+	sel=perm_to_selections(p[:n-k])
+	i=n-k-1
+	dsign=1
+	while(sel[i]==n-i-1 and i>-1):
+		sel[i]=0
+		dsign=dsign*(-1)**(n-i-1)
+		i=i-1
+	if not i==-1:
+		sel[i]=sel[i]+1
+		dsign=dsign*-1
+	return selections_to_perm(sel+k*[0]),dsign
+		
+		
+def descpower(n,k):
+	p=1
+	for i in range(k):
+		p=p*n
+		n=n-1
+	return p
+
+def generate_seq_blocks(k_large,k_small,n):
+	skipfunction=nextperm if k_small==0 else lambda p:nextblock(p,k_small)	
+	p=list(range(n))	
+	sign=1
+	block=[]
+	signs=[]
+	for i in range(descpower(k_large,k_large-k_small)):
+		block.append(p)
+		signs.append(sign)
+		p,ds=skipfunction(p)	
+		sign=sign*ds
+	return jnp.array(block),jnp.array(signs)
+
+
+def generate_complementary_perm_seqs(ks,n=None,largefirst=True):
+	if n==None:	
+		n=ks[-1]
+	ks_=[0]+ks
+	out=[generate_seq_blocks(ks_[i+1],ks_[i],n) for i in range(len(ks))]
+
+	log.log('blocksizes '+str(ks[-1])+'! = '+'*'.join(['('+str(ks[i])+'!/'+str(ks_[i])+'!)' for i in range(len(ks))])+' = '+'*'.join([str(len(b[1])) for b in out]))
+	return list(reversed(out)) if largefirst else out
+		
+
+def compose(*perms):
+	if len(perms)==2:
+		p2,p1=perms
+		return [p2[p] for p in p1]
+	else:
+		newlist=perms[:-2]+(compose(perms[-2],perms[-1]),)
+		return compose(*newlist)
+
+
+
 def perm_to_selections(p):
 	n=len(p)	
 	seen=[]
 	selections=[]
-
 	for i in range(n):
-		s=p[i]-np.searchsorted(seen,p[i])
+		s=p[i]-sum(1 for v in seen if v<p[i])
 		selections.append(s)
-		bisect.insort(seen,p[i]) #O(n) :|
-	
+		seen.append(p[i])
 	return selections
+
 
 def selections_to_perm(S):
 	n=len(S)
@@ -95,11 +152,14 @@ def k_to_perm(k,n):
 	return selections_to_perm(s)
 
 
+ReLU=lambda x:(jnp.abs(x)+x)/2
+
 @jax.jit
 def perm_as_matrix(p):
-	n=len(p)
-	i_minus_pj=jnp.arange(n)[:,None]-jnp.array(p)[None,:]
-	delta=lambda x:util.ReLU(-jnp.square(x)+1)
+	p=jnp.array(p)
+	n=p.shape[-1]
+	i_minus_pj=jax.vmap(jnp.add,in_axes=(0,None),out_axes=(-2))(jnp.arange(n),-p)
+	delta=lambda x:ReLU(-jnp.square(x)+1)
 	return delta(i_minus_pj)
 
 
@@ -146,6 +206,23 @@ def performancetest(n):
 		s=s*ds
 	print('next_perm '+str(N/clock.tick())+'/second')
 
+
+	p=id(n)
+	s=1
+	for i in range(N):
+		p,ds=nextblock(p,4)
+		s=s*ds
+	print('nextblock '+str(N/clock.tick())+'/second')
+
+	p=id(n)
+	s=1
+	for i in range(N):
+		p,ds=nextperm(p)
+		perm_to_selections(p)
+		s=s*ds
+	print('perm_to_selections '+str(N/clock.tick())+'/second')
+
+
 	for i in range(N):
 		k_to_perm(i,n)
 	print('k_to_perm '+str(N/clock.tick())+'/second')
@@ -168,25 +245,58 @@ def performancetest(n):
 
 	
 def test(n):
-	p=list(range(n))
-	s=1
-
-	print('\nsequentially generated'+100*'-')
-	for k in range(2*math.factorial(n)):
-		printperm(p)
-		verify(k,p,n)
-		p,ds=nextperm(p)
-		s=s*ds
-		assert(s==sign(p))
-		print(str(s)+' '+str(sign(p)))
 
 	print('generated from k'+100*'-')
 	for k in range(2*math.factorial(n)):
 		p=k_to_perm(k,n)
 		printperm(p)
-		verify(k,p,n)
+		verify(k,p)
 
-def verify(k,p,n):		
+
+	p=list(range(n))
+	s=1
+	print('\nsequentially generated'+100*'-')
+	for k in range(2*math.factorial(n)):
+		printperm(p)
+		verify(k,p)
+		p,ds=nextperm(p)
+		s=s*ds
+		assert(s==sign(p))
+		print(str(s)+' '+str(sign(p)))
+
+
+	p=list(range(n))
+	s=1
+	print('\nsequentially generated with skip 3!'+100*'-')
+	for k in range(0,2*math.factorial(n),6):
+		printperm(p)
+		verify(k,p)
+		p,ds=nextblock(p,3)
+		s=s*ds
+		assert(s==sign(p))
+		print(str(s)+' '+str(sign(p)))
+
+
+	(P,sp),(Q,sq),(R,sr)=generate_complementary_perm_seqs([2,4,5])
+	permnumber=0
+	for i in range(sp.size):
+		for j in range(sq.size):
+			for k in range(sr.size):
+				s=sp[i]*sq[j]*sr[k]
+				perm=compose(P[i],Q[j],R[k])
+				verify(permnumber,perm)
+				printperm(perm)
+				permnumber=permnumber+1
+	print(R)
+	print(Q)
+	print(P)
+	
+	blocks=generate_complementary_perm_seqs([7,11,14,16],largefirst=False)
+	print([block[1].size for block in blocks])
+
+
+def verify(k,p):		
+	n=len(list(p))
 	assert(perm_to_k(p)==k%math.factorial(n))
 	assert(k_to_perm(k,n)==p)		
 	assert(selections_to_perm(perm_to_selections(p))==p)
@@ -197,5 +307,7 @@ tests---------------------------------------------------------------------------
 """
 
 if len(sys.argv)>1 and sys.argv[1]=='test':
-	test(4)
-	performancetest(int(sys.argv[2]))
+	test(int(input('n for test: ')))
+	performancetest(int(input('n for perf test: ')))
+
+

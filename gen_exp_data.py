@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 import math
 import itertools
 import matplotlib
-import seaborn as sns
 import pickle
 import time
 import bookkeep as bk
