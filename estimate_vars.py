@@ -51,7 +51,7 @@ if __name__=='__main__':
 	n=int(sys.argv[1])
 	d=3
 
-	samples=10000
+	samples=100
 	instances=samples
 
 	seed=int(sys.argv[2])
@@ -68,9 +68,8 @@ if __name__=='__main__':
 		outputs.append(out)
 		meansquaretracker.update(out**2)
 		est,CV=meansquaretracker.est()
-		bk.printbar(CV,'coefficient of variation for estimated variances')
+		#bk.printbar(CV,'coefficient of variation for estimated variances')
 
-		if i%100==0 and i>0:
-			bk.savedata(outputs,'n='+str(n)+' | '+str(i)+' samples | randseed='+str(seed))
+	bk.savedata(outputs,'n='+str(n)+' | '+str(samples)+' samples | randseed='+str(seed))
 		
 
