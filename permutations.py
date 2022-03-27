@@ -47,7 +47,7 @@ def nextblock(p,k):
 	sel=perm_to_selections(p[:n-k])
 	i=n-k-1
 	dsign=1
-	while(sel[i]==n-i-1 and i>-1):
+	while(i>-1 and sel[i]==n-i-1):
 		sel[i]=0
 		dsign=dsign*(-1)**(n-i-1)
 		i=i-1
@@ -78,14 +78,14 @@ def generate_seq_blocks(k_large,k_small,n):
 	return jnp.array(block),jnp.array(signs)
 
 
-def generate_complementary_perm_seqs(ks,n=None,largefirst=True):
+def generate_complementary_perm_seqs(ks,n=None):
 	if n==None:	
-		n=ks[-1]
-	ks_=[0]+ks
-	out=[generate_seq_blocks(ks_[i+1],ks_[i],n) for i in range(len(ks))]
+		n=ks[0]
+	ks_=ks+[0]
+	out=[generate_seq_blocks(ks_[i],ks_[i+1],n) for i in range(len(ks))]
 
-	log.log('blocksizes '+str(ks[-1])+'! = '+'*'.join(['('+str(ks[i])+'!/'+str(ks_[i])+'!)' for i in range(len(ks))])+' = '+'*'.join([str(len(b[1])) for b in out]))
-	return list(reversed(out)) if largefirst else out
+	log.log('blocksizes '+str(ks[0])+'! = '+'*'.join(['('+str(ks_[i])+'!/'+str(ks_[i+1])+'!)' for i in range(len(ks))])+' = '+'*'.join([str(len(b[1])) for b in out]))
+	return out
 		
 
 def compose(*perms):
@@ -167,6 +167,12 @@ def perm_as_matrix(p):
 	return delta(i_minus_pj)
 
 
+def perm_as_matrix2(p_):
+	p=jnp.array(p_)
+	n=p.shape[-1]
+	return jnp.eye(n)[jnp.array(p)].T
+
+
 """
 Best to update sign using nextperm
 """
@@ -239,6 +245,12 @@ def performancetest(n):
 
 
 	p=id(n)
+	for i in range(N):
+		perm_as_matrix2(p)
+		p,_=nextperm(p)
+	print('perm_as_matrix2: '+str(N/clock.tick())+'/second')
+
+	p=id(n)
 	s=1
 	for i in range(N):
 		assert(s==sign(p))
@@ -281,7 +293,7 @@ def test(n):
 		print(str(s)+' '+str(sign(p)))
 
 
-	(P,sp),(Q,sq),(R,sr)=generate_complementary_perm_seqs([2,4,5])
+	(P,sp),(Q,sq),(R,sr)=generate_complementary_perm_seqs([5,4,2])
 	permnumber=0
 	for i in range(sp.size):
 		for j in range(sq.size):
@@ -295,8 +307,6 @@ def test(n):
 	print(Q)
 	print(P)
 	
-	blocks=generate_complementary_perm_seqs([7,11,14,16],largefirst=False)
-	print([block[1].size for block in blocks])
 
 
 def verify(k,p):		
@@ -310,7 +320,7 @@ def verify(k,p):
 tests----------------------------------------------------------------------------------------------------s
 """
 
-if len(sys.argv)>1 and sys.argv[1]=='test':
+if len(sys.argv)>1 and sys.argv[1]=='t':
 	test(int(input('n for test: ')))
 	performancetest(int(input('n for perf test: ')))
 

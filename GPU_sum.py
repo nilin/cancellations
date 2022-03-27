@@ -48,9 +48,9 @@ def GPU_batch(P,Q,Rw,x,signQ,signR,activation):
 
 
 
-def sum_permblocks(w,x,ac_name,kR,kQ,start,stop,loud=False):
+def sum_permblocks(w,x,ac_name,kQ,kR,start,stop,loud=False):
 	n=w.shape[-2]
-	(q,signQ),(r,signR)=perms.generate_complementary_perm_seqs([kR,kQ],n=n)
+	(q,signQ),(r,signR)=perms.generate_complementary_perm_seqs([kQ,kR],n=n)
 	Q=perms.perm_as_matrix(q)
 	R=perms.perm_as_matrix(r)
 	Rw=jnp.dot(R,w)
@@ -79,15 +79,15 @@ def sum_permblocks(w,x,ac_name,kR,kQ,start,stop,loud=False):
 def sum_all_perms(w,x,ac_name,**kwargs):
 	n=w.shape[-2]
 	N=math.factorial(n)
-	kR,kQ=blocksizechoices(n)
-	return sum_permblocks(w,x,ac_name,kR,kQ,0,N,**kwargs)
+	kQ,kR=blocksizechoices(n)
+	return sum_permblocks(w,x,ac_name,kQ,kR,0,N,**kwargs)
 
 
 
 def blocksizechoices(n):
 	kQ=min(12,n-1)
 	kR=min(8,kQ-1)
-	return kR,kQ
+	return kQ,kR
 	
 
 
@@ -103,6 +103,7 @@ def test():
 
 	test_batch(w,x)
 	test_det(w,x)
+	test_small_n_edgecase(w,x)
 	
 	n=13
 	w=jax.random.normal(key3,(n,d))/jnp.sqrt(n*d)
@@ -110,27 +111,34 @@ def test():
 
 	speedtest(w,x)	
 
+def test_small_n_edgecase(w_,x_):
+	w,x=w_[:2,:],x_[:2,:]
+	S=util.ReLU(jnp.vdot(w,x))-util.ReLU(jnp.vdot(jnp.flip(w,axis=0),x))	
+	util.assertequal(S,sum_permblocks(w,x,'ReLU',2,1,0,2),'n=2 edge case')
+
 def test_batch(w,x):
 	n=w.shape[0]
 	S1=0
 	for i in range(12):
 		P=perms.k_to_matrix(i,n)
 		sgn=jnp.linalg.det(P)
-		S1=S1+sgn*util.ReLU(jnp.tensordot(jnp.dot(P,w),x,axes=([0,1],[0,1])))
-	S2=sum_permblocks(w,x,'ReLU',2,3,0,12)
-	util.assertequal(S1,S2)
+		S1=S1+sgn*util.ReLU(jnp.vdot(jnp.dot(P,w),x))
+		#S1=S1+sgn*util.ReLU(jnp.tensordot(jnp.dot(P,w),x,axes=([0,1],[0,1])))
+	S2=sum_permblocks(w,x,'ReLU',3,2,0,12)
+	util.assertequal(S1,S2,'sum_permblocks 1-12')
 	S3=0
 	for i in range(math.factorial(n)):
 		P=perms.k_to_matrix(i,n)
 		sgn=jnp.linalg.det(P)
-		S3=S3+sgn*util.ReLU(jnp.tensordot(jnp.dot(P,w),x,axes=([0,1],[0,1])))
-	S4=sum_permblocks(w,x,'ReLU',2,3,0,math.factorial(n))
+		S3=S3+sgn*util.ReLU(jnp.tensordot(jnp.dot(P,w),x))
+		#S3=S3+sgn*util.ReLU(jnp.tensordot(jnp.dot(P,w),x,axes=([0,1],[0,1])))
+	S4=sum_permblocks(w,x,'ReLU',3,2,0,math.factorial(n))
 	S5=sum_all_perms(w,x,'ReLU')
-	util.assertequal(S3,S4)
-	util.assertequal(S3,S5)
+	util.assertequal(S3,S4,'sum_permblocks')
+	util.assertequal(S3,S5,'sum_all_perms')
 
 def test_det(w,x):
-	util.assertequal(sum_all_perms(w,x,'exp'),jnp.linalg.det(jnp.exp(jnp.inner(w,x))))
+	util.assertequal(sum_all_perms(w,x,'exp'),jnp.linalg.det(jnp.exp(jnp.inner(w,x))),'exp Slater')
 
 def speedtest(w,x):
 	sum_all_perms(w,x,'ReLU',loud=True)

@@ -1,5 +1,6 @@
 import numpy as np
 import math
+import bookkeep as bk
 import pickle
 import time
 import copy
@@ -210,15 +211,17 @@ def compare(x,y):
 	print(jnp.max(rel_err))
 	print()
 
-def assertequal(x,y):
-	#x,y=jnp.atleast_1d(jnp.array(x)),jnp.atleast_1d(jnp.array(y))
+
+
+def assertequal(x,y,msg=''):
 	ratio=x/y
 	relerror=jnp.log(ratio)
-	print('\nAssert equal\nvalues '+str(jnp.concatenate([jnp.expand_dims(x,-1),jnp.expand_dims(y,-1)],axis=-1)))
+	ln='\n'+150*'-'+'\n'
+	print(ln+'Assert equal: '+msg+'\nvalues '+str(jnp.concatenate([jnp.expand_dims(x,-1),jnp.expand_dims(y,-1)],axis=-1)))
 	print('rel error: '+str(relerror))
 	assert(jnp.all(ratio>0))
 	assert(jnp.max(jnp.abs(relerror))<0.001)
-	print(100*'-'+'\nTest passed: equal '+str(jnp.concatenate([jnp.expand_dims(x,-1),jnp.expand_dims(y,-1)],axis=-1))+'\n'+100*'-')
+	print('Test passed: equal '+str(jnp.concatenate([jnp.expand_dims(x,-1),jnp.expand_dims(y,-1)],axis=-1))+ln)
 	
 
 
@@ -293,3 +296,23 @@ def listasfunction(x_range,y,fuzziness=.01):
 		return jnp.inner(mask,y)/jnp.sum(mask,axis=-1)
 		
 	return f
+
+
+def medmeans(y_,k):
+	if y_.shape[-1]<k:
+		return jnp.average(y_,axis=-1)
+	n=(y_.shape[-1]//k)*k
+	y=jnp.take(y_,jnp.arange(n),axis=-1)
+	Y=jnp.reshape(y,y.shape[:-1]+(k,n//k))
+	avgs=jnp.average(Y,axis=-1)
+	return jnp.median(avgs,axis=-1)
+
+def bootstrap(key,y,resamples=1000):
+	n=y.shape[0]
+	indices=jax.random.randint(key,(resamples*n,),0,n)
+	return jnp.reshape(y[indices],(resamples,n))
+	
+def bootstrapmeans(key,y,**kwargs):
+	samples=bootstrap(key,y,**kwargs)
+	return jnp.average(samples,axis=-1)
+

@@ -84,3 +84,6 @@ def printbar(val,msg=''):
 	
 def printbars(data):
 	print('| '.join([progressbar(val,150//len(data))+'='+str(msg) for val,msg in data]),end='\r')
+
+def printemph(msg):
+	print(100*'-'+'\n'+str(msg)+'\n'+100*'-'+'\n')
