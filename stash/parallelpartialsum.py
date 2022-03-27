@@ -1,0 +1,76 @@
+import numpy as np
+import math
+import pickle
+import time
+import bookkeep as bk
+import copy
+import jax
+import jax.numpy as jnp
+import util
+import sys
+import os
+import shutil
+import multiprocessing as mp
+import permutations
+import partialsum as ps
+
+
+
+
+def parallel_sum(W,X,ac_name,start,stop,prefix,params):
+
+	tasks, smallblock, bigblock=params['tasks'],params['smallblock'],params['bigblock']
+
+	assert(5040%bigblock==0)
+
+	a=start
+	cumulative_sum=ps.zeros(W,X)
+	timer=bk.Stopwatch()
+	n=W.shape[-2]
+	N=math.factorial(n)
+	prevfilepath='nonexistent'
+
+	with mp.Pool(tasks) as pool:
+		while a<stop:
+			inputs=[a+smallblock*t for t in range(tasks)]
+			inputs_=[(W,X,ac_name,k,smallblock) for k in inputs]
+			parallelsmallsums=pool.map(ps.partial_sum,inputs_)
+			cumulative_sum=cumulative_sum+sum(parallelsmallsums)
+			a=a+bigblock
+		
+			filepath=prefix+str(start)+' '+str(a)			
+			bk.savedata({'result':cumulative_sum,'interval':(start,a),'W':W,'X':X},filepath)
+	
+			if os.path.exists('data/'+prevfilepath): 
+				removepath='data/'+prevfilepath
+				os.remove(removepath)
+			prevfilepath=filepath
+			bk.printbar(a/N,str(a)+' terms. '+str(round(bigblock/timer.tick()))+' terms per second.')
+
+	print('Reached '+str(stop))
+
+
+
+"""
+gen_partial_sum.py ReLU n 10
+"""
+
+
+
+if __name__=='__main__':
+	ac_name=sys.argv[1]
+	Wtype=util.Wtypes[sys.argv[2]]
+	n=int(sys.argv[3])
+	start=int(sys.argv[4])
+	stop=math.factorial(n)
+
+	dirpath='partialsums/'+Wtype
+	bk.mkdir('data/'+dirpath)
+
+	W,X=[bk.getdata(Wtype+'/WX')[k][n] for k in ('Ws','Xs')]
+	
+	print('Computing partial sum for '+ac_name+' activation, '+Wtype+' weights, and n='+str(n)+'.')
+	prefix=dirpath+'/'+ac_name+' n='+str(n)+' range='
+
+	
+	parallel_sum(W,X,ac_name,start,stop,prefix,{'tasks':8,'smallblock':630,'bigblock':5040})

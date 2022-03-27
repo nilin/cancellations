@@ -32,6 +32,7 @@ def sample_inputs_and_outputs(ac_name,n,d,samples,key):
 
 
 if __name__=='__main__':
+	log.log('\n'+str(jax.devices()[0])+'\n',loud=True)
 	d=3
 	rounds=1000
 	ac_name=sys.argv[1]
