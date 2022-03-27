@@ -1,7 +1,6 @@
 import numpy as np
 import math
 import pickle
-import time
 import bookkeep as bk
 import copy
 import jax
@@ -14,7 +13,6 @@ import random
 import multiprocessing as mp
 import log
 import permutations as perms
-import partialsum as ps
 import GPU_sum
 
 

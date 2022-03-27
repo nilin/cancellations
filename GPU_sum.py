@@ -12,8 +12,6 @@ import os
 import shutil
 import multiprocessing as mp
 import permutations as perms
-import partialsum
-import tqdm
 
 
 

@@ -1,9 +1,3 @@
 data/*
-!data/.gitkeep
-data/batchdata/*
-!data/batchdata/.gitkeep
-
 plots/*
-!plots/.gitkeep
-
-stash
+stash*

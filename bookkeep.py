@@ -28,9 +28,18 @@ def mkdir(path):
 		pass
 
 def savedata(data,filename):
-        filename='data/'+filename
-        with open(filename,'wb') as file:
-                pickle.dump(data,file)
+	path='data/'+filename
+	makedirs(path)
+	with open(path,'wb') as file:
+		pickle.dump(data,file)
+
+
+def makedirs(filepath):
+	path='/'.join(filepath.split('/')[:-1])
+	filename=filepath.split('/')[-1]
+	os.makedirs(path,exist_ok=True)	
+	
+
 
 def getdata(filename):
 	with open('data/'+filename,"rb") as file:
