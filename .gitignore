@@ -1,4 +1,6 @@
 data/*
+!data/.gitkeep
+data/batchdata/*
 !data/batchdata/.gitkeep
 
 plots/*
