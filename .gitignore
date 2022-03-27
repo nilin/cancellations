@@ -1,0 +1,7 @@
+data/*
+!data/batchdata/.gitkeep
+
+plots/*
+!plots/.gitkeep
+
+stash
