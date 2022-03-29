@@ -41,7 +41,7 @@ def generate(*args):
 	key0,*keys=jax.random.split(key,rounds+2)
 	r=2
 	#samplenumbers={n:round(min(10.0*(math.factorial(nmax)/math.factorial(n)*.5**(nmax-n)),10000)) for n in range(nmin,nmax+1)}
-	samplenumbers={n:round(min(100.0*2**(nmax-n)),25000)) for n in range(nmin,nmax+1)}
+	samplenumbers={n:round(min(100.0*2**(nmax-n),25000)) for n in range(nmin,nmax+1)}
 	bk.log('sample numbers each round '+str(samplenumbers),loud=True)
 
 	for i in range(rounds):
