@@ -80,13 +80,13 @@ def sum_perms_instancebatch(W,X,permseqs,GPU_batch_func):
 	S=0
 	for i in range(P.shape[0]):
 		S=S+signP[i]*GPU_batch_func(P[i],Q,RW,X,signQ,signR)
-		bk.log('permutation number '+str(i*signQ.size*signR.size))
+		bk.log('permutation number '+str(i*signQ.size*signR.size)+'-'+str((i+1)*signQ.size*signR.size))
 	return S
 
 
 def blocksizechoices(n):
 	kQ=min(11,n)
-	kR=min(7,kQ-1)
+	kR=max(1,min(7,kQ-3))
 	return kQ,kR
 	
 

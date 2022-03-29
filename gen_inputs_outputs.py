@@ -17,14 +17,14 @@ import GPU_sum
 
 
 
-def sample_inputs_and_outputs(ac_name,n,d,samples,key):
+def sample_inputs_and_outputs(ac_name,n,d,samples,key,seed):
 	bk.log(3*'\n'+'\nn='+str(n)+'\n'+str(samples)+' samples\n'+150*'=')
 	instances=samples
 	key1,key2=jax.random.split(key)
 	W=jax.random.normal(key1,(instances,n,d))/jnp.sqrt(n*d)
 	X=jax.random.normal(key2,(samples,n,d))
 	outputs=GPU_sum.sum_perms(W,X,ac_name)
-	bk.savedata({'W':W,'X':X,'outputs':jnp.array(outputs)},ac_name+' | n='+str(n)+' | '+str(samples)+' samples | key='+str(key))
+	bk.savedata({'W':W,'X':X,'outputs':jnp.array(outputs)},'seed='+str(seed)+'/'+ac_name+' | n='+str(n)+' | '+str(samples)+' samples | key='+str(key))
 	return outputs
 
 
@@ -39,8 +39,8 @@ def generate(*args):
 	seed=int(args[3])
 	key=jax.random.PRNGKey(seed)
 	key0,*keys=jax.random.split(key,rounds+2)
-	r=1.8
-	samplenumbers={n:min(math.ceil(r**(nmax-n))*10,10000) for n in range(nmin,nmax+1)}
+	r=2
+	samplenumbers={n:round(min(10.0*(math.factorial(nmax)/math.factorial(n)*.5**(nmax-n)),10000)) for n in range(nmin,nmax+1)}
 	bk.log('sample numbers each round '+str(samplenumbers),loud=True)
 
 	for i in range(rounds):
@@ -49,7 +49,7 @@ def generate(*args):
 
 		for n in range(nmin,nmax+1):
 			bk.log('n='+str(n))
-			sample_inputs_and_outputs(ac_name,n,d,samplenumbers[n],roundkeys[n])
+			sample_inputs_and_outputs(ac_name,n,d,samplenumbers[n],roundkeys[n],seed)
 	
 
 if __name__=='__main__':
