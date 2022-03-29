@@ -13,7 +13,7 @@ import jax
 def plot(key,ac_name):
 	key0,*keys=jax.random.split(key,100)
 	nmax=20
-	data={n:d for n in range(nmax) if len(d:=[bk.getdata('batchdata/'+f)['outputs'] for f in os.listdir('./data/batchdata') if f.startswith(ac_name+' | n='+str(n)+' ')])!=0}
+	data={n:d for n in range(nmax) if len(d:=[bk.getdata(f)['outputs'] for f in os.listdir('./data') if f.startswith(ac_name+' | n='+str(n)+' ')])!=0}
 	n_squares={n:jnp.square(jnp.array(list(itertools.chain(*d))))/(1.*math.factorial(n)) for n,d in data.items()}
 
 	plt.plot(n_squares.keys(),[jnp.average(s) for _,s in n_squares.items()],color='r')

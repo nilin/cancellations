@@ -1,3 +1,4 @@
 import gen_inputs_outputs as gen
+import sys
 
-gen.generate('ReLU','2','14','0')
+gen.generate('ReLU','10','14',int(sys.argv[1]))

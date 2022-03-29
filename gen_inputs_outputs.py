@@ -24,7 +24,7 @@ def sample_inputs_and_outputs(ac_name,n,d,samples,key):
 	W=jax.random.normal(key1,(instances,n,d))/jnp.sqrt(n*d)
 	X=jax.random.normal(key2,(samples,n,d))
 	outputs=[GPU_sum.sum_all_perms(W[i],X[i],ac_name) for i in range(samples)]	
-	bk.savedata({'W':W,'X':X,'outputs':jnp.array(outputs)},'batchdata/'+ac_name+' | n='+str(n)+' | '+str(samples)+' samples | key='+str(key))
+	bk.savedata({'W':W,'X':X,'outputs':jnp.array(outputs)},ac_name+' | n='+str(n)+' | '+str(samples)+' samples | key='+str(key))
 	return outputs
 
 
