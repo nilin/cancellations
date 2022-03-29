@@ -11,7 +11,6 @@ import os
 import shutil
 import random
 import multiprocessing as mp
-import log
 import permutations as perms
 import GPU_sum
 
@@ -23,14 +22,14 @@ def sample_inputs_and_outputs(ac_name,n,d,samples,key):
 	key1,key2=jax.random.split(key)
 	W=jax.random.normal(key1,(instances,n,d))/jnp.sqrt(n*d)
 	X=jax.random.normal(key2,(samples,n,d))
-	outputs=[GPU_sum.sum_all_perms(W[i],X[i],ac_name) for i in range(samples)]	
+	outputs=GPU_sum.sum_perms(W,X,ac_name)
 	bk.savedata({'W':W,'X':X,'outputs':jnp.array(outputs)},ac_name+' | n='+str(n)+' | '+str(samples)+' samples | key='+str(key))
 	return outputs
 
 
 
 def generate(*args):
-	log.log('\n'+str(jax.devices()[0])+'\n',loud=True)
+	bk.log('\n'+str(jax.devices()[0])+'\n',loud=True)
 	d=3
 	rounds=1000
 	ac_name=args[0]
@@ -40,15 +39,15 @@ def generate(*args):
 	key=jax.random.PRNGKey(seed)
 	key0,*keys=jax.random.split(key,rounds+2)
 	r=1.8
-	samplenumbers={n:min(math.ceil(r**(nmax-n))*2,1000) for n in range(nmin,nmax+1)}
-	log.log('sample numbers each round '+str(samplenumbers),loud=True)
+	samplenumbers={n:min(math.ceil(r**(nmax-n))*10,10000) for n in range(nmin,nmax+1)}
+	bk.log('sample numbers each round '+str(samplenumbers),loud=True)
 
 	for i in range(rounds):
 		_,*roundkeys=jax.random.split(keys[i],20)
-		log.log('round '+str(i)+' '+100*'-')
+		bk.log('round '+str(i)+' '+100*'-')
 
 		for n in range(nmin,nmax+1):
-			log.log('n='+str(n))
+			bk.log('n='+str(n))
 			sample_inputs_and_outputs(ac_name,n,d,samplenumbers[n],roundkeys[n])
 	
 

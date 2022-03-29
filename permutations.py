@@ -12,7 +12,6 @@ import sys
 import jax.numpy as jnp
 import bisect
 import time
-import log
 	
 def nextperm(p_):
 	p=list(p_)
@@ -78,14 +77,18 @@ def generate_seq_blocks(k_large,k_small,n):
 	return jnp.array(block),jnp.array(signs)
 
 
-def generate_complementary_perm_seqs(ks,n=None):
+def gen_complementary_perm_seqs(ks,n=None):
 	if n==None:	
 		n=ks[0]
 	ks_=ks+[0]
 	out=[generate_seq_blocks(ks_[i],ks_[i+1],n) for i in range(len(ks))]
 
-	log.log('blocksizes '+str(ks[0])+'! = '+'*'.join(['('+str(ks_[i])+'!/'+str(ks_[i+1])+'!)' for i in range(len(ks))])+' = '+'*'.join([str(len(b[1])) for b in out]))
+	bk.log('blocksizes '+str(ks[0])+'! = '+'*'.join(['('+str(ks_[i])+'!/'+str(ks_[i+1])+'!)' for i in range(len(ks))])+' = '+'*'.join([str(len(b[1])) for b in out]))
 	return out
+
+
+def gen_complementary_Perm_seqs(ks,**kwargs):
+	return [(perm_as_matrix(p),signs) for p,signs in gen_complementary_perm_seqs(ks,**kwargs)]
 		
 
 def compose(*perms):
@@ -293,7 +296,7 @@ def test(n):
 		print(str(s)+' '+str(sign(p)))
 
 
-	(P,sp),(Q,sq),(R,sr)=generate_complementary_perm_seqs([5,4,2])
+	(P,sp),(Q,sq),(R,sr)=gen_complementary_perm_seqs([5,4,2])
 	permnumber=0
 	for i in range(sp.size):
 		for j in range(sq.size):
@@ -319,9 +322,9 @@ def verify(k,p):
 """
 tests----------------------------------------------------------------------------------------------------s
 """
-
-if len(sys.argv)>1 and sys.argv[1]=='t':
-	test(int(input('n for test: ')))
-	performancetest(int(input('n for perf test: ')))
+if __name__=='__main__':
+	if len(sys.argv)>1 and sys.argv[1]=='t':
+		test(int(input('n for test: ')))
+		performancetest(int(input('n for perf test: ')))
 
 

@@ -214,14 +214,15 @@ def compare(x,y):
 
 
 def assertequal(x,y,msg=''):
+	x,y=jnp.array(x),jnp.array(y)
 	ratio=x/y
 	relerror=jnp.log(ratio)
 	ln='\n'+150*'-'+'\n'
-	print(ln+'Assert equal: '+msg+'\nvalues '+str(jnp.concatenate([jnp.expand_dims(x,-1),jnp.expand_dims(y,-1)],axis=-1)))
-	print('rel error: '+str(relerror))
+	print(ln+'Assert equal: '+msg+'\nvalues\n'+str(jnp.concatenate([jnp.expand_dims(x,-1),jnp.expand_dims(y,-1)],axis=-1)))
+	print('\nrel error:\n'+str(relerror))
 	assert(jnp.all(ratio>0))
 	assert(jnp.max(jnp.abs(relerror))<0.001)
-	print('Test passed: equal '+str(jnp.concatenate([jnp.expand_dims(x,-1),jnp.expand_dims(y,-1)],axis=-1))+ln)
+	print('\nTest passed: equal\n'+str(jnp.concatenate([jnp.expand_dims(x,-1),jnp.expand_dims(y,-1)],axis=-1))+ln)
 	
 
 

@@ -9,7 +9,6 @@ import copy
 import jax
 import jax.numpy as jnp
 import util
-import log
 import sys
 import os
 import shutil
@@ -33,56 +32,56 @@ def GPU_batch_exp(P,Q,Rw,x,signQ,signR):
 
 
 
+@jax.jit
+def dot_nd(A,B):
+	return jnp.tensordot(A,B,axes=([-2,-1],[-2,-1]))
 
 
+def GPU_batch(P,Q,RW,X,signQ,signR,activation):
 
-def GPU_batch(P,Q,Rw,x,signQ,signR,activation):
+	PtX=jax.vmap(jnp.dot,in_axes=(None,0))(P.T,X)
+	QtPtX=jax.vmap(jnp.dot,in_axes=(None,0))(jnp.swapaxes(Q,-2,-1),PtX)
 
-	Ptx=jnp.dot(P.T,x)
-	QtPtx=jnp.dot(jnp.swapaxes(Q,-2,-1),Ptx)
-
-	ac_inputs=jnp.tensordot(Rw,QtPtx,axes=([-2,-1],[-2,-1]))
+	ac_inputs=jax.vmap(dot_nd,in_axes=(0,0))(RW,QtPtX)
 	ac_outputs=activation(ac_inputs)
 
 	return jnp.inner(signR,jnp.inner(ac_outputs,signQ))
 
 
+def sum_perms(W,X,ac_name):	
 
+	if(len(W.shape)==2):
+		W=jnp.expand_dims(W,axis=0)
+		X=jnp.expand_dims(X,axis=0)
 
-def sum_permblocks(w,x,ac_name,kQ,kR,start,stop,loud=False):
-	n=w.shape[-2]
-	(q,signQ),(r,signR)=perms.generate_complementary_perm_seqs([kQ,kR],n=n)
-	Q=perms.perm_as_matrix(q)
-	R=perms.perm_as_matrix(r)
-	Rw=jnp.dot(R,w)
+	n=W.shape[-2]
+
+	kQ,kR=blocksizechoices(n)
+	permseqs=perms.gen_complementary_Perm_seqs([n,kQ,kR])
 	
 	GPU_batch_func=globals()['GPU_batch_'+ac_name]
 
-	blocksize=math.factorial(kQ)
-	assert(start%blocksize==0 and stop%blocksize==0)	
-	K0=start
+	permbatchsize=math.factorial(kQ)
+	instancebatchsize=4*(10**8)//permbatchsize
+	start=0
+	outputs=[]
+	for start in range(0,W.shape[0],instancebatchsize):
+		end=min(start+instancebatchsize,W.shape[0])
+		bk.log('\nsample batch '+str(start)+'-'+str(end)+100*'-')
+		W_batch=W[start:end]
+		X_batch=X[start:end]
+		outputs.append(sum_perms_instancebatch(W_batch,X_batch,permseqs,GPU_batch_func))
+	return jnp.concatenate(outputs,axis=0)
 
-	p=perms.k_to_perm(K0,n)
-	signP=perms.sign(p)
 
+def sum_perms_instancebatch(W,X,permseqs,GPU_batch_func):
+	(P,signP),(Q,signQ),(R,signR)=permseqs
+	RW=jax.vmap(jnp.dot,in_axes=(None,0))(R,W)
 	S=0
-	for K in range(start,stop,blocksize):
-		S=S+signP*GPU_batch_func(perms.perm_as_matrix(p),Q,Rw,x,signQ,signR)
-		p,ds=perms.nextblock(p,kQ)
-		signP=signP*ds
-		
-		if loud:
-			log.log('Q size '+str(Q.shape)+'  |  '+'Rw size '+str(Rw.shape)+'  |  permutation number '+str(K))
-
+	for i in range(P.shape[0]):
+		S=S+signP[i]*GPU_batch_func(P[i],Q,RW,X,signQ,signR)
+		bk.log('permutation number '+str(i*signQ.size*signR.size))
 	return S
-
-
-def sum_all_perms(w,x,ac_name,**kwargs):
-	n=w.shape[-2]
-	N=math.factorial(n)
-	kQ,kR=blocksizechoices(n)
-	return sum_permblocks(w,x,ac_name,kQ,kR,0,N,**kwargs)
-
 
 
 def blocksizechoices(n):
@@ -99,50 +98,46 @@ def test():
 	d=3;n=5
 	key=jax.random.PRNGKey(0)
 	key1,key2,key3,key4,*r=jax.random.split(key,5)
-	w=jax.random.normal(key1,(n,d))/jnp.sqrt(n*d)
-	x=jax.random.normal(key2,(n,d))
+	W=jax.random.normal(key1,(10,n,d))/jnp.sqrt(n*d)
+	X=jax.random.normal(key2,(10,n,d))
 
-	test_batch(w,x)
-	test_det(w,x)
-	test_small_n_edgecase(w,x)
+	test_batch(W,X)
+	test_det(W,X)
+	test_small_n_edgecase(W,X)
 	
-	n=13
-	w=jax.random.normal(key3,(n,d))/jnp.sqrt(n*d)
-	x=jax.random.normal(key4,(n,d))
+	n=12
+	W=jax.random.normal(key3,(100,n,d))/jnp.sqrt(n*d)
+	X=jax.random.normal(key4,(100,n,d))
+	
+	_=input('press enter for speed test ')
+	speedtest(W,X)	
 
-	speedtest(w,x)	
+def test_small_n_edgecase(W_,X_):
+	W=jnp.take(W_,jnp.arange(2),axis=-2)
+	X=jnp.take(X_,jnp.arange(2),axis=-2)
+	S=[jnp.tanh(jnp.vdot(W[i],X[i]))-jnp.tanh(jnp.vdot(jnp.flip(W[i],axis=-2),X[i])) for i in range(W.shape[0])]
+	util.assertequal(S,sum_perms(W,X,'tanh'),'n=2 edge case')
 
-def test_small_n_edgecase(w_,x_):
-	w,x=w_[:2,:],x_[:2,:]
-	S=util.ReLU(jnp.vdot(w,x))-util.ReLU(jnp.vdot(jnp.flip(w,axis=0),x))	
-	util.assertequal(S,sum_permblocks(w,x,'ReLU',2,1,0,2),'n=2 edge case')
+def test_batch(W,X):
+	n=W.shape[-2]
+	samples=W.shape[0]
+	out=[]
+	for s in range(samples):
+		w,x=W[s],X[s]
+		S=0
+		for i in range(math.factorial(n)):
+			P=perms.k_to_matrix(i,n)
+			sgn=jnp.linalg.det(P)
+			S=S+sgn*util.ReLU(jnp.tensordot(jnp.dot(P,w),x))
+		out.append(S)
+	util.assertequal(sum_perms(W,X,'ReLU'),jnp.array(out),'sum_all_perms')
 
-def test_batch(w,x):
-	n=w.shape[0]
-	S1=0
-	for i in range(12):
-		P=perms.k_to_matrix(i,n)
-		sgn=jnp.linalg.det(P)
-		S1=S1+sgn*util.ReLU(jnp.vdot(jnp.dot(P,w),x))
-		#S1=S1+sgn*util.ReLU(jnp.tensordot(jnp.dot(P,w),x,axes=([0,1],[0,1])))
-	S2=sum_permblocks(w,x,'ReLU',3,2,0,12)
-	util.assertequal(S1,S2,'sum_permblocks 1-12')
-	S3=0
-	for i in range(math.factorial(n)):
-		P=perms.k_to_matrix(i,n)
-		sgn=jnp.linalg.det(P)
-		S3=S3+sgn*util.ReLU(jnp.tensordot(jnp.dot(P,w),x))
-		#S3=S3+sgn*util.ReLU(jnp.tensordot(jnp.dot(P,w),x,axes=([0,1],[0,1])))
-	S4=sum_permblocks(w,x,'ReLU',3,2,0,math.factorial(n))
-	S5=sum_all_perms(w,x,'ReLU')
-	util.assertequal(S3,S4,'sum_permblocks')
-	util.assertequal(S3,S5,'sum_all_perms')
-
-def test_det(w,x):
-	util.assertequal(sum_all_perms(w,x,'exp'),jnp.linalg.det(jnp.exp(jnp.inner(w,x))),'exp Slater')
+def test_det(W,X):
+	dets=[jnp.linalg.det(jnp.exp(jnp.inner(W[i],X[i]))) for i in range(W.shape[0])]
+	util.assertequal(sum_perms(W,X,'exp'),dets,'exp Slater')
 
 def speedtest(w,x):
-	sum_all_perms(w,x,'ReLU',loud=True)
+	sum_perms(w,x,'ReLU')
 
 
 
