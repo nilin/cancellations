@@ -55,11 +55,18 @@ def plot(key,folder,ac_name):
 	plt.yscale('log')
 
 
+def plot_packing():
+	data=bk.getdata('w_packing ReLU')
+	n_,normal,gamma=data['range'],data['normal'],data['gamma']
+	plt.plot(n_,[gamma[n] for n in n_],'m:')
+	plt.plot(n_,[jnp.average(jnp.square(normal[n]))/(1.0*math.factorial(n)) for n in n_],'g:')
+
 
 if __name__=='__main__':
 
 
 	key=jax.random.PRNGKey(0)
-	plot(key,input('folder '),input('activation function '))
+	plot(key,'0_10/','ReLU')
+	plot_packing()
 #	plot(key,input('activation function: '))
 	plt.show()

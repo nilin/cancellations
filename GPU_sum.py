@@ -32,6 +32,14 @@ def GPU_batch_exp(P,Q,Rw,x,signQ,signR):
 
 
 
+
+@jax.jit
+def GPU_batch_gamma_ReLU(P,Q,Rw,x,signQ,signR):
+	return GPU_batch(P,Q,Rw,x,signQ,signR,lambda x:util.gamma_ReLU(1.001,x))
+
+
+
+
 @jax.jit
 def dot_nd(A,B):
 	return jnp.tensordot(A,B,axes=([-2,-1],[-2,-1]))
@@ -48,6 +56,9 @@ def GPU_batch(P,Q,RW,X,signQ,signR,activation):
 	return jnp.inner(signR,jnp.inner(ac_outputs,signQ))
 
 
+
+
+
 def sum_perms(W,X,ac_name):	
 
 	if(len(W.shape)==2):
@@ -55,6 +66,7 @@ def sum_perms(W,X,ac_name):
 		X=jnp.expand_dims(X,axis=0)
 
 	n=W.shape[-2]
+	bk.log('n='+str(n)+' '+150*'-')
 
 	kQ,kR=blocksizechoices(n)
 	permseqs=perms.gen_complementary_Perm_seqs([n,kQ,kR])
@@ -73,7 +85,7 @@ def sum_perms(W,X,ac_name):
 		t0=time.perf_counter()
 		outputs.append(sum_perms_instancebatch(W_batch,X_batch,permseqs,GPU_batch_func))
 		t1=time.perf_counter()
-		bk.log('\nsample batch '+str(start)+'-'+str(end)+'\n'+str(W_batch.shape[0])+' instances,\n'+str((1.0*math.factorial(n)/(t1-t0))//1000000)+' million permutations per second')
+		bk.log('sample batch '+str(start)+'-'+str(end)+30*' '+'('+str((1.0*math.factorial(n)/(t1-t0))//1000000)+' million permutations)x('+str(end-start)+' instances) per second')
 	return jnp.concatenate(outputs,axis=0)
 
 

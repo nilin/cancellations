@@ -13,16 +13,14 @@ Wtypes={'s':'separated','n':'normal','ss':'separated small','ns':'normal small',
 pwr=lambda x,p:jnp.power(x,p*jnp.ones(x.shape))
 
 ReLU=lambda x:(jnp.abs(x)+x)/2
-#ReLU=lambda x:jnp.max(x,jnp.zeros(x.shape))
 DReLU=lambda x:(jnp.abs(x+1)-jnp.abs(x-1))/2
 heaviside=lambda x:jnp.heaviside(x,1)
 osc=lambda x:jnp.sin(100*x)
 softplus=lambda x:jnp.log(jnp.exp(x)+1)
 
 
-
-gamma_HS=lambda x_:jnp.arctan(jnp.sqrt((x_+1)/(-x_+1)))/math.pi
-
+gamma_ReLU=lambda T,t:1/(2*math.pi)*jnp.sqrt(jnp.square(T)-jnp.square(t))+t/math.pi*jnp.arctan(jnp.sqrt((T+t)/(T-t)))
+gamma_HS=lambda T,t:jnp.arctan(jnp.sqrt((T+t)/(T-t)))/math.pi
 
 
 
@@ -45,6 +43,14 @@ def separate_n_d(x,n,d):
 	return jnp.reshape(x,newshape)
 	
 
+def vmapslice(f,*arrays,b):
+	mapshape=arrays[0].shape[:b]
+	mapsize=jnp.product(jnp.array(mapshape))
+	arrays_=[jnp.reshape(A,(mapsize,)+A.shape[b:])]
+	mapped=jax.vmap(f,*arrays_)
+	return jnp.reshape(mapped,mapshape+mapped.shape[1:])
+
+
 def pairwisediffs(X):
 	n=X.shape[-2]
 	stacked_x_1=jnp.repeat(jnp.expand_dims(X,-2),n,axis=-2)
@@ -63,9 +69,13 @@ def Coulomb(X):
 
 
 def mindist(X):
-	energies=jnp.triu(1/pairwisedists(X),k=1)
-	return 1/jnp.max(energies,axis=(-2,-1))
+	energies=jnp.triu(jnp.exp(-pairwisedists(X)),k=1)
+	return -jnp.log(jnp.max(energies,axis=(-2,-1)))
 	
+def mindist_per_i(X):
+	triu=jnp.triu(jnp.exp(-pairwisedists(X)),k=1)
+	energies=triu+jnp.swapaxes(triu,-2,-1)
+	return -jnp.log(jnp.max(energies,axis=(-1)))
 
 def argmindist(X):
 	energies=jnp.triu(1/pairwisedists(X),k=1)
@@ -230,7 +240,9 @@ def normalize(W):
 	norms=jnp.sqrt(jnp.sum(jnp.square(W),axis=(-2,-1)))
 	return jax.vmap(jnp.multiply,in_axes=(0,0))(W,1/norms)
 
-
+def normalize_flex(W):
+	norms=jnp.sqrt(jnp.sum(jnp.square(W),axis=(-2,-1)))
+	return vmapslice(jnp.multiply,W,1/norms,-2)
 
 ####################################################################################################
 

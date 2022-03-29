@@ -83,7 +83,7 @@ def gen_complementary_perm_seqs(ks,n=None):
 	ks_=ks+[0]
 	out=[generate_seq_blocks(ks_[i],ks_[i+1],n) for i in range(len(ks))]
 
-	bk.log('blocksizes '+str(ks[0])+'! = '+'*'.join(['('+str(ks_[i])+'!/'+str(ks_[i+1])+'!)' for i in range(len(ks))])+' = '+'*'.join([str(len(b[1])) for b in out]))
+	#bk.log('blocksizes '+str(ks[0])+'! = '+'*'.join(['('+str(ks_[i])+'!/'+str(ks_[i+1])+'!)' for i in range(len(ks))])+' = '+'*'.join([str(len(b[1])) for b in out]))
 	return out
 
 

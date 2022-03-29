@@ -11,7 +11,7 @@ import os
 
 def log(msg,loud=True):
 
-	msg=msg+' | '+time.ctime(time.time())
+	msg=msg+'\n\n-'+time.ctime(time.time())+'\n\n'
 	with open('log','a') as f:
 		f.write('\n'+str(msg))
 	if loud:
