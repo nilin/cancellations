@@ -83,7 +83,7 @@ def sum_all_perms(w,x,ac_name,**kwargs):
 
 
 def blocksizechoices(n):
-	kQ=min(12,n-1)
+	kQ=min(12,n)
 	kR=min(8,kQ-1)
 	return kQ,kR
 	
