@@ -18,6 +18,7 @@ import GPU_sum
 
 
 def sample_inputs_and_outputs(ac_name,n,d,samples,key):
+	bk.log(3*'\n'+'\nn='+str(n)+'\n'+str(samples)+' samples\n'+150*'=')
 	instances=samples
 	key1,key2=jax.random.split(key)
 	W=jax.random.normal(key1,(instances,n,d))/jnp.sqrt(n*d)
