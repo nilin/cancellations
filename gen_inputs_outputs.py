@@ -45,11 +45,11 @@ def generate(*args):
 
 	for i in range(rounds):
 		_,*roundkeys=jax.random.split(keys[i],20)
-		print('round '+str(i)+' '+100*'-')
+		log.log('round '+str(i)+' '+100*'-')
 
 		for n in range(nmin,nmax+1):
+			log.log('n='+str(n))
 			sample_inputs_and_outputs(ac_name,n,d,samplenumbers[n],roundkeys[n])
-			print('n='+str(n))
 	
 
 if __name__=='__main__':

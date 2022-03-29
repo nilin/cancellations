@@ -1,3 +1,5 @@
+# nilin
+
 import numpy as np
 import math
 import pickle
@@ -7,6 +9,7 @@ import copy
 import jax
 import jax.numpy as jnp
 import util
+import log
 import sys
 import os
 import shutil
@@ -69,7 +72,7 @@ def sum_permblocks(w,x,ac_name,kQ,kR,start,stop,loud=False):
 		signP=signP*ds
 		
 		if loud:
-			print('Q size '+str(Q.shape)+'  |  '+'Rw size '+str(Rw.shape)+'  |  permutation number '+str(K))
+			log.log('Q size '+str(Q.shape)+'  |  '+'Rw size '+str(Rw.shape)+'  |  permutation number '+str(K))
 
 	return S
 
@@ -83,8 +86,8 @@ def sum_all_perms(w,x,ac_name,**kwargs):
 
 
 def blocksizechoices(n):
-	kQ=min(12,n)
-	kR=min(8,kQ-1)
+	kQ=min(11,n)
+	kR=min(7,kQ-1)
 	return kQ,kR
 	
 
