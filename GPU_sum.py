@@ -67,10 +67,13 @@ def sum_perms(W,X,ac_name):
 	outputs=[]
 	for start in range(0,W.shape[0],instancebatchsize):
 		end=min(start+instancebatchsize,W.shape[0])
-		bk.log('\nsample batch '+str(start)+'-'+str(end)+100*'-')
 		W_batch=W[start:end]
 		X_batch=X[start:end]
+
+		t0=time.perf_counter()
 		outputs.append(sum_perms_instancebatch(W_batch,X_batch,permseqs,GPU_batch_func))
+		t1=time.perf_counter()
+		bk.log('\nsample batch '+str(start)+'-'+str(end)+'\n'+str(W_batch.shape[0])+' instances,\n'+str((1.0*math.factorial(n)/(t1-t0))//1000000)+' million permutations per second')
 	return jnp.concatenate(outputs,axis=0)
 
 
@@ -80,7 +83,7 @@ def sum_perms_instancebatch(W,X,permseqs,GPU_batch_func):
 	S=0
 	for i in range(P.shape[0]):
 		S=S+signP[i]*GPU_batch_func(P[i],Q,RW,X,signQ,signR)
-		bk.log('permutation number '+str(i*signQ.size*signR.size)+'-'+str((i+1)*signQ.size*signR.size))
+		#bk.log('permutation number '+str(i*signQ.size*signR.size)+'-'+str((i+1)*signQ.size*signR.size))
 	return S
 
 
