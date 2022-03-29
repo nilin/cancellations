@@ -29,13 +29,13 @@ def sample_inputs_and_outputs(ac_name,n,d,samples,key):
 
 
 
-if __name__=='__main__':
+def generate(*args):
 	log.log('\n'+str(jax.devices()[0])+'\n',loud=True)
 	d=3
 	rounds=1000
-	ac_name=sys.argv[1]
-	nmax=int(sys.argv[2])
-	seed=int(sys.argv[3])
+	ac_name=args[0]
+	nmax=int(args[1])
+	seed=int(args[2])
 	key=jax.random.PRNGKey(seed)
 	key0,*keys=jax.random.split(key,rounds+2)
 	r=1.8
@@ -50,3 +50,6 @@ if __name__=='__main__':
 			sample_inputs_and_outputs(ac_name,n,d,samplenumbers[n],roundkeys[n])
 			print('n='+str(n))
 	
+
+if __name__=='__main__':
+	generate(*sys.argv[1:])
