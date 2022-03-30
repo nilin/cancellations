@@ -73,4 +73,4 @@ def generate(*args):
 
 if __name__=='__main__':
 	#generate(*sys.argv[1:])
-	generate('ReLU',2,12,123)
+	generate('ReLU',2,12,99)
