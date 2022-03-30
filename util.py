@@ -22,6 +22,12 @@ softplus=lambda x:jnp.log(jnp.exp(x)+1)
 gamma_ReLU=lambda T,t:1/(2*math.pi)*jnp.sqrt(jnp.square(T)-jnp.square(t))+t/math.pi*jnp.arctan(jnp.sqrt((T+t)/(T-t)))
 gamma_HS=lambda T,t:jnp.arctan(jnp.sqrt((T+t)/(T-t)))/math.pi
 
+def gen_gamma_ReLU(Ts):
+	return lambda t:jax.vmap(gamma_ReLU,in_axes=(0,0))(Ts*1.001,t)
+def gen_gamma_HS(Ts):
+	return lambda t:jax.vmap(gamma_ReLU,in_axes=(0,0))(Ts*1.001,t)
+
+
 
 
 #activations={'exp':jnp.exp,'HS':heaviside,'ReLU':ReLU,'tanh':jnp.tanh,'softplus':softplus,'DReLU':DReLU,'osc':osc}

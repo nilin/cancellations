@@ -82,9 +82,10 @@ def gen_w_separated_3d(n,eps,shifts,key):
 	lattice=HCP_lattice(10)
 	shiftedL=lattice[None,:,:]+eps*jax.random.normal(key,(shifts,3))[:,None,:]
 	L=jnp.array([restrict(shiftedL[i],n) for i in range(shifts)])
-	norms=jnp.sqrt(jnp.sum(jnp.square(L),axis=(-2,-1)))
-	i=jnp.argmin(norms)
-	return L[i]/norms[i]
+	#norms=jnp.sqrt(jnp.sum(jnp.square(L),axis=(-2,-1)))
+	#i=jnp.argmin(norms)
+	#return L[i]/norms[i]
+	return util.normalize(L)
 
 
 
@@ -102,7 +103,7 @@ def gen_w_separated_3d(n,eps,shifts,key):
 
 
 def gen(eps):
-	ws={n:gen_w_separated_3d(n,eps,25,keys[n]) for n in n_}
+	ws={n:gen_w_separated_3d(n,eps,5,keys[n]) for n in n_}
 	deltas={n:util.mindist(ws[n]) for n in n_}
 	bk.savedata({'ws':ws,'n_':n_,'deltas':deltas},'w_packing')
 	

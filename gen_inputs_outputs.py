@@ -17,41 +17,56 @@ import GPU_sum
 
 
 
-def sample_inputs_and_outputs(ac_name,n,d,samples,key,seed):
-	bk.log(3*'\n'+'\nn='+str(n)+'\n'+str(samples)+' samples\n'+150*'=')
-	instances=samples
-	key1,key2=jax.random.split(key)
-	W=jax.random.normal(key1,(instances,n,d))/jnp.sqrt(n*d)
-	X=jax.random.normal(key2,(samples,n,d))
-	outputs=GPU_sum.sum_perms(W,X,ac_name)
-	bk.savedata({'W':W,'X':X,'outputs':jnp.array(outputs)},'seed='+str(seed)+'/'+ac_name+' | n='+str(n)+' | '+str(samples)+' samples | key='+str(key))
-	return outputs
-
-
 
 def generate(*args):
 	bk.log('\n'+str(jax.devices()[0])+'\n',loud=True)
 	d=3
-	rounds=1000
 	ac_name=args[0]
 	nmin=int(args[1])
 	nmax=int(args[2])
 	seed=int(args[3])
-	key=jax.random.PRNGKey(seed)
-	key0,*keys=jax.random.split(key,rounds+2)
-	r=2
-	#samplenumbers={n:round(min(10.0*(math.factorial(nmax)/math.factorial(n)*.5**(nmax-n)),10000)) for n in range(nmin,nmax+1)}
-	samplenumbers={n:round(min(100.0*2**(nmax-n),25000)) for n in range(nmin,nmax+1)}
-	bk.log('sample numbers each round '+str(samplenumbers),loud=True)
+	
+	key0=jax.random.PRNGKey(seed)
+	key1,key2=jax.random.split(key0)
+	_,*Wkeys=jax.random.split(key1,100)
+	_,*Xkeys=jax.random.split(key2,100)
 
-	for i in range(rounds):
-		_,*roundkeys=jax.random.split(keys[i],20)
-		bk.log('round '+str(i)+' '+100*'-')
+
+	N=100000
+	Ws={n:jax.random.normal(Wkeys[n],(N,n,d))/jnp.sqrt(n*d) for n in range(nmin,nmax+1)}
+	Xs={n:jax.random.normal(Xkeys[n],(N,n,d)) for n in range(nmin,nmax+1)}
+	outputs={n:jnp.array([]) for n in range(nmin,nmax+1)}
+
+	samples_per_round={n:round(2*4**(nmax-n)) for n in range(nmin,nmax+1)}
+	samples_done={n:0 for n in range(nmin,nmax+1)}
+
+	while samples_done[nmax]<N:
 
 		for n in range(nmin,nmax+1):
-			bk.log('n='+str(n))
-			sample_inputs_and_outputs(ac_name,n,d,samplenumbers[n],roundkeys[n],seed)
+				
+			endblock=min(N,samples_done[n]+samples_per_round[n])
+			if endblock==samples_done[n]:
+				continue
+
+			W=Ws[n][samples_done[n]:endblock]
+			X=Xs[n][samples_done[n]:endblock]
+
+			bk.log(3*'\n'+'\nn='+str(n)+'\n'+str(endblock-samples_done[n])+' samples\n'+150*'=')
+
+			output=GPU_sum.sum_perms(W,X,ac_name)
+			outputs[n]=jnp.concatenate([outputs[n],output])
+
+			if samples_done[n]>0:			
+				try:
+					os.remove('data/seed='+str(seed)+'/'+ac_name+' | n='+str(n)+' | '+str(samples_done[n])+' samples')
+				except:
+					pass
+			bk.savedata({'W':Ws[n][:endblock],'X':Xs[n][:endblock],'outputs':outputs[n],'seed':seed},'seed='+str(seed)+'/'+ac_name+' | n='+str(n)+' | '+str(endblock)+' samples')
+
+			samples_done[n]=endblock
+	
 	
 
 if __name__=='__main__':
-	generate(*sys.argv[1:])
+	#generate(*sys.argv[1:])
+	generate('ReLU',2,14,123)

@@ -35,7 +35,10 @@ def GPU_batch_exp(P,Q,Rw,x,signQ,signR):
 
 @jax.jit
 def GPU_batch_gamma_ReLU(P,Q,Rw,x,signQ,signR):
-	return GPU_batch(P,Q,Rw,x,signQ,signR,lambda x:util.gamma_ReLU(1.001,x))
+	return GPU_batch(P,Q,Rw,x,signQ,signR,util.gen_gamma_ReLU(jnp.sum(jnp.square(x),axis=(-2,-1))))
+@jax.jit
+def GPU_batch_HS_ReLU(P,Q,Rw,x,signQ,signR):
+	return GPU_batch(P,Q,Rw,x,signQ,signR,util.gen_gamma_HS(jnp.sum(jnp.square(x),axis=(-2,-1))))
 
 
 
