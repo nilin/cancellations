@@ -108,24 +108,34 @@ def gen(eps):
 	deltas={n:util.mindist(ws[n]) for n in n_}
 	bk.savedata({'Ws':ws,'ws':ws,'n_':n_,'deltas':deltas},'w_packing')
 	
-	plt.plot(n_,[deltas[n] for n in n_],'r')
+	#plt.plot(n_,[deltas[n] for n in n_],'r')
 	
 
-def compare():
-	Ws={n:util.normalize(jax.random.normal(keys[n],(instances,n,d))/jnp.sqrt(n*d)) for n in n_}
-	deltas={n:util.L2norm(util.mindist(Ws[n])) for n in n_}
-	plt.plot(n_,[deltas[n] for n in n_],'b')
+#def compare():
+#	Ws={n:util.normalize(jax.random.normal(keys[n],(instances,n,d))/jnp.sqrt(n*d)) for n in n_}
+#	deltas={n:util.L2norm(util.mindist(Ws[n])) for n in n_}
+#	plt.plot(n_,[deltas[n] for n in n_],'b')
+#
 
-
-
-density=math.pi/(3*jnp.sqrt(2))
-
-plt.plot(n_,[2*density**(1/3)*(5/3)**(1/2)*n**(-5/6) for n in n_],'m:')
 
 gen(1)
-compare()
-plt.yscale('log')
-plt.show()
+
+
+#
+#density=math.pi/(3*jnp.sqrt(2))
+#plt.plot(n_,[2*density**(1/3)*(5/3)**(1/2)*n**(-5/6) for n in n_],'m:')
+#
+#compare()
+#plt.yscale('log')
+#plt.show()
+#
+#
+
+
+
+
+
+
 
 """
 def gen():
