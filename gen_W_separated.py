@@ -21,9 +21,9 @@ d=3
 key=jax.random.PRNGKey(seed)
 key0,*keys=jax.random.split(key,1000)
 n_=range(2,nmax+1)
-instances=10000
+instances=1000
 
-
+"""
 def gen_W_separated(key,instances,n,d):
 	return util.normalize(separate(util.normalize(jax.random.normal(key,shape=(instances,n,d)))))
 
@@ -52,7 +52,7 @@ def energies(X):
 	return jnp.max(energies,axis=(-2,-1))
 
 energy=lambda W:jnp.sum(energies(W))#+1000*jnp.sum(jnp.square(W))
-
+"""
 
 
 
@@ -82,6 +82,7 @@ def gen_w_separated_3d(n,eps,shifts,key):
 	lattice=HCP_lattice(10)
 	shiftedL=lattice[None,:,:]+eps*jax.random.normal(key,(shifts,3))[:,None,:]
 	L=jnp.array([restrict(shiftedL[i],n) for i in range(shifts)])
+	L=L-jnp.average(L,axis=-2)[:,None,:]
 	#norms=jnp.sqrt(jnp.sum(jnp.square(L),axis=(-2,-1)))
 	#i=jnp.argmin(norms)
 	#return L[i]/norms[i]
@@ -103,9 +104,9 @@ def gen_w_separated_3d(n,eps,shifts,key):
 
 
 def gen(eps):
-	ws={n:gen_w_separated_3d(n,eps,5,keys[n]) for n in n_}
+	ws={n:gen_w_separated_3d(n,eps,100,keys[n]) for n in n_}
 	deltas={n:util.mindist(ws[n]) for n in n_}
-	bk.savedata({'ws':ws,'n_':n_,'deltas':deltas},'w_packing')
+	bk.savedata({'Ws':ws,'ws':ws,'n_':n_,'deltas':deltas},'w_packing')
 	
 	plt.plot(n_,[deltas[n] for n in n_],'r')
 	

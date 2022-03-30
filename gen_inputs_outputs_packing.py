@@ -28,12 +28,16 @@ def generate(*args):
 	
 	key0=jax.random.PRNGKey(seed)
 	key1,key2=jax.random.split(key0)
-	_,*Wkeys=jax.random.split(key1,100)
+	#_,*Wkeys=jax.random.split(key1,100)
 	_,*Xkeys=jax.random.split(key2,100)
 
 
 	N=100000
-	Ws={n:jax.random.normal(Wkeys[n],(N,n,d))/jnp.sqrt(n*d) for n in range(nmin,nmax+1)}
+
+	Ws=bk.getdata('w_packing')['ws']
+
+	Ws={n:jnp.repeat(Ws[n],N//Ws[n].shape[0],axis=0) for n in range(nmin,nmax+1)}
+	#Ws={n:jax.random.normal(Wkeys[n],(N,n,d))/jnp.sqrt(n*d) for n in range(nmin,nmax+1)}
 	Xs={n:jax.random.normal(Xkeys[n],(N,n,d)) for n in range(nmin,nmax+1)}
 	outputs={n:jnp.array([]) for n in range(nmin,nmax+1)}
 
@@ -58,15 +62,15 @@ def generate(*args):
 
 			if samples_done[n]>0:			
 				try:
-					os.remove('data/seed='+str(seed)+'/'+ac_name+' | n='+str(n)+' | '+str(samples_done[n])+' samples')
+					os.remove('data/packing seed='+str(seed)+'/'+ac_name+' | n='+str(n)+' | '+str(samples_done[n])+' samples')
 				except:
 					pass
-			bk.savedata({'W':Ws[n][:endblock],'X':Xs[n][:endblock],'outputs':outputs[n],'seed':seed},'seed='+str(seed)+'/'+ac_name+' | n='+str(n)+' | '+str(endblock)+' samples')
+			bk.savedata({'W':Ws[n][:endblock],'X':Xs[n][:endblock],'outputs':outputs[n],'seed':seed},'packing seed='+str(seed)+'/'+ac_name+' | n='+str(n)+' | '+str(endblock)+' samples')
 
 			samples_done[n]=endblock
 	
 	
 
 if __name__=='__main__':
-	generate(*sys.argv[1:])
-	#generate('ReLU',2,14,123)
+	#generate(*sys.argv[1:])
+	generate('ReLU',2,12,123)
