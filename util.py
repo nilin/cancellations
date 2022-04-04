@@ -191,6 +191,14 @@ def monomials(deg,kmin=0):
 		return jnp.concatenate(vals,axis=-1)
 	return functions
 
+def trigs(degs):
+	degs=jnp.array(degs)
+	def functions(x):
+		theta_x=x[:,None]*degs[None,:]
+		return jnp.concatenate([jnp.cos(theta_x),jnp.sin(theta_x)],axis=-1)
+	return functions
+
+
 
 def basisfit(y,Y):
 	Q,R=jnp.linalg.qr(Y)
@@ -209,6 +217,10 @@ def functionlistfit(x,y,functionlist):
 	
 def polyfit(x,y,deg):
 	return functionfit(x,y,monomials(deg))
+
+
+def trigfit(x,y,degs):
+	return functionfit(x,y,trigs(degs))
 
 def prepfunctions(functionblocklist,functionlist):
 	def functions(x):

@@ -8,6 +8,18 @@ import scratchwork as sc
 
 
 
+
+
+
+def trig(activation,thetas):
+	key=jax.random.PRNGKey(0)
+	z=jax.random.normal(key,shape=(1000000,))
+	a,dist=util.trigfit(z,activation(z),thetas)
+	return dist**2
+	
+
+
+
 def Znorm(key,activation,n,_):
 	z=jax.random.normal(key,shape=(10000,))
 	return util.L2norm(activation(z))

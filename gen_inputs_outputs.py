@@ -17,32 +17,27 @@ import GPU_sum
 
 
 
+d=3
+N=100000
 
 def generate(*args):
 	bk.log('\n'+str(jax.devices()[0])+'\n',loud=True)
-	d=3
 	ac_name=args[0]
 	nmin=int(args[1])
 	nmax=int(args[2])
 	seed=int(args[3])
 	
-	key0=jax.random.PRNGKey(seed)
-	key1,key2=jax.random.split(key0)
-	_,*Wkeys=jax.random.split(key1,100)
-	_,*Xkeys=jax.random.split(key2,100)
 
-
-	N=100000
-	Ws={n:jax.random.normal(Wkeys[n],(N,n,d))/jnp.sqrt(n*d) for n in range(nmin,nmax+1)}
-	Xs={n:jax.random.normal(Xkeys[n],(N,n,d)) for n in range(nmin,nmax+1)}
-	outputs={n:jnp.array([]) for n in range(nmin,nmax+1)}
+	inputs=loadinputs(seed,nmin,nmax)
+	Ws,Xs=inputs['Ws'],inputs['Xs']
+	samples_done=loadtracker(seed,nmin,nmax,ac_name)['samples done']
 
 	samples_per_round={n:round(2*4**(nmax-n)) for n in range(nmin,nmax+1)}
-	samples_done={n:0 for n in range(nmin,nmax+1)}
 
 	while samples_done[nmax]<N:
 
 		for n in range(nmin,nmax+1):
+
 				
 			endblock=min(N,samples_done[n]+samples_per_round[n])
 			if endblock==samples_done[n]:
@@ -53,20 +48,56 @@ def generate(*args):
 
 			bk.log(3*'\n'+'\nn='+str(n)+'\n'+str(endblock-samples_done[n])+' samples\n'+150*'=')
 
-			output=GPU_sum.sum_perms(W,X,ac_name)
-			outputs[n]=jnp.concatenate([outputs[n],output])
-
-			if samples_done[n]>0:			
-				try:
-					os.remove('data/seed='+str(seed)+'/'+ac_name+' | n='+str(n)+' | '+str(samples_done[n])+' samples')
-				except:
-					pass
-			bk.savedata({'W':Ws[n][:endblock],'X':Xs[n][:endblock],'outputs':outputs[n],'seed':seed},'seed='+str(seed)+'/'+ac_name+' | n='+str(n)+' | '+str(endblock)+' samples')
+			outputs=GPU_sum.sum_perms(W,X,ac_name)
 
 			samples_done[n]=endblock
+			updatetracker(seed,nmin,nmax,ac_name,samples_done)
+			updateoutputs(seed,nmin,nmax,ac_name,n,outputs)
 	
+
+def loadinputs(seed,nmin,nmax):
+	path=genpath(seed,nmin,nmax)+'/inputs'
+	if not os.path.exists(path):
+		geninputs(seed,nmin,nmax,path)
+	return bk.get(path)
 	
+def geninputs(seed,nmin,nmax,path):
+	key0=jax.random.PRNGKey(seed)
+	key1,key2=jax.random.split(key0)
+	_,*Wkeys=jax.random.split(key1,100)
+	_,*Xkeys=jax.random.split(key2,100)
+	Ws={n:jax.random.normal(Wkeys[n],(N,n,d))/jnp.sqrt(n*d) for n in range(nmin,nmax+1)}
+	Xs={n:jax.random.normal(Xkeys[n],(N,n,d)) for n in range(nmin,nmax+1)}
+	bk.save({'Ws':Ws,'Xs':Xs,'Wkeys':Wkeys,'Xkeys':Xkeys},path)
+
+def loadtracker(seed,nmin,nmax,ac_name):
+	path=genpath(seed,nmin,nmax)+'/'+ac_name+' tracker'
+	if not os.path.exists(path):
+		bk.save({'samples done':{n:0 for n in range(nmin,nmax+1)}},path)
+		prepoutputs(seed,nmin,nmax,ac_name)
+	return bk.get(path)
+
+def updatetracker(seed,nmin,nmax,ac_name,samples_done):
+	bk.save({'samples done':samples_done},genpath(seed,nmin,nmax)+'/'+ac_name+' tracker')
+
+
+def updateoutputs(seed,nmin,nmax,ac_name,n,new_outputs):
+	path=genpath(seed,nmin,nmax)+'/'+ac_name+' '+str(n)
+	data=bk.get(path)
+	outputs=jnp.concatenate([data['outputs'],new_outputs],axis=0)
+	data['outputs']=outputs
+	bk.save(data,path)
+	
+def prepoutputs(seed,nmin,nmax,ac_name):
+	for n in range(nmin,nmax+1):
+		path=genpath(seed,nmin,nmax)+'/'+ac_name+' '+str(n)
+		bk.save({'outputs':jnp.array([])},path)
+
+def genpath(seed,nmin,nmax):
+	return 'data/range='+str(nmin)+' '+str(nmax)+' seed='+str(seed)
+	
+
+
 
 if __name__=='__main__':
 	generate(*sys.argv[1:])
-	#generate('ReLU',2,14,123)

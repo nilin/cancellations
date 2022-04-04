@@ -36,22 +36,27 @@ def mkdir(path):
 
 def savedata(data,filename):
 	path='data/'+filename
+	save(data,path)
+
+def save(data,path):
 	makedirs(path)
 	with open(path,'wb') as file:
 		pickle.dump(data,file)
-
 
 def makedirs(filepath):
 	path='/'.join(filepath.split('/')[:-1])
 	filename=filepath.split('/')[-1]
 	os.makedirs(path,exist_ok=True)	
 	
-
-
-def getdata(filename):
-	with open('data/'+filename,"rb") as file:
+def get(path):
+	with open(path,"rb") as file:
 		data=pickle.load(file)
 	return data
+	
+
+def getdata(filename):
+	return get('data/'+filename)
+
 
 def rangevals(_dict_):
 	range_vals=jnp.array([[k,v] for k,v in _dict_.items()]).T

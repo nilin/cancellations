@@ -11,7 +11,6 @@ import jax.numpy as jnp
 import optax
 import util
 import bookkeep as bk
-import plot_W_delta 
 
 
 #seed=int(input('input seed for randomness '))

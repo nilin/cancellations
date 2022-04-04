@@ -1,6 +1,10 @@
+**/__pycache__
+**/.DS_Store
 data/*
 plots/*
 stash*
+datastash*
+**/datastash/*
 log
 runlocal*
 run.py
