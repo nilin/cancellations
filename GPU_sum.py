@@ -29,7 +29,9 @@ def GPU_batch_tanh(P,Q,Rw,x,signQ,signR):
 @jax.jit
 def GPU_batch_exp(P,Q,Rw,x,signQ,signR):
 	return GPU_batch(P,Q,Rw,x,signQ,signR,jnp.exp) #for testing
-
+@jax.jit
+def GPU_batch_test(P,Q,Rw,x,signQ,signR):
+	return GPU_batch(P,Q,Rw,x,signQ,signR,util.ac_test) #for testing
 
 
 

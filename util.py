@@ -17,6 +17,8 @@ DReLU=lambda x:(jnp.abs(x+1)-jnp.abs(x-1))/2
 heaviside=lambda x:jnp.heaviside(x,1)
 osc=lambda x:jnp.sin(100*x)
 softplus=lambda x:jnp.log(jnp.exp(x)+1)
+ac_test=lambda x:ReLU(x)*jnp.cos(100*x)
+#ac_test=lambda x:ReLU(x)*jnp.sin(x)
 
 
 gamma_ReLU=lambda T,t:1/(2*math.pi)*jnp.sqrt(jnp.square(T)-jnp.square(t))+t/math.pi*jnp.arctan(jnp.sqrt((T+t)/(T-t)))

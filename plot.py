@@ -18,12 +18,18 @@ def plotsquares(data,**kwargs):
 
 	n_squares={n:jnp.square(d)/(1.*math.factorial(n)) for n,d in data.items()}
 
-	plt.scatter(n_squares.keys(),[jnp.average(s) for _,s in n_squares.items()],**kwargs)
 
-	bootstrapmeans=[util.bootstrapmeans(keys[n],s,resamples=400) for n,s in n_squares.items()]
-	q1=[jnp.quantile(means,.01) for means in bootstrapmeans]
-	q2=[jnp.quantile(means,.99) for means in bootstrapmeans]
-	plt.fill_between(n_squares.keys(),q1,q2,alpha=.2,**kwargs)
+	if 'confidenceinterval' in kwargs:
+		bootstrapmeans=[util.bootstrapmeans(keys[n],s,resamples=400) for n,s in n_squares.items()]
+		q1=[jnp.quantile(means,1-kwargs['confidenceinterval']) for means in bootstrapmeans]
+		q2=[jnp.quantile(means,kwargs['confidenceinterval']) for means in bootstrapmeans]
+
+		kwargs.pop('confidenceinterval')
+		plt.fill_between(n_squares.keys(),q1,q2,alpha=.2,**kwargs)
+		plt.scatter(n_squares.keys(),[jnp.average(s) for _,s in n_squares.items()],**kwargs)
+	else:
+		plt.plot(n_squares.keys(),[jnp.average(s) for _,s in n_squares.items()],'o-',**kwargs)
+		
 
 	plt.yscale('log')
 
@@ -36,11 +42,16 @@ def get(nmin_,nmax_,seed_,ac_name):
 
 if __name__=='__main__':
 
-	params=sys.argv[1],sys.argv[2],sys.argv[3]
+	kwargs={}
 
-	plotsquares(get(*params,'ReLU'),color='r')
-	plotsquares(get(*params,'HS'),color='g')
-	plotsquares(get(*params,'tanh'),color='b')
+	params=sys.argv[1],sys.argv[2],sys.argv[3]
+	if 'bootstrap' in sys.argv:
+		kwargs['confidenceinterval']=.99
+
+#	plotsquares(get(*params,'tanh'),color='r')
+	plotsquares(get(*params,'ReLU'),color='g',**kwargs)
+	plotsquares(get(*params,'HS'),color='b',**kwargs)
+#	plotsquares(get(*params,'test'),color='m')
 
 	#plt.plot(range(2,12),[1/x for x in range(2,12)])
 	#plt.plot(range(2,12),[1/(x**3) for x in range(2,12)])
@@ -49,12 +60,18 @@ if __name__=='__main__':
 	nmin,nmax=int(params[0]),int(params[1])
 	n_=range(nmin,nmax+1)
 
-	plt.plot(n_,[proxies.trig(util.ReLU,jnp.arange(0,n*d/4,.5)) for n in n_],'r:')
-	plt.plot(n_,[proxies.trig(util.heaviside,jnp.arange(0,n*d/4,.5)) for n in n_],'g:')
-	plt.plot(n_,[proxies.trig(jnp.tanh,jnp.arange(0,n*d/4,.5)) for n in n_],'b:')
+#	plt.plot(n_,[proxies.trig(util.ReLU,jnp.arange(0,n*d/4,.5)) for n in n_],'r:')
+#	plt.plot(n_,[proxies.trig(util.heaviside,jnp.arange(0,n*d/4,.5)) for n in n_],'g:')
+#	plt.plot(n_,[proxies.trig(jnp.tanh,jnp.arange(0,n*d/4,.5)) for n in n_],'b:')
+
+	theta0=lambda n:n
+
+#	plt.plot(n_,[proxies.proxy('tanh',theta0(n)) for n in n_],'r:')
+	plt.plot(n_,[proxies.proxy('ReLU',theta0(n)) for n in n_],'g:')
+	plt.plot(n_,[proxies.proxy('HS',theta0(n)) for n in n_],'b:')
 
 
-	plt.savefig('plots/ReLU HS tanh.pdf')
+	plt.savefig('plots/ReLU HS.pdf')
 	plt.show()
 
 

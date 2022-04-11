@@ -8,6 +8,51 @@ import scratchwork as sc
 
 
 
+i_=1
+
+F_HS=lambda t: 1/(i_*2*math.pi*t)
+F_ReLU=lambda t: -1/(4*math.pi**2*jnp.square(t))
+F_tanh=lambda t: math.pi/(i_*jnp.sinh(math.pi**2*t))
+
+kernel=lambda t: jnp.exp(-2*math.pi**2*jnp.square(t))
+
+
+def highpass(f,b):
+	g=lambda x:(util.heaviside(x-b)+util.heaviside(-x-b))*f(x)
+	return g
+
+#def softhighpass(f,b):
+#	a=7
+#	bump=lambda x:(jnp.tanh(a*(x+1))+jnp.tanh(a*(-x+1)))/2
+#	print(bump(jnp.arange(-2,2.1,.1)))
+#	return lambda x:(1-bump(x/b))*f(x)
+
+
+def proxy(ac_name,theta0):
+	f=getF(ac_name)
+
+	L=10
+	dx=.01
+	grid1d=jnp.arange(-L,L,dx)
+	ones=jnp.ones((grid1d.size,))
+	X=grid1d[:,None]*ones[None,:]
+	Y=ones[:,None]*grid1d[None,:]
+	
+	b=theta0/(2*math.pi)
+	f_=highpass(f,b)
+	integrand=lambda x,y:f_(x)*f_(y)*kernel(x-y)
+
+	return jnp.sum(integrand(X,Y))*dx**2
+
+def getF(ac_name):
+	return globals()['F_'+ac_name]
+
+
+
+
+
+
+
 
 
 
