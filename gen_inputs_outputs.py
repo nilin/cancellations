@@ -30,7 +30,7 @@ def generate(*args):
 
 	inputs=loadinputs(seed,nmin,nmax)
 	Ws,Xs=inputs['Ws'],inputs['Xs']
-	samples_done=loadtracker(seed,nmin,nmax,ac_name)['samples done']
+	samples_done=loadtracker(seed,nmin,nmax,ac_name)
 
 	samples_per_round={n:round(2*4**(nmax-n)) for n in range(nmin,nmax+1)}
 
@@ -73,13 +73,21 @@ def geninputs(seed,nmin,nmax,path):
 def loadtracker(seed,nmin,nmax,ac_name):
 	path=genpath(seed,nmin,nmax)+'/'+ac_name+' tracker'
 	if not os.path.exists(path):
-		bk.save({'samples done':{n:0 for n in range(nmin,nmax+1)}},path)
+		#bk.save({'samples done':{n:0 for n in range(nmin,nmax+1)}},path)
+		updatetracker(seed,nmin,nmax,ac_name,{n:0 for n in range(nmin,nmax+1)})
 		prepoutputs(seed,nmin,nmax,ac_name)
-	return bk.get(path)
+	with open(path,'r') as f:
+		return {int(ns.split()[0]):int(ns.split()[1]) for ns in f.readlines()}	
+
+#def updatetracker(seed,nmin,nmax,ac_name,samples_done):
+#	bk.save({'samples done':samples_done},genpath(seed,nmin,nmax)+'/'+ac_name+' tracker')
 
 def updatetracker(seed,nmin,nmax,ac_name,samples_done):
-	bk.save({'samples done':samples_done},genpath(seed,nmin,nmax)+'/'+ac_name+' tracker')
-
+	path=genpath(seed,nmin,nmax)+'/'+ac_name+' tracker'
+	bk.makedirs(path)
+	with open(path,'w') as f:
+		f.write('\n'.join([str(n)+' '+str(s) for n,s in samples_done.items()]))
+	
 
 def updateoutputs(seed,nmin,nmax,ac_name,n,new_outputs):
 	path=genpath(seed,nmin,nmax)+'/'+ac_name+' '+str(n)
