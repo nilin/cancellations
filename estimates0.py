@@ -14,7 +14,17 @@ F_HS=lambda t: 1/(i_*2*math.pi*t)
 F_ReLU=lambda t: -1/(4*math.pi**2*jnp.square(t))
 F_tanh=lambda t: math.pi/(i_*jnp.sinh(math.pi**2*t))
 
-kernel=lambda t: jnp.exp(-2*math.pi**2*jnp.square(t))
+gausskernel=lambda t: jnp.exp(-2*math.pi**2*jnp.square(t))
+
+
+
+
+
+
+
+
+
+
 
 
 def highpass(f,b):
@@ -28,7 +38,7 @@ def highpass(f,b):
 #	return lambda x:(1-bump(x/b))*f(x)
 
 
-def proxy(ac_name,theta0):
+def proxy1(ac_name,theta0):
 	f=getF(ac_name)
 
 	L=10
@@ -40,9 +50,24 @@ def proxy(ac_name,theta0):
 	
 	b=theta0/(2*math.pi)
 	f_=highpass(f,b)
-	integrand=lambda x,y:f_(x)*f_(y)*kernel(x-y)
+	integrand=lambda x,y:f_(x)*f_(y)*gausskernel(x-y)
 
 	return jnp.sum(integrand(X,Y))*dx**2
+
+
+def proxy2(ac_name,theta0):
+	f=getF(ac_name)
+
+	L=10
+	dx=.01
+	X=jnp.arange(-L,L,dx)
+	
+	b=theta0/(2*math.pi)
+	f_=highpass(f,b)
+
+	return jnp.sum(jnp.square(f_(X)))*dx
+
+
 
 def getF(ac_name):
 	return globals()['F_'+ac_name]

@@ -12,7 +12,8 @@ import permutations
 Wtypes={'s':'separated','n':'normal','ss':'separated small','ns':'normal small','nl':'normal large','sl':'separated large'}
 pwr=lambda x,p:jnp.power(x,p*jnp.ones(x.shape))
 
-ReLU=lambda x:(jnp.abs(x)+x)/2
+ReLU=lambda x:jnp.maximum(x,0)
+#ReLU=lambda x:(jnp.abs(x)+x)/2
 DReLU=lambda x:(jnp.abs(x+1)-jnp.abs(x-1))/2
 heaviside=lambda x:jnp.heaviside(x,1)
 osc=lambda x:jnp.sin(100*x)

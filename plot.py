@@ -5,7 +5,7 @@ import itertools
 import bookkeep as bk
 import jax.numpy as jnp
 import math
-import proxies
+import estimates
 import jax
 import sys
 
@@ -25,8 +25,8 @@ def plotsquares(data,**kwargs):
 		q2=[jnp.quantile(means,kwargs['confidenceinterval']) for means in bootstrapmeans]
 
 		kwargs.pop('confidenceinterval')
-		plt.fill_between(n_squares.keys(),q1,q2,alpha=.2,**kwargs)
-		plt.scatter(n_squares.keys(),[jnp.average(s) for _,s in n_squares.items()],**kwargs)
+		plt.fill_between(n_squares.keys(),q1,q2,alpha=.3,**kwargs)
+		plt.scatter(n_squares.keys(),[jnp.average(s) for _,s in n_squares.items()],s=3,**kwargs)
 	else:
 		plt.plot(n_squares.keys(),[jnp.average(s) for _,s in n_squares.items()],'o-',**kwargs)
 		
@@ -35,7 +35,7 @@ def plotsquares(data,**kwargs):
 
 
 def get(nmin_,nmax_,seed_,ac_name):
-	path='data/range='+nmin_+' '+nmax_+' seed='+seed_+'/'
+	path='hpcdata/data/range='+nmin_+' '+nmax_+' seed='+seed_+'/'
 	n_=range(int(nmin_),int(nmax_)+1)
 	return {n:bk.get(path+ac_name+' '+str(n))['outputs'] for n in n_}
 
@@ -46,9 +46,9 @@ if __name__=='__main__':
 
 	params=sys.argv[1],sys.argv[2],sys.argv[3]
 	if 'bootstrap' in sys.argv:
-		kwargs['confidenceinterval']=.99
+		kwargs['confidenceinterval']=.995
 
-#	plotsquares(get(*params,'tanh'),color='r')
+	#plotsquares(get(*params,'tanh'),color='r',**kwargs)
 	plotsquares(get(*params,'ReLU'),color='g',**kwargs)
 	plotsquares(get(*params,'HS'),color='b',**kwargs)
 #	plotsquares(get(*params,'test'),color='m')
@@ -60,18 +60,16 @@ if __name__=='__main__':
 	nmin,nmax=int(params[0]),int(params[1])
 	n_=range(nmin,nmax+1)
 
-#	plt.plot(n_,[proxies.trig(util.ReLU,jnp.arange(0,n*d/4,.5)) for n in n_],'r:')
-#	plt.plot(n_,[proxies.trig(util.heaviside,jnp.arange(0,n*d/4,.5)) for n in n_],'g:')
-#	plt.plot(n_,[proxies.trig(jnp.tanh,jnp.arange(0,n*d/4,.5)) for n in n_],'b:')
-
 	theta0=lambda n:n
+	#theta2=lambda n:1.5*n
 
-#	plt.plot(n_,[proxies.proxy('tanh',theta0(n)) for n in n_],'r:')
-	plt.plot(n_,[proxies.proxy('ReLU',theta0(n)) for n in n_],'g:')
-	plt.plot(n_,[proxies.proxy('HS',theta0(n)) for n in n_],'b:')
-
-
+	plt.plot(n_,[estimates.proxy1('ReLU',theta0(n)) for n in n_],'g:')
+	plt.plot(n_,[estimates.proxy1('HS',theta0(n)) for n in n_],'b:')
+	#plt.plot(n_,[estimates.proxy2('ReLU',theta2(n)) for n in n_],'g--')
+	#plt.plot(n_,[estimates.proxy2('HS',theta2(n)) for n in n_],'b--')
 	plt.savefig('plots/ReLU HS.pdf')
+
+	#plt.savefig('plots/ReLU HS tanh.pdf')
 	plt.show()
 
 

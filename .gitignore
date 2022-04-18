@@ -8,3 +8,5 @@ datastash*
 log
 runlocal*
 run.py
+*stash*
+hpcdata/*
