@@ -1,7 +1,9 @@
 import jax.numpy as jnp
+import jax
 import math
 import itertools
 import util
+import GPU_sum
 
 
 
@@ -47,3 +49,35 @@ def naive_sum_test(Ws,X,**kwargs):
 	return out
 
 
+
+
+
+
+
+def test_multilayer(d=3,n=5,layers=5,samples=100,checkagainstnaive=False):	
+	m=n*d
+	key=jax.random.PRNGKey(0)
+	key1,key2,key3,key4,*keys=jax.random.split(key,1000)
+	
+	W=jax.random.normal(key1,(m,n,d))*jnp.sqrt(2/m)
+	Ws=[jax.random.normal(keys[i],(m,m))*jnp.sqrt(2/m) for i in range(layers-2)]
+	w=jax.random.normal(key2,(1,m))*jnp.sqrt(2/m)
+	Ws=[W]+Ws+[w]
+	
+	X=jax.random.normal(key3,(samples,n,d))
+
+	
+	A_R=GPU_sum.sum_perms_multilayer(Ws,X,'ReLU')/jnp.sqrt(math.factorial(n))
+	R=NN_nd(Ws,X)
+	#print(A_R)
+
+	
+	A_T=GPU_sum.sum_perms_multilayer(Ws,X,'tanh')/jnp.sqrt(math.factorial(n))
+	T=NN_nd(Ws,X,ac='tanh')
+	#print(A_T)
+
+	if checkagainstnaive==True:
+		print(naive_sum_test(Ws,X))
+		print(naive_sum_test(Ws,X,ac='tanh'))
+	
+	return {'AR':A_R,'AT':A_T,'R':R,'T':T}

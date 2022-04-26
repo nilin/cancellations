@@ -53,8 +53,6 @@ def sum_perms(W,X,permseqs,applylayers):
 	for i in range(P.shape[0]):
 		firstlayer=GPU_batch_firstlayer(P[i],Q,RW,X)
 		permbatch=applylayers(firstlayer)
-		print(firstlayer.shape)
-		print(permbatch.shape)
 		summedpermbatch=jnp.inner(signR,jnp.dot(permbatch,signQ))
 
 		S=S+signP[i]*summedpermbatch
@@ -64,6 +62,8 @@ def sum_perms(W,X,permseqs,applylayers):
 def gen_applylayers(Ws,ac_name):
 	activation={'tanh':jnp.tanh,'ReLU':util.ReLU,'HS':util.heaviside}[ac_name]
 	def applylayers(X):
+		#m=Ws[0].shape[-1]
+		#X=jnp.reshape(X_,(m,X_.shape[0]//m)+X_.shape[-2:])
 		for W in Ws:
 			X=activation(X)
 			X=jnp.tensordot(W,X,axes=([-1],[0]))
@@ -71,25 +71,42 @@ def gen_applylayers(Ws,ac_name):
 	return applylayers
 
 
-def sum_perms_multilayer(Ws:list,x,ac_name):
+def sum_perms_multilayer(Ws:list,X_,ac_name):
 	W=Ws[0]
 	m,n,d=W.shape
-	X=jnp.repeat(jnp.expand_dims(x,axis=0),m,axis=0)
-
-
-	bk.log('n='+str(n)+' '+150*'-')
 
 	kQ,kR=blocksizechoices(n)
 	permseqs=perms.gen_complementary_Perm_seqs([n,kQ,kR])
 
-	return sum_perms(W,X,permseqs,gen_applylayers(Ws[1:],ac_name))
+	outputs=[]
+	t0=time.perf_counter()
+
+	for i in range(0,X_.shape[0]):
+
+		x=X_[i]
+		x_=jnp.repeat(jnp.expand_dims(x,axis=0),m,axis=0)
+	
+		outputs.append(jnp.squeeze(sum_perms(W,x_,permseqs,gen_applylayers(Ws[1:],ac_name))))
+
+		t1=time.perf_counter()
+		print('Permutations/time = '+'{:,}'.format(int(math.factorial(n)//(t1-t0)))+'/second. Samples done:'+str(i)+'/'+str(X_.shape[0]),end='\r')
+		t0=t1
+
+	print('\n')
+
+	return jnp.array(outputs)
 	
 	
 
 def blocksizechoices(n):
-	kQ=min(11,n)
-	kR=max(1,min(7,kQ-3))
+	kQ=min(10,n)
+	kR=max(1,min(6,kQ-3))
 	return kQ,kR
+
+
+def samplesizechoices(n,m):
+	singlesampleoutputsize=math.factorial(n)*m
+	return max(10**7//singlesampleoutputsize,1)
 	
 
 #def sum_perms_(w,x,ac_name):	
@@ -117,37 +134,13 @@ def blocksizechoices(n):
 	
 ################################################# test ###################################################
 
-def test_multilayer(d=3,n=5,layers=5):	
-	m=n*d
-	key=jax.random.PRNGKey(0)
-	key1,key2,key3,key4,*keys=jax.random.split(key,1000)
-	W=jax.random.normal(key1,(m,n,d))*jnp.sqrt(2/m)
-	Ws=[jax.random.normal(keys[i],(m,m))*jnp.sqrt(2/m) for i in range(layers)]
-	w=jax.random.normal(key2,(1,m))*jnp.sqrt(2/m)
-	Ws=[W]+Ws+[w]
-	x=jax.random.normal(key3,(n,d))
 
-
-	print('ReLU')
-
-	t0=time.perf_counter()
-	print(sum_perms_multilayer(Ws,x,'ReLU'))
-	t1=time.perf_counter()
-	print('time: '+str(t1-t0))
-
-#	print(testing.naive_sum_test(Ws,x))
-#	t2=time.perf_counter()
-#	print('time for naive algorithm: '+str(t2-t1))
 
 	
-	print('tanh')
+		
 
-	t0=time.perf_counter()
-	print(sum_perms_multilayer(Ws,x,'tanh'))
-	t1=time.perf_counter()
-	print('time: '+str(t1-t0))
 
-#	print(testing.naive_sum_test(Ws,x,ac='tanh'))
+#	print(testing.naive_sum_test(Ws,X,ac='tanh'))
 #	t2=time.perf_counter()
 #	print('time for naive algorithm: '+str(t2-t1))
 
@@ -203,4 +196,4 @@ def test_multilayer(d=3,n=5,layers=5):
 
 if __name__=='__main__':
 	if len(sys.argv)>1 and sys.argv[1]=='t':
-		test_multilayer(n=int(input('n: ')),layers=int(input('layers: ')))
+		testing.test_multilayer(n=int(input('n: ')),layers=int(input('layers: ')))
