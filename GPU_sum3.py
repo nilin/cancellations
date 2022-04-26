@@ -62,6 +62,8 @@ def sum_perms(W,X,permseqs,applylayers):
 def gen_applylayers(Ws,ac_name):
 	activation={'tanh':jnp.tanh,'ReLU':util.ReLU,'HS':util.heaviside}[ac_name]
 	def applylayers(X):
+		#m=Ws[0].shape[-1]
+		#X=jnp.reshape(X_,(m,X_.shape[0]//m)+X_.shape[-2:])
 		for W in Ws:
 			X=activation(X)
 			X=jnp.tensordot(W,X,axes=([-1],[0]))
@@ -79,15 +81,21 @@ def sum_perms_multilayer(Ws:list,X_,ac_name):
 	outputs=[]
 	t0=time.perf_counter()
 
-	for i in range(0,X_.shape[0]):
+	samplebatchsize=10
 
-		x=X_[i]
-		x_=jnp.repeat(jnp.expand_dims(x,axis=0),m,axis=0)
+	for i in range(0,X_.shape[0],samplebatchsize):
+
+		#x=X_[i]
+		#x_=jnp.repeat(jnp.expand_dims(x,axis=0),m,axis=0)
 	
+		W=jnp.tile(W,(samplebatchsize,)+(1,)*len(W.shape[1:]))
+		x=X_[i:min(i+samplebatchsize,X_.shape[0])]
+		x_=jnp.repeat(jnp.expand_dims(x,axis=0),m,axis=0)
+
 		outputs.append(jnp.squeeze(sum_perms(W,x_,permseqs,gen_applylayers(Ws[1:],ac_name))))
 
 		t1=time.perf_counter()
-		print('Permutations/time = '+'{:,}'.format(int(math.factorial(n)//(t1-t0)))+'/second. Samples done:'+str(i)+'/'+str(X_.shape[0]),end='\r')
+		print('Permutations*samples/time = '+'{:,}'.format(X_.shape[0]*int(math.factorial(n)//(t1-t0)))+'/second. Samples done:'+str(i)+'/'+str(X_.shape[0]),end='\r')
 		t0=t1
 
 	print('\n')

@@ -50,10 +50,12 @@ def sum_perms(W,X,permseqs,applylayers):
 	(P,signP),(Q,signQ),(R,signR)=permseqs
 	RW=jax.vmap(jnp.dot,in_axes=(None,0))(R,W)
 	S=0
+	signRQ=jnp.reshape(signR[:,None]*signQ[None,:],(signR.size*signQ.size,))
 	for i in range(P.shape[0]):
-		firstlayer=GPU_batch_firstlayer(P[i],Q,RW,X)
-		permbatch=applylayers(firstlayer)
-		summedpermbatch=jnp.inner(signR,jnp.dot(permbatch,signQ))
+		firstlayer=GPU_batch_firstlayer(P[i],Q,RW,X)	
+		flatfirstlayer=jnp.reshape(firstlayer,(X.shape[0],signRQ.size))
+		permbatch=applylayers(flatfirstlayer)
+		summedpermbatch=jnp.dot(permbatch,signRQ)
 
 		S=S+signP[i]*summedpermbatch
 	return S

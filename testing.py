@@ -4,6 +4,7 @@ import math
 import itertools
 import util
 import GPU_sum
+import GPU_sum2
 
 
 
