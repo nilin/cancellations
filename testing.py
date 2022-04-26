@@ -22,12 +22,6 @@ def NN_nd(Ws,X,**kwargs):
 	flatX=jnp.reshape(X,X.shape[:-2]+(n*d,))
 	Ws_=[flatW]+Ws[1:]
 
-#	print(Ws)
-#	print(Ws_)
-#
-#	print(X)
-#	print(flatX)
-
 	return NN(Ws_,flatX,**kwargs)
 
 
@@ -66,15 +60,11 @@ def test_multilayer(d=3,n=5,layers=5,samples=100,checkagainstnaive=False):
 	
 	X=jax.random.normal(key3,(samples,n,d))
 
-	
 	A_R=GPU_sum.sum_perms_multilayer(Ws,X,'ReLU')/jnp.sqrt(math.factorial(n))
 	R=NN_nd(Ws,X)
-	#print(A_R)
 
-	
 	A_T=GPU_sum.sum_perms_multilayer(Ws,X,'tanh')/jnp.sqrt(math.factorial(n))
 	T=NN_nd(Ws,X,ac='tanh')
-	#print(A_T)
 
 	if checkagainstnaive==True:
 		print(naive_sum_test(Ws,X))
