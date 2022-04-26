@@ -60,7 +60,7 @@ def sum_perms(W,X,permseqs,applylayers):
 
 
 def gen_applylayers(Ws,ac_name):
-	activation={'tanh':jnp.tanh,'ReLU':util.ReLU,'HS':util.heaviside}[ac_name]
+	activation={'ReLU':util.ReLU,'tanh':jnp.tanh,'HS':util.heaviside,'DReLU':util.DReLU}[ac_name]
 	def applylayers(X):
 		for W in Ws:
 			X=activation(X)

@@ -4,13 +4,12 @@ import math
 import itertools
 import util
 import GPU_sum
-import GPU_sum2
 
 
 
 
 def NN(Ws,X,ac='ReLU'):
-	activation={'ReLU':util.ReLU,'tanh':jnp.tanh,'HS':util.heaviside}[ac]
+	activation={'ReLU':util.ReLU,'tanh':jnp.tanh,'HS':util.heaviside,'DReLU':util.DReLU}[ac]
 	X=X.T
 	for W in Ws[:-1]:
 		X=activation(jnp.dot(W,X))
@@ -48,6 +47,7 @@ def naive_sum_test(Ws,X,**kwargs):
 
 
 
+acs={'tanh','ReLU','DReLU'}
 
 def test_multilayer(d=3,n=5,layers=5,samples=100,checkagainstnaive=False):	
 	m=n*d
@@ -61,14 +61,12 @@ def test_multilayer(d=3,n=5,layers=5,samples=100,checkagainstnaive=False):
 	
 	X=jax.random.normal(key3,(samples,n,d))
 
-	A_R=GPU_sum.sum_perms_multilayer(Ws,X,'ReLU')/jnp.sqrt(math.factorial(n))
-	R=NN_nd(Ws,X)
 
-	A_T=GPU_sum.sum_perms_multilayer(Ws,X,'tanh')/jnp.sqrt(math.factorial(n))
-	T=NN_nd(Ws,X,ac='tanh')
+	antisymmetrized={ac:GPU_sum.sum_perms_multilayer(Ws,X,'ReLU')/jnp.sqrt(math.factorial(n)) for ac in acs}
+	nonsymmetrized={ac:NN_nd(Ws,X,ac=ac) for ac in acs}
 
-	if checkagainstnaive==True:
-		print(naive_sum_test(Ws,X))
-		print(naive_sum_test(Ws,X,ac='tanh'))
+	#if checkagainstnaive==True:
+	#	print(naive_sum_test(Ws,X))
+	#	print(naive_sum_test(Ws,X,ac='tanh'))
 	
-	return {'AR':A_R,'AT':A_T,'R':R,'T':T}
+	return antisymmetrized,nonsymmetrized

@@ -11,32 +11,33 @@ samples=int(input('nsamples '))
 def sq(x):
 	return jnp.average(jnp.square(x))
 
-yAR=[]
-yAT=[]
-yR=[]
-yT=[]
-#Ls=[1,2,4,8,16,32]
-outs=dict()
+def plotdict(X,Y,*args):
+	plt.plot(X,[Y[int(x)] for x in X],*args)
+
+
+antisymmetrized={ac:dict() for ac in testing.acs}
+nonsymmetrized={ac:dict() for ac in testing.acs}
+
 Ls=jnp.arange(2,int(input('max number of layers ')))
 for l in Ls:
-	out=testing.test_multilayer(d=d,n=n,layers=l,samples=samples)
-	outs[int(l)]=out
-	AR,AT,R,T=(out[k] for k in ['AR','AT','R','T'])
-	yAR.append(sq(AR)/sq(R))
-	yAT.append(sq(AT)/sq(T))
-	yR.append(sq(R))
-	yT.append(sq(T))
+	antisymmetrized_,nonsymmetrized_=testing.test_multilayer(d=d,n=n,layers=l,samples=samples)
+	for ac in testing.acs:
+		antisymmetrized[ac][int(l)]=sq(antisymmetrized_[ac])/sq(nonsymmetrized_[ac])
+		nonsymmetrized[ac][int(l)]=sq(nonsymmetrized_[ac])
+
 	print(str(l)+100*'=')
 
 fn='n='+str(n)+' '+'{:,}'.format(samples)+'samples'
 
 with open('data multilayer '+fn,'wb') as f:
-	pickle.dump(outs,f)
+	pickle.dump({'a':antisymmetrized,'n':nonsymmetrized},f)
 
-plt.plot(Ls,yAR,'b')
-plt.plot(Ls,yAT,'r')
-plt.plot(Ls,yR,'b:')
-plt.plot(Ls,yT,'r:')
+plotdict(Ls,antisymmetrized['tanh'],'r')
+plotdict(Ls,antisymmetrized['DReLU'],'g')
+plotdict(Ls,antisymmetrized['ReLU'],'b')
+plotdict(Ls,nonsymmetrized['tanh'],'r:')
+plotdict(Ls,nonsymmetrized['DReLU'],'g:')
+plotdict(Ls,nonsymmetrized['ReLU'],'b:')
 
 plt.yscale('log')
 plt.savefig('plots multilayer '+fn+'.pdf')
