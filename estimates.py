@@ -10,37 +10,28 @@ import matplotlib as mpl
 import scipy
 import os
 import numpy as np
+import util
 from pathlib import Path
 from scipy.io import loadmat
 
 
 i_=1
 
-F_HS=lambda t: 1/(i_*2*math.pi*t)
-F_ReLU=lambda t: -1/(4*math.pi**2*jnp.square(t))
-F_tanh=lambda t: math.pi/(i_*jnp.sinh(math.pi**2*t))
+F_HS=lambda t: 1/(i_*jnp.sqrt(2*math.pi)*t)
+F_ReLU=lambda t: -1/(jnp.sqrt(2*math.pi)*jnp.square(t))
+F_tanh=lambda t: i_*jnp.sqrt(math.pi/2)/jnp.sinh((math.pi/2)*t)
 
-gausskernel=lambda t: jnp.exp(-2*math.pi**2*jnp.square(t))
+
+# signal processing convention 
+#F_HS=lambda t: 1/(i_*2*math.pi*t)
+#F_ReLU=lambda t: -1/(4*math.pi**2*jnp.square(t))
+#F_tanh=lambda t: math.pi/(i_*jnp.sinh(math.pi**2*t))
 
 
 
 def getF(ac_name):
 	return globals()['F_'+ac_name]
 
-
-
-
-def evaluationpointsandweights(thetas,density):
-	step=.25
-	morethetas=jnp.arange(jnp.max(thetas)+step,10000,step)
-
-	thetas_=jnp.concatenate([thetas,morethetas])
-	dthetas=thetas_[1:]-thetas_[:-1]
-	density_=jnp.concatenate([density,jnp.ones((morethetas.size,))])
-	weights=jnp.multiply(dthetas,density_[1:])
-
-	return thetas_[1:],weights
-	
 
 
 """
@@ -51,17 +42,34 @@ for n,x in dets.items():
 	print(x)
 """
 
-
+def dot(x,y):
+	return jnp.nansum(jnp.multiply(x,y))
 
 
 def fourierestimate(ac_name,n,d):
-	oscdata=loadmat('data/oscdets d='+str(d)+'.mat')
-	nrange=np.squeeze(oscdata['nrange']).astype(int)
-	thetas=jnp.squeeze(jnp.array(oscdata['thetas']))/(2*math.pi)
-	densities={nrange[k]:jnp.array(oscdata['dets'][k]) for k in range(nrange.size)}
-	
-	thetas_,weights=evaluationpointsandweights(thetas,densities[n])
 
-	f_hat=getF(an_name)
-	return jnp.inner(jnp.square(f_hat(thetas_)),weights)
+	data=loadmat('../MATLAB/data/tt d='+str(d)+' n='+str(n)+'.mat')
+	thetas=jnp.squeeze(jnp.array(data['thetas']))
+	density=jnp.squeeze(jnp.array(data['avgdets']))
+	dthetas=thetas[1:]-thetas[:-1];dthetas=jnp.append(dthetas,dthetas[-1])
+	weights=dthetas[:,None]*dthetas[None,:]*density
+
+	f_hat=getF(ac_name)
+	y=f_hat(thetas)
+	integrand=y[:,None]*y[None,:]
+
+	return dot(integrand,weights)/(2*math.pi)
+
+def diagestimate(ac_name,n,d):
+
+	data=loadmat('../MATLAB/data/diag d='+str(d)+' n='+str(n)+'.mat')
+	thetas=jnp.squeeze(jnp.array(data['thetas']))
+	density=jnp.squeeze(jnp.array(data['avgdets']))
+	dthetas=thetas[1:]-thetas[:-1];dthetas=jnp.append(dthetas,dthetas[-1])
+	weights=dthetas*density
+
+	f_hat=getF(ac_name)
+	integrand=jnp.square(f_hat(thetas))
+
+	return dot(integrand,weights)/jnp.sqrt(2*math.pi)
 

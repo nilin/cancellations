@@ -296,6 +296,20 @@ def smooth(x,y,eps,r=5):
 	return x_,y_
 
 
+
+
+def gausssmooth(x,y,variance):
+	density=jnp.exp(-jnp.square(x[:,None]-x[None,:])/(2*variance))/(jnp.sqrt(2*math.pi*variance))
+	dx=x[1:]-x[:-1]
+	dx=jnp.append(dx,dx[-1])
+	kernel=density*dx[None,:]
+	kernel=kernel/jnp.sum(kernel,axis=1)[:,None]
+	return jnp.dot(density,jnp.multiply(y,dx))
+
+
+
+
+
 def numdiff(x,y,eps,r=5):
 	dkernel=jnp.array(r*[1]+r*[-1])/(r**2*eps)
 	dy=jnp.convolve(y,dkernel,mode='valid')

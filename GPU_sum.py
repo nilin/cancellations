@@ -14,35 +14,21 @@ import os
 import shutil
 import multiprocessing as mp
 import permutations as perms
+import typing
+import testing
 
 
-
-@jax.jit
-def GPU_batch_ReLU(P,Q,Rw,x,signQ,signR):
-	return GPU_batch(P,Q,Rw,x,signQ,signR,util.ReLU)
-@jax.jit
-def GPU_batch_HS(P,Q,Rw,x,signQ,signR):
-	return GPU_batch(P,Q,Rw,x,signQ,signR,util.heaviside)
-@jax.jit
-def GPU_batch_tanh(P,Q,Rw,x,signQ,signR):
-	return GPU_batch(P,Q,Rw,x,signQ,signR,jnp.tanh)
-@jax.jit
-def GPU_batch_exp(P,Q,Rw,x,signQ,signR):
-	return GPU_batch(P,Q,Rw,x,signQ,signR,jnp.exp) #for testing
-@jax.jit
-def GPU_batch_test(P,Q,Rw,x,signQ,signR):
-	return GPU_batch(P,Q,Rw,x,signQ,signR,util.ac_test) #for testing
-
-
-
-@jax.jit
-def GPU_batch_gamma_ReLU(P,Q,Rw,x,signQ,signR):
-	return GPU_batch(P,Q,Rw,x,signQ,signR,util.gen_gamma_ReLU(jnp.sum(jnp.square(x),axis=(-2,-1))))
-@jax.jit
-def GPU_batch_HS_ReLU(P,Q,Rw,x,signQ,signR):
-	return GPU_batch(P,Q,Rw,x,signQ,signR,util.gen_gamma_HS(jnp.sum(jnp.square(x),axis=(-2,-1))))
-
-
+#
+#@jax.jit
+#def GPU_batch_ReLU(P,Q,Rw,x):
+#	return GPU_batch_firstlayer(P,Q,Rw,x,util.ReLU)
+#@jax.jit
+#def GPU_batch_HS(P,Q,Rw,x):
+#	return GPU_batch_firstlayer(P,Q,Rw,x,util.heaviside)
+#@jax.jit
+#def GPU_batch_tanh(P,Q,Rw,x):
+#	return GPU_batch_firstlayer(P,Q,Rw,x,jnp.tanh)
+#
 
 
 @jax.jit
@@ -50,59 +36,55 @@ def dot_nd(A,B):
 	return jnp.tensordot(A,B,axes=([-2,-1],[-2,-1]))
 
 
-def GPU_batch(P,Q,RW,X,signQ,signR,activation):
+@jax.jit
+def GPU_batch_firstlayer(P,Q,RW,X):
 
 	PtX=jax.vmap(jnp.dot,in_axes=(None,0))(P.T,X)
 	QtPtX=jax.vmap(jnp.dot,in_axes=(None,0))(jnp.swapaxes(Q,-2,-1),PtX)
 
-	ac_inputs=jax.vmap(dot_nd,in_axes=(0,0))(RW,QtPtX)
-	ac_outputs=activation(ac_inputs)
-
-	return jnp.inner(signR,jnp.inner(ac_outputs,signQ))
+	return jax.vmap(dot_nd,in_axes=(0,0))(RW,QtPtX)
 
 
 
-
-
-def sum_perms(W,X,ac_name):	
-
-	if(len(W.shape)==2):
-		W=jnp.expand_dims(W,axis=0)
-		X=jnp.expand_dims(X,axis=0)
-
-	n=W.shape[-2]
-	bk.log('n='+str(n)+' '+150*'-')
-
-	kQ,kR=blocksizechoices(n)
-	permseqs=perms.gen_complementary_Perm_seqs([n,kQ,kR])
-	
-	GPU_batch_func=globals()['GPU_batch_'+ac_name]
-
-	permbatchsize=math.factorial(kQ)
-	instancebatchsize=4*(10**8)//permbatchsize
-	start=0
-	outputs=[]
-	for start in range(0,W.shape[0],instancebatchsize):
-		end=min(start+instancebatchsize,W.shape[0])
-		W_batch=W[start:end]
-		X_batch=X[start:end]
-
-		t0=time.perf_counter()
-		outputs.append(sum_perms_instancebatch(W_batch,X_batch,permseqs,GPU_batch_func))
-		t1=time.perf_counter()
-		bk.log('sample batch '+str(start)+'-'+str(end)+30*' '+'('+str((1.0*math.factorial(n)/(t1-t0))//1000000)+' million permutations)x('+str(end-start)+' instances) per second')
-	return jnp.concatenate(outputs,axis=0)
-
-
-def sum_perms_instancebatch(W,X,permseqs,GPU_batch_func):
+def sum_perms(W,X,permseqs,applylayers):
 	(P,signP),(Q,signQ),(R,signR)=permseqs
 	RW=jax.vmap(jnp.dot,in_axes=(None,0))(R,W)
 	S=0
 	for i in range(P.shape[0]):
-		S=S+signP[i]*GPU_batch_func(P[i],Q,RW,X,signQ,signR)
-		#bk.log('permutation number '+str(i*signQ.size*signR.size)+'-'+str((i+1)*signQ.size*signR.size))
+		firstlayer=GPU_batch_firstlayer(P[i],Q,RW,X)
+		permbatch=applylayers(firstlayer)
+		print(firstlayer.shape)
+		print(permbatch.shape)
+		summedpermbatch=jnp.inner(signR,jnp.dot(permbatch,signQ))
+
+		S=S+signP[i]*summedpermbatch
 	return S
 
+
+def gen_applylayers(Ws,ac_name):
+	activation={'tanh':jnp.tanh,'ReLU':util.ReLU,'HS':util.heaviside}[ac_name]
+	def applylayers(X):
+		for W in Ws:
+			X=activation(X)
+			X=jnp.tensordot(W,X,axes=([-1],[0]))
+		return X
+	return applylayers
+
+
+def sum_perms_multilayer(Ws:list,x,ac_name):
+	W=Ws[0]
+	m,n,d=W.shape
+	X=jnp.repeat(jnp.expand_dims(x,axis=0),m,axis=0)
+
+
+	bk.log('n='+str(n)+' '+150*'-')
+
+	kQ,kR=blocksizechoices(n)
+	permseqs=perms.gen_complementary_Perm_seqs([n,kQ,kR])
+
+	return sum_perms(W,X,permseqs,gen_applylayers(Ws[1:],ac_name))
+	
+	
 
 def blocksizechoices(n):
 	kQ=min(11,n)
@@ -110,57 +92,115 @@ def blocksizechoices(n):
 	return kQ,kR
 	
 
+#def sum_perms_(w,x,ac_name):	
+#
+#	n=w.shape[-2]
+#	
+#	permbatchsize=math.factorial(kQ)
+#	instancebatchsize=4*(10**8)//permbatchsize
+#	start=0
+#	outputs=[]
+#	for start in range(0,W.shape[0],instancebatchsize):
+#		end=min(start+instancebatchsize,W.shape[0])
+#		W_batch=W[start:end]
+#		X_batch=X[start:end]
+#
+#		t0=time.perf_counter()
+#		outputs.append(sum_perms_instancebatch(W_batch,X_batch,permseqs,GPU_batch_func))
+#		t1=time.perf_counter()
+#		bk.log('sample batch '+str(start)+'-'+str(end)+30*' '+'('+str((1.0*math.factorial(n)/(t1-t0))//(10**6))+' million permutations)x('+str(end-start)+' instances) per second')
+#	return jnp.concatenate(outputs,axis=0)
+
+
+
 
 	
 ################################################# test ###################################################
 
-def test():
-	d=3;n=5
+def test_multilayer(d=3,n=5,layers=5):	
+	m=n*d
 	key=jax.random.PRNGKey(0)
-	key1,key2,key3,key4,*r=jax.random.split(key,5)
-	W=jax.random.normal(key1,(10,n,d))/jnp.sqrt(n*d)
-	X=jax.random.normal(key2,(10,n,d))
+	key1,key2,key3,key4,*keys=jax.random.split(key,1000)
+	W=jax.random.normal(key1,(m,n,d))*jnp.sqrt(2/m)
+	Ws=[jax.random.normal(keys[i],(m,m))*jnp.sqrt(2/m) for i in range(layers)]
+	w=jax.random.normal(key2,(1,m))*jnp.sqrt(2/m)
+	Ws=[W]+Ws+[w]
+	x=jax.random.normal(key3,(n,d))
 
-	test_batch(W,X)
-	test_det(W,X)
-	test_small_n_edgecase(W,X)
+
+	print('ReLU')
+
+	t0=time.perf_counter()
+	print(sum_perms_multilayer(Ws,x,'ReLU'))
+	t1=time.perf_counter()
+	print('time: '+str(t1-t0))
+
+#	print(testing.naive_sum_test(Ws,x))
+#	t2=time.perf_counter()
+#	print('time for naive algorithm: '+str(t2-t1))
+
 	
-	n=12
-	W=jax.random.normal(key3,(100,n,d))/jnp.sqrt(n*d)
-	X=jax.random.normal(key4,(100,n,d))
-	
-	_=input('press enter for speed test ')
-	speedtest(W,X)	
+	print('tanh')
 
-def test_small_n_edgecase(W_,X_):
-	W=jnp.take(W_,jnp.arange(2),axis=-2)
-	X=jnp.take(X_,jnp.arange(2),axis=-2)
-	S=[jnp.tanh(jnp.vdot(W[i],X[i]))-jnp.tanh(jnp.vdot(jnp.flip(W[i],axis=-2),X[i])) for i in range(W.shape[0])]
-	util.assertequal(S,sum_perms(W,X,'tanh'),'n=2 edge case')
+	t0=time.perf_counter()
+	print(sum_perms_multilayer(Ws,x,'tanh'))
+	t1=time.perf_counter()
+	print('time: '+str(t1-t0))
 
-def test_batch(W,X):
-	n=W.shape[-2]
-	samples=W.shape[0]
-	out=[]
-	for s in range(samples):
-		w,x=W[s],X[s]
-		S=0
-		for i in range(math.factorial(n)):
-			P=perms.k_to_matrix(i,n)
-			sgn=jnp.linalg.det(P)
-			S=S+sgn*util.ReLU(jnp.tensordot(jnp.dot(P,w),x))
-		out.append(S)
-	util.assertequal(sum_perms(W,X,'ReLU'),jnp.array(out),'sum_all_perms')
+#	print(testing.naive_sum_test(Ws,x,ac='tanh'))
+#	t2=time.perf_counter()
+#	print('time for naive algorithm: '+str(t2-t1))
 
-def test_det(W,X):
-	dets=[jnp.linalg.det(jnp.exp(jnp.inner(W[i],X[i]))) for i in range(W.shape[0])]
-	util.assertequal(sum_perms(W,X,'exp'),dets,'exp Slater')
 
-def speedtest(w,x):
-	sum_perms(w,x,'ReLU')
+
+#
+#def test():
+#	d=3;n=5
+#	key=jax.random.PRNGKey(0)
+#	key1,key2,key3,key4,*r=jax.random.split(key,5)
+#	W=jax.random.normal(key1,(10,n,d))/jnp.sqrt(n*d)
+#	X=jax.random.normal(key2,(10,n,d))
+#
+#	test_batch(W,X)
+#	test_det(W,X)
+#	test_small_n_edgecase(W,X)
+#	
+#	n=12
+#	W=jax.random.normal(key3,(100,n,d))/jnp.sqrt(n*d)
+#	X=jax.random.normal(key4,(100,n,d))
+#	
+#	_=input('press enter for speed test ')
+#	speedtest(W,X)	
+#
+#def test_small_n_edgecase(W_,X_):
+#	W=jnp.take(W_,jnp.arange(2),axis=-2)
+#	X=jnp.take(X_,jnp.arange(2),axis=-2)
+#	S=[jnp.tanh(jnp.vdot(W[i],X[i]))-jnp.tanh(jnp.vdot(jnp.flip(W[i],axis=-2),X[i])) for i in range(W.shape[0])]
+#	util.assertequal(S,sum_perms(W,X,'tanh'),'n=2 edge case')
+#
+#def test_batch(W,X):
+#	n=W.shape[-2]
+#	samples=W.shape[0]
+#	out=[]
+#	for s in range(samples):
+#		w,x=W[s],X[s]
+#		S=0
+#		for i in range(math.factorial(n)):
+#			P=perms.k_to_matrix(i,n)
+#			sgn=jnp.linalg.det(P)
+#			S=S+sgn*util.ReLU(jnp.tensordot(jnp.dot(P,w),x))
+#		out.append(S)
+#	util.assertequal(sum_perms(W,X,'ReLU'),jnp.array(out),'sum_all_perms')
+#
+#def test_det(W,X):
+#	dets=[jnp.linalg.det(jnp.exp(jnp.inner(W[i],X[i]))) for i in range(W.shape[0])]
+#	util.assertequal(sum_perms(W,X,'exp'),dets,'exp Slater')
+#
+#def speedtest(w,x):
+#	sum_perms(w,x,'ReLU')
 
 
 
 if __name__=='__main__':
 	if len(sys.argv)>1 and sys.argv[1]=='t':
-		test()
+		test_multilayer(n=int(input('n: ')),layers=int(input('layers: ')))
