@@ -70,6 +70,9 @@ def gen_applylayers(Ws,ac_name):
 
 
 def sum_perms_multilayer(Ws:list,X_,ac_name):
+
+	print(str(len(Ws))+' layers')
+
 	W=Ws[0]
 	m,n,d=W.shape
 

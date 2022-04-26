@@ -62,7 +62,7 @@ def test_multilayer(d=3,n=5,layers=5,samples=100,checkagainstnaive=False):
 	X=jax.random.normal(key3,(samples,n,d))
 
 
-	antisymmetrized={ac:GPU_sum.sum_perms_multilayer(Ws,X,'ReLU')/jnp.sqrt(math.factorial(n)) for ac in acs}
+	antisymmetrized={ac:GPU_sum.sum_perms_multilayer(Ws,X,ac)/jnp.sqrt(math.factorial(n)) for ac in acs}
 	nonsymmetrized={ac:NN_nd(Ws,X,ac=ac) for ac in acs}
 
 	#if checkagainstnaive==True:
