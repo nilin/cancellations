@@ -29,7 +29,8 @@ for l in Ls:
 	print(str(l)+100*'=')
 
 fn='n='+str(n)+' '+'{:,}'.format(samples)+'samples'
-with open('data/multilayer/'+fn,'wb') as f:
+
+with open('data multilayer '+fn,'wb') as f:
 	pickle.dump(outs,f)
 
 plt.plot(Ls,yAR,'b')
@@ -38,6 +39,6 @@ plt.plot(Ls,yR,'b:')
 plt.plot(Ls,yT,'r:')
 
 plt.yscale('log')
-plt.savefig('plots/multilayer/'+fn+'.pdf')
+plt.savefig('plots multilayer '+fn+'.pdf')
 
 
