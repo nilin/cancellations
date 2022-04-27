@@ -36,10 +36,8 @@ with open('data multilayer recent','wb') as f:
 
 plotdict(Ls,antisymmetrized['tanh'],'r')
 plotdict(Ls,antisymmetrized['DReLU'],'g')
-plotdict(Ls,antisymmetrized['ReLU'],'b')
 plotdict(Ls,nonsymmetrized['tanh'],'r:')
 plotdict(Ls,nonsymmetrized['DReLU'],'g:')
-plotdict(Ls,nonsymmetrized['ReLU'],'b:')
 
 plt.yscale('log')
 plt.savefig('plots multilayer '+fn+'.pdf')

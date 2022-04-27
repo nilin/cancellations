@@ -47,7 +47,7 @@ def naive_sum_test(Ws,X,**kwargs):
 
 
 
-acs={'tanh','ReLU','DReLU'}
+acs={'tanh','DReLU'}
 
 def test_multilayer(d=3,n=5,layers=5,samples=100,checkagainstnaive=False):	
 	m=n*d
@@ -66,7 +66,7 @@ def test_multilayer(d=3,n=5,layers=5,samples=100,checkagainstnaive=False):
 	nonsymmetrized={ac:NN_nd(Ws,X,ac=ac) for ac in acs}
 
 	#if checkagainstnaive==True:
-	#	print(naive_sum_test(Ws,X))
+	#	print(antisymmetrized['tanh'])
 	#	print(naive_sum_test(Ws,X,ac='tanh'))
 	
 	return antisymmetrized,nonsymmetrized
