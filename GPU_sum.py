@@ -51,6 +51,10 @@ def sum_perms(W,X,permseqs,applylayers):
 	RW=jax.vmap(jnp.dot,in_axes=(None,0))(R,W)
 	S=0
 	for i in range(P.shape[0]):
+		if P.shape[0]>1:
+			if i==0:
+				print('\n'+100*'-')
+			print('  '+str(i)+'th/'+str(P.shape[0])+' block of '+str(permseqs[1][1].size)+'x'+str(permseqs[2][1].size)+' permutations done',end='\r')
 		firstlayer=GPU_batch_firstlayer(P[i],Q,RW,X)
 		permbatch=applylayers(firstlayer)
 		summedpermbatch=jnp.inner(signR,jnp.dot(permbatch,signQ))
@@ -78,7 +82,7 @@ def sum_perms_multilayer(Ws:list,X_,ac_name):
 
 	kQ,kR=blocksizechoices(n)
 	permseqs=perms.gen_complementary_Perm_seqs([n,kQ,kR])
-	print(str(permseqs[0][1].size)+' iterations of '+str(permseqs[1][1].size)+'x'+str(permseqs[2][1].size)+' blocks of permutations')
+	print(str(permseqs[1][1].size)+'x'+str(permseqs[2][1].size)+' blocks of permutations')
 
 	outputs=[]
 	t0=time.perf_counter()
@@ -91,7 +95,8 @@ def sum_perms_multilayer(Ws:list,X_,ac_name):
 		outputs.append(jnp.squeeze(sum_perms(W,x_,permseqs,gen_applylayers(Ws[1:],ac_name))))
 
 		t1=time.perf_counter()
-		print('Permutations/time = '+'{:,}'.format(int(math.factorial(n)//(t1-t0)))+'/second. Samples done:'+str(i)+'/'+str(X_.shape[0]),end='\r')
+	
+		print('Permutations/time = '+'{:,}'.format(int(math.factorial(n)//(t1-t0)))+'/second. Samples done:'+str(i+1)+'/'+str(X_.shape[0]),end='\r')
 		t0=t1
 
 	print('\n')
