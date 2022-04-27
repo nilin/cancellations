@@ -78,7 +78,7 @@ def sum_perms_multilayer(Ws:list,X_,ac_name):
 
 	kQ,kR=blocksizechoices(n)
 	permseqs=perms.gen_complementary_Perm_seqs([n,kQ,kR])
-	print(str(permseqs[1][1].size)+'x'+str(permseqs[2][1].size)+' blocks of permutations')
+	print(str(permseqs[0][1].size)+' iterations of '+str(permseqs[1][1].size)+'x'+str(permseqs[2][1].size)+' blocks of permutations')
 
 	outputs=[]
 	t0=time.perf_counter()
