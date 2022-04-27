@@ -31,6 +31,8 @@ fn='n='+str(n)+' '+'{:,}'.format(samples)+'samples'
 
 with open('data multilayer '+fn,'wb') as f:
 	pickle.dump({'a':antisymmetrized,'n':nonsymmetrized},f)
+with open('data multilayer recent','wb') as f:
+	pickle.dump({'a':antisymmetrized,'n':nonsymmetrized},f)
 
 plotdict(Ls,antisymmetrized['tanh'],'r')
 plotdict(Ls,antisymmetrized['DReLU'],'g')
