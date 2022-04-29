@@ -18,22 +18,21 @@ import typing
 import testing
 
 
-#
-#@jax.jit
-#def GPU_batch_ReLU(P,Q,Rw,x):
-#	return GPU_batch_firstlayer(P,Q,Rw,x,util.ReLU)
-#@jax.jit
-#def GPU_batch_HS(P,Q,Rw,x):
-#	return GPU_batch_firstlayer(P,Q,Rw,x,util.heaviside)
-#@jax.jit
-#def GPU_batch_tanh(P,Q,Rw,x):
-#	return GPU_batch_firstlayer(P,Q,Rw,x,jnp.tanh)
-#
-
 
 @jax.jit
 def dot_nd(A,B):
 	return jnp.tensordot(A,B,axes=([-2,-1],[-2,-1]))
+
+
+
+
+"""
+Every permutation is of the form PQR where P<A,Q<B,R<C for some sets of permutations A,B,C, where, e.g., |A|=12*11*10, |B|=9*8, |C|=7!
+
+PQRw*x=Rw*Q'P'x where (') denotes the inverse. There are |A| iterations of |B|*|C| permutations.
+"""
+
+
 
 
 @jax.jit
