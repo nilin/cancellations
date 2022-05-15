@@ -25,28 +25,6 @@ def NN_nd(Ws,X,**kwargs):
 	return NN(Ws_,flatX,**kwargs)
 
 
-
-def naive_sum_test(Ws,X,**kwargs):
-	
-	NN_=lambda X:NN_nd(Ws,X,**kwargs)
-	
-	n,d=X.shape[-2:]
-	I=jnp.eye(n)
-
-	out=0
-	for p in itertools.permutations(I):
-		P=jnp.array(p)
-		sign=jnp.linalg.det(P)
-		
-		out=out+sign*NN_(jnp.dot(P,X))			
-
-	return out
-
-
-
-
-
-
 acs={'tanh','DReLU'}
 
 def test_multilayer(d=3,n=5,layers=5,samples=100,checkagainstnaive=False):	
@@ -70,3 +48,22 @@ def test_multilayer(d=3,n=5,layers=5,samples=100,checkagainstnaive=False):
 	#	print(naive_sum_test(Ws,X,ac='tanh'))
 	
 	return antisymmetrized,nonsymmetrized
+
+
+
+def naive_sum_test(Ws,X,**kwargs):
+	
+	NN_=lambda X:NN_nd(Ws,X,**kwargs)
+	
+	n,d=X.shape[-2:]
+	I=jnp.eye(n)
+
+	out=0
+	for p in itertools.permutations(I):
+		P=jnp.array(p)
+		sign=jnp.linalg.det(P)
+		
+		out=out+sign*NN_(jnp.dot(P,X))			
+
+	return out
+

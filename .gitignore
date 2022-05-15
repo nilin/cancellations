@@ -15,3 +15,6 @@ hpcdata/*
 firmdata*
 sum2*
 sum3*
+scratchwork
+inputs/*
+outputs/*

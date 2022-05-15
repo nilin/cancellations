@@ -363,3 +363,9 @@ def bootstrapmeans(key,y,**kwargs):
 	samples=bootstrap(key,y,**kwargs)
 	return jnp.average(samples,axis=-1)
 
+
+
+
+
+
+
