@@ -10,7 +10,7 @@ import sys
 
 def split_data(Xs):
 	samples,n,d=Xs.shape
-	batchsize=max(round(100000/math.factorial(n)),1)
+	batchsize=max(round(10000/math.factorial(n)),1)
 	start=0
 	batches=[]
 	while start<samples:

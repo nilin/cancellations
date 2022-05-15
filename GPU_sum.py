@@ -91,7 +91,7 @@ def sum_perms_multilayer(Ws:list,Xs_,ac_name,mode='standard'):
 
 	print('\n')
 
-	return jnp.stack(outputs,axis=-1)/jnp.sqrt(math.factorial(n))
+	return jnp.concatenate(outputs,axis=-1)/jnp.sqrt(math.factorial(n))
 
 
 def printinfo(t0,n,s,batchsize,batches):
