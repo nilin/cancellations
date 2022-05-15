@@ -45,7 +45,7 @@ for n in range(2,nmax+1):
 
 	AS=[]
 	for i,W in enumerate(Ws):
-		print('instance '+str(i)+100*'-')
+		print('instance '+str(i+1)+100*'-')
 		Xs_=split_data(Xs)
 		AS.append(GPU_sum.sum_perms_multilayer(W,Xs_,ac_name))
 

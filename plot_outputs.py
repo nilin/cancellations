@@ -15,18 +15,16 @@ scaling=sys.argv[3] #input('scaling: ')
 
 n_=range(2,nmax+1)
 colors={'tanh':'red','DReLU':'blue'}
+ls={'tanh':'dashed','DReLU':'solid'}
 
 for ac in ['tanh','DReLU']:
-	out=[]
-	for n in n_:
-		fn=ac+' n='+str(n)+' depth='+str(depth)+' scaling='+scaling
-		AS=jnp.squeeze(bk.get('outputs/AS '+fn))
-		NS=jnp.squeeze(bk.get('outputs/NS '+fn))
-		rel=avgsq(AS,axis=-1)/avgsq(NS,axis=-1)
-		out.append([jnp.quantile(rel,.25),jnp.median(rel),jnp.quantile(rel,.75)])
-	out=jnp.array(out)
-	plt.plot(n_,out[:,1],color=colors[ac])
-	plt.fill_between(n_,out[:,2],out[:,0],color=colors[ac],alpha=.1)
+	fns=[ac+' n='+str(n)+' depth='+str(depth)+' scaling='+scaling for n in n_]
+	E_AS=[avgsq(jnp.squeeze(bk.get('outputs/AS '+fn)),axis=-1) for fn in fns]
+	E_AS=[bk.get('outputs/AS '+fn) for fn in fns]
+	print([x.shape for x in E_AS])
+	E_NS=jnp.stack([avgsq(jnp.squeeze(bk.get('outputs/NS '+fn)),axis=-1) for fn in fns],axis=0)
+	plt.plot(n_,jnp.median(E_AS,axis=0),color=colors[ac],marker='o',ms=3,ls=ls[ac])
+	plt.plot(n_,jnp.median(E_NS,axis=0),color=colors[ac],alpha=.2)
 
 plt.yscale('log')
 plt.show()

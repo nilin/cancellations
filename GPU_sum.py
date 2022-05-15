@@ -76,22 +76,22 @@ def sum_perms_multilayer(Ws:list,Xs_,ac_name,mode='standard'):
 
 	W=Ws[0]
 	m,n,d=W.shape
-	print('n='+str(n)+'\n'+str(len(Ws))+' layers')
+	print('n='+str(n)+'\n'+str(len(Ws)+1)+' layers')
 
 	kQ,kR=blocksizechoices(n,mode)
 	permseqs=perms.gen_complementary_Perm_seqs([n,kQ,kR])
 	print(str(permseqs[2][1].size)+'x'+str(permseqs[1][1].size)+' blocks of permutations x '+str(permseqs[0][1].size)+' iterations')
 
 	t=time.perf_counter()
-	sum_=0
+	outputs=[]
 
 	for s,Xs in enumerate(Xs_):
-		sum_=sum_+sum_perms(W,Xs,permseqs,gen_applylayers(Ws[1:],ac_name))
+		outputs.append(sum_perms(W,Xs,permseqs,gen_applylayers(Ws[1:],ac_name)))
 		t=printinfo(t,n,s,Xs.shape[0],len(Xs_))
 
 	print('\n')
 
-	return sum_/jnp.sqrt(math.factorial(n))
+	return jnp.stack(outputs,axis=-1)/jnp.sqrt(math.factorial(n))
 
 
 def printinfo(t0,n,s,batchsize,batches):
