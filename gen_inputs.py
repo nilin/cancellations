@@ -28,7 +28,7 @@ for n in range(2,26):
 	m=n*d
 	for depth in range(2,6):	
 		print('depth='+str(depth),end='\r')
-		m_=[m]*(depth-2)+[1]
+		m_=[m]*(depth-1)+[1]
 		for scaling in ['X','H']:
 			key0,*keys=rnd.split(rnd.PRNGKey(0),instances+10)
 			Ws_=[gen_Ws(keys[i],d,n,m_,scaling) for i in range(instances)]

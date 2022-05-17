@@ -51,8 +51,6 @@ def sum_perms(W,X,permseqs,applylayers):
 	S=0
 	for i in range(P.shape[0]):
 		if P.shape[0]>1:
-			if i==0:
-				print('\n'+100*'-')
 			print('  '+str(i)+'th/'+str(P.shape[0])+' block of '+str(permseqs[1][1].size)+'x'+str(permseqs[2][1].size)+' permutations done',end='\r')
 		firstlayer=GPU_batch_firstlayer(P[i],Q,RW,X)
 		permbatch=applylayers(firstlayer)
@@ -63,7 +61,8 @@ def sum_perms(W,X,permseqs,applylayers):
 
 
 def gen_applylayers(Ws,ac_name):
-	activation={'ReLU':util.ReLU,'tanh':jnp.tanh,'HS':util.heaviside,'DReLU':util.DReLU}[ac_name]
+	activation=util.activations[ac_name] #{'ReLU':util.ReLU,'tanh':jnp.tanh,'HS':util.heaviside,'DReLU':util.DReLU,'exp':jnp.exp}[ac_name]
+	@jax.jit	
 	def applylayers(X):
 		for W in Ws:
 			X=activation(X)
@@ -76,68 +75,26 @@ def sum_perms_multilayer(Ws:list,Xs_,ac_name,mode='standard'):
 
 	W=Ws[0]
 	m,n,d=W.shape
-	print('n='+str(n)+'\n'+str(len(Ws)+1)+' layers')
 
 	kQ,kR=blocksizechoices(n,mode)
 	permseqs=perms.gen_complementary_Perm_seqs([n,kQ,kR])
-	print(str(permseqs[2][1].size)+'x'+str(permseqs[1][1].size)+' blocks of permutations x '+str(permseqs[0][1].size)+' iterations')
 
 	t=time.perf_counter()
 	outputs=[]
+
+	print_('n='+str(n)+'\n'+str(len(Ws))+' layers, '+ac_name+' activation',mode)
 
 	for s,Xs in enumerate(Xs_):
 		outputs.append(sum_perms(W,Xs,permseqs,gen_applylayers(Ws[1:],ac_name)))
 		t=printinfo(t,n,s,Xs.shape[0],len(Xs_))
 
-	print('\n')
-
 	return jnp.concatenate(outputs,axis=-1)/jnp.sqrt(math.factorial(n))
 
 
-def printinfo(t0,n,s,batchsize,batches):
-	t1=time.perf_counter()
-	dt=t1-t0
-	timesbatchsize=(' x '+str(batchsize)+' samples (batch ' if batchsize>1 else ' (sample ')
-	print('Permutations/time = '+'{:,}'.format(int(math.factorial(n)//dt))+'/second.'+timesbatchsize+str(s+1)+'/'+str(batches)+')',end='\r')
-	return t1
-
-	
-#def sum_perms_multilayer(Ws:list,X_,ac_name):
-#
-#	print(str(len(Ws))+' layers')
-#
-#	W=Ws[0]
-#	m,n,d=W.shape
-#
-#	kQ,kR=blocksizechoices(n)
-#	permseqs=perms.gen_complementary_Perm_seqs([n,kQ,kR])
-#	print(str(permseqs[1][1].size)+'x'+str(permseqs[2][1].size)+' blocks of permutations')
-#
-#	outputs=[]
-#	t0=time.perf_counter()
-#
-#	for i in range(0,X_.shape[0]):
-#
-#		x=X_[i]
-#		x_=jnp.repeat(jnp.expand_dims(x,axis=0),m,axis=0)
-#	
-#		outputs.append(jnp.squeeze(sum_perms(W,x_,permseqs,gen_applylayers(Ws[1:],ac_name))))
-#
-#		t1=time.perf_counter()
-#	
-#		print('Permutations/time = '+'{:,}'.format(int(math.factorial(n)//(t1-t0)))+'/second. Samples done:'+str(i+1)+'/'+str(X_.shape[0]),end='\r')
-#		t0=t1
-#
-#	print('\n')
-#
-#	return jnp.array(outputs)
-	
-	
 
 def blocksizechoices(n,mode):
 
 	kQ=min(10,n)
-	#kR=max(1,min(6,kQ-3))
 	
 	sidelengths=jnp.array([max(math.factorial(r),math.factorial(kQ)/math.factorial(r)) for r in range(1,kQ+1)])
 	kR=jnp.argmin(sidelengths)+1
@@ -150,30 +107,39 @@ def blocksizechoices(n,mode):
 	return kQ,kR
 
 
-def samplesizechoices(n,m):
-	singlesampleoutputsize=math.factorial(n)*m
-	return max(10**7//singlesampleoutputsize,1)
+
+
+
+
+
+# print #####################################################################################################
+
+def printpermseqs(permseqs,**kwargs):
+	print_(str(permseqs[2][1].size)+'x'+str(permseqs[1][1].size)+' blocks of permutations x '+str(permseqs[0][1].size)+' iterations',**kwargs)	
+
+def printinfo(t0,n,s,batchsize,batches,**kwargs):
+	t1=time.perf_counter()
+	dt=t1-t0
+	if batchsize==1 and batches==1:
+		sampleinfo=''
+	else:
+		sampleinfo=('batch '+str(s+1)+'/'+str(batches)+' containing '+str(batchsize)+' samples.' if batchsize>1 else 'sample '+str(s+1)+'/'+str(batches))
+	print('Permutations/time = '+'{:,}'.format(int(math.factorial(n)//dt))+'/second. '+sampleinfo,end='\r')
+	if s==batches-1:
+		print('')
+	return t1
+
+def print_(s,mode):
+	if mode!='silent':
+		print(s)
 	
 
-#def sum_perms_(w,x,ac_name):	
-#
-#	n=w.shape[-2]
-#	
-#	permbatchsize=math.factorial(kQ)
-#	instancebatchsize=4*(10**8)//permbatchsize
-#	start=0
-#	outputs=[]
-#	for start in range(0,W.shape[0],instancebatchsize):
-#		end=min(start+instancebatchsize,W.shape[0])
-#		W_batch=W[start:end]
-#		X_batch=X[start:end]
-#
-#		t0=time.perf_counter()
-#		outputs.append(sum_perms_instancebatch(W_batch,X_batch,permseqs,GPU_batch_func))
-#		t1=time.perf_counter()
-#		bk.log('sample batch '+str(start)+'-'+str(end)+30*' '+'('+str((1.0*math.factorial(n)/(t1-t0))//(10**6))+' million permutations)x('+str(end-start)+' instances) per second')
-#	return jnp.concatenate(outputs,axis=0)
 
+
+##def samplesizechoices(n,m):
+##	singlesampleoutputsize=math.factorial(n)*m
+##	return max(10**7//singlesampleoutputsize,1)
+	
 
 
 

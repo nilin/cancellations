@@ -8,21 +8,25 @@ import GPU_sum
 
 
 
-def NN(Ws,X,ac='ReLU'):
-	activation={'ReLU':util.ReLU,'tanh':jnp.tanh,'HS':util.heaviside,'DReLU':util.DReLU}[ac]
+def NN(Ws,X,ac):
+	activation=util.activations[ac]
 	X=X.T
 	for W in Ws[:-1]:
 		X=activation(jnp.dot(W,X))
 	return jnp.dot(Ws[-1],X)
 
+def get_NN_nd(ac):
+	@jax.jit
+	def NN_nd(Ws,X):
+		n,d=X.shape[-2:]
+		flatW=jnp.reshape(Ws[0],Ws[0].shape[:-2]+(n*d,))
+		flatX=jnp.reshape(X,X.shape[:-2]+(n*d,))
+		Ws_=[flatW]+Ws[1:]
 
-def NN_nd(Ws,X,**kwargs):
-	n,d=X.shape[-2:]
-	flatW=jnp.reshape(Ws[0],Ws[0].shape[:-2]+(n*d,))
-	flatX=jnp.reshape(X,X.shape[:-2]+(n*d,))
-	Ws_=[flatW]+Ws[1:]
+		return NN(Ws_,flatX,ac)
+	return NN_nd
 
-	return NN(Ws_,flatX,**kwargs)
+
 
 
 acs={'tanh','DReLU'}

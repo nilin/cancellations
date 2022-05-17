@@ -14,26 +14,18 @@ pwr=lambda x,p:jnp.power(x,p*jnp.ones(x.shape))
 
 ReLU=lambda x:jnp.maximum(x,0)
 DReLU=lambda x:jnp.minimum(jnp.maximum(x,-1),1)
+def get_normalized_DReLU():
+	c=bk.get('firmdata/DReLU normalization')
+	return lambda x:c*DReLU(x)
 heaviside=lambda x:jnp.heaviside(x,1)
-osc=lambda x:jnp.sin(100*x)
-softplus=lambda x:jnp.log(jnp.exp(x)+1)
-ac_test=lambda x:ReLU(x)*jnp.cos(100*x)
-#ac_test=lambda x:ReLU(x)*jnp.sin(x)
 
-
-gamma_ReLU=lambda T,t:1/(2*math.pi)*jnp.sqrt(jnp.square(T)-jnp.square(t))+t/math.pi*jnp.arctan(jnp.sqrt((T+t)/(T-t)))
-gamma_HS=lambda T,t:jnp.arctan(jnp.sqrt((T+t)/(T-t)))/math.pi
-
-def gen_gamma_ReLU(Ts):
-	return lambda t:jax.vmap(gamma_ReLU,in_axes=(0,0))(Ts*1.001,t)
-def gen_gamma_HS(Ts):
-	return lambda t:jax.vmap(gamma_ReLU,in_axes=(0,0))(Ts*1.001,t)
+activations={'exp':jnp.exp,'tanh':jnp.tanh,'ReLU':ReLU,'HS':heaviside,'DReLU':DReLU,'DReLU_normalized':get_normalized_DReLU()}
 
 
 
 
-#activations={'exp':jnp.exp,'HS':heaviside,'ReLU':ReLU,'tanh':jnp.tanh,'softplus':softplus,'DReLU':DReLU,'osc':osc}
-activations={'exp':jnp.exp,'HS':heaviside,'ReLU':ReLU,'tanh':jnp.tanh,'osc':osc}
+
+
 
 
 L2norm=lambda y:jnp.sqrt(jnp.average(jnp.square(y)))
@@ -367,5 +359,7 @@ def bootstrapmeans(key,y,**kwargs):
 
 
 
-
+def print_(mode,*args,**kwargs):
+	if mode!='silent':
+		print(''.join([str(x) for x in args]),**kwargs)
 
