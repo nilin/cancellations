@@ -50,7 +50,7 @@ def getdata(n,depth,scaling,instances,samples):
 def generate(nmin,nmax,depth,ac_name,scaling,instances,samples,mode='standard'):
 
 	NN_nd=testing.get_NN_nd(ac_name)
-	for n in range(2,25):
+	for n in range(nmin,nmax+1):
 		fn='outputs/depth='+str(depth)+' NS/'+ac_name+' n='+str(n)+' scaling='+scaling
 		if os.path.isfile(fn):
 			continue			
@@ -61,6 +61,8 @@ def generate(nmin,nmax,depth,ac_name,scaling,instances,samples,mode='standard'):
 	for n in range(nmin,nmax+1):
 		print(ac_name+' n='+str(n)+', '+str(instances)+' instances, '+str(samples)+' samples'+100*' ')
 		Ws,Xs=getdata(n,depth,scaling,instances,samples)
+
+		print(n)
 
 		for i,W in enumerate(Ws):
 			fn='outputs/depth='+str(depth)+' AS/'+ac_name+' n='+str(n)+' scaling='+scaling+'/instance '+str(i)
