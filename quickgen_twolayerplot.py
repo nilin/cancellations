@@ -4,7 +4,7 @@ import sys
 import jax.numpy as jnp
 
 
-if sys.argv[1]=='h':
+if len(sys.argv)==1:
 	print('\n\nquickgen_twolayerplot.py nmax scaling=X/H\n\n')
 	quit()
 nmax=int(sys.argv[1])

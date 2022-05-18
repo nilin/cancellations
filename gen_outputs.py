@@ -13,7 +13,7 @@ import os
 
 def split_data(Xs,mode='instance'):
 	samples,n,d=Xs.shape
-	batchsize=max(round(10000/math.factorial(n)),1)
+	batchsize=max(round(10000/math.factorial(n)),2)
 	start=0
 	batches=[]
 	indices=[]
