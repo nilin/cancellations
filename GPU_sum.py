@@ -9,6 +9,7 @@ import copy
 import jax
 import jax.numpy as jnp
 import util
+from util import print_
 import sys
 import os
 import shutil
@@ -24,6 +25,20 @@ def dot_nd(A,B):
 	return jnp.tensordot(A,B,axes=([-2,-1],[-2,-1]))
 
 
+@jax.jit
+def apply_n(P,X):
+	PX=jnp.dot(P,X)			# n,zip,s,d
+	return jnp.moveaxis(PX,0,-2)	# zip,s,n,d
+
+@jax.jit
+def apply_many_to_n(Ps,X):		# Ps=p,n,n ; X=zip,s,n,d
+	PX=jnp.dot(Ps,X)		# p,n,zip,s,d
+	PX=jnp.moveaxis(PX,-2,0)	# s,p,n,zip,d
+	return jnp.moveaxis(PX,-2,0)	# zip,s,p,n,d
+
+@jax.jit
+def contract(X,Y):
+	return jnp.tensordot(X,Y,axes=([-1],[0]))
 
 
 """
@@ -36,37 +51,43 @@ PQRw*x=Rw*Q'P'x where (') denotes the inverse. There are |A| iterations of |B|*|
 
 
 @jax.jit
-def GPU_batch_firstlayer(P,Q,RW,X):
+def GPU_batch_firstlayer(P,Q,RW,X):			# RW=zip,m,n,d ; X=zip,s,n,d
+	Qt=jnp.swapaxes(Q,-2,-1)
+	PtX=apply_n(P.T,X)				# zip,s,n,d
+	QtPtX=apply_many_to_n(Qt,X)			# zip,s,q,n,d
 
-	PtX=jax.vmap(jnp.dot,in_axes=(None,0))(P.T,X)
-	QtPtX=jax.vmap(jnp.dot,in_axes=(None,0))(jnp.swapaxes(Q,-2,-1),PtX)
-
-	return jnp.moveaxis(dot_nd(RW,QtPtX),-2,-3)
+	out=jax.vmap(dot_nd,in_axes=(0,0))(RW,QtPtX)	# zip,m,r,s,q
+	return  jnp.moveaxis(out,-2,-3)			# zip,m,s,r,q	(previously m,s,r,q)
 
 
 
-def sum_perms(W,X,permseqs,applylayers):
+def sum_perms(W,X,permseqs,applylayers):		# W=zip,m,n,d ; X=zip,s,n,d
+
+	try: lw,lx=len(W.shape),len(X.shape); assert lw==4 and lx==4 ;
+	except AssertionError: util.print_('','Format should be W=zip,m,n,d; X=zip,s,n,d but they have ',lw,' and ',lx,' dimensions (4 and 4 required)');quit();
+
 	(P,signP),(Q,signQ),(R,signR)=permseqs
-	RW=jax.vmap(jnp.dot,in_axes=(None,0))(R,W)
+	RW=apply_many_to_n(R,W)				#zip,m,r,n,d
 	S=0
 	for i in range(P.shape[0]):
 		if P.shape[0]>1:
 			print('  '+str(i)+'th/'+str(P.shape[0])+' block of '+str(permseqs[1][1].size)+'x'+str(permseqs[2][1].size)+' permutations done',end='\r')
 		firstlayer=GPU_batch_firstlayer(P[i],Q,RW,X)
 		permbatch=applylayers(firstlayer)
-		summedpermbatch=jnp.inner(signR,jnp.dot(permbatch,signQ))
+		summedpermbatch=jnp.dot(jnp.dot(permbatch,signQ),signR)
 
 		S=S+signP[i]*summedpermbatch
-	return S #jnp.swapaxes(S,0,1)
+	return S 					#zip,m,s
 
 
 def gen_applylayers(Ws,ac_name):
 	activation=util.activations[ac_name] #{'ReLU':util.ReLU,'tanh':jnp.tanh,'HS':util.heaviside,'DReLU':util.DReLU,'exp':jnp.exp}[ac_name]
+
 	@jax.jit	
 	def applylayers(X):
 		for W in Ws:
 			X=activation(X)
-			X=jnp.tensordot(W,X,axes=([-1],[0]))
+			X=jax.vmap(contract,in_axes=(0,0))(W,X)	
 		return X
 	return applylayers
 
@@ -74,7 +95,7 @@ def gen_applylayers(Ws,ac_name):
 def sum_perms_multilayer(Ws:list,Xs_,ac_name,mode='standard'):
 
 	W=Ws[0]
-	m,n,d=W.shape
+	z,m,n,d=W.shape
 
 	kQ,kR=blocksizechoices(n,mode)
 	permseqs=perms.gen_complementary_Perm_seqs([n,kQ,kR])
@@ -82,14 +103,38 @@ def sum_perms_multilayer(Ws:list,Xs_,ac_name,mode='standard'):
 	t=time.perf_counter()
 	outputs=[]
 
-	print_('n='+str(n)+'\n'+str(len(Ws))+' layers, '+ac_name+' activation',mode)
+	print_(mode,'n='+str(n)+'\n'+str(len(Ws))+' layers, '+ac_name+' activation')
 
 	for s,Xs in enumerate(Xs_):
+
+
 		outputs.append(sum_perms(W,Xs,permseqs,gen_applylayers(Ws[1:],ac_name)))
 		t=printinfo(t,n,s,Xs.shape[0],len(Xs_))
 
 	return jnp.concatenate(outputs,axis=-1)/jnp.sqrt(math.factorial(n))
 
+
+
+def sum_perms_multilayer_zip(Ws:list,Xs:list,ac_name,mode='standard'):
+
+	z,m,n,d=Ws[0][0].shape
+
+	kQ,kR=blocksizechoices(n,mode)
+	permseqs=perms.gen_complementary_Perm_seqs([n,kQ,kR])
+
+	t=time.perf_counter()
+	outputs=[]
+
+	print_(mode,'n='+str(n)+'\n'+str(len(Ws))+' layers, '+ac_name+' activation')
+
+	for s,_ in enumerate(Xs):
+
+		outputs.append(sum_perms(Ws[s][0],Xs[s],permseqs,gen_applylayers(Ws[s][1:],ac_name)))
+		t=printinfo(t,n,s,Xs[s].shape[0],len(Xs))
+
+	out=jnp.concatenate(outputs,axis=0)/jnp.sqrt(math.factorial(n))
+
+	return jnp.squeeze(out)
 
 
 def blocksizechoices(n,mode):
@@ -114,8 +159,8 @@ def blocksizechoices(n,mode):
 
 # print #####################################################################################################
 
-def printpermseqs(permseqs,**kwargs):
-	print_(str(permseqs[2][1].size)+'x'+str(permseqs[1][1].size)+' blocks of permutations x '+str(permseqs[0][1].size)+' iterations',**kwargs)	
+def printpermseqs(permseqs,mode):
+	print_(mode,str(permseqs[2][1].size)+'x'+str(permseqs[1][1].size)+' blocks of permutations x '+str(permseqs[0][1].size)+' iterations')	
 
 def printinfo(t0,n,s,batchsize,batches,**kwargs):
 	t1=time.perf_counter()
@@ -129,10 +174,6 @@ def printinfo(t0,n,s,batchsize,batches,**kwargs):
 		print('')
 	return t1
 
-def print_(s,mode):
-	if mode!='silent':
-		print(s)
-	
 
 
 

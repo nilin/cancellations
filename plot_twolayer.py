@@ -3,7 +3,17 @@ import matplotlib.pyplot as plt
 import bookkeep as bk
 import sys
 import plot_depths
+from util import str_
 
+
+
+
+def avgsq(x):
+	return jnp.average(jnp.square(x))
+
+
+def get_avg(depth,ac,ns,scaling):
+	return [avgsq(bk.get(str_('zipoutputs/depth=',depth,' AS/',ac,' n=',n,' ',scaling))) for n in ns]
 
 
 def makeplot(nmax,scaling):
@@ -17,10 +27,10 @@ def makeplot(nmax,scaling):
 	lw_={'exp':1,'tanh':2,'ReLU':2,'HS':1}
 	m_={'exp':'.','tanh':'.','ReLU':'D','HS':'D'}
 
-	E_AS,E_NS=plot_depths.get_averages(2,ns,scaling)
 
 	for ac in acs:
-		plt.plot(ns[ac],[jnp.average(ins) for ins in E_AS[ac]],label=ac,color=colors[ac],lw=1,ls=ls_[ac],marker=m_[ac],ms=4)
+		E_AS=get_avg(2,ac,ns[ac],scaling)
+		plt.plot(ns[ac],E_AS,label=ac,color=colors[ac],lw=1,ls=ls_[ac],marker=m_[ac],ms=4)
 
 
 	Nmax=15

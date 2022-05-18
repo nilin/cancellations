@@ -363,3 +363,5 @@ def print_(mode,*args,**kwargs):
 	if mode!='silent':
 		print(''.join([str(x) for x in args]),**kwargs)
 
+def str_(*args):
+	return ''.join([str(x) for x in args])

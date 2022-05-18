@@ -14,29 +14,13 @@ acs=['ReLU','tanh','HS','exp']
 
 
 
-
-
-def generate(nmax,scaling,instances,samples,plot=False):
+for samples in [1,10,100,1000]:
 	for n in range(2,nmax+1):
 		for ac in acs:	
-			if plot:
-				plot_twolayer.makeplot(nmax,scaling)	
 			if n>9 and ac=='exp':
 				continue
-			gen_outputs.generate(n,n,2,ac,scaling,instances,samples,'silent')
+			gen_outputs.generate_zip(n,n,2,ac,scaling,samples,'silent')
 
-
-
-
-print('priming: small dataset for each n')
-generate(nmax,scaling,2,1)
-print('priming done')
-
-instances=1
-samples=1
-
-while True:
-	samples=samples*16
-	instances=instances*4
-	generate(nmax,scaling,instances,samples)
+	
+	print('\n\nyou now have data to run \nplot_twolayer.py '+str(nmax)+' '+scaling+' '+100*'='+'\n\n')
 

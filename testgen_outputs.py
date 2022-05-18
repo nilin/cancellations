@@ -5,32 +5,22 @@ import bookkeep as bk
 import math
 import testing
 import util
-from util import print_
-from util import str_
 import sys
 import os
 
 
-def split_data(Xs,mode='instance'):
+def split_data(Xs):
 	samples,n,d=Xs.shape
 	batchsize=max(round(10000/math.factorial(n)),1)
 	start=0
 	batches=[]
-	indices=[]
 	while start<samples:
-		end=min(start+batchsize,samples)
-		batches.append(jnp.expand_dims(Xs[start:end],axis=(1 if mode=='zip' else 0)))
-		indices.append(range(start,end))
+		end=start+min(batchsize,samples)
+		batches.append(Xs[start:end])
 		start=end
-	return batches,indices
-
-def split_zip(Ws,Xs):
-	Xbatches,indices=split_data(Xs,'zip')
-	Ls=range(len(Ws[0]))
+	return batches
 
 
-	Wbatches=[[jnp.concatenate([Ws[i][l] for i in batch],axis=0) for l in Ls] for batch in indices]
-	return Wbatches,Xbatches
 
 
 def getdata(n,depth,scaling,instances,samples):
@@ -41,6 +31,16 @@ def getdata(n,depth,scaling,instances,samples):
 	Xs=Xs[:min(Xs.shape[0],samples)]
 
 	return Ws,Xs
+
+def inspect_data(Ws,Xs,ac_name,mode):
+	print_('\n'+100*'='+'\ndata spec '+ac_name+' n='+str(Xs.shape[-2]),mode)
+	print_('W: '+str(len(Ws))+' instances of '+str([W.shape for W in Ws[0]])+' (depth='+str(depth)+')',mode)
+	print_('X: '+str(Xs.shape[0])+' samples of '+str(Xs.shape[1:])+'\n'+100*'='+'\n',mode)
+
+
+def print_(s,mode,**kwargs):
+	if mode!='silent':
+		print(s,**kwargs)
 
 
 """
@@ -61,32 +61,18 @@ def generate(nmin,nmax,depth,ac_name,scaling,instances,samples,mode='standard'):
 	for n in range(nmin,nmax+1):
 		print(ac_name+' n='+str(n)+', '+str(instances)+' instances, '+str(samples)+' samples'+100*' ')
 		Ws,Xs=getdata(n,depth,scaling,instances,samples)
-
+		#inspect_data(Ws,Xs,ac_name,mode)
 		for i,W in enumerate(Ws):
 			fn='outputs/depth='+str(depth)+' AS/'+ac_name+' n='+str(n)+' scaling='+scaling+'/instance '+str(i)
 
-			#if os.path.isfile(fn) and bk.get(fn).size>=samples:
-			#	continue
+			if os.path.isfile(fn) and bk.get(fn).size>=samples:
+				continue
 			print_('instance '+str(i+1),mode)
-			Xs_,_=split_data(Xs,'instance')
+			Xs_=split_data(Xs)
 			instance=GPU_sum.sum_perms_multilayer(W,Xs_,ac_name,mode='silent')
+			#instance=GPU_sum.sum_perms_multilayer(W,Xs_,ac_name,mode=('standard' if n>9 else 'silent'))
 			bk.save(instance,fn)
 
-def generate_zip(nmin,nmax,depth,ac_name,scaling,samples,mode='standard'):
-
-		
-	for n in range(nmin,nmax+1):
-		print_('zip ',ac_name,' n=',n,', ',samples,' samples',100*' ')
-		Ws,Xs=getdata(n,depth,scaling,samples,samples)
-
-		fn=str_('zipoutputs/depth=',depth,' AS/'+ac_name+' n=',n,' '+scaling)
-
-		if os.path.isfile(fn) and bk.get(fn).size>=samples:
-			continue
-
-		Ws,Xs=split_zip(Ws,Xs)
-		instance=GPU_sum.sum_perms_multilayer_zip(Ws,Xs,ac_name,mode='silent')
-		bk.save(instance,fn)
 
 
 
@@ -100,13 +86,8 @@ if __name__=='__main__':
 	depth=int(sys.argv[3])
 	ac_name=sys.argv[4]
 	scaling=sys.argv[5]
-	combinemode=sys.argv[6]
-	instances=int(sys.argv[7])
+	instances=int(sys.argv[6])
+	samples=int(sys.argv[7])
+	mode=(sys.argv[8] if len(sys.argv)>8 else 'standard')
 
-	if combinemode=='i':
-		samples=int(sys.argv[8])
-		generate(nmin,nmax,depth,ac_name,scaling,instances,samples)
-
-	if combinemode=='z':
-		generate_zip(nmin,nmax,depth,ac_name,scaling,instances)
-
+	gen_outputs.generate(nmin,nmax,depth,ac_name,scaling,instances,samples,mode)

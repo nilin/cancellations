@@ -26,3 +26,4 @@ inputs matlab*
 matlab/Ds*
 matlab/Ws*
 computed_by_integral*
+zipoutputs*
