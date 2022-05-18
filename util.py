@@ -15,7 +15,8 @@ pwr=lambda x,p:jnp.power(x,p*jnp.ones(x.shape))
 ReLU=lambda x:jnp.maximum(x,0)
 DReLU=lambda x:jnp.minimum(jnp.maximum(x,-1),1)
 def get_normalized_DReLU():
-	c=bk.get('firmdata/DReLU_normalization')
+	#c=bk.get('firmdata/DReLU_normalization')
+	c=0.8752934336662292
 	return lambda x:c*DReLU(x)
 heaviside=lambda x:jnp.heaviside(x,1)
 

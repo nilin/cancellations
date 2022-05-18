@@ -50,9 +50,13 @@ PQRw*x=Rw*Q'P'x where (') denotes the inverse. There are |A| iterations of |B|*|
 
 
 
-@jax.jit
+#@jax.jit
 def GPU_batch_firstlayer(P,Q,RW,X):			# RW=zip,m,n,d ; X=zip,s,n,d
 	Qt=jnp.swapaxes(Q,-2,-1)
+
+	print('n='+str(X.shape[-1]))
+	print('P: '+str(P.shape))
+
 	PtX=apply_n(P.T,X)				# zip,s,n,d
 	QtPtX=apply_many_to_n(Qt,X)			# zip,s,q,n,d
 

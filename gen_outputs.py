@@ -94,8 +94,8 @@ def generate_zip(nmin,nmax,depth,ac_name,scaling,samples,mode='standard'):
 
 if __name__=='__main__':
 
-	if sys.argv[1]=='h':
-		print('\n\ngen_outputs.py nmin nmax depth activation=ReLU scaling=X/H instances=10 samples=100\n\n')
+	if len(sys.argv)==1:
+		print('\n\ngen_outputs.py nmin nmax depth activation X/H (i)nstance/(z)ip instances (samples required if (i)nstance)\n\n')
 		quit()
 	nmin=int(sys.argv[1])
 	nmax=int(sys.argv[2])
