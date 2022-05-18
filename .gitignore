@@ -17,7 +17,7 @@ sum2*
 sum3*
 scratchwork
 inputs/*
-outputs/*
+outputs*
 local*
 prev*
 D/*
