@@ -24,9 +24,9 @@ d=3
 #instances=1000
 samples=10**4
 size=10**4
+nmax=16
 
-
-for n in range(2,21):
+for n in range(2,nmax+1):
 	print('\nn='+str(n))
 	m=n*d
 	for depth in range(2,6):	
@@ -43,7 +43,7 @@ for n in range(2,21):
 			
 		
 	
-for n in range(2,21):
+for n in range(2,nmax+1):
 	key=rnd.PRNGKey(0)
 	Xs_=gen_Xs(key,d,n,samples)
 	bk.save(Xs_,folder+'Xs/n='+str(n))
