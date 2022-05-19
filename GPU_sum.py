@@ -55,7 +55,7 @@ def GPU_batch_firstlayer(P,Q,RW,X):			# RW=zip,m,n,d ; X=zip,s,n,d
 	Qt=jnp.swapaxes(Q,-2,-1)
 
 	PtX=apply_n(P.T,X)				# zip,s,n,d
-	QtPtX=apply_many_to_n(Qt,X)			# zip,s,q,n,d
+	QtPtX=apply_many_to_n(Qt,PtX)			# zip,s,q,n,d
 
 	out=jax.vmap(dot_nd,in_axes=(0,0))(RW,QtPtX)	# zip,m,r,s,q
 	return  jnp.moveaxis(out,-2,-3)			# zip,m,s,r,q	(previously m,s,r,q)
