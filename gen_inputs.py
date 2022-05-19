@@ -20,11 +20,10 @@ def gen_Xs(key,d,n,samples):
 folder='inputs/'
 d=3
 
-size=int(sys.argv[1])
 
-instances=size
-samples=size
-
+instances=1000
+samples=100000
+size=100000
 
 for n in range(2,21):
 	print('\nn='+str(n))
@@ -37,8 +36,8 @@ for n in range(2,21):
 			Ws_separate=[gen_Ws(keys[i],d,n,m_,1,scaling) for i in range(instances)]
 			bk.save(Ws_separate,folder+'Ws/n='+str(n)+' depth='+str(depth)+' scaling='+str(scaling))
 
-			#Ws=gen_Ws(key0,d,n,m_,instances,scaling)
-			#bk.save(Ws,folder+'Ws/n='+str(n)+' depth='+str(depth)+' scaling='+str(scaling))
+			Ws=gen_Ws(key0,d,n,m_,size,scaling)
+			bk.save(Ws,folder+'Ws/n='+str(n)+' depth='+str(depth)+' '+str(scaling))
 			
 		
 	
