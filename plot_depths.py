@@ -1,19 +1,20 @@
 import jax.numpy as jnp
+from util import str_
 import matplotlib.pyplot as plt
 import bookkeep as bk
 import sys
 import os
 
-def avgsq(x,**kwargs):
-	return jnp.average(jnp.square(x),**kwargs)
-	
-
-def get_avg(depth,ac,ns,scaling):
-	return [avgsq(n,bk.get(str_('zipoutputs/depth=',depth,' AS/',ac,' n=',n,' ',scaling))) for n in ns]
+def avgsq(x):
+	return jnp.average(jnp.square(x))
 
 
-#def getinstanceaverages(path):
-#	return jnp.array([avgsq(bk.get(path+f)) for f in os.listdir(path)])
+def instancemeans(ac,depth,n,scaling):
+	path=str_('outputs/depth=',depth,' AS/',ac,' n=',n,' scaling=',scaling,'/')
+	return jnp.squeeze(jnp.array([avgsq(bk.get(path+i)) for i in os.listdir(path)]))
+
+def getinstances(ac,depth,n_,scaling):
+	return [instancemeans(ac,depth,n,scaling) for n in n_]
 #
 #
 #def get_averages(depth,ns,scaling):
@@ -27,6 +28,13 @@ def get_avg(depth,ac,ns,scaling):
 #		E_NS[ac]=[avgsq(jnp.squeeze(bk.get(fn)),axis=-1) for fn in fns_NS]
 #
 #	return E_AS,E_NS
+
+
+def plot(ax,depth,ac,ns,color,**kwargs):
+	instances=getinstances(ac,depth,ns,scaling)
+	ax.plot(ns,[jnp.average(I) for I in instances],color=color,**kwargs)
+	quartiles=[[jnp.quantile(I,q) for I in instances] for q in [1/4,1/2,3/4]]
+	ax.fill_between(ns,quartiles[0],quartiles[-1],color=color,alpha=.2)
 
 
 
@@ -50,6 +58,10 @@ if __name__=='__main__':
 		ax_=[ax_]
 
 	for i,depth in enumerate(depths):
+		
+		plot(ax_[i],depth,'DReLU_normalized',n_,color='blue',label='DReLU')
+		plot(ax_[i],depth,'tanh',n_,color='red',label='tanh')
+
 		#E_AS,E_NS=get_averages(depth,{ac:n_ for ac in acs},scaling)
 		#ax_[i].plot(n_,jnp.median(E_NS['DReLU'],axis=1),color='blue',lw=1,label=r'$f$')
 		#ax_[i].plot(n_,jnp.median(E_NS['tanh'],axis=1),color='red',ls='dotted',lw=2,label=r'$f$')
@@ -58,8 +70,9 @@ if __name__=='__main__':
 
 		#ax_[i].plot(n_,jnp.median(E_NS['DReLU_normalized'],axis=1),color='blue',lw=.5)
 		#ax_[i].plot(n_,jnp.median(E_NS['tanh'],axis=1),color='red',ls='dotted',lw=2)
-		ax_[i].plot(n_,jnp.median(E_AS['DReLU_normalized'],axis=1),color='blue',marker='o',ms=4,label=r'DReLU')
-		ax_[i].plot(n_,jnp.median(E_AS['tanh'],axis=1),color='red',marker='o',ms=4,ls='dashed',label=r'tanh')
+
+		#ax_[i].plot(n_,jnp.median(E_AS['DReLU_normalized'],axis=1),color='blue',marker='o',ms=4,label=r'DReLU')
+		#ax_[i].plot(n_,jnp.median(E_AS['tanh'],axis=1),color='red',marker='o',ms=4,ls='dashed',label=r'tanh')
 
 
 		ax_[i].title.set_text(str(depth)+' layers')

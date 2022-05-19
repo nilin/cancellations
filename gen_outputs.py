@@ -54,10 +54,11 @@ def generate(nmin,nmax,depth,ac_name,scaling,instances,samples,mode='standard'):
 		fn='outputs/depth='+str(depth)+' NS/'+ac_name+' n='+str(n)+' scaling='+scaling
 		if os.path.isfile(fn):
 			continue			
-		Ws,Xs=getdata(n,depth,scaling,100,1000)
-		NS=jnp.stack([NN_nd(W,Xs) for W in Ws],axis=0)
+		networks,Xs=getdata(n,depth,scaling,100,1000)
+		NS=jnp.stack([NN_nd([W[0] for W in network],Xs) for network in networks],axis=0)
 		bk.save(NS,fn)
 		print_('nonsymmetrized n='+str(n),mode,end='\r')
+
 	for n in range(nmin,nmax+1):
 		print(ac_name+' n='+str(n)+', '+str(instances)+' instances, '+str(samples)+' samples'+100*' ')
 		Ws,Xs=getdata(n,depth,scaling,instances,samples)
@@ -67,8 +68,8 @@ def generate(nmin,nmax,depth,ac_name,scaling,instances,samples,mode='standard'):
 		for i,W in enumerate(Ws):
 			fn='outputs/depth='+str(depth)+' AS/'+ac_name+' n='+str(n)+' scaling='+scaling+'/instance '+str(i)
 
-			#if os.path.isfile(fn) and bk.get(fn).size>=samples:
-			#	continue
+			if os.path.isfile(fn) and bk.get(fn).size>=samples:
+				continue
 			print_('instance '+str(i+1),mode)
 			Xs_,_=split_data(Xs,'instance')
 			instance=GPU_sum.sum_perms_multilayer(W,Xs_,ac_name,mode='silent')
