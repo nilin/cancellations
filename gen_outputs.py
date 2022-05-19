@@ -24,14 +24,6 @@ def split_data(Xs,mode='instance'):
 		start=end
 	return batches,indices
 
-def split_zip(Ws,Xs):
-	Xbatches,indices=split_data(Xs,'zip')
-	Ls=range(len(Ws[0]))
-
-
-	Wbatches=[[jnp.concatenate([Ws[i][l] for i in batch],axis=0) for l in Ls] for batch in indices]
-	return Wbatches,Xbatches
-
 
 def getdata(n,depth,scaling,instances,samples):
 	Ws=bk.get('inputs/Ws/n='+str(n)+' depth='+str(depth)+' scaling='+scaling)
@@ -41,6 +33,20 @@ def getdata(n,depth,scaling,instances,samples):
 	Xs=Xs[:min(Xs.shape[0],samples)]
 
 	return Ws,Xs
+
+def zipdata(n,depth,scaling):
+	Ws=bk.get('inputs/Ws/n='+str(n)+' depth='+str(depth)+' '+scaling)
+	Xs=bk.get('inputs/Xs/n='+str(n))
+	return Ws, Xs
+	
+def split_zip(Ws,Xs):
+	Xbatches,indices=split_data(Xs,'zip')
+
+	print(indices)
+	indices=jnp.array(indices)
+	Ls=range(len(Ws))
+	Wbatches=[[Ws[l][indices] for l in Ls] for batch in indices]
+	return Wbatches,Xbatches
 
 
 """
@@ -80,7 +86,7 @@ def generate_zip(nmin,nmax,depth,ac_name,scaling,samples,mode='standard'):
 		
 	for n in range(nmin,nmax+1):
 		print_('zip ',ac_name,' n=',n,', ',samples,' samples',100*' ')
-		Ws,Xs=getdata(n,depth,scaling,samples,samples)
+		Ws,Xs=zipdata(n,depth,scaling)
 
 		fn=str_('zipoutputs/depth=',depth,' AS/'+ac_name+' n=',n,' '+scaling)
 
