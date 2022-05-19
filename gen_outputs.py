@@ -20,7 +20,7 @@ def split_data(Xs,mode='instance'):
 	while start<samples:
 		end=min(start+batchsize,samples)
 		batches.append(jnp.expand_dims(Xs[start:end],axis=(1 if mode=='zip' else 0)))
-		indices.append(range(start,end))
+		indices.append(jnp.arange(start,end))
 		start=end
 	return batches,indices
 
@@ -42,10 +42,12 @@ def zipdata(n,depth,scaling):
 def split_zip(Ws,Xs):
 	Xbatches,indices=split_data(Xs,'zip')
 
-	print(indices)
-	indices=jnp.array(indices)
 	Ls=range(len(Ws))
-	Wbatches=[[Ws[l][indices] for l in Ls] for batch in indices]
+
+	for l in Ls:
+		print(Ws[l].shape)
+
+	Wbatches=[[(Ws[l])[batch] for l in Ls] for batch in indices]
 	return Wbatches,Xbatches
 
 
