@@ -66,7 +66,7 @@ def generate(nmin,nmax,depth,ac_name,scaling,instances,samples,mode='standard'):
 		print(n)
 
 		for i,W in enumerate(Ws):
-			fn='outputs/depth='+str(depth)+' AS/'+ac_name+' n='+str(n)+' scaling='+scaling+'/instance '+str(i)
+			fn='outputs/depth='+str(depth)+' AS/'+ac_name+' n='+str(n)+' '+scaling+'/instance '+str(i)
 
 			if os.path.isfile(fn) and bk.get(fn).size>=samples:
 				continue

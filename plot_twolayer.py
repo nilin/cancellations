@@ -14,7 +14,7 @@ def avgsq(x):
 
 
 def instancemeans(ac,n,scaling):
-	path=str_('outputs/depth=',2,' AS/',ac,' n=',n,' scaling=',scaling,'/')
+	path=str_('outputs/depth=',2,' AS/',ac,' n=',n,' ',scaling,'/')
 	return jnp.squeeze(jnp.array([avgsq(bk.get(path+i)) for i in os.listdir(path)]))
 
 def getinstances(ac,n_,scaling):
