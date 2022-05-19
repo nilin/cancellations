@@ -26,6 +26,8 @@ samples=10**4
 size=10**4
 nmax=16
 
+scaling=sys.argv[1]
+
 for n in range(2,nmax+1):
 	key=rnd.PRNGKey(0)
 	Xs_=gen_Xs(key,d,n,samples)
@@ -37,14 +39,14 @@ for n in range(2,nmax+1):
 	for depth in range(2,6):	
 		print('depth='+str(depth),end='\r')
 		m_=[m]*(depth-1)+[1]
-		for scaling in ['X','H']:
-			#key0,*keys=rnd.split(rnd.PRNGKey(0),instances+10)
-			key0=rnd.PRNGKey(0)
-			#Ws_separate=[gen_Ws(keys[i],d,n,m_,1,scaling) for i in range(instances)]
-			#bk.save(Ws_separate,folder+'Ws/n='+str(n)+' depth='+str(depth)+' scaling='+str(scaling))
+		#for scaling in ['X','H']:
+		#key0,*keys=rnd.split(rnd.PRNGKey(0),instances+10)
+		key0=rnd.PRNGKey(0)
+		#Ws_separate=[gen_Ws(keys[i],d,n,m_,1,scaling) for i in range(instances)]
+		#bk.save(Ws_separate,folder+'Ws/n='+str(n)+' depth='+str(depth)+' scaling='+str(scaling))
 
-			Ws=gen_Ws(key0,d,n,m_,size,scaling)
-			bk.save(Ws,folder+'Ws/n='+str(n)+' depth='+str(depth)+' '+str(scaling))
+		Ws=gen_Ws(key0,d,n,m_,size,scaling)
+		bk.save(Ws,folder+'Ws/n='+str(n)+' depth='+str(depth)+' '+str(scaling))
 			
 		
 	
