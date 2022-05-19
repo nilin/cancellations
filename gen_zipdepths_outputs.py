@@ -14,7 +14,7 @@ scaling=sys.argv[2]
 acs=['DReLU_normalized','tanh']
 
 
-for samples in 10**jnp.arange(6):
+for samples in 10**jnp.arange(1,6):
 	for depth in [3,4,5]:
 		for n in range(2,nmax+1):
 			for ac in acs:	

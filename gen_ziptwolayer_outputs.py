@@ -15,7 +15,7 @@ acs=['ReLU','tanh','HS','exp']
 
 
 
-for samples in 10**jnp.arange(6):
+for samples in 10**jnp.arange(1,6):
 	for n in range(2,nmax+1):
 		for ac in acs:	
 			if n>9 and ac=='exp':
