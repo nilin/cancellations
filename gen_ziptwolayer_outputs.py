@@ -1,4 +1,5 @@
 import gen_outputs
+import jax.numpy as jnp
 import plot_twolayer
 import sys
 
@@ -14,7 +15,7 @@ acs=['ReLU','tanh','HS','exp']
 
 
 
-for samples in [1,10,100,1000]:
+for samples in 10**jnp.arange(6):
 	for n in range(2,nmax+1):
 		for ac in acs:	
 			if n>9 and ac=='exp':

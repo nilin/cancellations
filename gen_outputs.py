@@ -13,7 +13,7 @@ import os
 
 def split_data(Xs,mode='instance'):
 	samples,n,d=Xs.shape
-	batchsize=max(round(10000/math.factorial(n)),2)
+	batchsize=max(round(10000/math.factorial(n)),1)
 	start=0
 	batches=[]
 	indices=[]
@@ -34,21 +34,17 @@ def getdata(n,depth,scaling,instances,samples):
 
 	return Ws,Xs
 
+
 def zipdata(n,depth,scaling):
 	Ws=bk.get('inputs/Ws/n='+str(n)+' depth='+str(depth)+' '+scaling)
-	Xs=bk.get('inputs/Xs/n='+str(n))
-	return Ws, Xs
-	
-def split_zip(Ws,Xs):
-	Xbatches,indices=split_data(Xs,'zip')
-
 	Ls=range(len(Ws))
 
-	for l in Ls:
-		print(Ws[l].shape)
+	Xs=bk.get('inputs/Xs/n='+str(n))
+	Xbatches,indices=split_data(Xs,'zip')
 
-	Wbatches=[[(Ws[l])[batch] for l in Ls] for batch in indices]
+	Wbatches=[[jnp.take(Ws[l],batch,axis=0) for l in Ls] for batch in indices]
 	return Wbatches,Xbatches
+	
 
 
 """
@@ -88,14 +84,11 @@ def generate_zip(nmin,nmax,depth,ac_name,scaling,samples,mode='standard'):
 		
 	for n in range(nmin,nmax+1):
 		print_('zip ',ac_name,' n=',n,', ',samples,' samples',100*' ')
-		Ws,Xs=zipdata(n,depth,scaling)
-
 		fn=str_('zipoutputs/depth=',depth,' AS/'+ac_name+' n=',n,' '+scaling)
-
 		if os.path.isfile(fn) and bk.get(fn).size>=samples:
 			continue
 
-		Ws,Xs=split_zip(Ws,Xs)
+		Ws,Xs=zipdata(n,depth,scaling)
 		instance=GPU_sum.sum_perms_multilayer_zip(Ws,Xs,ac_name,mode='silent')
 		bk.save(instance,fn)
 
