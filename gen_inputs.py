@@ -2,7 +2,7 @@ import jax
 import jax.numpy as jnp
 import jax.random as rnd
 import bookkeep as bk
-
+import sys
 
 
 
@@ -19,8 +19,11 @@ def gen_Xs(key,d,n,samples):
 
 folder='inputs/'
 d=3
-instances=1000
-samples=1000
+
+size=int(sys.argv[1])
+
+instances=size
+samples=size
 
 
 for n in range(2,21):

@@ -11,7 +11,7 @@ log
 runlocal*
 run.py
 *stash*
-hpcdata/*
+hpc*
 sum2*
 sum3*
 scratchwork

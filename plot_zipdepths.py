@@ -9,8 +9,8 @@ def avgsq(x,**kwargs):
 	return jnp.average(jnp.square(x),**kwargs)
 	
 
-def get_avg(depth,ac,ns,scaling):
-	return [avgsq(bk.get(str_('zipoutputs/depth=',depth,' AS/',ac,' n=',n,' ',scaling))) for n in ns]
+def get_avg(depth,ac,ns,scaling,prefix=''):
+	return [avgsq(bk.get(str_(prefix+'zipoutputs/depth=',depth,' AS/',ac,' n=',n,' ',scaling))) for n in ns]
 
 
 
@@ -33,11 +33,14 @@ if __name__=='__main__':
 	if len(depths)==1:
 		ax_=[ax_]
 
+	prefix=input('parent folder: ')
+
+
 	for i,depth in enumerate(depths):
 		#ax_[i].plot(n_,jnp.median(E_NS['DReLU_normalized'],axis=1),color='blue',lw=.5)
 		#ax_[i].plot(n_,jnp.median(E_NS['tanh'],axis=1),color='red',ls='dotted',lw=2)
-		ax_[i].plot(n_,get_avg(depth,'DReLU_normalized',n_,scaling),color='blue',marker='o',ms=4,label=r'DReLU')
-		ax_[i].plot(n_,get_avg(depth,'tanh',n_,scaling),color='red',marker='o',ms=4,ls='dashed',label=r'tanh')
+		ax_[i].plot(n_,get_avg(depth,'DReLU_normalized',n_,scaling,prefix=prefix),color='blue',marker='o',ms=4,label=r'DReLU')
+		ax_[i].plot(n_,get_avg(depth,'tanh',n_,scaling,prefix=prefix),color='red',marker='o',ms=4,ls='dashed',label=r'tanh')
 
 
 		ax_[i].title.set_text(str(depth)+' layers')
@@ -49,6 +52,6 @@ if __name__=='__main__':
 
 		ax_[i].set_yscale('log')
 
-	fn='depths='+str(depths)+' scaling='+scaling
+	fn='zip depths='+str(depths)+' scaling='+scaling
 	plt.savefig('plots/'+fn+'.pdf',bbox_inches='tight')
 

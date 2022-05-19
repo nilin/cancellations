@@ -5,15 +5,18 @@ import bookkeep as bk
 import sys
 import plot_depths
 from util import str_
+from plot_zipdepths import get_avg
+
+#def avgsq(x):
+#	return jnp.average(jnp.square(x))
+#
+#
+#
+#def get_avg(depth,ac,ns,scaling):
+#	return [avgsq(bk.get(str_('zipoutputs/depth=',depth,' AS/',ac,' n=',n,' ',scaling))) for n in ns]
 
 
-def avgsq(x):
-	return jnp.average(jnp.square(x))
 
-
-
-def get_avg(depth,ac,ns,scaling):
-	return [avgsq(bk.get(str_('zipoutputs/depth=',depth,' AS/',ac,' n=',n,' ',scaling))) for n in ns]
 
 
 def makeplot(nmax,scaling):
@@ -27,9 +30,10 @@ def makeplot(nmax,scaling):
 	lw_={'exp':1,'tanh':2,'ReLU':2,'HS':1}
 	m_={'exp':'.','tanh':'.','ReLU':'D','HS':'D'}
 
+	prefix=input('parent folder ')
 
 	for ac in acs:
-		plt.plot(ns[ac],get_avg(2,ac,ns[ac],scaling),label=ac,color=colors[ac],lw=1,ls=ls_[ac],marker=m_[ac],ms=4)
+		plt.plot(ns[ac],get_avg(2,ac,ns[ac],scaling,prefix=prefix),label=ac,color=colors[ac],lw=1,ls=ls_[ac],marker=m_[ac],ms=4)
 
 
 	Nmax=15
@@ -48,7 +52,7 @@ def makeplot(nmax,scaling):
 	plt.xlim(1,Nmax+1)
 
 	fn=str(acs)+' scaling='+scaling
-	plt.savefig('plots/'+fn+'.pdf',bbox_inches='tight')
+	plt.savefig('plots/zip '+fn+'.pdf',bbox_inches='tight')
 
 
 

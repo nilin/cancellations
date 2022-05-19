@@ -10,11 +10,11 @@ def avgsq(x):
 
 
 def instancemeans(ac,depth,n,scaling):
-	path=str_('outputs/depth=',depth,' AS/',ac,' n=',n,' ',scaling,'/')
+	path=str_(prefix+'outputs/depth=',depth,' AS/',ac,' n=',n,' ',scaling,'/')
 	return jnp.squeeze(jnp.array([avgsq(bk.get(path+i)) for i in os.listdir(path)]))
 
 def getinstances(ac,depth,n_,scaling):
-	return [instancemeans(ac,depth,n,scaling) for n in n_]
+	return [instancemeans(ac,depth,n,scaling,prefix) for n in n_]
 #
 #
 #def get_averages(depth,ns,scaling):
@@ -40,6 +40,9 @@ def plot(ax,depth,ac,ns,color,**kwargs):
 
 
 if __name__=='__main__':
+
+	prefix=input('parent folder :')
+
 
 	if len(sys.argv)==1:
 		print('\n\nplot_depths nmax min_depth max_depth scaling=X/H\n\n')

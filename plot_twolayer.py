@@ -13,22 +13,24 @@ def avgsq(x):
 	return jnp.average(jnp.square(x))
 
 
-def instancemeans(ac,n,scaling):
-	path=str_('outputs/depth=',2,' AS/',ac,' n=',n,' ',scaling,'/')
+def instancemeans(ac,n,scaling,prefix=''):
+	path=str_(prefix+'outputs/depth=',2,' AS/',ac,' n=',n,' ',scaling,'/')
 	return jnp.squeeze(jnp.array([avgsq(bk.get(path+i)) for i in os.listdir(path)]))
 
-def getinstances(ac,n_,scaling):
-	return [instancemeans(ac,n,scaling) for n in n_]
+def getinstances(ac,n_,scaling,prefix=''):
+	return [instancemeans(ac,n,scaling,prefix) for n in n_]
 
-
-#def get_avg(depth,ac,ns,scaling):
-#	return [avgsq(n,bk.get(str_('zipoutputs/depth=',depth,' AS/',ac,' n=',n,' ',scaling))) for n in ns]
 
 
 def makeplot(nmax,scaling):
+
+
+	prefix=input('parent folder: ' )
+
+
 	plt.figure(figsize=(7,3))
 
-	ns={'HS':jnp.arange(2,nmax+1),'ReLU':jnp.arange(2,nmax+1),'tanh':jnp.arange(2,nmax+1),'exp':jnp.arange(2,min(8,nmax)+1),}
+	ns={'HS':jnp.arange(2,nmax+1),'ReLU':jnp.arange(2,nmax+1),'tanh':jnp.arange(2,nmax+1),'exp':jnp.arange(2,min(9,nmax)+1),}
 	acs=[k for k in ns.keys()]
 
 	colors={'exp':'magenta','tanh':'red','ReLU':'blue','HS':'green'}
@@ -38,9 +40,10 @@ def makeplot(nmax,scaling):
 
 
 	for ac in acs:
-		instances=getinstances(ac,ns[ac],scaling)
-		plt.plot(ns[ac],[jnp.average(I) for I in instances],label=ac,color=colors[ac],lw=1,ls=ls_[ac],marker=m_[ac],ms=4)
+		instances=getinstances(ac,ns[ac],scaling,prefix)
+		#plt.plot(ns[ac],[jnp.average(I) for I in instances],label=ac,color=colors[ac],lw=1,ls=ls_[ac],marker=m_[ac],ms=4)
 		quartiles=[[jnp.quantile(I,q) for I in instances] for q in [1/4,1/2,3/4]]
+		plt.plot(ns[ac],quartiles[1],label=ac,color=colors[ac],lw=1,ls=ls_[ac],marker=m_[ac],ms=4)
 		plt.fill_between(ns[ac],quartiles[0],quartiles[-1],color=colors[ac],alpha=.2)
 
 
