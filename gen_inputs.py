@@ -21,9 +21,9 @@ folder='inputs/'
 d=3
 
 
-instances=1000
-samples=10**5
-size=10**5
+#instances=1000
+samples=10**4
+size=10**4
 
 
 for n in range(2,21):
@@ -33,9 +33,10 @@ for n in range(2,21):
 		print('depth='+str(depth),end='\r')
 		m_=[m]*(depth-1)+[1]
 		for scaling in ['X','H']:
-			key0,*keys=rnd.split(rnd.PRNGKey(0),instances+10)
-			Ws_separate=[gen_Ws(keys[i],d,n,m_,1,scaling) for i in range(instances)]
-			bk.save(Ws_separate,folder+'Ws/n='+str(n)+' depth='+str(depth)+' scaling='+str(scaling))
+			#key0,*keys=rnd.split(rnd.PRNGKey(0),instances+10)
+			key0=rnd.PRNGKey(0)
+			#Ws_separate=[gen_Ws(keys[i],d,n,m_,1,scaling) for i in range(instances)]
+			#bk.save(Ws_separate,folder+'Ws/n='+str(n)+' depth='+str(depth)+' scaling='+str(scaling))
 
 			Ws=gen_Ws(key0,d,n,m_,size,scaling)
 			bk.save(Ws,folder+'Ws/n='+str(n)+' depth='+str(depth)+' '+str(scaling))
