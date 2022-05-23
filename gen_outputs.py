@@ -95,6 +95,9 @@ def generate_zip(nmin,nmax,depth,ac_name,scaling,samples,mode='standard'):
 		Ws,Xs=zipdata(n,depth,scaling,samples)
 		instance=GPU_sum.sum_perms_multilayer_zip(Ws,Xs,ac_name,mode='silent')
 
+		bk.log('n='+str(n))	
+		bk.log('samples: '+str(samples))	
+
 		print(instance.dtype)
 
 		bk.save(instance,fn)
