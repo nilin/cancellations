@@ -14,12 +14,13 @@ scaling=sys.argv[2]
 
 if len(sys.argv)>3:
 	folder=sys.argv[3]
+	acs=sys.argv[4:]
 else:
 	folder='zipoutputs'
+	acs=['ReLU','tanh','HS','exp']
 	
 
 
-acs=['ReLU','tanh','HS','exp']
 
 
 
