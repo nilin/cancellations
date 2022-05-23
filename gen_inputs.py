@@ -29,6 +29,7 @@ size=10**5
 nmax=16
 
 scaling=sys.argv[1]
+bk.log('generating')
 
 for n in range(2,nmax+1):
 	key=rnd.PRNGKey(0)
@@ -36,7 +37,6 @@ for n in range(2,nmax+1):
 	bk.save(Xs_,folder+'Xs/n='+str(n))
 
 
-bk.log('generating')
 for n in range(2,nmax+1):
 	bk.log('\nn='+str(n))
 	m=n*d
