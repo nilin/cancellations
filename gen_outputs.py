@@ -93,9 +93,11 @@ def generate_zip(nmin,nmax,depth,ac_name,scaling,samples,mode='standard',folder=
 			continue
 
 		Ws,Xs=zipdata(n,depth,scaling,samples)
-		instance=GPU_sum.sum_perms_multilayer_zip(Ws,Xs,ac_name,mode='silent')
+		instance=GPU_sum.sum_perms_multilayer_zip(Ws,Xs,ac_name)
 
 		print(instance.dtype)
+		if os.path.isfile(fn) and bk.get(fn).size>=samples:
+			continue
 
 		bk.save(instance,fn)
 

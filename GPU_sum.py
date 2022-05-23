@@ -175,6 +175,8 @@ def printinfo(t0,n,s,batchsize,batches,**kwargs):
 	print('Permutations/time = '+'{:,}'.format(int(math.factorial(n)//dt))+'/second. '+sampleinfo,end='\r')
 	if s==batches-1:
 		print('')
+
+	bk.log(sampleinfo)
 	return t1
 
 
