@@ -33,7 +33,9 @@ def makeplot(nmax,scaling):
 	prefix=input('parent folder ')
 
 	for ac in acs:
-		plt.plot(ns[ac],get_avg(2,ac,ns[ac],scaling,prefix=prefix),label=ac,color=colors[ac],lw=1,ls=ls_[ac],marker=m_[ac],ms=4)
+		avg,bootstrapq=get_avg(2,ac,ns[ac],scaling,prefix=prefix)
+		plt.plot(ns[ac],avg,label=ac,color=colors[ac],lw=1,ls=ls_[ac],marker=m_[ac],ms=4)
+		plt.fill_between(ns[ac],bootstrapq[0],bootstrapq[-1],color=colors[ac],alpha=.2)
 
 
 	Nmax=15

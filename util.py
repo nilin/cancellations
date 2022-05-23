@@ -347,7 +347,7 @@ def medmeans(y_,k):
 	avgs=jnp.average(Y,axis=-1)
 	return jnp.median(avgs,axis=-1)
 
-def bootstrap(key,y,resamples=1000):
+def bootstrap(key,y,resamples=500):
 	n=y.shape[0]
 	indices=jax.random.randint(key,(resamples*n,),0,n)
 	return jnp.reshape(y[indices],(resamples,n))

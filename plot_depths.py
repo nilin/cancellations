@@ -14,7 +14,7 @@ def instancemeans(ac,depth,n,scaling):
 	return jnp.squeeze(jnp.array([avgsq(bk.get(path+i)) for i in os.listdir(path)]))
 
 def getinstances(ac,depth,n_,scaling):
-	return [instancemeans(ac,depth,n,scaling,prefix) for n in n_]
+	return [instancemeans(ac,depth,n,scaling) for n in n_]
 #
 #
 #def get_averages(depth,ns,scaling):
@@ -51,8 +51,8 @@ if __name__=='__main__':
 
 
 	nmax=int(sys.argv[1])
-	depths=list(range(int(sys.argv[2]),int(sys.argv[3])+1))
-	scaling=sys.argv[4] #input('scaling: ')
+	depths=list(range(3,5+1))
+	scaling=sys.argv[2] #input('scaling: ')
 
 	acs={'DReLU_normalized','tanh'}
 	n_=range(2,nmax+1)

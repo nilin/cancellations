@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import bookkeep as bk
 import sys
 from util import str_
+import jax
+import util
 import os
 
 def avgsq(x,**kwargs):
@@ -10,7 +12,19 @@ def avgsq(x,**kwargs):
 	
 
 def get_avg(depth,ac,ns,scaling,prefix=''):
-	return [avgsq(bk.get(str_(prefix+'zipoutputs/depth=',depth,' AS/',ac,' n=',n,' ',scaling))) for n in ns]
+
+	key=jax.random.PRNGKey(1)
+
+	#return [avgsq(bk.get(str_(prefix+'zipoutputs/depth=',depth,' AS/',ac,' n=',n,' ',scaling))) for n in ns]
+	#return [avgsq(bk.get(str_(prefix+'/depth=',depth,' AS/',ac,' n=',n,' ',scaling))) for n in ns]
+	outputs=[bk.get(str_(prefix+'/depth=',depth,' AS/',ac,' n=',n,' ',scaling)) for n in ns]
+	squares=[jnp.square(o) for o in outputs]
+
+	avgsquares=[jnp.average(sq) for sq in squares]
+	bootstrapmeans=[util.bootstrapmeans(key,sq) for sq in squares]
+	bootstrapquartiles=[[jnp.quantile(means,p) for means in bootstrapmeans] for p in [.05,1/2,.95]]
+
+	return avgsquares,bootstrapquartiles
 
 
 
@@ -29,7 +43,7 @@ if __name__=='__main__':
 
 	acs={'DReLU_normalized','tanh'}
 	n_=range(2,nmax+1)
-	plt,ax_=plt.subplots(1,len(depths),figsize=(7,2),sharey='row')
+	plt,ax_=plt.subplots(1,len(depths),figsize=(7,1.6),sharey='row')
 	if len(depths)==1:
 		ax_=[ax_]
 
@@ -39,8 +53,17 @@ if __name__=='__main__':
 	for i,depth in enumerate(depths):
 		#ax_[i].plot(n_,jnp.median(E_NS['DReLU_normalized'],axis=1),color='blue',lw=.5)
 		#ax_[i].plot(n_,jnp.median(E_NS['tanh'],axis=1),color='red',ls='dotted',lw=2)
-		ax_[i].plot(n_,get_avg(depth,'DReLU_normalized',n_,scaling,prefix=prefix),color='blue',marker='o',ms=4,label=r'DReLU')
-		ax_[i].plot(n_,get_avg(depth,'tanh',n_,scaling,prefix=prefix),color='red',marker='o',ms=4,ls='dashed',label=r'tanh')
+
+		avg_D,q_D=get_avg(depth,'DReLU_normalized',n_,scaling,prefix=prefix)
+		avg_t,q_t=get_avg(depth,'tanh',n_,scaling,prefix=prefix)
+
+		ax_[i].plot(n_,avg_D,color='blue',lw=1,label=r'DReLU')
+		#ax_[i].plot(n_,avg_D,color='blue',marker='D',ms=3,lw=1,label=r'DReLU')
+		ax_[i].fill_between(n_,q_D[0],q_D[-1],color='blue',alpha=.2)
+
+		ax_[i].plot(n_,avg_t,color='red',lw=1,ls='dashed',label=r'tanh')
+		#ax_[i].plot(n_,avg_t,color='red',marker='.',ms=2,lw=1,ls='dashed',label=r'tanh')
+		ax_[i].fill_between(n_,q_t[0],q_t[-1],color='red',alpha=.2)
 
 
 		ax_[i].title.set_text(str(depth)+' layers')

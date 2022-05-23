@@ -1,3 +1,5 @@
+from jax.config import config
+config.update("jax_enable_x64", True)
 import jax
 import jax.numpy as jnp
 import jax.random as rnd
@@ -22,8 +24,8 @@ d=3
 
 
 #instances=1000
-samples=10**4
-size=10**4
+samples=10**5
+size=10**5
 nmax=16
 
 scaling=sys.argv[1]

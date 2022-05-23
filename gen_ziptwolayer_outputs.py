@@ -1,10 +1,12 @@
+from jax.config import config
+config.update("jax_enable_x64", True)
 import gen_outputs
 import jax.numpy as jnp
 import plot_twolayer
 import sys
 
 
-if sys.argv[1]=='h':
+if len(sys.argv)==1:
 	print('\n\nquickgen_twolayerplot.py nmax scaling=X/H\n\n')
 	quit()
 nmax=int(sys.argv[1])
