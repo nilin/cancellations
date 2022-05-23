@@ -172,11 +172,10 @@ def printinfo(t0,n,s,batchsize,batches,**kwargs):
 		sampleinfo=''
 	else:
 		sampleinfo=('batch '+str(s+1)+'/'+str(batches)+' containing '+str(batchsize)+' samples.' if batchsize>1 else 'sample '+str(s+1)+'/'+str(batches))
-	print('Permutations/time = '+'{:,}'.format(int(math.factorial(n)//dt))+'/second. '+sampleinfo,end='\r')
+	bk.log('Permutations/time = '+'{:,}'.format(int(math.factorial(n)//dt))+'/second. '+sampleinfo,' (n=',n,')')
 	if s==batches-1:
 		print('')
 
-	bk.log(sampleinfo)
 	return t1
 
 
