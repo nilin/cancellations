@@ -24,8 +24,8 @@ d=3
 
 
 #instances=1000
-samples=10**5
-size=10**5
+samples=10**4
+size=10**4
 nmax=16
 
 scaling=sys.argv[1]
