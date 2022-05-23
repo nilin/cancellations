@@ -15,7 +15,7 @@ scaling=sys.argv[2]
 if len(sys.argv)>3:
 	folder=sys.argv[3]
 else:
-	folder='zipout'
+	folder='zipoutputs'
 	
 
 
