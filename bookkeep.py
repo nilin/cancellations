@@ -9,13 +9,13 @@ import os
 
 
 
-def log(msg,loud=True):
+def log(msg,**kwargs):
 
 	msg=msg+'\n\n-'+time.ctime(time.time())+'\n\n'
 	with open('log','a') as f:
 		f.write('\n'+str(msg))
-	if loud:
-		print(msg)
+	print(msg,**kwargs)
+
 
 class Stopwatch:
 	def __init__(self):

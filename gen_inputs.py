@@ -35,11 +35,13 @@ for n in range(2,nmax+1):
 	Xs_=gen_Xs(key,d,n,samples)
 	bk.save(Xs_,folder+'Xs/n='+str(n))
 
+
+bk.log('generating')
 for n in range(2,nmax+1):
-	print('\nn='+str(n))
+	bk.log('\nn='+str(n))
 	m=n*d
 	for depth in range(2,6):	
-		print('depth='+str(depth),end='\r')
+		bk.log('depth='+str(depth),end='\r')
 		m_=[m]*(depth-1)+[1]
 		#for scaling in ['X','H']:
 		#key0,*keys=rnd.split(rnd.PRNGKey(0),instances+10)
