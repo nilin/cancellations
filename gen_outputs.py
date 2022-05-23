@@ -51,6 +51,31 @@ def zipdata(n,depth,scaling,samples):
 	
 
 
+def zipdata_(n,depth,scaling,start,end):
+	Ws=bk.get('inputs/Ws/n='+str(n)+' depth='+str(depth)+' '+scaling)
+	Ls=range(len(Ws))
+
+	Xs=bk.get('inputs/Xs/n='+str(n))
+	samples,n,d=Xs.shape
+	batchsize=max(round(10000/math.factorial(n)),1)
+	indices=[]
+
+	a=start
+
+	print(Xs.shape)
+
+	while a<end:
+		b=min(a+batchsize,end)
+		indices.append(jnp.arange(a,b))
+		a=b
+
+
+	Xbatches=[jnp.expand_dims(jnp.take(Xs,batch,axis=0),axis=1) for batch in indices]
+	Wbatches=[[jnp.take(Ws[l],batch,axis=0) for l in Ls] for batch in indices]
+	return Wbatches,Xbatches
+
+
+
 """
 """
 
@@ -89,14 +114,21 @@ def generate_zip(nmin,nmax,depth,ac_name,scaling,samples,mode='standard',folder=
 	for n in range(nmin,nmax+1):
 		bk.log('zip ',ac_name,' n=',n,', ',samples,' samples',100*' ')
 		fn=str_(folder+'/depth=',depth,' AS/'+ac_name+' n=',n,' '+scaling)
-		if os.path.isfile(fn) and bk.get(fn).size>=samples:
+		if mode=='standard' and os.path.isfile(fn) and bk.get(fn).size>=samples:
 			continue
 
-		Ws,Xs=zipdata(n,depth,scaling,samples)
+		if mode=='standard':
+			Ws,Xs=zipdata(n,depth,scaling,samples)
+		if mode=='blocks':
+			start,end=samples
+			[Ws,Xs]=zipdata_(n,depth,scaling,start,end)
+			fn=fn+' samples '+str(samples)
+
+
 		instance=GPU_sum.sum_perms_multilayer_zip(Ws,Xs,ac_name)
 
 		print(instance.dtype)
-		if os.path.isfile(fn) and bk.get(fn).size>=samples:
+		if mode=='standard' and os.path.isfile(fn) and bk.get(fn).size>=samples:
 			continue
 
 		bk.save(instance,fn)
@@ -106,7 +138,8 @@ def generate_zip(nmin,nmax,depth,ac_name,scaling,samples,mode='standard',folder=
 if __name__=='__main__':
 
 	if len(sys.argv)==1:
-		print('\n\ngen_outputs.py nmin nmax depth activation X/H (i)nstance/(z)ip instances (samples required if (i)nstance)\n\n')
+		print('\n\ngen_outputs.py nmin nmax depth activation X/H (i)nstance/(z)ip instances (samples required if (i)nstance) folder')
+		print('gen_outputs.py nmin nmax depth activation X/H zb start end folder\n\n')
 		quit()
 	nmin=int(sys.argv[1])
 	nmax=int(sys.argv[2])
@@ -114,13 +147,19 @@ if __name__=='__main__':
 	ac_name=sys.argv[4]
 	scaling=sys.argv[5]
 	combinemode=sys.argv[6]
-	instances=int(sys.argv[7])
-	folder=sys.argv[8]
 
 	if combinemode=='i':
+		instances=int(sys.argv[7])
 		samples=int(sys.argv[8])
 		generate(nmin,nmax,depth,ac_name,scaling,instances,samples)
 
 	if combinemode=='z':
+		instances=int(sys.argv[7])
+		folder=sys.argv[8]
 		generate_zip(nmin,nmax,depth,ac_name,scaling,instances,folder=folder)
 
+	if combinemode=='zb':
+		start=int(sys.argv[7])
+		end=int(sys.argv[8])
+		folder=sys.argv[9]
+		generate_zip(nmin,nmax,depth,ac_name,scaling,[start,end],mode='blocks',folder=folder)
