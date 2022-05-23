@@ -113,7 +113,7 @@ if __name__=='__main__':
 	scaling=sys.argv[5]
 	combinemode=sys.argv[6]
 	instances=int(sys.argv[7])
-	folder=int(sys.argv[8])
+	folder=sys.argv[8]
 
 	if combinemode=='i':
 		samples=int(sys.argv[8])
