@@ -87,16 +87,13 @@ def generate_zip(nmin,nmax,depth,ac_name,scaling,samples,mode='standard'):
 
 		
 	for n in range(nmin,nmax+1):
-		print_('zip ',ac_name,' n=',n,', ',samples,' samples',100*' ')
+		bk.log('zip ',ac_name,' n=',n,', ',samples,' samples',100*' ')
 		fn=str_('zipoutputs/depth=',depth,' AS/'+ac_name+' n=',n,' '+scaling)
 		if os.path.isfile(fn) and bk.get(fn).size>=samples:
 			continue
 
 		Ws,Xs=zipdata(n,depth,scaling,samples)
 		instance=GPU_sum.sum_perms_multilayer_zip(Ws,Xs,ac_name,mode='silent')
-
-		bk.log('n='+str(n))	
-		bk.log('samples: '+str(samples))	
 
 		print(instance.dtype)
 

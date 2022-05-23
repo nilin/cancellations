@@ -6,10 +6,12 @@ import copy
 import jax
 import jax.numpy as jnp
 import os
+from util import str_
 
 
+def log(*args,**kwargs):
 
-def log(msg,**kwargs):
+	msg=str_(*args)
 
 	#msg=msg+'\n\n-'+time.ctime(time.time())+'\n\n'
 	with open('log','a') as f:
