@@ -25,8 +25,7 @@ d=3
 
 #instances=1000
 samples=10**5
-size=10**5
-nmax=16
+nmax=12
 
 scaling=sys.argv[1]
 bk.log('generating')
@@ -41,6 +40,7 @@ for n in range(2,nmax+1):
 	bk.log('\nn='+str(n))
 	m=n*d
 	for depth in range(2,6):	
+		size=(10**5 if depth==2 else 10**3)
 		bk.log('depth='+str(depth),end='\r')
 		m_=[m]*(depth-1)+[1]
 		#for scaling in ['X','H']:
