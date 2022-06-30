@@ -67,7 +67,7 @@ def GPU_batch_firstlayer(P,Q,RW,X):			# RW=zip,m,n,d ; X=zip,s,n,d
 def sum_perms(W,X,permseqs,applylayers):		# W=zip,m,n,d ; X=zip,s,n,d
 
 	try: lw,lx=len(W.shape),len(X.shape); assert lw==4 and lx==4 ;
-	except AssertionError: util.print_('','Format should be W=zip,m,n,d; X=zip,s,n,d but they have ',lw,' and ',lx,' dimensions (4 and 4 required)');quit();
+	except AssertionError: util.print_('','Format should be W=zip,m,n,d; X=zip,s,n,d but they have ',lw,' and ',lx,' dimensions (4 and 4 required)');print(W.shape);print(X.shape);quit();
 
 	(P,signP),(Q,signQ),(R,signR)=permseqs
 	RW=apply_many_to_n(R,W)				#zip,m,r,n,d
@@ -172,9 +172,10 @@ def printinfo(t0,n,s,batchsize,batches,**kwargs):
 		sampleinfo=''
 	else:
 		sampleinfo=('batch '+str(s+1)+'/'+str(batches)+' containing '+str(batchsize)+' samples.' if batchsize>1 else 'sample '+str(s+1)+'/'+str(batches))
-	bk.log('Permutations/time = '+'{:,}'.format(int(math.factorial(n)//dt))+'/second. '+sampleinfo,' (n=',n,')')
+		#bk.log('Permutations/time = '+'{:,}'.format(int(math.factorial(n)//dt))+'/second. '+sampleinfo,' (n=',n,')')
 	if s==batches-1:
-		print('')
+		pass
+		#print('')
 
 	return t1
 
