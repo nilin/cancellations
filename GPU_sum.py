@@ -83,19 +83,20 @@ def sum_perms(W,X,permseqs,applylayers):		# W=zip,m,n,d ; X=zip,s,n,d
 	return S 					#zip,m,s
 
 
-def gen_applylayers(Ws,ac_name):
+def gen_applylayers(Ws,bs,ac_name):
 	activation=util.activations[ac_name] #{'ReLU':util.ReLU,'tanh':jnp.tanh,'HS':util.heaviside,'DReLU':util.DReLU,'exp':jnp.exp}[ac_name]
 
 	@jax.jit	
 	def applylayers(X):
-		for W in Ws:
+		for W,b in zip(Ws,bs):
+			X=X[:,:,:,:,:]+b[:,:,None,None,None]
 			X=activation(X)
 			X=jax.vmap(contract,in_axes=(0,0))(W,X)	
 		return X
 	return applylayers
 
 
-def sum_perms_multilayer(Ws:list,Xs_,ac_name,mode='standard'):
+def sum_perms_multilayer(Ws:list,bs,Xs_,ac_name,mode='standard'):
 
 	W=Ws[0]
 	z,m,n,d=W.shape
@@ -111,14 +112,14 @@ def sum_perms_multilayer(Ws:list,Xs_,ac_name,mode='standard'):
 	for s,Xs in enumerate(Xs_):
 
 
-		outputs.append(sum_perms(W,Xs,permseqs,gen_applylayers(Ws[1:],ac_name)))
+		outputs.append(sum_perms(W,Xs,permseqs,gen_applylayers(Ws[1:],bs,ac_name)))
 		t=printinfo(t,n,s,Xs.shape[0],len(Xs_))
 
 	return jnp.concatenate(outputs,axis=-1)/jnp.sqrt(math.factorial(n))
 
 
 
-def sum_perms_multilayer_zip(Ws:list,Xs:list,ac_name,mode='standard'):
+def sum_perms_multilayer_zip(Ws:list,bs,Xs:list,ac_name,mode='standard'):
 
 	z,m,n,d=Ws[0][0].shape
 
@@ -132,7 +133,7 @@ def sum_perms_multilayer_zip(Ws:list,Xs:list,ac_name,mode='standard'):
 
 	for s,_ in enumerate(Xs):
 
-		outputs.append(sum_perms(Ws[s][0],Xs[s],permseqs,gen_applylayers(Ws[s][1:],ac_name)))
+		outputs.append(sum_perms(Ws[s][0],Xs[s],permseqs,gen_applylayers(Ws[s][1:],bs[s],ac_name)))
 		t=printinfo(t,n,s,Xs[s].shape[0],len(Xs))
 
 	out=jnp.concatenate(outputs,axis=0)/jnp.sqrt(math.factorial(n))

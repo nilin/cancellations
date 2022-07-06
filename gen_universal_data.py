@@ -9,31 +9,68 @@ import GPU_sum
 import optax
 import math
 import universality
+import sys
 
+
+def picksamplesize(n):
+	samplesizes=[10**6]*6+[10**4]+[10**5]+[10**3]
+	return int(samplesizes[n])
+
+def pickblocksize(n):
+	return int(picksamplesize(n)//100)
 
 k0=rnd.PRNGKey(0)
 k1,k2=rnd.split(k0)
 
-samples=1000
 
-for d in range(1,4):
+print('inputs')
+
+for d in [1,3,10]:
+	print('d='+str(d))
+
 	for n in range(1,9):
 
 		print(n)
+		samples=picksamplesize(n)
 
 		X_train=rnd.normal(k1,(samples,n,d))
-		X_test=rnd.normal(k2,(1000,n,d))
+		X_test=rnd.normal(k2,(samples,n,d))
 
 		bk.save(X_train,'data/X_train_n='+str(n)+'_d='+str(d))
 		bk.save(X_test,'data/X_test_n='+str(n)+'_d='+str(d))
 
+#		if n>1:
+#			X_test_swap=jnp.concatenate([X_test[:,1:2,:],X_test[:,0:1,:],X_test[:,2:,:]],axis=1)
+#			bk.save(X_test_swap,'data/X_test_swap_n='+str(n)+'_d='+str(d))
 
-		spf=universality.SPfeatures(k0,n,d,1,universality.features)
-		target=lambda X:spf.eval(X)
 
-		Y_train=target(X_train)
-		Y_test=target(X_test)
+print('outputs')
 
-		bk.save(Y_train,'data/Y_train_n='+str(n)+'_d='+str(d))
-		bk.save(Y_test,'data/Y_test_n='+str(n)+'_d='+str(d))
+for d in [1,3,10]:
+	print('\nd='+str(d))
+	for n in range(1,9):
+
+		samplesize=picksamplesize(n)
+		blocksize=pickblocksize(n)
+
+		print('n='+str(n))
+		for m in {1,10}:
+		
+			X_train=bk.get('data/X_train_n='+str(n)+'_d='+str(d))
+			X_test=bk.get('data/X_test_n='+str(n)+'_d='+str(d))
+		
+
+			spf=universality.SPfeatures(k0,n,d,m,universality.features)
+			target=lambda X:spf.eval(X,blocksize=blocksize)
+
+			Y_train=target(X_train)
+			Y_test=target(X_test)
+
+			bk.save(Y_train,'data/Y_train_n='+str(n)+'_d='+str(d)+'_m='+str(m))
+			bk.save(Y_test,'data/Y_test_n='+str(n)+'_d='+str(d)+'_m='+str(m))
+
+#			if n>1:
+#				X_test_swap=bk.get('data/X_test_swap_n='+str(n)+'_d='+str(d))
+#				Y_test_swap=target(X_test_swap)
+#				bk.save(Y_test_swap,'data/Y_test_swap_n='+str(n)+'_d='+str(d)+'_m='+str(m))
 

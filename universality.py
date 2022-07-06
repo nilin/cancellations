@@ -25,42 +25,48 @@ lossfn=sqloss
 #	return jnp.average(jnp.square(Y))
 
 
-def sumperms(W,X):
+def sumperms(W,b,X):
 	
 	W_=[jnp.expand_dims(L,axis=0) for L in W]
+	b_=[jnp.expand_dims(bias,axis=0) for bias in b]
 	X_=jnp.reshape(X,(1,1,)+X.shape)
 	
-	out=GPU_sum.sum_perms_multilayer(W_,X_,'ReLU',mode='silent')
+	out=GPU_sum.sum_perms_multilayer(W_,b_,X_,'ReLU',mode='silent')
 	out=jnp.squeeze(out)
 
 	return out
 
 
-def batchloss(W,X,Y,lossfn=lossfn):
-	Z=sumperms(W,X)
+def batchloss(Wb,X,Y,lossfn=lossfn):
+	W,b=Wb
+	Z=sumperms(W,b,X)
 	return lossfn(Y,Z)
 
 
-def lossgrad(W,X,Y):
-	loss,grad=jax.value_and_grad(batchloss)(W,X,Y)
+def lossgrad(Wb,X,Y):
+	W,b=Wb
+	loss,grad=jax.value_and_grad(batchloss)((W,b),X,Y)
 	return grad,loss
 
+#
+#def update(W,b,X,Y):
+#	grad,loss=lossgrad(W,b,X,Y)	
+#	bk.printbar(loss)
+#	for l,dw in enumerate(grad):
+#		W[l]=W[l]-.01*dw
+#	return W
+#	
 
-def update(W,X,Y):
-	grad,loss=lossgrad(W,X,Y)	
-	bk.printbar(loss)
-	for l,dw in enumerate(grad):
-		W[l]=W[l]-.01*dw
-	return W
-	
 
-
-def genW(k0,n,d,m=10):
+def genW(k0,n,d,m=10,randb=False):
 	k1,k2=rnd.split(k0)
 	W0=rnd.normal(k1,(m,n,d))/math.sqrt(n*d)
 	W1=rnd.normal(k2,(1,m))/math.sqrt(m)
 	W=[W0,W1]
-	return W
+	b=[jnp.zeros(m)]
+	if randb:
+		b=[rnd.normal(k0,(m,))]
+	return W,b
 
 
 #
@@ -118,19 +124,19 @@ class SPfeatures:
 	def __init__(self,key,n,d,m,featuremap):
 		self.featuremap=featuremap
 		d_,var=nfeatures(n,d,featuremap)
-		self.W=genW(key,n,d_,m)
-		#self.normalization=1/math.sqrt(var)
-		self.normalization=1
+		self.W,self.b=genW(key,n,d_,m)
+		#self.W,self.b=genW(key,n,d_,m,randb=True)
+		self.normalization=1/math.sqrt(var)
 		
 
 	def evalblock(self,X):
 		F=self.featuremap(X)*self.normalization
-		return sumperms(self.W,F)
+		return sumperms(self.W,self.b,F)
 
-	def eval(self,X):
+	def eval(self,X,blocksize=250):
 		samples=X.shape[0]
 		blocks=[]
-		blocksize=250
+		#blocksize=250
 		Yblocks=[]
 		a=0
 		while a<samples:

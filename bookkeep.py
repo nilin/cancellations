@@ -110,3 +110,15 @@ def printbars(data):
 
 def printemph(msg):
 	print(100*'-'+'\n'+str(msg)+'\n'+100*'-'+'\n')
+
+
+
+def formatvars(elements):
+	variables=dict()
+	for e in elements:
+		name,val=e.split('=')
+		variables[name]=int(val)
+	return variables
+
+def formatvars_(elements):
+	return ' '.join([s+'='+str(v) for s,v in elements.items()])
