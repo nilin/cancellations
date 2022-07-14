@@ -38,6 +38,11 @@ def flatten_nd(x):
 	newshape=s[:-2]+(s[-2]*s[-1],)
 	return jnp.reshape(x,newshape)
 
+@jax.jit
+def dot_nd(X,Y):
+	return jnp.inner(flatten_nd(X),flatten_nd(Y))
+
+
 def separate_n_d(x,n,d):
 	s=x.shape
 	newshape=s[:-1]+(n,d)

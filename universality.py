@@ -8,7 +8,7 @@ import bookkeep as bk
 import GPU_sum
 import optax
 import math
-
+import testing
 
 
 
@@ -20,6 +20,7 @@ def rtloss(Y,Z):
 	return jnp.sqrt(sqloss(Y,Z))
 
 lossfn=sqloss
+lossfnNS=sqloss
 
 #def sqnorm(Y):
 #	return jnp.average(jnp.square(Y))
@@ -36,6 +37,10 @@ def sumperms(W,b,X):
 
 	return out
 
+def nonsym(Ws,bs,X):
+	L1=util.ReLU(util.dot_nd(X,Ws[0])+bs[0][None,:])
+	return jnp.inner(L1,Ws[1])
+
 
 def batchloss(Wb,X,Y,lossfn=lossfn):
 	W,b=Wb
@@ -47,6 +52,22 @@ def lossgrad(Wb,X,Y):
 	W,b=Wb
 	loss,grad=jax.value_and_grad(batchloss)((W,b),X,Y)
 	return grad,loss
+
+
+
+def batchlossNS(Wb,X,Y,lossfn=lossfn):
+	W,b=Wb
+	Z=nonsym(W,b,X)
+	loss=lossfn(Y,Z)
+	return loss
+
+
+def lossgradNS(Wb,X,Y):
+	W,b=Wb
+	loss,grad=jax.value_and_grad(batchlossNS)((W,b),X,Y)
+	return grad,loss
+
+
 
 #
 #def update(W,b,X,Y):
@@ -127,6 +148,7 @@ class SPfeatures:
 		self.W,self.b=genW(key,n,d_,m)
 		#self.W,self.b=genW(key,n,d_,m,randb=True)
 		self.normalization=1/math.sqrt(var)
+
 		
 
 	def evalblock(self,X):
@@ -145,7 +167,10 @@ class SPfeatures:
 			a=b
 		return jnp.concatenate(Yblocks,axis=0)
 
-
+	def evalNS(self,X):
+		F=self.featuremap(X)*self.normalization
+		return nonsym(self.W,self.b,F)
+		
 
 
 

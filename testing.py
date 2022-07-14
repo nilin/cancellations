@@ -8,24 +8,42 @@ import GPU_sum
 
 
 
-def NN(Ws,X,ac):
+
+
+def NN_(Ws,bs,X,ac):
 	activation=util.activations[ac]
 	X=X.T
-	for W in Ws[:-1]:
-		X=activation(jnp.dot(W,X))
+	for W,b in zip(Ws[:-1],bs):
+		X=activation(jnp.dot(W,X)+b)
 	return jnp.dot(Ws[-1],X)
+
+def NN(Ws,X,ac):
+	bs=[jnp.zeros((W.shape[0],)) for W in Ws[:-1]]
+	return NN_(Ws,bs,X,ac)
+
+#def get_NN_nd(ac):
+#	@jax.jit
+#	def NN_nd(Ws,X):
+#		n,d=X.shape[-2:]
+#		flatW=jnp.reshape(Ws[0],Ws[0].shape[:-2]+(n*d,))
+#		flatX=jnp.reshape(X,X.shape[:-2]+(n*d,))
+#		Ws_=[flatW]+Ws[1:]
+#
+#		return NN(Ws_,flatX,ac)
+#	return NN_nd
 
 def get_NN_nd(ac):
 	@jax.jit
-	def NN_nd(Ws,X):
+	def NN_nd(Ws,bs,X):
 		n,d=X.shape[-2:]
 		flatW=jnp.reshape(Ws[0],Ws[0].shape[:-2]+(n*d,))
+		flatb=jnp.reshape(bs[0],bs[0].shape[:-2]+(n*d,))
 		flatX=jnp.reshape(X,X.shape[:-2]+(n*d,))
 		Ws_=[flatW]+Ws[1:]
+		bs_=[flatb]+bs[1:]
 
-		return NN(Ws_,flatX,ac)
+		return NN_(Ws_,bs_,flatX,ac)
 	return NN_nd
-
 
 
 

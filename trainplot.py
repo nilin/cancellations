@@ -11,7 +11,6 @@ import math
 import universality
 import sys
 import matplotlib.pyplot as plt
-from plotuniversal import plot as plot3
 import numpy as np
 
 
@@ -55,6 +54,8 @@ if __name__=="__main__":
 	#variables=bk.formatvars(sys.argv[1:])
 	#ploterrorhist(variables)
 
+	fn=input('file name: ')
+
 	fig,axs=plt.subplots(1,2)
 
 	for d,ax in zip([1,3],[axs[0],axs[1]]):
@@ -69,7 +70,8 @@ if __name__=="__main__":
 
 		ax.legend()
 
-	plt.show()
+
+	plt.savefig('animation/'+fn+'.pdf')
 		
 
 	
