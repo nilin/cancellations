@@ -2,5 +2,17 @@
 # readme for universality
 
 
-run train.py
-run trainplot.py for test error as the weights are learned
+==================================================
+% train.py traintime trainmode
+
+example:
+% train.py 10 NS/AS
+
+
+
+==================================================
+% trainplot.py
+% NS
+% NS
+
+saves plot in ./univplots/

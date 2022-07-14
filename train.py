@@ -47,10 +47,13 @@ class Trainer:
 
 		self.paramshistory=[]
 
+		self.epochlosses=[]
+
 
 	def epoch(self,minibatchsize):
 
 		X_train,Y_train=randperm(self.X_train,self.Y_train)
+		losses=[]
 	
 		for a in range(0,self.samples,minibatchsize):
 			c=min(a+minibatchsize,self.samples)
@@ -64,12 +67,17 @@ class Trainer:
 			(self.W,self.b)=optax.apply_updates((self.W,self.b),updates)
 
 			rloss=loss/universality.lossfn(Y,0)
+			losses.append(rloss)
 			bk.printbar(rloss,rloss)
+
+		self.epochlosses.append(losses)
 
 	def epochNS(self,minibatchsize):
 		
 		#X_train,Z_train=randperm(self.X_train,self.Z_train)
 		X_train,Z_train=self.X_train,self.Z_train
+
+		losses=[]
 
 		for a in range(0,self.samples,minibatchsize):
 			c=min(a+minibatchsize,self.samples)
@@ -83,12 +91,14 @@ class Trainer:
 			(self.W,self.b)=optax.apply_updates((self.W,self.b),updates)
 
 			rloss=loss/universality.lossfnNS(Z,0)
-
+			losses.append(rloss)
 			bk.printbar(rloss,rloss)
+		self.epochlosses.append(losses)
 
 
 	def checkpoint(self):
 		self.paramshistory.append((self.W,self.b))
+		return jnp.average(self.epochlosses[-1])
 
 
 	def savehist(self,filename):
@@ -104,13 +114,14 @@ def initandtrain(d,n,m,samples,batchsize,traintime,trainmode='AS'):
 	
 
 	t0=time.perf_counter()
+	loss='null'
 
-	while time.perf_counter()<t0+traintime:
+	while time.perf_counter()<t0+traintime and (loss=='null' or loss>.005):
 		if trainmode=='NS':
 			T.epochNS(batchsize)
 		if trainmode=='AS':
 			T.epoch(batchsize)
-		T.checkpoint()
+		loss=T.checkpoint()
 
 		#if e%10==0:
 		T.savehist('data/hists/'+trainmode+'_'+formatvars_(variables))
