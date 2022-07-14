@@ -36,7 +36,7 @@ class Trainer:
 
 		X_train=bk.get('data/X_train_n='+str(n)+'_d='+str(d))
 		Y_train=bk.get('data/Y_train_n='+str(n)+'_d='+str(d)+'_m=1')
-		Z_train=bk.get('data/Z_train_n='+str(n)+'_d='+str(d)+'_m=1')  #Z_train
+		Z_train=bk.get('data/Z_train_n='+str(n)+'_d='+str(d)+'_m=1')
 
 		self.X_train=X_train[:samples]
 		self.Y_train=Y_train[:samples]
@@ -68,20 +68,21 @@ class Trainer:
 
 	def epochNS(self,minibatchsize):
 		
-		X_train,Z_train=randperm(self.X_train,self.Z_train)
-	
+		#X_train,Z_train=randperm(self.X_train,self.Z_train)
+		X_train,Z_train=self.X_train,self.Z_train
+
 		for a in range(0,self.samples,minibatchsize):
 			c=min(a+minibatchsize,self.samples)
 
 			X=X_train[a:c]
 			Z=Z_train[a:c]
 
-			grad,loss=universality.lossgradNS((self.W,self.b),X,Z)  #lossgradNS
+			grad,loss=universality.lossgradNS((self.W,self.b),X,Z)
 
-			updates,self.state=self.opt.update(grad,self.state,(self.W,self.b))  #updateNS
+			updates,self.state=self.opt.update(grad,self.state,(self.W,self.b))
 			(self.W,self.b)=optax.apply_updates((self.W,self.b),updates)
 
-			rloss=loss/universality.lossfnNS(Z,0)  #lossfnNS
+			rloss=loss/universality.lossfnNS(Z,0)
 
 			bk.printbar(rloss,rloss)
 
@@ -125,16 +126,12 @@ def formatvars_(D):
 
 if __name__=="__main__":
 
-	#variables=bk.formatvars(sys.argv[1:])
-	#d,n,m,samples,minibatchsize=[variables[n] for n in ['d','n','m','s','bs']]
-
 	traintime=int(sys.argv[1])	
 
-	m=10
-	samples=1000
-	batchsize=100
-
 	trainmode=sys.argv[2]
+	m=100
+	samples=1000 if trainmode=='AS' else 10**6
+	batchsize=100 if trainmode=='AS' else 10000
 
 	for d in [1,3]:
 		print('d='+str(d))

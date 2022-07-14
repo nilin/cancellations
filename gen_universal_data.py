@@ -4,7 +4,6 @@ import jax.numpy as jnp
 import jax.random as rnd
 import util
 import bookkeep as bk
-#from GPU_sum import sum_perms_multilayer as sumperms
 import GPU_sum
 import optax
 import math
@@ -43,9 +42,6 @@ for d in [1,3]:
 		bk.save(X_train,'data/X_train_n='+str(n)+'_d='+str(d))
 		bk.save(X_test,'data/X_test_n='+str(n)+'_d='+str(d))
 
-#		if n>1:
-#			X_test_swap=jnp.concatenate([X_test[:,1:2,:],X_test[:,0:1,:],X_test[:,2:,:]],axis=1)
-#			bk.save(X_test_swap,'data/X_test_swap_n='+str(n)+'_d='+str(d))
 
 
 print('outputs NS')
@@ -61,15 +57,16 @@ for d in [1,3]:
 		for m in {1,10}:
 		
 			X_train=bk.get('data/X_train_n='+str(n)+'_d='+str(d))
+			X_test=bk.get('data/X_test_n='+str(n)+'_d='+str(d))
 
 			spf=universality.SPfeatures(k0,n,d,m,universality.features)
 			targetNS=lambda X:spf.evalNS(X)
 
 			Z_train=targetNS(X_train)
-
-			print(Z_train.shape)
+			Z_test=targetNS(X_test)
 
 			bk.save(Z_train,'data/Z_train_n='+str(n)+'_d='+str(d)+'_m='+str(m))
+			bk.save(Z_test,'data/Z_test_n='+str(n)+'_d='+str(d)+'_m='+str(m))
 
 print('outputs')
 
@@ -91,16 +88,10 @@ for d in [1,3]:
 
 			spf=universality.SPfeatures(k0,n,d,m,universality.features)
 			target=lambda X:spf.eval(X,blocksize=blocksize)
-			targetNS=lambda X:spf.nonsym(X)
 
 			Y_train=target(X_train)
 			Y_test=target(X_test)
 
 			bk.save(Y_train,'data/Y_train_n='+str(n)+'_d='+str(d)+'_m='+str(m))
 			bk.save(Y_test,'data/Y_test_n='+str(n)+'_d='+str(d)+'_m='+str(m))
-
-#			if n>1:
-#				X_test_swap=bk.get('data/X_test_swap_n='+str(n)+'_d='+str(d))
-#				Y_test_swap=target(X_test_swap)
-#				bk.save(Y_test_swap,'data/Y_test_swap_n='+str(n)+'_d='+str(d)+'_m='+str(m))
 

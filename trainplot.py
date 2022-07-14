@@ -31,13 +31,23 @@ def testerror(Wb,samples=100):
 
 	return universality.batchloss(Wb,X,Y)/universality.lossfn(Y,0)
 	
+def testerrorNS(Wb,samples=100):
+	W,b=Wb
+	m,n,d=W[0].shape
+	X=bk.get('data/X_test_n='+str(n)+'_d='+str(d))
+	Z=bk.get('data/Z_test_n='+str(n)+'_d='+str(d)+'_m=1')
 
-def ploterrorhist(variables,ax):
-	hist=bk.get('data/hists/'+bk.formatvars_(variables))
-	errorhist=[testerror(Wb) for Wb in hist]
+	X=X[:samples]
+	Z=Z[:samples]
+
+	return universality.batchlossNS(Wb,X,Z)/universality.lossfn(Z,0)
+
+
+
+def ploterrorhist(n,ax,fn,plotmode):
+	hist=bk.get(fn)
+	errorhist=[testerror(Wb) if plotmode=='AS' else testerrorNS(Wb) for Wb in hist]
 	error=errorhist[-1]
-
-	n=variables['n']
 
 	if error<.5:
 		ax.plot(errorhist,label=str(n))
@@ -51,27 +61,27 @@ def ploterrorhist(variables,ax):
 
 if __name__=="__main__":
 
-	#variables=bk.formatvars(sys.argv[1:])
-	#ploterrorhist(variables)
+	trainmode=input('training mode: ')
+	outfn=input('output file name: ')
 
-	fn=input('file name: ')
+	fig,axs=plt.subplots(nrows=2,ncols=2)
 
-	fig,axs=plt.subplots(1,2)
+	print(axs)
 
-	for d,ax in zip([1,3],[axs[0],axs[1]]):
+	for d,axrow in zip([1,3],[axs[0],axs[1]]):
 
-	#d=sys.argv[1]
-		ax.set_ylim((0,2))	
+		for plotmode,ax in zip(['AS','NS'],axrow):
 
-		print('d='+str(d))
-		for n in range(1,8):
-			print('n='+str(n))
-			ploterrorhist({'d':d,'n':n,'m':10},ax)
+			ax.set_ylim((0,2))	
 
-		ax.legend()
-
-
-	plt.savefig('animation/'+fn+'.pdf')
+			print('d='+str(d))
+			for n in range(1,8):
+				print('n='+str(n))
+				fn='data/hists/'+trainmode+'_'+bk.formatvars_({'d':d,'n':n,'m':100})
+				ploterrorhist(n,ax,fn,plotmode)
+			ax.legend()
+	
+	bk.savefig('univplots/'+outfn+'.pdf')
 		
 
 	

@@ -5,6 +5,7 @@ import time
 import copy
 import jax
 import jax.numpy as jnp
+import matplotlib.pyplot as plt
 import os
 from util import str_
 
@@ -39,6 +40,11 @@ def mkdir(path):
 def savedata(data,filename):
 	path='data/'+filename
 	save(data,path)
+
+
+def savefig(path):
+	save('',path)
+	plt.savefig(path)
 
 def save(data,path):
 	makedirs(path)
@@ -120,5 +126,20 @@ def formatvars(elements):
 		variables[name]=int(val)
 	return variables
 
+
 def formatvars_(elements):
 	return ' '.join([s+'='+str(v) for s,v in elements.items()])
+
+
+
+class Bars:
+	def __init__(self):
+		self.bars=dict()
+
+	def setbar(self,name,val,txt):
+		self.bars[name]=(val,txt)
+		draw()
+
+	def draw(self):
+		data=[(val_txt[0],name+'='+str(val_txt[1])) for name,val_txt in self.bars.items()]
+		printbars(data)
