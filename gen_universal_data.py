@@ -19,7 +19,7 @@ def pickYsize(n):
 	return int(samplesizes[n])
 
 def pickblocksize(n):
-	return int(picksamplesize(n)//100)
+	return int(pickYsize(n)//100)
 
 k0=rnd.PRNGKey(0)
 k1,k2=rnd.split(k0)
@@ -44,22 +44,22 @@ for d in [1,3]:
 
 
 
-print('outputs NS')
-
 
 for d in [1,3]:
 	print('\nd='+str(d))
 	for n in range(1,nmax+1):
 
-		samplesize=picksamplesize(n)
 
 		print('n='+str(n))
 		for m in {1,10}:
 		
+			spf=universality.SPfeatures(k0,n,d,m,universality.features)
+
 			X_train=bk.get('data/X_train_n='+str(n)+'_d='+str(d))
 			X_test=bk.get('data/X_test_n='+str(n)+'_d='+str(d))
 
-			spf=universality.SPfeatures(k0,n,d,m,universality.features)
+			print('NS')
+
 			targetNS=lambda X:spf.evalNS(X)
 
 			Z_train=targetNS(X_train)
@@ -68,30 +68,13 @@ for d in [1,3]:
 			bk.save(Z_train,'data/Z_train_n='+str(n)+'_d='+str(d)+'_m='+str(m))
 			bk.save(Z_test,'data/Z_test_n='+str(n)+'_d='+str(d)+'_m='+str(m))
 
-print('outputs')
+			print('AS')
 
-
-for d in [1,3]:
-	print('\nd='+str(d))
-	for n in range(1,nmax+1):
-
-		samplesize=pickYsize(n)
-		blocksize=pickblocksize(n)
-
-		print('n='+str(n))
-		for m in {1,10}:
-		
-			X_train=bk.get('data/X_train_n='+str(n)+'_d='+str(d))
-			X_train=X_train[:samplesize]
-			X_test=bk.get('data/X_test_n='+str(n)+'_d='+str(d))
-		
-
-			spf=universality.SPfeatures(k0,n,d,m,universality.features)
-			target=lambda X:spf.eval(X,blocksize=blocksize)
+			X_train=X_train[:pickYsize(n)]
+			target=lambda X:spf.eval(X,blocksize=pickblocksize(n))
 
 			Y_train=target(X_train)
 			Y_test=target(X_test)
-
 			bk.save(Y_train,'data/Y_train_n='+str(n)+'_d='+str(d)+'_m='+str(m))
 			bk.save(Y_test,'data/Y_test_n='+str(n)+'_d='+str(d)+'_m='+str(m))
 
