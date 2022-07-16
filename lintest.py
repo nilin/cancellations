@@ -23,7 +23,6 @@ import time
 
 
 
-
 class Trainer:
     def __init__(self,d,n,m,samples):
         self.d,self.n,self.m,self.samples=d,n,m,samples
@@ -123,7 +122,7 @@ def formatvars_(D):
 def gen_Xs(key,d,n,samples):
 	return rnd.normal(key,(samples,n,d))	
 
-def regspaced_X(samples,r=2):
+def regspaced_X(samples,r=3):
 	X=jnp.arange(samples)*2*r/samples-r
 	for _ in range(2):
 		X=jnp.expand_dims(X,axis=-1)
@@ -136,9 +135,6 @@ def gaussian(X):
 
 
 if __name__=="__main__":
-
-    if len(sys.argv)==1:
-        print('\n\n --------------run with args: traintime----------------\n\n')
 
     samples=100
     batchsize=100
@@ -162,10 +158,13 @@ if __name__=="__main__":
     
     bk.log('training')
 
-    traintime=float(sys.argv[1])
+    traintime=30
+    #if len(sys.argv)==1:
+    #    print('\n\n --------------run with args: traintime----------------\n\n')
+    #traintime=float(sys.argv[1])
     trainmode='NS'
 
-    m=1000
+    m=100
     initandtrain(d,n,m,samples,batchsize,traintime,trainmode)
     
     bk.log('plotting')
