@@ -28,7 +28,6 @@ lossfnNS=sqloss
 
 
 
-@jax.jit
 def sumperms(W,b,X):
 	
 	W_=[jnp.expand_dims(L,axis=0) for L in W]
