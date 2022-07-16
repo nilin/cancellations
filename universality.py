@@ -44,14 +44,12 @@ def nonsym(Ws,bs,X):
 	return jnp.inner(L1,Ws[1])
 
 
-@jax.jit
 def batchloss(Wb,X,Y,lossfn=lossfn):
 	W,b=Wb
 	Z=sumperms(W,b,X)
 	return lossfn(Y,Z)
 
 
-@jax.jit
 def lossgrad(Wb,X,Y):
 	W,b=Wb
 	loss,grad=jax.value_and_grad(batchloss)((W,b),X,Y)

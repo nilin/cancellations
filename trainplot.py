@@ -61,6 +61,8 @@ def ploterrorhist(n,ax,fn,plotmode):
 
 if __name__=="__main__":
 
+	nmax=int(sys.argv[1])
+
 	trainmode=input('training mode: ')
 	outfn=input('output file name: ')
 
@@ -75,7 +77,7 @@ if __name__=="__main__":
 			ax.set_ylim((0,2))	
 
 			print('d='+str(d))
-			for n in range(1,8):
+			for n in range(1,nmax+1):
 				print('n='+str(n))
 				fn='data/hists/'+trainmode+'_'+bk.formatvars_({'d':d,'n':n,'m':100})
 				ploterrorhist(n,ax,fn,plotmode)

@@ -138,15 +138,16 @@ def formatvars_(D):
 if __name__=="__main__":
 
 	traintime=int(sys.argv[1])	
-
 	trainmode=sys.argv[2]
+	nmax=int(sys.argv[3])
+
 	m=100
 	samples=1000 if trainmode=='AS' else 10**6
 	batchsize=100 if trainmode=='AS' else 10000
 
 	for d in [1,3]:
 		print('d='+str(d))
-		for n in range(1,8):
+		for n in range(1,nmax+1):
 			print('n='+str(n))
 			initandtrain(d,n,m,samples,batchsize,traintime,trainmode)
 			print('\n')

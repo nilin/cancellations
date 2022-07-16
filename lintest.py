@@ -144,15 +144,15 @@ if __name__=="__main__":
 
     bk.log('generating training data')
     
-    #X = gen_Xs(rnd.PRNGKey(0),d,n,samples)*3
-    X=regspaced_X(samples)
+    X = gen_Xs(rnd.PRNGKey(0),d,n,samples)
+    #X=regspaced_X(samples)
     Z = gaussian(X)
     bk.save(jnp.stack([X,Z]),'data/train/gaussian_'+str(d))
 
     bk.log('generating testing data')
 
-    #X = gen_Xs(rnd.PRNGKey(1),d,n,samples)
-    X=regspaced_X(samples)
+    X = gen_Xs(rnd.PRNGKey(1),d,n,samples)
+    #X=regspaced_X(samples)
     Z = gaussian(X)
     bk.save(jnp.stack([X,Z]),'data/test/gaussian_'+str(d))
     
@@ -175,10 +175,10 @@ if __name__=="__main__":
     W,b=hist[-1]
     [X_train, Z_train] = bk.get('data/train/gaussian_1')
     Z_nn = universality.nonsym(W,b,X)
-    #plt.plot(jnp.squeeze(X),jnp.squeeze(Z),'bo',
-    #        jnp.squeeze(X),jnp.squeeze(Z_nn),'rd',markersize=1)
-    plt.plot(jnp.squeeze(X),jnp.squeeze(Z),'b',
-            jnp.squeeze(X),jnp.squeeze(Z_nn),'r')
+    plt.plot(jnp.squeeze(X),jnp.squeeze(Z),'bo',
+            jnp.squeeze(X),jnp.squeeze(Z_nn),'rd',markersize=1)
+    #plt.plot(jnp.squeeze(X),jnp.squeeze(Z),'b',
+    #        jnp.squeeze(X),jnp.squeeze(Z_nn),'r')
     plt.show()
  
     
