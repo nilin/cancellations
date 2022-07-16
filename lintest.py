@@ -176,7 +176,7 @@ if __name__=="__main__":
     [X_train, Z_train] = bk.get('data/train/gaussian_1')
     Z_nn = universality.nonsym(W,b,X)
     plt.plot(jnp.squeeze(X),jnp.squeeze(Z),'bo',
-            jnp.squeeze(X),jnp.squeeze(Z_nn),'rd',markersize=1)
+            jnp.squeeze(X),jnp.squeeze(Z_nn),'rd',markersize=2)
     #plt.plot(jnp.squeeze(X),jnp.squeeze(Z),'b',
     #        jnp.squeeze(X),jnp.squeeze(Z_nn),'r')
     plt.show()
