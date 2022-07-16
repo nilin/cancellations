@@ -14,6 +14,7 @@ import testing
 
 
 def sqloss(Y,Z):
+	Y,Z=[jnp.squeeze(_) for _ in (Y,Z)]
 	return jnp.average(jnp.square(Y-Z))
 
 def rtloss(Y,Z):
@@ -26,6 +27,8 @@ lossfnNS=sqloss
 #	return jnp.average(jnp.square(Y))
 
 
+
+@jax.jit
 def sumperms(W,b,X):
 	
 	W_=[jnp.expand_dims(L,axis=0) for L in W]
@@ -36,18 +39,20 @@ def sumperms(W,b,X):
 	out=jnp.squeeze(out)
 
 	return out
-
+@jax.jit
 def nonsym(Ws,bs,X):
 	L1=util.ReLU(util.dot_nd(X,Ws[0])+bs[0][None,:])
 	return jnp.inner(L1,Ws[1])
 
 
+@jax.jit
 def batchloss(Wb,X,Y,lossfn=lossfn):
 	W,b=Wb
 	Z=sumperms(W,b,X)
 	return lossfn(Y,Z)
 
 
+@jax.jit
 def lossgrad(Wb,X,Y):
 	W,b=Wb
 	loss,grad=jax.value_and_grad(batchloss)((W,b),X,Y)
@@ -55,13 +60,14 @@ def lossgrad(Wb,X,Y):
 
 
 
+@jax.jit
 def batchlossNS(Wb,X,Y,lossfn=lossfn):
 	W,b=Wb
 	Z=nonsym(W,b,X)
 	loss=lossfn(Y,Z)
 	return loss
 
-
+@jax.jit
 def lossgradNS(Wb,X,Y):
 	W,b=Wb
 	loss,grad=jax.value_and_grad(batchlossNS)((W,b),X,Y)
@@ -80,11 +86,11 @@ def lossgradNS(Wb,X,Y):
 
 
 def genW(k0,n,d,m=10,randb=False):
-	k1,k2=rnd.split(k0)
+	k1,k2,k3=rnd.split(k0,3)
 	W0=rnd.normal(k1,(m,n,d))/math.sqrt(n*d)
 	W1=rnd.normal(k2,(1,m))/math.sqrt(m)
 	W=[W0,W1]
-	b=[jnp.zeros(m)]
+	b=[rnd.normal(k3,(m,))]
 	if randb:
 		b=[rnd.normal(k0,(m,))]
 	return W,b
