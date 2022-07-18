@@ -45,15 +45,15 @@ def nonsym(Ws,bs,X):
 	return jnp.inner(L1,Ws[1])
 
 
-def batchloss(Wb,X,Y,lossfn=lossfn):
+def batchlossAS(Wb,X,Y,lossfn=lossfn):
 	W,b=Wb
 	Z=sumperms(W,b,X)
 	return lossfn(Y,Z)
 
 
-def lossgrad(Wb,X,Y):
+def lossgradAS(Wb,X,Y):
 	W,b=Wb
-	loss,grad=jax.value_and_grad(batchloss)((W,b),X,Y)
+	loss,grad=jax.value_and_grad(batchlossAS)((W,b),X,Y)
 	return grad,loss
 
 

@@ -54,7 +54,19 @@ def nextblock(p,k):
 		sel[i]=sel[i]+1
 		dsign=dsign*-1
 	return selections_to_perm(sel+k*[0]),dsign
-		
+	
+
+
+"""
+not tested yet
+"""
+def invert(p):
+	q=len(p)*[0]
+	for i in range(len(p)):
+		q[p[i]]=i
+	return q
+
+	
 		
 def descpower(n,k):
 	p=1

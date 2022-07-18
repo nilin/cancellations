@@ -7,6 +7,7 @@ import copy
 import jax
 import jax.numpy as jnp
 import permutations
+import pdb
 	
 
 Wtypes={'s':'separated','n':'normal','ss':'separated small','ns':'normal small','nl':'normal large','sl':'separated large'}
@@ -371,3 +372,35 @@ def print_(mode,*args,**kwargs):
 
 def str_(*args):
 	return ''.join([str(x) for x in args])
+
+
+
+# for universality.train # v v v v v v v v v v v v v v 
+
+def randperm(*Xs):
+	X=Xs[0]
+	n=X.shape[0]
+	p=np.random.permutation(n)
+	PXs=[np.array(X)[p] for X in Xs]
+	#return [jnp.stack([Y[p_i] for p_i in p]) for Y in args]
+	return [jnp.array(PX) for PX in PXs]
+	
+
+# apply matrix A[...,:,:] on X[...,:,.]
+def apply_on_n(A,X):
+
+	_=jnp.dot(A,X)
+	out= jnp.swapaxes(_,len(A.shape)-2,-2)
+
+	return out
+
+
+
+def flatten_first(X):
+	blocksize=X.shape[0]*X.shape[1]
+	shape=X.shape[2:]
+	return jnp.reshape(X,(blocksize,)+shape)
+	
+
+
+# for universality.train # ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ 
