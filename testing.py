@@ -4,6 +4,49 @@ import math
 import itertools
 import util
 import GPU_sum
+import permutations
+import universality
+
+
+def assertequal(y,z):
+	print('comparing')
+	print(jnp.stack(y,z))
+	return universality.relloss(y,z)<.001
+
+
+def test_AS(AS,NS,X):
+	Y=AS(X)
+	Z=naiveAS(NS,X)
+	assertequal(Y,Z)
+	
+
+def naiveAS(NS,X):
+	samples,n,d=X.shape
+	p0=list(range(n))
+	out=0
+	for p in itertools.permutations(p0):
+		sign=permutations.sign(p)
+		PX=X[:,p,:]
+		out=out+sign*NS(X)
+	return out
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

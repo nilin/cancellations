@@ -387,6 +387,7 @@ def randperm(*Xs):
 	
 
 # apply matrix A[...,:,:] on X[...,:,.]
+@jax.jit
 def apply_on_n(A,X):
 
 	_=jnp.dot(A,X)
@@ -395,7 +396,7 @@ def apply_on_n(A,X):
 	return out
 
 
-
+@jax.jit
 def flatten_first(X):
 	blocksize=X.shape[0]*X.shape[1]
 	shape=X.shape[2:]
@@ -404,3 +405,12 @@ def flatten_first(X):
 
 
 # for universality.train # ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ 
+
+
+
+@jax.jit
+def allmatrixproducts(As,Bs):
+	products=apply_on_n(As,Bs)
+	return flatten_first(products)
+
+

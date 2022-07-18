@@ -50,13 +50,10 @@ class Randgen():
 ####################################################################################################
 	
 class Trainer:
-	def __init__(self,fn,samples,m):
-		X_train,Y_train=bk.get(fn)
-		self.X_train=X_train[:samples]
-		self.Y_train=Y_train[:samples]
+	def __init__(self,fn,samples,m,mode):
 
-		self.n,self.d=X_train.shape[-2:]
-		self.samples,self.m=samples,m
+		self.n,self.d=self.set_traindata(fn,samples)
+		self.m=m
 
 		k0=rnd.PRNGKey(0)
 		self.W,self.b=universality.genW(k0,self.n,self.d,m)
@@ -66,6 +63,20 @@ class Trainer:
 
 		self.paramshistory=[]
 		self.epochlosses=[]
+
+		self.set_trainmode(mode)
+
+
+	def set_traindata(self,fn,samples):
+		X_train,Y_train=bk.get(fn)
+		self.X_train=X_train[:samples]
+		self.Y_train=Y_train[:samples]
+		self.samples=samples
+		return X_train.shape[-2:]
+
+
+	def set_trainmode(self,mode):
+		self.lossgrad=universality.lossgradAS if mode=='AS' else univerality.lossgradNS
 
 
 	def checkpoint(self):
@@ -96,7 +107,7 @@ class Trainer:
 
 			rloss=loss/universality.lossfnNS(Y,0)
 			losses.append(rloss)
-			bk.printbar(rloss,rloss)
+			bk.printbar(rloss,'{:.4f}'.format(rloss))
 
 		self.epochlosses.append(jnp.array(losses))
 
@@ -115,23 +126,23 @@ class Trainer:
 
 
 
-class NS_trainer(Trainer):
-
-	def lossgrad(self,Wb,X,Y):
-		return universality.lossgradNS(Wb,X,Y)	
-
-
-class AS_Trainer(Trainer):	
-
-	def lossgrad(self,Wb,X,Y):
-		return universality.lossgradAS(Wb,X,Y)	
+#class NS_trainer(Trainer):
+#
+#	def lossgrad(self,Wb,X,Y):
+#		return universality.lossgradNS(Wb,X,Y)	
+#
+#
+#class AS_Trainer(Trainer):	
+#
+#	def lossgrad(self,Wb,X,Y):
+#		return universality.lossgradAS(Wb,X,Y)	
 
 
 	
 class ASNS_Trainer(Trainer):
 
 	def __init__(self,fn,samples,m):
-		super().__init__(fn,samples,m)
+		super().__init__(fn,samples,m,'ASNS')
 		self.enrichmentperms,self.enrichmentsigns=gen_swaps(self.n)
 
 
@@ -140,8 +151,8 @@ class ASNS_Trainer(Trainer):
 		Y_=self.enrichmentsigns[:,None]*jnp.squeeze(Y)[None,:]
 		return util.flatten_first(X_),util.flatten_first(Y_)
 
-	def lossgrad(self,Wb,X,Y):
-		return universality.lossgradNS(Wb,X,Y)	
+#	def lossgrad(self,Wb,X,Y):
+#		return universality.lossgradNS(Wb,X,Y)	
 
 
 
@@ -149,7 +160,7 @@ class ASNS_Trainer(Trainer):
 class ASNS_Trainer_2(Trainer):
 
 	def __init__(self,fn,samples,m):
-		super().__init__(fn,samples,m)
+		super().__init__(fn,samples,m,'ASNS2')
 		self.swaps,_=gen_swaps(self.n,False)
 		self.randgen=Randgen()
 
@@ -164,8 +175,8 @@ class ASNS_Trainer_2(Trainer):
 		Y_=jnp.concatenate([Y,-Y])
 		return X_,Y_
 
-	def lossgrad(self,Wb,X,Y):
-		return universality.lossgradNS(Wb,X,Y)	
+#	def lossgrad(self,Wb,X,Y):
+#		return universality.lossgradNS(Wb,X,Y)	
 
 
 
@@ -180,14 +191,17 @@ def initandtrain(d,n,m,samples,batchsize,traintime,trainmode='AS'):
 
 	t0=time.perf_counter()
 
-	while time.perf_counter()<t0+traintime:
-		T.epoch(batchsize)
-		T.checkpoint()
+	try:
+		while time.perf_counter()<t0+traintime:
+			T.epoch(batchsize)
+			T.checkpoint()
 
-		T.savehist('data/hists/'+trainmode+'_'+formatvars_(variables))
+			T.savehist('data/hists/'+trainmode+'_'+formatvars_(variables))
 
-		if T.stale():
-			break
+			if T.stale():
+				break
+	except KeyboardInterrupt:
+		pass
 
 
 

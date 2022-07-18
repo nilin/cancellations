@@ -89,6 +89,11 @@ def generate_seq_blocks(k_large,k_small,n):
 	return jnp.array(block),jnp.array(signs)
 
 
+def gen_P_blocks(k_large,k_small,n):
+	ps,signs=generate_seq_blocks(k_large,k_small,n)
+	return perm_as_matrix(ps),signs
+
+
 def gen_complementary_perm_seqs(ks,n=None):
 	if n==None:	
 		n=ks[0]
@@ -214,6 +219,29 @@ def id(n):
 
 
 """
+not tested
+"""
+
+def allperms(n):
+	allPs,allsigns=gen_P_blocks(1,0,n)
+	for k in range(2,n+1):
+		Ps,signs=gen_P_blocks(k,k-1,n)
+		allPs=util.allmatrixproducts(Ps,allPs)
+		allsigns=jnp.ravel(signs[:,None]*allsigns[None,:])
+	return allPs,allsigns
+	
+		
+
+
+
+
+
+
+
+
+
+
+"""
 tests----------------------------------------------------------------------------------------------------s
 """
 
@@ -273,6 +301,28 @@ def performancetest(n):
 		s=s*ds
 	print('sign: '+str(N/clock.tick())+'/second')
 
+
+
+def testallperms(n):
+	Ps,signs=allperms(n)
+	
+	for i in range(math.factorial(n)):
+		p_i=k_to_perm(i,n)
+		sign_i=sign(p_i)
+
+		assertequalmatrices(Ps[i],perm_as_matrix(p_i))
+		assert(signs[i]==sign_i)
+	
+		print()	
+		print(p_i)
+		print(Ps[i])
+		print(signs[i])
+		print(sign_i)
+
+
+def assertequalmatrices(A,B):
+	dist=jnp.sum(jnp.square(A-B))
+	assert(dist<.001)
 
 	
 def test(n):

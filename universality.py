@@ -17,6 +17,9 @@ def sqloss(Y,Z):
 	Y,Z=[jnp.squeeze(_) for _ in (Y,Z)]
 	return jnp.average(jnp.square(Y-Z))
 
+def relloss(Y,Z):
+	return sqloss(Y,Z)/sqloss(0,Z)
+
 def rtloss(Y,Z):
 	return jnp.sqrt(sqloss(Y,Z))
 
