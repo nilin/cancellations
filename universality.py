@@ -38,6 +38,7 @@ def sumperms(W,b,X):
 	out=jnp.squeeze(out)
 
 	return out
+
 @jax.jit
 def nonsym(Ws,bs,X):
 	L1=util.ReLU(util.dot_nd(X,Ws[0])+bs[0][None,:])
