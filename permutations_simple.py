@@ -61,27 +61,6 @@ def permtuple(Ps):
 
 	
 
-"""
-----------------------------------------------------------------------------------------------------
-
-def toplevelperm(n,k):
-	return jnp.concatenate([k,jnp.arange(k),jnp.arange(k+1,n)])
-
-def toplevelperms(n):
-	perms=jnp.stack([toplevelperm(n,k) for k in range(n)],axis=0)
-	signs=(-1)**jnp.arange(n)
-	return perms,signs
-
-def permblocks(n,level):
-	perms_,signs=toplevelperms(level)
-	r=n-level
-	left=jnp.zeros((level,))[:,None]+jnp.arange(r)[None,:]
-	perms=jnp.concatenate([left,perms_+r],axis=0)
-	return perms,signs
-
-----------------------------------------------------------------------------------------------------
-"""
-
 
 
 
@@ -94,8 +73,10 @@ test
 """
 
 def testallperms(n):
-	P,s=allperms(n)
-	testing.testperms(P,s)
+	Ps,signs=allperms(n)
+	testing.testperms(Ps,signs)
+	ps,signs=allpermtuples(n)
+	testing.testpermtuples(ps,signs)
 
 
 if __name__=='__main__':

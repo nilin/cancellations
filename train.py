@@ -3,48 +3,26 @@ import jax.numpy as jnp
 import jax.random as rnd
 import util
 import bookkeep as bk
-#from GPU_sum import sum_perms_multilayer as sumperms
 import optax
 import math
-import universality
+#import universality
 import sys
 import matplotlib.pyplot as plt
-#from plotuniversal import plot as plot3
 import numpy as np
 import scipy.stats as st
 import time
 import pdb
+import AS_tools
 
 
 
-def distinguishable(x,y):
-	u,p=st.mannwhitneyu(x,y,alternative='greater')
-
-	return p<.25
-
-def gen_swaps(n,with_Id=True):
-
-	I=list(range(n))
-	swaps,signs=([I],[1]) if with_Id else ([],[])
-	for i in range(n-1):
-		for j in range(i+1,n):
-			_=I.copy()
-			_[i],_[j]=j,i
-			swaps.append(_)
-			signs.append(-1)
-	return permutations.perm_as_matrix(swaps),jnp.array(signs)
-
-class Randgen():
-	def __init__(self,seed=0):
-		self.key=rnd.PRNGKey(seed)
-
-	def genint(self,k,nsamples=1):
-		out=rnd.randint(self.key,(nsamples,),0,k)
-		_,self.key=rnd.split(self.key)
-		return jnp.squeeze(out)
 
 
-####################################################################################################
+#----------------------------------------------------------------------------------------------------
+# training object
+#----------------------------------------------------------------------------------------------------
+
+
 	
 class Trainer:
 	def __init__(self,fn,samples,m,mode):
@@ -53,7 +31,7 @@ class Trainer:
 		self.m=m
 
 		k0=rnd.PRNGKey(0)
-		self.W,self.b=universality.genW(k0,self.n,self.d,m)
+		self.W,self.b=genW(k0,self.n,self.d,m)
 
 		self.opt=optax.adamw(.01)
 		self.state=self.opt.init((self.W,self.b))
@@ -73,7 +51,7 @@ class Trainer:
 
 
 	def set_trainmode(self,mode):
-		self.lossgrad=universality.lossgradAS if mode=='AS' else univerality.lossgradNS
+		self.lossgrad=lossgradAS if mode=='AS' else lossgradNS
 
 
 	def checkpoint(self):
@@ -102,7 +80,7 @@ class Trainer:
 			updates,self.state=self.opt.update(grad,self.state,(self.W,self.b))
 			(self.W,self.b)=optax.apply_updates((self.W,self.b),updates)
 
-			rloss=loss/universality.lossfn(Y,0)
+			rloss=loss/lossfn(Y,0)
 			losses.append(rloss)
 			bk.printbar(rloss,'{:.4f}'.format(rloss))
 
@@ -119,20 +97,13 @@ class Trainer:
 
 		return x.size>50 and not distinguishable(x,y)
 
+
 	
+def distinguishable(x,y):
+	u,p=st.mannwhitneyu(x,y)#,alternative='greater')
+	return p<.1
 
 
-
-#class NS_trainer(Trainer):
-#
-#	def lossgrad(self,Wb,X,Y):
-#		return universality.lossgradNS(Wb,X,Y)	
-#
-#
-#class AS_Trainer(Trainer):	
-#
-#	def lossgrad(self,Wb,X,Y):
-#		return universality.lossgradAS(Wb,X,Y)	
 
 
 	
@@ -147,9 +118,6 @@ class ASNS_Trainer(Trainer):
 		X_=util.apply_on_n(self.enrichmentperms,X)
 		Y_=self.enrichmentsigns[:,None]*jnp.squeeze(Y)[None,:]
 		return util.flatten_first(X_),util.flatten_first(Y_)
-
-#	def lossgrad(self,Wb,X,Y):
-#		return universality.lossgradNS(Wb,X,Y)	
 
 
 
@@ -172,12 +140,12 @@ class ASNS_Trainer_2(Trainer):
 		Y_=jnp.concatenate([Y,-Y])
 		return X_,Y_
 
-#	def lossgrad(self,Wb,X,Y):
-#		return universality.lossgradNS(Wb,X,Y)	
 
 
 
-
+#----------------------------------------------------------------------------------------------------
+# setup
+#----------------------------------------------------------------------------------------------------
 		
 
 def initandtrain(d,n,m,samples,batchsize,traintime,trainmode='AS'):
@@ -201,7 +169,85 @@ def initandtrain(d,n,m,samples,batchsize,traintime,trainmode='AS'):
 		pass
 
 
+def genW(k0,n,d,m=10,randb=False):
+	k1,k2,k3=rnd.split(k0,3)
+	W0=rnd.normal(k1,(m,n,d))/math.sqrt(n*d)
+	W1=rnd.normal(k2,(1,m))/math.sqrt(m)
+	W=[W0,W1]
+	b=[rnd.normal(k3,(m,))]
+	if randb:
+		b=[rnd.normal(k0,(m,))]
+	return W,b
 
+
+
+
+#----------------------------------------------------------------------------------------------------
+# losses and gradients
+#----------------------------------------------------------------------------------------------------
+
+
+
+
+lossfn=util.sqloss
+
+
+def batchlossAS(Wb,X,Y):
+	W,b=Wb
+	Z=AS_tools.AS_NN(W,b,X)
+	return lossfn(Y,Z)
+
+
+def lossgradAS(Wb,X,Y):
+	W,b=Wb
+	loss,grad=jax.value_and_grad(batchlossAS)((W,b),X,Y)
+	return grad,loss
+
+
+
+@jax.jit
+def batchlossNS(Wb,X,Y):
+	W,b=Wb
+	Z=AS_tools.NN(W,b,X)
+	return lossfn(Y,Z)
+
+@jax.jit
+def lossgradNS(Wb,X,Y):
+	W,b=Wb
+	loss,grad=jax.value_and_grad(batchlossNS)((W,b),X,Y)
+	return grad,loss
+
+
+
+
+#----------------------------------------------------------------------------------------------------
+# helper functions
+#----------------------------------------------------------------------------------------------------
+
+def gen_swaps(n,with_Id=True):
+
+	I=list(range(n))
+	swaps,signs=([I],[1]) if with_Id else ([],[])
+	for i in range(n-1):
+		for j in range(i+1,n):
+			_=I.copy()
+			_[i],_[j]=j,i
+			swaps.append(_)
+			signs.append(-1)
+	return permutations.perm_as_matrix(swaps),jnp.array(signs)
+
+class Randgen():
+	def __init__(self,seed=0):
+		self.key=rnd.PRNGKey(seed)
+
+	def genint(self,k,nsamples=1):
+		out=rnd.randint(self.key,(nsamples,),0,k)
+		_,self.key=rnd.split(self.key)
+		return jnp.squeeze(out)
+
+
+#----------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------
 
 
 def formatvars_(D):

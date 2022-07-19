@@ -4,7 +4,6 @@ import math
 import itertools
 import util
 import legacy.permutations as lp
-import universality
 import pdb
 
 def assertequal(y,z,blockdim=0):
@@ -24,8 +23,6 @@ def naiveAS(NS,X):
 		out=out+sign*NS(X)
 	return out
 
-	
-
 
 def test_AS(AS,NS,X):
 	Y=AS(X)
@@ -33,19 +30,17 @@ def test_AS(AS,NS,X):
 	assertequal(Y,Z)
 	
 
-
-
-
-
-
 def testperms(Ps,signs):
 	n=Ps.shape[-1]
 	_Ps_,_signs_=lp.gen_complementary_Perm_seqs([n])[0]
-
 	assertequal(Ps,_Ps_,2)
 	assertequal(signs,_signs_)
 
-
+def testpermtuples(ps,signs):
+	n=ps.shape[-1]
+	_ps_,_signs_=lp.gen_complementary_perm_seqs([n])[0]
+	assertequal(ps,_ps_,1)
+	assertequal(signs,_signs_)
 
 
 
