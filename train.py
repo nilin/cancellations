@@ -1,12 +1,9 @@
-import GPU_sum
 import jax
 import jax.numpy as jnp
 import jax.random as rnd
 import util
 import bookkeep as bk
 #from GPU_sum import sum_perms_multilayer as sumperms
-import permutations
-import GPU_sum
 import optax
 import math
 import universality
@@ -105,7 +102,7 @@ class Trainer:
 			updates,self.state=self.opt.update(grad,self.state,(self.W,self.b))
 			(self.W,self.b)=optax.apply_updates((self.W,self.b),updates)
 
-			rloss=loss/universality.lossfnNS(Y,0)
+			rloss=loss/universality.lossfn(Y,0)
 			losses.append(rloss)
 			bk.printbar(rloss,'{:.4f}'.format(rloss))
 

@@ -15,9 +15,10 @@ from util import print_
 import sys
 import os
 import shutil
-import multiprocessing as mp
-import permutations as perms
+import permutations_simple as ps
 import typing
+import testing
+import pdb
 
 
 
@@ -28,28 +29,28 @@ def dot_nd(A,B):
 
 
 
-def AS(W0,applylayers,X):
+def AS_func(W0,func,X):
 	n=W0.shape[-2]					# W0:	m,n,d
-	Ps,signs=permutations.allperms(n)		# Ps:	n!,n,n
+	Ps,signs=ps.allperms(n)			# Ps:	n!,n,n
 	PW0=util.apply_on_n(Ps,W0)			# PW0:	n!,m,n,d
 	L1=dot_nd(PW0,X)				# L1:	n!,m,s	
-	Y_NS=applylayers(L1)				# Y_NS:	n!,s
-	return jnp.dot(self.signs,Y_NS)			# s
+	Y_NS=func(L1)					# Y_NS:	n!,s
+	return jnp.dot(signs,Y_NS)			# s
 
 
 
-def NS(W0,applylayers,X):
+def NS_func(W0,func,X):
 	L1=dot_nd(W0,X)					# L1:	m,s
-	return applylayers(L1)				# s
+	return func(L1)					# s
 
 
 def AS_NN(Ws,bs,X,ac='ReLU'):
 	applylayers=gen_applylayers(Ws[1:],bs,ac)
-	return AS(Ws[0],applylayers,X)
+	return AS_func(Ws[0],applylayers,X)
 
 def NN(W,b,X,ac='ReLU'):
 	applylayers=gen_applylayers(Ws[1:],bs,ac)
-	return NS(Ws[0],applylayers,X)
+	return NS_func(Ws[0],applylayers,X)
 
 
 
@@ -59,9 +60,10 @@ def gen_applylayers(Ws,bs,ac_name):
 	@jax.jit	
 	def applylayers(Y):
 		for W,b in zip(Ws,bs):
-			Yb=jax.vmap(jnp.add,in_axes=(-2,0))(Y,b)
+			Yb=jax.vmap(jnp.add,in_axes=(-2,0),out_axes=-2)(Y,b)
 			acYb=activation(Yb)
-			Y=util.apply_on_n(W,Y)	
+#			pdb.set_trace()
+			Y=util.apply_on_n(W,acYb)	
 		return jnp.squeeze(Y)
 	return applylayers
 
@@ -72,4 +74,14 @@ def gen_applylayers(Ws,bs,ac_name):
 # test
 #---------------------------------------------------------------------------------------------------- 
 
+
+def test_AS(Ws,bs,X):
+
+	Af=lambda x:AS_NN(Ws,bs,x)
+	f=lambda x:NN(Ws,bs,x)
+
+	testing.test_AS(Af,f,X)
+
+
+	
 

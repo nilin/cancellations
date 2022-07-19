@@ -1,12 +1,11 @@
 import numpy as np
 import math
-import bookkeep as bk
 import pickle
 import time
 import copy
 import jax
 import jax.numpy as jnp
-import permutations
+import legacy.permutations
 import pdb
 	
 
@@ -33,7 +32,17 @@ activations={'exp':jnp.exp,'tanh':jnp.tanh,'ReLU':ReLU,'HS':heaviside,'DReLU':DR
 L2norm=lambda y:jnp.sqrt(jnp.average(jnp.square(y)))
 L2over=lambda y,**kwargs:jnp.sqrt(jnp.average(jnp.square(y),**kwargs))
 
+@jax.jit
+def sqloss(Y,Z):
+	Y,Z=[jnp.squeeze(_) for _ in (Y,Z)]
+	return jnp.average(jnp.square(Y-Z))
 
+@jax.jit
+def relloss(Y,Z):
+	return sqloss(Y,Z)/sqloss(0,Z)
+
+
+@jax.jit
 def flatten_nd(x):
 	s=x.shape
 	newshape=s[:-2]+(s[-2]*s[-1],)

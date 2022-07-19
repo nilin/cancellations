@@ -1,11 +1,10 @@
-import GPU_sum
+import GPU_sum_simple
 import jax
 import jax.numpy as jnp
 import jax.random as rnd
 import util
 import bookkeep as bk
 #from GPU_sum import sum_perms_multilayer as sumperms
-import GPU_sum
 import optax
 import math
 import testing
@@ -13,34 +12,9 @@ import testing
 
 
 
-def sqloss(Y,Z):
-	Y,Z=[jnp.squeeze(_) for _ in (Y,Z)]
-	return jnp.average(jnp.square(Y-Z))
 
-def relloss(Y,Z):
-	return sqloss(Y,Z)/sqloss(0,Z)
-
-def rtloss(Y,Z):
-	return jnp.sqrt(sqloss(Y,Z))
-
-lossfn=sqloss
-lossfnNS=sqloss
-
-#def sqnorm(Y):
-#	return jnp.average(jnp.square(Y))
-
-
-
-def sumperms(W,b,X):
-	
-	W_=[jnp.expand_dims(L,axis=0) for L in W]
-	b_=[jnp.expand_dims(bias,axis=0) for bias in b]
-	X_=jnp.reshape(X,(1,1,)+X.shape)
-	
-	out=GPU_sum.sum_perms_multilayer(W_,b_,X_,'ReLU',mode='silent')
-	out=jnp.squeeze(out)
-
-	return out
+lossfn=util.sqloss
+sumperms=GPU_sum_simple.AS_NN
 
 @jax.jit
 def nonsym(Ws,bs,X):
@@ -75,15 +49,6 @@ def lossgradNS(Wb,X,Y):
 	return grad,loss
 
 
-
-#
-#def update(W,b,X,Y):
-#	grad,loss=lossgrad(W,b,X,Y)	
-#	bk.printbar(loss)
-#	for l,dw in enumerate(grad):
-#		W[l]=W[l]-.01*dw
-#	return W
-#	
 
 
 def genW(k0,n,d,m=10,randb=False):
@@ -180,50 +145,3 @@ class SPfeatures:
 		
 
 
-
-#	
-#
-#k0=rnd.PRNGKey(0)
-#k1,k2=rnd.split(k0)
-#
-#n=8
-#d=3
-#m=n*d
-#
-#W=genW(k2,d,m=20)
-#
-##W_target=genW(k1,10)
-##target=lambda X:sumperms(W_target,X)
-#
-#spf=SPfeatures(k1,d,2,features)
-#target=lambda X:spf.eval(X)
-#
-#samples=10000
-#minibatchsize=100
-#
-#X_=rnd.normal(k0,(samples,n,d))
-#
-#
-#opt=optax.rmsprop(.01)
-#state=opt.init(W)
-#
-#iterations=1000
-#k10=rnd.PRNGKey(10)
-#_,*keys=rnd.split(k10,iterations)
-#
-#losses=[]
-#
-#for i,k in enumerate(keys):
-#
-#	X=rnd.choice(k,X_,(minibatchsize,),replace=False)
-#
-#	Y=target(X)
-#	grad,loss=lossgrad(W,X,Y)
-#	losses.append(loss)
-#
-#	updates,state=opt.update(grad,state)
-#	W=optax.apply_updates(W,updates)
-#
-#	rloss=loss/sqnorm(Y)
-#	#rloss=loss/losses[0]
-#	bk.printbar(rloss,rloss)

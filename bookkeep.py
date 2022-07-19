@@ -7,9 +7,11 @@ import jax
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import os
-from util import str_
+#from util import str_
 
 
+def str_(*args):
+	return ''.join([str(x) for x in args])
 def log(*args,**kwargs):
 
 	msg=str_(*args)
