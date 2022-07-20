@@ -1,118 +1,51 @@
-# modification to Lin's test
-
-# Use a two layer network to fit a Gaussian function. 
+# Fit product of the first 4 eigenstates of a harmonic oscillator
 #
-# The implementation is via jax.
+# Antisymmetrized data and antisymmetrized network.
 
-import GPU_sum
+
 import jax
 import jax.numpy as jnp
 import jax.random as rnd
 import util
 import bookkeep as bk
-#from GPU_sum import sum_perms_multilayer as sumperms
-import GPU_sum
 import optax
 import math
-import universality
+import AS_tools
+#import universality
 import sys
 import matplotlib.pyplot as plt
 #from plotuniversal import plot as plot3
 import numpy as np
 import time
+import permutations_simple as ps
+import targets
+import train
 
-
-
-class Trainer:
-    def __init__(self,d,n,m,samples):
-        self.d,self.n,self.m,self.samples=d,n,m,samples
-
-        k0=rnd.PRNGKey(0)
-        self.W,self.b=universality.genW(k0,n,d,m)
-
-        [X_train, Z_train] = bk.get('data/train/gaussian_1')
-
-        self.X_train=X_train[:samples]
-        self.Z_train=Z_train[:samples]
-
-        self.opt=optax.adamw(.01)
-        self.state=self.opt.init((self.W,self.b))
-
-        self.paramshistory=[]
-
-        self.epochlosses=[]
-
-    def epochNS(self,minibatchsize):
-
-        #X_train,Z_train=randperm(self.X_train,self.Z_train)
-        X_train,Z_train=self.X_train,self.Z_train
-
-        losses=[]
-
-        for a in range(0,self.samples,minibatchsize):
-            c=min(a+minibatchsize,self.samples)
-
-            X=X_train[a:c]
-            Z=Z_train[a:c]
-
-            grad,loss=universality.lossgradNS((self.W,self.b),X,Z)
-
-            updates,self.state=self.opt.update(grad,self.state,(self.W,self.b))
-            (self.W,self.b)=optax.apply_updates((self.W,self.b),updates)
-
-            rloss=loss/universality.lossfnNS(Z,0)
-            losses.append(rloss)
-            bk.printbar(rloss,rloss)
-        self.epochlosses.append(losses)
-
-
-    def checkpoint(self):
-        self.paramshistory.append((self.W,self.b))
-        return jnp.average(self.epochlosses[-1])
-
-
-    def savehist(self,filename):
-        bk.save(self.paramshistory,filename)
+fn_ex='gaussian_9'
 
 
 
 
-def initandtrain(d,n,m,samples,batchsize,traintime,trainmode='AS'):
-    T=Trainer(d,n,m,samples)
 
-    variables={'d':d,'n':n,'m':m,'s':samples,'bs':batchsize}
-
-
-    t0=time.perf_counter()
-    loss='null'
-
-    while time.perf_counter()<t0+traintime and (loss=='null' or loss>.0001):
-        T.epochNS(batchsize)
-        loss=T.checkpoint()
-        T.savehist('data/hists/'+trainmode+'_'+formatvars_(variables))
-
-
-
-def testerrorNS(Wb,samples=100):
+def testerror(Wb,samples=100):
     W,b=Wb
     m,n,d=W[0].shape
-    # [X, Z] = bk.get('data/test/gaussian_1')
-    [X, Z] = bk.get('data/train/gaussian_1')
+    [X, Z] = bk.get('data/test/'+fn_ex)
 
     X=X[:samples]
     Z=Z[:samples]
 
-    return universality.batchlossNS(Wb,X,Z)/universality.lossfn(Z,0)
+    return train.batchlossAS(Wb,X,Z)/train.lossfn(Z,0)
 
 
 
 def ploterrorhist(n,fn):
+    samples_test = 200
     hist=bk.get(fn)
-    errorhist=[testerrorNS(Wb) for Wb in hist]
+    errorhist=[testerror(Wb, samples_test) for Wb in hist]
     error=errorhist[-1]
 
     plt.plot(errorhist,ls='dotted',label=str(n))
-
     plt.show() 
 
 def formatvars_(D):
@@ -120,66 +53,79 @@ def formatvars_(D):
     return bk.formatvars_(D_)
 
 def gen_Xs(key,d,n,samples):
-	return rnd.normal(key,(samples,n,d))	
-
-def regspaced_X(samples,r=3):
-	X=jnp.arange(samples)*2*r/samples-r
-	for _ in range(2):
-		X=jnp.expand_dims(X,axis=-1)
-	return X
+    X_r = rnd.normal(key,(samples,n,d))	
+    # add soft bound constraint so the data is in [-1,1]
+    X = jax.scipy.special.erf(X_r)
+    return X
 
 
-def gaussian(X):
-    return jnp.exp(-X**2)
-    
+
+
+
 
 
 if __name__=="__main__":
 
-    samples=100
-    batchsize=100
+    n=int(sys.argv[1])
+    samples=int(sys.argv[2])
+    batchsize=int(sys.argv[3])
 
     d = 1
-    n = 1
+    target_func=targets.HermiteSlater(n,'He',1/8)
 
     bk.log('generating training data')
     
     X = gen_Xs(rnd.PRNGKey(0),d,n,samples)
-    #X=regspaced_X(samples)
-    Z = gaussian(X)
-    bk.save(jnp.stack([X,Z]),'data/train/gaussian_'+str(d))
+
+    Z = target_func(X)
+
+    Z_std  = jnp.std(Z)
+    print('std(Z)     = ', Z_std)
+
+    Z = Z / Z_std
+
+    bk.save([X,Z],'data/train/'+fn_ex)
 
     bk.log('generating testing data')
 
-    X = gen_Xs(rnd.PRNGKey(1),d,n,samples)
-    #X=regspaced_X(samples)
-    Z = gaussian(X)
-    bk.save(jnp.stack([X,Z]),'data/test/gaussian_'+str(d))
+    X = gen_Xs(rnd.PRNGKey(1),d,n,1000)
+    Z = target_func(X)
+
+    # normalize according to the input data for consistency
+    Z = Z / Z_std
+
+    bk.save([X,Z],'data/test/'+fn_ex)
     
     bk.log('training')
 
-    traintime=30
-    #if len(sys.argv)==1:
-    #    print('\n\n --------------run with args: traintime----------------\n\n')
-    #traintime=float(sys.argv[1])
-    trainmode='NS'
+    traintime=3000
+    trainmode='AS'
 
     m=100
-    initandtrain(d,n,m,samples,batchsize,traintime,trainmode)
+    train.initandtrain('data/train/'+fn_ex,'data/hists/'+fn_ex,trainmode,m,samples,batchsize,stopwhenstale=False)
     
     bk.log('plotting')
 
-    fn='data/hists/'+trainmode+'_'+bk.formatvars_({'d':d,'n':n,'m':m})
-    
-    hist=bk.get(fn)
+    hist=bk.get('data/hists/'+fn_ex)
     W,b=hist[-1]
-    [X_train, Z_train] = bk.get('data/train/gaussian_1')
-    Z_nn = universality.nonsym(W,b,X)
-    plt.plot(jnp.squeeze(X),jnp.squeeze(Z),'bo',
-            jnp.squeeze(X),jnp.squeeze(Z_nn),'rd',markersize=2)
-    #plt.plot(jnp.squeeze(X),jnp.squeeze(Z),'b',
-    #        jnp.squeeze(X),jnp.squeeze(Z_nn),'r')
-    plt.show()
- 
+
+    # overall test
+    [X_test, Z_test] = bk.get('data/test/'+fn_ex)
+
+
+    samples_plot = np.min([1000, samples])
+    X = X_test.copy()[:samples_plot,:,:]
+    for l in range(5):
+        x_slice = jax.scipy.special.erf(np.random.randn(n)) * 0.5
+        print("x_slice = ", x_slice[:-1])
+        for j in range(n-1):
+            X[:,j,:] = x_slice[j]
+        Z = target_func(X)
+        Z = Z/Z_std
+        Z_nn = AS_tools.AS_NN(W,b,X)
+        plt.plot(jnp.squeeze(X[:,n-1,:]),jnp.squeeze(Z),'bo',
+                jnp.squeeze(X[:,n-1,:]),jnp.squeeze(Z_nn),'rd')
     
-    # ploterrorhist(n,fn)
+        plt.show()
+
+    ploterrorhist(n,'data/hists/'+fn_ex)
