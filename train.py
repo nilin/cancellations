@@ -25,9 +25,9 @@ import AS_tools
 
 	
 class Trainer:
-	def __init__(self,fn,samples,m,mode):
+	def __init__(self,data_in_path,mode,m,samples):
 
-		self.n,self.d=self.set_traindata(fn,samples)
+		self.n,self.d=self.set_traindata(data_in_path,samples)
 		self.m=m
 
 		k0=rnd.PRNGKey(0)
@@ -86,59 +86,21 @@ class Trainer:
 
 		self.epochlosses.append(jnp.array(losses))
 
-	def stale(self):
-		l=len(self.epochlosses)
-
-		if l<4:
+	def stale(self,p_val=.10):
+		losses=jnp.concatenate(self.epochlosses)
+		l=len(losses)
+		if l<100:
 			return False
+		x=losses[round(l/3):round(l*2/3)]
+		y=losses[round(l*2/3):]
+		return not distinguishable(x,y,p_val)
 
-		x=jnp.concatenate(self.epochlosses[int(l/2):int(l*3/4)])
-		y=jnp.concatenate(self.epochlosses[int(l*3/4):])
-
-		return x.size>50 and not distinguishable(x,y)
 
 
 	
-def distinguishable(x,y):
+def distinguishable(x,y,p_val=.10):
 	u,p=st.mannwhitneyu(x,y)#,alternative='greater')
-	return p<.1
-
-
-
-
-	
-class ASNS_Trainer(Trainer):
-
-	def __init__(self,fn,samples,m):
-		super().__init__(fn,samples,m,'ASNS')
-		self.enrichmentperms,self.enrichmentsigns=gen_swaps(self.n)
-
-
-	def enrich_inputs(self,X,Y):
-		X_=util.apply_on_n(self.enrichmentperms,X)
-		Y_=self.enrichmentsigns[:,None]*jnp.squeeze(Y)[None,:]
-		return util.flatten_first(X_),util.flatten_first(Y_)
-
-
-
-
-class ASNS_Trainer_2(Trainer):
-
-	def __init__(self,fn,samples,m):
-		super().__init__(fn,samples,m,'ASNS2')
-		self.swaps,_=gen_swaps(self.n,False)
-		self.randgen=Randgen()
-
-	def randswap(self):
-		swap_id=self.randgen.genint(len(self.swaps))
-		return self.swaps[swap_id]
-		
-
-	def enrich_inputs(self,X,Y):
-		swap=self.randswap()
-		X_=jnp.concatenate([X,util.apply_on_n(swap,X)],axis=0)
-		Y_=jnp.concatenate([Y,-Y])
-		return X_,Y_
+	return p<p_val
 
 
 
@@ -146,24 +108,23 @@ class ASNS_Trainer_2(Trainer):
 #----------------------------------------------------------------------------------------------------
 # setup
 #----------------------------------------------------------------------------------------------------
-		
 
-def initandtrain(d,n,m,samples,batchsize,traintime,trainmode='AS'):
-	T=ASNS_Trainer(d,n,m,samples)
-
-	variables={'d':d,'n':n,'m':m,'s':samples,'bs':batchsize}
-	
-
+"""
+press Ctrl-C to stop training
+stopwhenstale either False (no stop) or p-value (smaller means earlier stopping)
+"""
+def initandtrain(data_in_path,data_out_path,mode,m,samples,batchsize,traintime=600,stopwhenstale=.10): 
+	T=Trainer(data_in_path,mode,m,samples)
 	t0=time.perf_counter()
-
 	try:
 		while time.perf_counter()<t0+traintime:
+			print('\nEpoch '+str(len(T.epochlosses)))
 			T.epoch(batchsize)
 			T.checkpoint()
+			T.savehist(data_out_path)
 
-			T.savehist('data/hists/'+trainmode+'_'+formatvars_(variables))
-
-			if T.stale():
+			if type(stopwhenstale)==float and T.stale(stopwhenstale):
+				print('stale, stopping')
 				break
 	except KeyboardInterrupt:
 		pass
@@ -221,7 +182,7 @@ def lossgradNS(Wb,X,Y):
 
 
 #----------------------------------------------------------------------------------------------------
-# helper functions
+# other training procedures
 #----------------------------------------------------------------------------------------------------
 
 def gen_swaps(n,with_Id=True):
@@ -245,6 +206,35 @@ class Randgen():
 		_,self.key=rnd.split(self.key)
 		return jnp.squeeze(out)
 
+class ASNS_Trainer(Trainer):
+
+	def __init__(self,fn,samples,m):
+		super().__init__(fn,samples,m,'ASNS')
+		self.enrichmentperms,self.enrichmentsigns=gen_swaps(self.n)
+
+
+	def enrich_inputs(self,X,Y):
+		X_=util.apply_on_n(self.enrichmentperms,X)
+		Y_=self.enrichmentsigns[:,None]*jnp.squeeze(Y)[None,:]
+		return util.flatten_first(X_),util.flatten_first(Y_)
+
+class ASNS_Trainer_2(Trainer):
+
+	def __init__(self,fn,samples,m):
+		super().__init__(fn,samples,m,'ASNS2')
+		self.swaps,_=gen_swaps(self.n,False)
+		self.randgen=Randgen()
+
+	def randswap(self):
+		swap_id=self.randgen.genint(len(self.swaps))
+		return self.swaps[swap_id]
+		
+
+	def enrich_inputs(self,X,Y):
+		swap=self.randswap()
+		X_=jnp.concatenate([X,util.apply_on_n(swap,X)],axis=0)
+		Y_=jnp.concatenate([Y,-Y])
+		return X_,Y_
 
 #----------------------------------------------------------------------------------------------------
 #----------------------------------------------------------------------------------------------------

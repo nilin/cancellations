@@ -1,4 +1,3 @@
-import GPU_sum_simple
 import jax
 import jax.numpy as jnp
 import jax.random as rnd
@@ -12,28 +11,49 @@ import testing
 
 
 
-
-
-class Slater():
-	def __init__(self,F):			# F:x->(f1(x),..,fn(x))		s,d |-> s,n
-		self.F=F
-
-	def AS(X):					# X:	s,n,d
-		F=self.F
+def Slater(F):						# F:x->(f1(x),..,fn(x))		s,d |-> s,n
+	@jax.jit
+	def AF(X):
 		FX=jax.vmap(F,in_axes=1,out_axes=-1)(X)	# FX:	s,n (basisfunction),n (particle)
 		return jnp.linalg.det(FX)
+	return AF
+
+
+def HermiteSlater(n,convention,envelopevariance):
+	AF=Slater(genhermitefunctions(n-1,convention))
+
+	envelope_singlesample=lambda x:jnp.exp(-jnp.sum(jnp.square(x))/(2*envelopevariance))
+	envelope=jax.vmap(envelope_singlesample)
+
+	@jax.jit
+	def AF_(X):
+		AF=Slater(genhermitefunctions(n-1,convention))
+		return envelope(X)*AF(X)
+
+	return AF_
+
+
+
+#class Slater():
+#	def __init__(self,F):			# F:x->(f1(x),..,fn(x))		s,d |-> s,n
+#		self.F=F
+#
+#	def AS(X):					# X:	s,n,d
+#		F=self.F
+#		FX=jax.vmap(F,in_axes=1,out_axes=-1)(X)	# FX:	s,n (basisfunction),n (particle)
+#		return jnp.linalg.det(FX)
 	
 
 
-def genhermitefunctions(n):
-	coefficients=hermitecoefficientblock(n)
+def genhermitefunctions(n,convention):
+	coefficients=hermitecoefficientblock(n,convention)
 	return genpolynomialfunctions(coefficients)	
 
 
-class HermiteSlater(Slater):
-
-	def __init__(self,n):
-		super().__init__(genhermitefunctions(n))
+#class HermiteSlater(Slater):
+#
+#	def __init__(self,n,convention):
+#		super().__init__(genhermitefunctions(n,convention))
 
 
 
@@ -71,24 +91,38 @@ def genpolynomialfunctions(coefficients):	#coefficients dimensions: function,deg
 #----------------------------------------------------------------------------------------------------
 
 			
-def hermitecoefficients(n):
+def hermitecoefficients(n,convention):
+	return He_coefficients(n) if convention=='He' else H_coefficients(n)
+
+def He_coefficients(n):
 	if n==0:
-		return [jnp.array([1])]
+		return [[1]]
 	if n==1:
-		return [jnp.array([1]),jnp.array([0,1])]
+		return [[1],[0,1]]
 	else:
-		A=hermitecoefficients(n-1)
+		A=He_coefficients(n-1)
+		a1,a2=A[-1],A[-2]+2*[0]
+		a=[-(n-1)*a2[0]]
+		for k in range(1,n+1):
+			a.append(a1[k-1]-(n-1)*a2[k])
+		A.append(a)
+		return A
 
-		#a2=jnp.zeros((2,)) if n==2 else jnp.concatenate([A[-2],jnp.zeros((2,))])
-		a2=jnp.concatenate([A[-2],jnp.zeros((2,))])
-		a=jnp.concatenate([jnp.zeros((1,)),A[-1]])-(n-1)*a2
-
+def H_coefficients(n):
+	if n==0:
+		return [[1]]
+	else:
+		A=H_coefficients(n-1)
+		a1=A[-1]+2*[0]
+		a=[-a1[1]]
+		for k in range(1,n+1):
+			a.append(2*a1[k-1]-(k+1)*a1[k+1])
 		A.append(a)
 		return A
 
 
-def hermitecoefficientblock(n):
-	return jnp.stack([jnp.concatenate([p,jnp.zeros((n+1-p.shape[0],))]) for p in hermitecoefficients(n)],axis=0)
+def hermitecoefficientblock(n,convention):
+	return jnp.array([p+[0]*(n+1-len(p)) for p in hermitecoefficients(n,convention)])
 
 
 
@@ -192,17 +226,6 @@ class SPfeatures:
 # helper functions etc
 #---------------------------------------------------------------------------------------------------- 
 
-#def printpolys(P):
-#	for p in P:
-#		printpoly(p)
-#def printpoly(p):
-#	n=p.shape[0]-1
-#	pstr=' + '.join([str(p[k])+('' if k==0 else 'x' if k==1 else 'x^'+str(k)) for k in range(n,-1,-1) if p[k]!=0])
-#	print(pstr)
-#printpolys(hermitecoefficients(10))
-#print(round(hermitecoefficientblock(10)))
-
-
 
 
 
@@ -211,13 +234,13 @@ class SPfeatures:
 #---------------------------------------------------------------------------------------------------- 
 
 
-def plothermites(n):
+def plothermites(n,convention):
 	x=jnp.arange(-4,4,.01)
 	X=jnp.expand_dims(x,axis=-1)
 
 	import matplotlib.pyplot as plt
 
-	F=genhermitefunctions(n)
+	F=genhermitefunctions(n,convention)
 	Y=F(x)
 
 	for k in range(n):
@@ -225,4 +248,32 @@ def plothermites(n):
 	plt.ylim(-10,10)
 	plt.show()
 
-#plothermites(6)
+
+def printpolys(P):
+	for p in P:
+		printpoly(p)
+def printpoly(p):
+	n=p.shape[0]-1
+	pstr=' + '.join([str(p[k])+('' if k==0 else 'x' if k==1 else 'x^'+str(k)) for k in range(n,-1,-1) if p[k]!=0])
+	print(pstr)
+
+
+#
+#print(round(hermitecoefficientblock(6,'He')))
+#print(round(hermitecoefficientblock(6,'H')))
+#
+#plothermites(6,'H')
+#plothermites(6,'He')
+
+
+def testSlater():
+	n=5
+	X=rnd.normal(rnd.PRNGKey(0),(10,n,1))
+
+	AS=HermiteSlater(n,'H')
+	testing.verify_antisymmetric(AS,X)
+
+	
+	
+#testSlater()
+

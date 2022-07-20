@@ -4,11 +4,13 @@ import math
 import itertools
 import util
 import legacy.permutations as lp
+import numpy as np
 import pdb
 
 def assertequal(y,z,blockdim=0):
 	print('comparing')
 	print(jnp.stack([y,z],axis=-blockdim-1))
+	print('yes, they agree')
 	return util.relloss(y,z)<.001
 
 
@@ -24,10 +26,22 @@ def naiveAS(NS,X):
 	return out
 
 
-def test_AS(AS,NS,X):
+def verify_antisymmetrization(AS,NS,X):
 	Y=AS(X)
 	Z=naiveAS(NS,X)
 	assertequal(Y,Z)
+
+
+def verify_antisymmetric(AS,X):
+	n=X.shape[-2]
+	Y=AS(X)
+	for _ in range(25):
+		p=np.random.permutation(n)
+		sign=lp.sign(p)
+
+		PX=np.array(X)[:,p,:]
+		assertequal(AS(PX),Y*sign)
+
 	
 
 def testperms(Ps,signs):
@@ -41,6 +55,7 @@ def testpermtuples(ps,signs):
 	_ps_,_signs_=lp.gen_complementary_perm_seqs([n])[0]
 	assertequal(ps,_ps_,1)
 	assertequal(signs,_signs_)
+
 
 
 
