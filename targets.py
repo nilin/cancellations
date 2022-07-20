@@ -1,3 +1,5 @@
+# nilin
+
 import jax
 import jax.numpy as jnp
 import jax.random as rnd
@@ -34,26 +36,12 @@ def HermiteSlater(n,convention,envelopevariance):
 
 
 
-#class Slater():
-#	def __init__(self,F):			# F:x->(f1(x),..,fn(x))		s,d |-> s,n
-#		self.F=F
-#
-#	def AS(X):					# X:	s,n,d
-#		F=self.F
-#		FX=jax.vmap(F,in_axes=1,out_axes=-1)(X)	# FX:	s,n (basisfunction),n (particle)
-#		return jnp.linalg.det(FX)
-	
-
 
 def genhermitefunctions(n,convention):
 	coefficients=hermitecoefficientblock(n,convention)
 	return genpolynomialfunctions(coefficients)	
 
 
-#class HermiteSlater(Slater):
-#
-#	def __init__(self,n,convention):
-#		super().__init__(genhermitefunctions(n,convention))
 
 
 

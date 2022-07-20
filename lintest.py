@@ -66,9 +66,13 @@ def gen_Xs(key,d,n,samples):
 
 if __name__=="__main__":
 
-    n=int(sys.argv[1])
-    samples=int(sys.argv[2])
-    batchsize=int(sys.argv[3])
+    n=5
+    samples=10000
+    batchsize=100
+    depth=3
+    width=100
+
+    bk.getparams(globals(),sys.argv)
 
     d = 1
     target_func=targets.HermiteSlater(n,'He',1/8)
@@ -102,7 +106,7 @@ if __name__=="__main__":
     trainmode='AS'
 
     m=100
-    train.initandtrain('data/train/'+fn_ex,'data/hists/'+fn_ex,trainmode,m,samples,batchsize,stopwhenstale=False)
+    train.initandtrain('data/train/'+fn_ex,'data/hists/'+fn_ex,trainmode,[width]*(depth-1),samples,batchsize,stopwhenstale=False)
     
     bk.log('plotting')
 

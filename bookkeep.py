@@ -7,6 +7,7 @@ import jax
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import os
+import sys
 #from util import str_
 
 
@@ -38,10 +39,6 @@ def mkdir(path):
 		os.mkdir(path)
 	except OSError:
 		pass
-
-def savedata(data,filename):
-	path='data/'+filename
-	save(data,path)
 
 
 def savefig(path):
@@ -145,3 +142,33 @@ class Bars:
 	def draw(self):
 		data=[(val_txt[0],name+'='+str(val_txt[1])) for name,val_txt in self.bars.items()]
 		printbars(data)
+
+
+
+def castval(val):
+	try:
+		return int(val)
+	except:
+		pass
+	try:
+		return float(val)
+	except:
+		return val
+
+def parsedef(s):
+	try:
+		name,val=s.split('=')
+		return name,castval(val)
+	except:
+		return None,None
+		
+
+def getparams(globalvars,sysargv,requiredvars={}):
+	cmdargs=sysargv[1:]
+	defs=dict([parsedef(_) for _ in cmdargs])
+
+	for name in requiredvars:
+		if name not in defs and name not in globalvars:
+			defs[name]=castval(input(name+'='))
+	globalvars.update(defs)
+

@@ -25,16 +25,16 @@ import AS_tools
 
 	
 class Trainer:
-	def __init__(self,data_in_path,mode,m,samples):
+	def __init__(self,mode,widths,X,Y):
 
-		self.n,self.d=self.set_traindata(data_in_path,samples)
-		self.m=m
+		self.n,self.d=X.shape[-2:]
+		self.X,self.Y=X,Y
 
 		k0=rnd.PRNGKey(0)
-		self.W,self.b=genW(k0,self.n,self.d,m)
+		self.Ws,self.bs=genW(k0,self.n,self.d,widths)
 
 		self.opt=optax.adamw(.01)
-		self.state=self.opt.init((self.W,self.b))
+		self.state=self.opt.init((self.Ws,self.bs))
 
 		self.paramshistory=[]
 		self.epochlosses=[]
@@ -42,20 +42,12 @@ class Trainer:
 		self.set_trainmode(mode)
 
 
-	def set_traindata(self,fn,samples):
-		X_train,Y_train=bk.get(fn)
-		self.X_train=X_train[:samples]
-		self.Y_train=Y_train[:samples]
-		self.samples=samples
-		return X_train.shape[-2:]
-
-
 	def set_trainmode(self,mode):
 		self.lossgrad=lossgradAS if mode=='AS' else lossgradNS
 
 
 	def checkpoint(self):
-		self.paramshistory.append((self.W,self.b))
+		self.paramshistory.append((self.Ws,self.bs))
 		return jnp.average(self.epochlosses[-1])
 
 
@@ -65,20 +57,20 @@ class Trainer:
 
 	def epoch(self,minibatchsize):
 		
-		X_train,Y_train=util.randperm(self.X_train,self.Y_train)
-
+		X,Y=util.randperm(self.X,self.Y)
+		samples=X.shape[0]
 		losses=[]
 
-		for a in range(0,self.samples,minibatchsize):
-			c=min(a+minibatchsize,self.samples)
+		for a in range(0,samples,minibatchsize):
+			c=min(a+minibatchsize,samples)
 
-			X=X_train[a:c]
-			Y=Y_train[a:c]
+			x=X[a:c]
+			y=Y[a:c]
 
-			grad,loss=self.lossgrad((self.W,self.b),X,Y)
+			grad,loss=self.lossgrad((self.Ws,self.bs),x,y)
 
-			updates,self.state=self.opt.update(grad,self.state,(self.W,self.b))
-			(self.W,self.b)=optax.apply_updates((self.W,self.b),updates)
+			updates,self.state=self.opt.update(grad,self.state,(self.Ws,self.bs))
+			(self.Ws,self.bs)=optax.apply_updates((self.Ws,self.bs),updates)
 
 			rloss=loss/lossfn(Y,0)
 			losses.append(rloss)
@@ -113,8 +105,10 @@ def distinguishable(x,y,p_val=.10):
 press Ctrl-C to stop training
 stopwhenstale either False (no stop) or p-value (smaller means earlier stopping)
 """
-def initandtrain(data_in_path,data_out_path,mode,m,samples,batchsize,traintime=600,stopwhenstale=.10): 
-	T=Trainer(data_in_path,mode,m,samples)
+def initandtrain(data_in_path,data_out_path,mode,widths,batchsize,traintime=600,stopwhenstale=.10): 
+
+	X,Y=bk.get(data_in_path)
+	T=Trainer(mode,widths,X,Y)
 	t0=time.perf_counter()
 	try:
 		while time.perf_counter()<t0+traintime:
@@ -130,17 +124,25 @@ def initandtrain(data_in_path,data_out_path,mode,m,samples,batchsize,traintime=6
 		pass
 
 
-def genW(k0,n,d,m=10,randb=False):
-	k1,k2,k3=rnd.split(k0,3)
-	W0=rnd.normal(k1,(m,n,d))/math.sqrt(n*d)
-	W1=rnd.normal(k2,(1,m))/math.sqrt(m)
-	W=[W0,W1]
-	b=[rnd.normal(k3,(m,))]
-	if randb:
-		b=[rnd.normal(k0,(m,))]
-	return W,b
+def genW(k0,n,d,widths):
+	k1,*Wkeys=rnd.split(k0,100)
+	k2,*bkeys=rnd.split(k0,100)
+
+	Ws=[rnd.normal(k1,(widths[0],n,d))/math.sqrt(n*d)]
+	for m1,m2,key in zip(widths,widths[1:]+[1],Wkeys):
+		Ws.append(rnd.normal(key,(m2,m1))/math.sqrt(m1))
+
+	bs=[rnd.normal(key,(m,)) for m,key in zip(widths,bkeys)]
+	return Ws,bs
 
 
+def AS_from_hist(path):
+	hist=bk.get(path)
+	Ws,bs=hist[-1]
+	@jax.jit
+	def Af(X):
+		return AS_tools.AS_NN(Ws,bs,X)
+	return Af
 
 
 #----------------------------------------------------------------------------------------------------
@@ -247,24 +249,32 @@ def formatvars_(D):
 
 if __name__=="__main__":
 
+	pass
+#	key=rnd.PRNGKey(0)
+#	Ws,bs=genW(key,2,3,[10,9])
+#
+#	print([W.shape for W in Ws])
+#	print()
+#	print([b.shape for b in bs])
 
-	traintime=int(sys.argv[1])	
-	trainmode=sys.argv[2]
-	nmax=int(sys.argv[3])
 
-	m=100
-	samples=1000 if trainmode=='AS' else 10**6
-	batchsize=100 if trainmode=='AS' else 10000
-
-	for d in [1,3]:
-		print('d='+str(d))
-		for n in range(2,nmax+1):
-
-			
-
-			print('n='+str(n))
-			initandtrain(d,n,m,samples,batchsize,traintime,trainmode)
-			print('\n')
+#	traintime=int(sys.argv[1])	
+#	trainmode=sys.argv[2]
+#	nmax=int(sys.argv[3])
+#
+#	m=100
+#	samples=1000 if trainmode=='AS' else 10**6
+#	batchsize=100 if trainmode=='AS' else 10000
+#
+#	for d in [1,3]:
+#		print('d='+str(d))
+#		for n in range(2,nmax+1):
+#
+#			
+#
+#			print('n='+str(n))
+#			initandtrain(d,n,m,samples,batchsize,traintime,trainmode)
+#			print('\n')
 
 
 

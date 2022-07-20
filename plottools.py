@@ -1,18 +1,51 @@
-import GPU_sum
 import jax
 import jax.numpy as jnp
 import jax.random as rnd
 import util
 import bookkeep as bk
-#from GPU_sum import sum_perms_multilayer as sumperms
-import GPU_sum
 import optax
 import math
-import universality
 import sys
 import matplotlib.pyplot as plt
-import plotuniversal
+import numpy as np
 
+
+
+
+
+def linethrough(x):
+	corner=np.zeros_like(x)
+	corner[0][0]=1
+
+	x_rest=(1-corner)*x
+	I=jnp.arange(-1,1,.01)
+
+	X=I[:,None,None]*corner[None,:,:]+x_rest[None,:,:]
+	return I,X
+				
+	
+
+def testerror(Ws,bs,X,Y):
+
+
+	return train.batchloss(Wb,X,Y)/train.lossfn(Y,0)
+	
+
+
+
+
+
+def ploterrorhist(n,ax,fn,plotmode):
+	hist=bk.get(fn)
+	errorhist=[testerror(Wb) if plotmode=='AS' else testerrorNS(Wb) for Wb in hist]
+	error=errorhist[-1]
+
+	if error<.5:
+		ax.plot(errorhist,label=str(n))
+	else:
+		ax.plot(errorhist,ls='dotted',label=str(n))
+
+	
 
 def plottarget(ax,plotfn,n,samples=10000,AS=True):
 	d=1
@@ -62,37 +95,38 @@ def animate(n,AS=True):
 			plt.pause(0.1)
 	
 
-def saveanimation(n):
-	m=10
-	variables={'d':1,'n':n,'m':m}	
-	hist=bk.get('data/hists/'+bk.formatvars_(variables))
+#
+#if __name__=="__main__":
+#
+#	nmax=int(sys.argv[1])
+#
+#	trainmode=input('training mode: ')
+#	outfn=input('output file name: ')
+#
+#	fig,axs=plt.subplots(nrows=2,ncols=2)
+#
+#	print(axs)
+#
+#	for d,axrow in zip([1,3],[axs[0],axs[1]]):
+#
+#		for plotmode,ax in zip(['AS','NS'],axrow):
+#
+#			ax.set_ylim((0,2))	
+#
+#			print('d='+str(d))
+#			for n in range(1,nmax+1):
+#				print('n='+str(n))
+#				fn='data/hists/'+trainmode+'_'+bk.formatvars_({'d':d,'n':n,'m':100})
+#				ploterrorhist(n,ax,fn,plotmode)
+#			ax.legend()
+#	
+#	bk.savefig('univplots/'+outfn+'.pdf')
+#		
 
-	for i,Wb in enumerate(hist):
-
-		print(str(i)+' of '+str(len(hist)))
-
-		fig=plt.figure()
-
-		plotfn=plotuniversal.plot2 if n==2 else plotuniversal.plot3
-
-		if n==2:
-			ax1=fig.add_subplot(1,2,1)
-			ax2=fig.add_subplot(1,2,2)
-		if n==3:
-			ax1=fig.add_subplot(1,2,1,projection='3d')
-			ax2=fig.add_subplot(1,2,2,projection='3d')
+	
+	
 
 
-		plottarget(ax1,plotfn,n,10000)
-		plottrained(ax2,plotfn,Wb,10000)
 
-		m=10
-		
-		plt.savefig('animation/n='+str(n)+'/'+str(i))
-		
 
-if __name__=="__main__":
-	n=int(sys.argv[1])
-	#saveanimation(n)
-	animate(n)
-	#animate(n,AS=False)
+
