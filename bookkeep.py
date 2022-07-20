@@ -151,9 +151,14 @@ def castval(val):
 	except:
 		pass
 	try:
-		return float(val)
+		return cast_str_as_list(val)
 	except:
 		return val
+
+
+def cast_str_as_list(s):
+	return [int(x) for x in s.split(',')]
+
 
 def parsedef(s):
 	try:

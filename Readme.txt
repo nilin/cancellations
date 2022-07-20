@@ -2,17 +2,6 @@
 # readme for universality
 
 
-==================================================
-% train.py traintime trainmode
+example run for learning a Slater of Hermite polynomials:
 
-example:
-% train.py 10 NS/AS
-
-
-
-==================================================
-% trainplot.py
-% NS
-% NS
-
-saves plot in ./univplots/
+python example.py n=5 trainsamples=20000 batchsize=1000 widths=20,100

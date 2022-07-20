@@ -36,23 +36,26 @@ class Trainer:
 		self.opt=optax.adamw(.01)
 		self.state=self.opt.init((self.Ws,self.bs))
 
-		self.paramshistory=[]
 		self.epochlosses=[]
+		self.paramshist=[]
+		self.trainerrorhist=[]
 
 		self.set_trainmode(mode)
+		self.nullloss=collectiveloss(Y,0)
 
 
 	def set_trainmode(self,mode):
 		self.lossgrad=lossgradAS if mode=='AS' else lossgradNS
+		self.individuallosses=individuallossesAS if mode=='AS' else individuallossesNS
 
 
 	def checkpoint(self):
-		self.paramshistory.append((self.Ws,self.bs))
-		return jnp.average(self.epochlosses[-1])
+		self.paramshist.append((self.Ws,self.bs))
+		self.trainerrorhist.append(jnp.average(self.epochlosses[-1]))
 
 
 	def savehist(self,filename):
-		bk.save(self.paramshistory,filename)
+		bk.save({'paramshist':self.paramshist,'trainerrorhist':self.trainerrorhist},filename)
 
 
 	def epoch(self,minibatchsize):
@@ -72,26 +75,48 @@ class Trainer:
 			updates,self.state=self.opt.update(grad,self.state,(self.Ws,self.bs))
 			(self.Ws,self.bs)=optax.apply_updates((self.Ws,self.bs),updates)
 
-			rloss=loss/lossfn(Y,0)
+			rloss=loss/self.nullloss
 			losses.append(rloss)
 			bk.printbar(rloss,'{:.4f}'.format(rloss))
 
 		self.epochlosses.append(jnp.array(losses))
 
+
+
+
+
+class TrainerWithValidation(Trainer):
+
+	def __init__(self,mode,widths,X__,Y__,fractionforvalidation=.1):
+		trainingsamples=round(X__.shape[0]*(1-fractionforvalidation))
+		X_train,Y_train=X__[:trainingsamples],Y__[:trainingsamples]
+
+		super().__init__(mode,widths,X_train,Y_train)
+		self.X_val,self.Y_val=X__[trainingsamples:],Y__[trainingsamples:]
+		self.valerrorhist=[self.validationerror()]
+
+	def validationerror(self):
+		return self.individuallosses((self.Ws,self.bs),self.X_val,self.Y_val)/self.nullloss
+
+	def checkpoint(self):
+		super().checkpoint()
+		self.valerrorhist.append(self.validationerror())
+
+	def savehist(self,filename):
+		bk.save({'paramshist':self.paramshist,'trainerrorhist':self.trainerrorhist,'valerrorhist':self.valerrorhist},filename)
+
+
+	def makingprogress(self,p_val=.10):
+		return True if len(self.valerrorhist)<2 else distinguishable(self.valerrorhist[-2],self.valerrorhist[-1],p_val)
+
 	def stale(self,p_val=.10):
-		losses=jnp.concatenate(self.epochlosses)
-		l=len(losses)
-		if l<100:
-			return False
-		x=losses[round(l/3):round(l*2/3)]
-		y=losses[round(l*2/3):]
-		return not distinguishable(x,y,p_val)
+		return not makingprogress(p_val)
 
 
 
 	
 def distinguishable(x,y,p_val=.10):
-	u,p=st.mannwhitneyu(x,y)#,alternative='greater')
+	u,p=st.mannwhitneyu(x,y,alternative='greater')
 	return p<p_val
 
 
@@ -105,10 +130,10 @@ def distinguishable(x,y,p_val=.10):
 press Ctrl-C to stop training
 stopwhenstale either False (no stop) or p-value (smaller means earlier stopping)
 """
-def initandtrain(data_in_path,data_out_path,mode,widths,batchsize,traintime=600,stopwhenstale=.10): 
+def initandtrain(data_in_path,data_out_path,mode,widths,batchsize,traintime=600,stopwhenstale=False): 
 
 	X,Y=bk.get(data_in_path)
-	T=Trainer(mode,widths,X,Y)
+	T=TrainerWithValidation(mode,widths,X,Y)
 	t0=time.perf_counter()
 	try:
 		while time.perf_counter()<t0+traintime:
@@ -137,12 +162,18 @@ def genW(k0,n,d,widths):
 
 
 def AS_from_hist(path):
-	hist=bk.get(path)
-	Ws,bs=hist[-1]
+	Ws,bs=bk.get(path)['paramshist'][-1]
 	@jax.jit
 	def Af(X):
 		return AS_tools.AS_NN(Ws,bs,X)
 	return Af
+
+def losses_from_hist(path):
+	trainerrors=bk.get(path)['trainerrorhist']
+	valerrors=[jnp.average(_) for _ in bk.get(path)['valerrorhist']]
+	return trainerrors,valerrors
+	
+
 
 
 #----------------------------------------------------------------------------------------------------
@@ -152,138 +183,42 @@ def AS_from_hist(path):
 
 
 
-lossfn=util.sqloss
+individualloss=util.sqlossindividual
+collectiveloss=util.sqloss
 
 
-def batchlossAS(Wb,X,Y):
+@jax.jit
+def individuallossesAS(Wb,X,Y):
 	W,b=Wb
 	Z=AS_tools.AS_NN(W,b,X)
-	return lossfn(Y,Z)
+	return individualloss(Y,Z)
 
+@jax.jit
+def collectivelossAS(Wb,X,Y):
+	return jnp.average(individuallossesAS(Wb,X,Y))
 
+@jax.jit
 def lossgradAS(Wb,X,Y):
 	W,b=Wb
-	loss,grad=jax.value_and_grad(batchlossAS)((W,b),X,Y)
+	loss,grad=jax.value_and_grad(collectivelossAS)((W,b),X,Y)
 	return grad,loss
 
 
 
 @jax.jit
-def batchlossNS(Wb,X,Y):
+def individuallossesNS(Wb,X,Y):
 	W,b=Wb
 	Z=AS_tools.NN(W,b,X)
-	return lossfn(Y,Z)
+	return individualloss(Y,Z)
+
+@jax.jit
+def collectivelossNS(Wb,X,Y):
+	return jnp.average(individuallossesNS(Wb,X,Y))
 
 @jax.jit
 def lossgradNS(Wb,X,Y):
 	W,b=Wb
-	loss,grad=jax.value_and_grad(batchlossNS)((W,b),X,Y)
+	loss,grad=jax.value_and_grad(collectivelossNS)((W,b),X,Y)
 	return grad,loss
-
-
-
-
-#----------------------------------------------------------------------------------------------------
-# other training procedures
-#----------------------------------------------------------------------------------------------------
-
-def gen_swaps(n,with_Id=True):
-
-	I=list(range(n))
-	swaps,signs=([I],[1]) if with_Id else ([],[])
-	for i in range(n-1):
-		for j in range(i+1,n):
-			_=I.copy()
-			_[i],_[j]=j,i
-			swaps.append(_)
-			signs.append(-1)
-	return permutations.perm_as_matrix(swaps),jnp.array(signs)
-
-class Randgen():
-	def __init__(self,seed=0):
-		self.key=rnd.PRNGKey(seed)
-
-	def genint(self,k,nsamples=1):
-		out=rnd.randint(self.key,(nsamples,),0,k)
-		_,self.key=rnd.split(self.key)
-		return jnp.squeeze(out)
-
-class ASNS_Trainer(Trainer):
-
-	def __init__(self,fn,samples,m):
-		super().__init__(fn,samples,m,'ASNS')
-		self.enrichmentperms,self.enrichmentsigns=gen_swaps(self.n)
-
-
-	def enrich_inputs(self,X,Y):
-		X_=util.apply_on_n(self.enrichmentperms,X)
-		Y_=self.enrichmentsigns[:,None]*jnp.squeeze(Y)[None,:]
-		return util.flatten_first(X_),util.flatten_first(Y_)
-
-class ASNS_Trainer_2(Trainer):
-
-	def __init__(self,fn,samples,m):
-		super().__init__(fn,samples,m,'ASNS2')
-		self.swaps,_=gen_swaps(self.n,False)
-		self.randgen=Randgen()
-
-	def randswap(self):
-		swap_id=self.randgen.genint(len(self.swaps))
-		return self.swaps[swap_id]
-		
-
-	def enrich_inputs(self,X,Y):
-		swap=self.randswap()
-		X_=jnp.concatenate([X,util.apply_on_n(swap,X)],axis=0)
-		Y_=jnp.concatenate([Y,-Y])
-		return X_,Y_
-
-#----------------------------------------------------------------------------------------------------
-#----------------------------------------------------------------------------------------------------
-
-
-def formatvars_(D):
-	D_={k:v for k,v in D.items() if k not in {'s','bs'}}
-	return bk.formatvars_(D_)
-
-
-if __name__=="__main__":
-
-	pass
-#	key=rnd.PRNGKey(0)
-#	Ws,bs=genW(key,2,3,[10,9])
-#
-#	print([W.shape for W in Ws])
-#	print()
-#	print([b.shape for b in bs])
-
-
-#	traintime=int(sys.argv[1])	
-#	trainmode=sys.argv[2]
-#	nmax=int(sys.argv[3])
-#
-#	m=100
-#	samples=1000 if trainmode=='AS' else 10**6
-#	batchsize=100 if trainmode=='AS' else 10000
-#
-#	for d in [1,3]:
-#		print('d='+str(d))
-#		for n in range(2,nmax+1):
-#
-#			
-#
-#			print('n='+str(n))
-#			initandtrain(d,n,m,samples,batchsize,traintime,trainmode)
-#			print('\n')
-
-
-
-	
-
-
-
-
-
-
 
 

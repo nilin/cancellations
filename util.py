@@ -32,10 +32,17 @@ activations={'exp':jnp.exp,'tanh':jnp.tanh,'ReLU':ReLU,'HS':heaviside,'DReLU':DR
 L2norm=lambda y:jnp.sqrt(jnp.average(jnp.square(y)))
 L2over=lambda y,**kwargs:jnp.sqrt(jnp.average(jnp.square(y),**kwargs))
 
+
+
+
+@jax.jit
+def sqlossindividual(Y,Z):
+	Y,Z=[jnp.squeeze(_) for _ in (Y,Z)]
+	return jnp.square(Y-Z)
+
 @jax.jit
 def sqloss(Y,Z):
-	Y,Z=[jnp.squeeze(_) for _ in (Y,Z)]
-	return jnp.average(jnp.square(Y-Z))
+	return jnp.average(sqlossindividual(Y,Z))
 
 @jax.jit
 def relloss(Y,Z):
