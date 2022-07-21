@@ -26,7 +26,7 @@ import plottools as pt
 
 	
 class Trainer:
-	def __init__(self,widths,X,Y):
+	def __init__(self,widths,X,Y,batchmode='minibatch'):
 
 		self.n,self.d=X.shape[-2:]
 		self.X,self.Y=X,Y
@@ -42,7 +42,7 @@ class Trainer:
 
 		# choose training functions according to modes
 		self.set_symmode('AS')
-		self.set_batchmode('minibatch')
+		self.set_batchmode(batchmode)
 		
 
 
@@ -58,7 +58,7 @@ class Trainer:
 		self.set_optstate(batchmode)
 
 	def set_optstate(self,batchmode):
-		self.opt=optax.adamw({'batch':.0001,'minibatch':.01}[batchmode])
+		self.opt=optax.adamw({'batch':.001,'minibatch':.01}[batchmode])
 		self.state=self.opt.init([self.Ws,self.bs])
 
 	def checkpoint(self):
@@ -139,11 +139,11 @@ def addparamgrads(G1,G2):
 
 class TrainerWithValidation(Trainer):
 
-	def __init__(self,widths,X__,Y__,fractionforvalidation=.1):
+	def __init__(self,widths,X__,Y__,fractionforvalidation=.1,batchmode='minibatch'):
 		trainingsamples=round(X__.shape[0]*(1-fractionforvalidation))
 		X_train,Y_train=X__[:trainingsamples],Y__[:trainingsamples]
 
-		super().__init__(widths,X_train,Y_train)
+		super().__init__(widths,X_train,Y_train,batchmode=batchmode)
 		self.X_val,self.Y_val=X__[trainingsamples:],Y__[trainingsamples:]
 		self.valerrorhist=[self.validationerror(loud=False)]
 
@@ -190,9 +190,9 @@ def donothing(*args):
 press Ctrl-C to stop training
 stopwhenstale either False (no stop) or p-value (smaller means earlier stopping)
 """
-def initandtrain(data_in_path,data_out_path,widths,batchsize,action_on_pause=donothing): 
+def initandtrain(data_in_path,data_out_path,widths,batchsize,batchmode,action_on_pause=donothing): 
 	X,Y=bk.get(data_in_path)
-	T=TrainerWithValidation(widths,X,Y)
+	T=TrainerWithValidation(widths,X,Y,batchmode=batchmode)
 	try:
 		while True:
 			try:
