@@ -6,7 +6,7 @@ import sys
 import jax
 import jax.numpy as jnp
 import jax.random as rnd
-import targets
+import targetfunctions as targets
 import learning
 import plottools as pt
 import mcmc
