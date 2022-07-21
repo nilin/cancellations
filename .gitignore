@@ -2,9 +2,7 @@
 **/.DS_Store
 data*
 temp*
-plots*
 data/*
-plots/*
 stash*
 datastash*
 **/datastash/*
@@ -34,7 +32,6 @@ anim*
 prevpaper/*
 prev*
 data/*
-plots/*
 smalltests/*
 prev/*
 local/*
