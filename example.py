@@ -47,7 +47,7 @@ if __name__=='__main__':
 
 	
 	def on_pause(trainer):
-		trainer.checkpoint()
+		trainer.savehist('data/hist')
 		learnedAS=learning.AS_from_hist('data/hist')
 		X_test=rnd.uniform(k1,(testsamples,n,d),minval=-1,maxval=1)
 		fig1=pt.plotalongline(targetAS,learnedAS,X_test)

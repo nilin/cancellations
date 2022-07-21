@@ -66,10 +66,12 @@ class Trainer:
 		self.trainerrorhist.append(self.epochlosses[-1] if self.epochsdone()>0 else math.nan)
 		self.timestamps.append(time.perf_counter())
 
+
 	def epochsdone(self):
 		return len(self.epochlosses)
 
 	def savehist(self,filename):
+		self.checkpoint()
 		bk.save({'paramshist':self.paramshist,'trainerrorhist':self.trainerrorhist,'timestamps':self.timestamps},filename)
 
 

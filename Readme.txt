@@ -9,7 +9,7 @@ Example usage
 
 % python example.py
 	or
-% python example.py widths=25,50,100 batchmode=minibatch
+% python example.py n=6 trainsamples=25000 batchsize=100 widths=25,50,50 batchmode=minibatch
 	>> Trains minibatch g.d.
 
 
@@ -52,7 +52,7 @@ Force parameter updates with named definitions from command line
 
 % python example.py
 
-% python example.py n=5 trainsamples=20000 batchsize=1000 widths=25,50,100
+% python example.py n=6 trainsamples=25000 batchsize=100 widths=25,50,50
 
 
 
@@ -73,7 +73,7 @@ batch:		Still iterates through minibatches to limit memory usage.
 		Equivalent with batch gradient descent. 
 
 
-I expect minibatch to work better initially and batch to work better when close to convergence.
+I expect (minibatch) to work better initially and (batch) to work better when close to convergence.
 
 
 

@@ -26,7 +26,7 @@ import pdb
 
 
 
-allperms={n:ps.allperms(n) for n in range(9)}
+#allperms={n:ps.allperms(n) for n in range(9)}
 
 activation=util.ReLU
 
@@ -58,7 +58,7 @@ def gen_Af(f_top):
 	@jax.jit
 	def Af(W0,f_top_params,X):
 		n=W0.shape[-2]						# W0:	m,n,d
-		Ps,signs=allperms[n]					# Ps:	n!,n,n
+		Ps,signs=ps.allperms(n)					# Ps:	n!,n,n
 		PW0=util.apply_on_n(Ps,W0)				# PW0:	n!,m,n,d
 		L1=util.dot_nd(PW0,X)					# L1:	n!,m,s	
 		fX=f_top(f_top_params,L1)				# fX:	n!,s
