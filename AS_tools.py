@@ -50,7 +50,7 @@ def AS_NN(Ws,bs,X,ac='ReLU'):
 	return AS_func(Ws[0],applylayers,X)
 
 @jax.jit
-def NN(W,b,X,ac='ReLU'):
+def NN(Ws,bs,X,ac='ReLU'):
 	applylayers=gen_applylayers(Ws[1:],bs,ac)
 	return NS_func(Ws[0],applylayers,X)
 
