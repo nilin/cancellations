@@ -23,10 +23,10 @@ if __name__=='__main__':
 
 	n=5
 	d=1
-	samples=10000
+	samples=25000
 	testsamples=1000
 	minibatchsize=100
-	widths=[50,100]
+	widths=[25,50,100]
 	trainmode='AS'
 	batchmode='minibatch'
 
