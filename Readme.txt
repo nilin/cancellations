@@ -5,11 +5,19 @@
 
 Example usage
 
+% python example.py
+
+
+% python example.py n=6 widths=25,25,50 minibatchsize=250
+
+
+% python example.py n=6 widths=25,25,50 initfromfile=data/hist batchmode=batch
+
+(requires previos run with same dimensions)
+
 ████████████████████████████████████████████████████████████████████████████████████████████████████
 
 % python example.py
-	or
-% python example.py n=6 trainsamples=25000 minibatchsize=1000 widths=25,25,25 batchmode=minibatch
 	>> Trains minibatch g.d.
 
 

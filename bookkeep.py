@@ -7,6 +7,7 @@ import jax
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import os
+import datetime
 import sys
 #from util import str_
 
@@ -52,6 +53,21 @@ def save(data,path):
 	makedirs(path)
 	with open(path,'wb') as file:
 		pickle.dump(data,file)
+
+
+def now(timesep=':'):
+	date,time=str(datetime.datetime.now()).split('.')[0].split(' ')
+	return date,time.replace(':',timesep)
+
+
+def nowstr():
+	date,time=now(timesep=' ')
+	return date+' time '+time
+
+def nowpath(toplevelfolder,fn=''):
+	tl=toplevelfolder
+	return (tl if tl[-1]=='/' else tl+'/')+nowstr()+'/'+fn
+
 
 def makedirs(filepath):
 	path='/'.join(filepath.split('/')[:-1])
@@ -99,16 +115,9 @@ def progressbar(relwidth,fullwidth,style=BOX,emptystyle=bar):
 
 
 
-def formatvars(elements):
-	variables=dict()
-	for e in elements:
-		name,val=e.split('=')
-		variables[name]=int(val)
-	return variables
 
-
-def formatvars_(elements):
-	return ' '.join([s+'='+str(v) for s,v in elements.items()])
+def formatvars(elements,separator=' ',ignore={}):
+	return separator.join([s+'='+str(v) for s,v in elements.items() if s not in ignore])
 
 
 

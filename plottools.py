@@ -41,14 +41,19 @@ def plotalongline(targetAS,learnedAS,X):
 
 
 def ploterrorhist(path):
-	trainerrors,valerrors=learning.losses_from_hist(path)
-
+	timestamps,trainerrors,valerrors=[learning.losses_from_hist(path)[k] for k in ['timestamps','trainerrorhist','valerrorhist']]
+	mins=timestamps/60
 	fig,ax=plt.subplots()
-	ax.plot(trainerrors,'rd:',label='training error')
-	ax.plot(valerrors,'bo-',label='validation error')
+	ax.plot(mins[1:]/2+mins[:-1]/2,trainerrors[1:],'rd:',label='training error')
+	ax.plot(mins,valerrors,'bo-',label='validation error')
 	ax.legend()
+	ax.set_xlabel('minutes')
 	ax.set_yscale('log')
 	return fig
+
+
+
+
 
 	
 
@@ -82,3 +87,6 @@ def ploterrorhist(path):
 #			plt.pause(0.1)
 #	
 #
+
+if __name__=='__main__':
+	ploterrorhist('data/hist');plt.show()

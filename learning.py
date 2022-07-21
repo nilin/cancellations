@@ -26,12 +26,7 @@ import plottools as pt
 
 	
 class Trainer:
-	def __init__(self,widths,X,Y,batchmode='minibatch'):
-
-		self.n,self.d=X.shape[-2:]
-		self.X,self.Y=X,Y
-		k0=rnd.PRNGKey(0)
-		self.Ws,self.bs=genW(k0,self.n,self.d,widths)
+	def __init__(self,widths,X,Y,batchmode='minibatch',initfromfile=None):
 
 		# init hist
 		self.epochlosses=[]
@@ -39,40 +34,29 @@ class Trainer:
 		self.trainerrorhist=[]
 		self.timestamps=[]
 		self.nullloss=collectiveloss(Y,0)
+		self.events=[]
+
+		# get data and init params
+		self.n,self.d=X.shape[-2:]
+		self.X,self.Y=X,Y
+
+		if initfromfile==None:
+			k0=rnd.PRNGKey(0)
+			self.Ws,self.bs=genW(k0,self.n,self.d,widths)
+		else:
+			self.importparams(initfromfile)
+
+
 
 		# choose training functions according to modes
 		self.set_symmode('AS')
 		self.set_batchmode(batchmode)
+
+		self.ID=bk.nowstr()
+		self.checkpoint()
 		
 
 
-	def set_symmode(self,mode):
-		self.lossgrad=lossgradAS if mode=='AS' else lossgradNS
-		self.individuallosses=individuallossesAS if mode=='AS' else individuallossesNS
-		bk.printemph('Symmetry mode : '+mode)
-
-
-	def set_batchmode(self,batchmode):
-		self.epoch={'batch':self.batch_epoch,'minibatch':self.minibatch_epoch}[batchmode]
-		bk.printemph('Batch mode : '+batchmode)
-		self.set_optstate(batchmode)
-
-	def set_optstate(self,batchmode):
-		self.opt=optax.adamw({'batch':.001,'minibatch':.01}[batchmode])
-		self.state=self.opt.init([self.Ws,self.bs])
-
-	def checkpoint(self):
-		self.paramshist.append([self.Ws,self.bs])
-		self.trainerrorhist.append(self.epochlosses[-1] if self.epochsdone()>0 else math.nan)
-		self.timestamps.append(time.perf_counter())
-
-
-	def epochsdone(self):
-		return len(self.epochlosses)
-
-	def savehist(self,filename):
-		self.checkpoint()
-		bk.save({'paramshist':self.paramshist,'trainerrorhist':self.trainerrorhist,'timestamps':self.timestamps},filename)
 
 
 	def minibatch_epoch(self,minibatchsize):
@@ -97,7 +81,6 @@ class Trainer:
 			bk.printbar(rloss,msg='training loss  ',style=bk.box)
 		print()
 		self.epochlosses.append(jnp.average(minibatchlosses))
-
 
 
 	def batch_epoch(self,minibatchsize):
@@ -131,6 +114,48 @@ class Trainer:
 		self.epochlosses.append(jnp.average(minibatchlosses))
 
 
+
+	def set_symmode(self,mode):
+		self.lossgrad=lossgradAS if mode=='AS' else lossgradNS
+		self.individuallosses=individuallossesAS if mode=='AS' else individuallossesNS
+
+
+	def set_batchmode(self,batchmode):
+		self.epoch={'batch':self.batch_epoch,'minibatch':self.minibatch_epoch}[batchmode]
+		self.add_event('Batch mode : '+batchmode)
+		self.set_optstate(batchmode)
+
+	def set_optstate(self,batchmode):
+		self.opt=optax.adamw({'batch':.001,'minibatch':.01}[batchmode])
+		self.state=self.opt.init([self.Ws,self.bs])
+
+	def checkpoint(self):
+		self.paramshist.append([self.Ws,self.bs])
+		self.trainerrorhist.append(self.epochlosses[-1] if self.epochsdone()>0 else math.nan)
+		self.timestamps.append(self.time_elapsed())
+		self.autosave()
+
+
+	def time_elapsed(self):
+		return time.perf_counter()
+		
+
+	def epochsdone(self):
+		return len(self.epochlosses)
+
+	
+	def add_event(self,msg):
+		self.events.append((self.time_elapsed(),msg))
+		bk.printemph(msg)
+
+
+
+	def importparams(self,path):
+		self.Ws,self.bs=bk.get(path)['paramshist'][-1]
+		self.add_event('Imported params from '+path)
+		
+
+
 def addparamgrads(G1,G2):
 	if G1==None:
 		return G2
@@ -143,13 +168,13 @@ def addparamgrads(G1,G2):
 
 class TrainerWithValidation(Trainer):
 
-	def __init__(self,widths,X__,Y__,fractionforvalidation=.1,batchmode='minibatch'):
+	def __init__(self,widths,X__,Y__,fractionforvalidation=.1,**kwargs):
 		trainingsamples=round(X__.shape[0]*(1-fractionforvalidation))
 		X_train,Y_train=X__[:trainingsamples],Y__[:trainingsamples]
 
-		super().__init__(widths,X_train,Y_train,batchmode=batchmode)
 		self.X_val,self.Y_val=X__[trainingsamples:],Y__[trainingsamples:]
-		self.valerrorhist=[self.validationerror(loud=False)]
+		self.valerrorhist=[]
+		super().__init__(widths,X_train,Y_train,**kwargs)
 
 	def validationerror(self,loud=False):
 		vallosses=self.individuallosses([self.Ws,self.bs],self.X_val,self.Y_val)/self.nullloss
@@ -158,11 +183,15 @@ class TrainerWithValidation(Trainer):
 		return vallosses
 
 	def checkpoint(self):
-		super().checkpoint()
 		self.valerrorhist.append(self.validationerror(loud=True))
+		super().checkpoint()
 
 	def savehist(self,filename):
-		bk.save({'paramshist':self.paramshist,'trainerrorhist':self.trainerrorhist,'valerrorhist':self.valerrorhist},filename)
+		data={'paramshist':self.paramshist,'trainerrorhist':self.trainerrorhist,'valerrorhist':self.valerrorhist,'timestamps':self.timestamps,'events':self.events}
+		bk.save(data,filename)
+
+	def autosave(self):
+		self.savehist('data/hists/started '+self.ID)
 
 
 	def makingprogress(self,p_val=.10):
@@ -194,18 +223,18 @@ def donothing(*args):
 press Ctrl-C to stop training
 stopwhenstale either False (no stop) or p-value (smaller means earlier stopping)
 """
-def initandtrain(data_in_path,data_out_path,widths,batchsize,batchmode,action_on_pause=donothing): 
+def initandtrain(data_in_path,data_out_path,widths,batchsize,action_each_epoch=donothing,action_on_pause=donothing,**kwargs): 
 	X,Y=bk.get(data_in_path)
-	T=TrainerWithValidation(widths,X,Y,batchmode=batchmode)
+	T=TrainerWithValidation(widths,X,Y,**kwargs)
 	try:
 		while True:
 			try:
 				print('\nEpoch '+str(T.epochsdone()))
 				T.epoch(batchsize)
+				action_each_epoch(T)
 			except KeyboardInterrupt:
 				action_on_pause(T)
 				continue
-			T.checkpoint()
 			T.savehist(data_out_path)
 	except KeyboardInterrupt:
 		print('\nEnding.\n')
@@ -237,9 +266,9 @@ def AS_from_hist(path):
 	return Af
 
 def losses_from_hist(path):
-	trainerrors=bk.get(path)['trainerrorhist']
-	valerrors=[jnp.average(_) for _ in bk.get(path)['valerrorhist']]
-	return trainerrors,valerrors
+	out={k:v for k,v in bk.get(path).items() if k in {'timestamps','trainerrorhist'}}
+	out['valerrorhist']=[jnp.average(_) for _ in bk.get(path)['valerrorhist']]
+	return {k:jnp.array(v) for k,v in out.items()}
 	
 
 

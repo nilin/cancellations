@@ -16,10 +16,10 @@ import matplotlib.pyplot as plt
 
 
 
-
 if __name__=='__main__':
 
-	requiredvars={'n','samples','minibatchsize','widths'}
+
+	bgvars=set(globals().keys())
 
 	n=6
 	d=1
@@ -27,12 +27,20 @@ if __name__=='__main__':
 	testsamples=1000
 	minibatchsize=1000
 	widths=[25,25,25]
-	trainmode='AS'
 	batchmode='minibatch'
+	initfromfile=None
+
+	bk.getparams(globals(),sys.argv)
 
 
-	bk.getparams(globals(),sys.argv,requiredvars)
-	print(2*'\n'+'\n'.join([name+' = '+str(globals()[name]) for name in requiredvars])+2*'\n')
+	fgvars=set(globals().keys())-bgvars-{'bgvars'}
+
+	vardefs={k:globals()[k] for k in fgvars}
+	print(bk.formatvars(vardefs,'\n'))	
+
+
+
+
 
 
 
@@ -45,15 +53,27 @@ if __name__=='__main__':
 	bk.save([X_train,Y_train],'data/XY')
 
 
-	
-	def on_pause(trainer):
+	def saveplots(trainer):
+		trainer.checkpoint()
 		trainer.savehist('data/hist')
+
 		learnedAS=learning.AS_from_hist('data/hist')
 		X_test=rnd.uniform(k1,(testsamples,n,d),minval=-1,maxval=1)
+
 		fig1=pt.plotalongline(targetAS,learnedAS,X_test)
 		fig2=pt.ploterrorhist('data/hist')
-		bk.savefig('plots/alongline.pdf',fig1)
-		bk.savefig('plots/trainingerror.pdf',fig2)
+		figpath='plots/started '+trainer.ID+' | '+bk.formatvars(vardefs,ignore={'minibatchsize','initfromfile','testsamples','d','batchmode','samples'})+'/'
+		bk.savefig(figpath+'plot.pdf',fig1)
+		bk.savefig(figpath+'losses.pdf',fig2)
+		bk.savefig('plots/plot.pdf',fig1)
+		bk.savefig('plots/losses.pdf',fig2)
+		return fig1,fig2,figpath
+
+	
+	def on_pause(trainer):
+
+		fig1,fig2,figpath=saveplots(trainer)
+		bk.savefig(figpath+str(round(trainer.time_elapsed()))+' s.pdf',fig1)
 
 		msg='\nPaused. Press (Enter) to continue training.'
 		msg=msg+'\nEnter (p) to show plots.'	
@@ -64,14 +84,13 @@ if __name__=='__main__':
 			inp=input(msg)
 			if inp=='': break
 			if inp=='p':
-				print('\nShowing plots in background\n')
-				plt.show()
+				print('\nShowing plots\n')
+				fig1.show(); fig2.show()
 			if inp in {'b','m'}: trainer.set_batchmode({'b':'batch','m':'minibatch'}[inp])
-			if inp in {'a','n'}: trainer.set_symmode({'a':'AS','n':'NS'}[inp])
 			if inp=='q': raise KeyboardInterrupt
 
+		
 
-
-	learning.initandtrain('data/XY','data/hist',widths,minibatchsize,batchmode=batchmode,action_on_pause=on_pause)
+	learning.initandtrain('data/XY','data/hist',widths,minibatchsize,action_each_epoch=saveplots,action_on_pause=on_pause,batchmode=batchmode,initfromfile=initfromfile)
 
 

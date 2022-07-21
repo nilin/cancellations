@@ -36,3 +36,5 @@ smalltests/*
 prev/*
 local/*
 temp*
+data/*
+plots/*
