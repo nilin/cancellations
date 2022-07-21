@@ -26,7 +26,7 @@ if __name__=='__main__':
 	samples=10000
 	testsamples=1000
 	minibatchsize=100
-	widths=500
+	widths=[50,100]
 	trainmode='AS'
 	batchmode='minibatch'
 
@@ -47,6 +47,7 @@ if __name__=='__main__':
 
 	
 	def on_pause(trainer):
+		trainer.checkpoint()
 		learnedAS=learning.AS_from_hist('data/hist')
 		X_test=rnd.uniform(k1,(testsamples,n,d),minval=-1,maxval=1)
 		fig1=pt.plotalongline(targetAS,learnedAS,X_test)

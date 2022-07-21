@@ -17,7 +17,8 @@ def Slater(F):						# F:x->(f1(x),..,fn(x))		s,d |-> s,n
 	@jax.jit
 	def AF(X):
 		FX=jax.vmap(F,in_axes=1,out_axes=-1)(X)	# FX:	s,n (basisfunction),n (particle)
-		return jnp.linalg.det(FX)
+		n=FX.shape[-1]
+		return jnp.linalg.det(FX)/jnp.sqrt(math.factorial(n))
 	return AF
 
 

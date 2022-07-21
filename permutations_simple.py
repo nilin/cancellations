@@ -16,11 +16,9 @@ import sys
 import jax.numpy as jnp
 import bisect
 import time
-import testing
 
 
 
-#----------------------------------------------------------------------------------------------------
 
 
 def applyrightshift_to_rows(shift,A):
@@ -35,11 +33,11 @@ def rightshifts_of_i(i,n):
 	return shifts,signs
 
 
-def allperms(n,keep_order_of_last_k=0):
+def allperms(n,fix_first=0,keep_order_of_last=0):
 	Ps=jnp.expand_dims(jnp.eye(n),axis=0)
 	allsigns=jnp.array([1])
 
-	for i in range(n-1-keep_order_of_last_k,-1,-1):	
+	for i in range(n-1-keep_order_of_last,fix_first-1,-1):	
 		shifts,signs=rightshifts_of_i(i,n)
 		Ps=jnp.concatenate([applyrightshift_to_rows(S,Ps) for S in shifts],axis=0)
 		allsigns=jnp.ravel(signs[:,None]*allsigns[None,:])
@@ -47,25 +45,23 @@ def allperms(n,keep_order_of_last_k=0):
 	return Ps,allsigns
 
 
-#----------------------------------------------------------------------------------------------------
 
 
 
-def allpermtuples(n):
-	Ps,signs=allperms(n)
-	return permtuple(Ps),signs
+# testing ----------------------------------------------------------------------------------------------------
+
 
 
 def permtuple(Ps):
 	n=Ps.shape[-1]
 	return jnp.dot(jnp.arange(n),Ps)
 
-
-
-#----------------------------------------------------------------------------------------------------
-	
-
+def allpermtuples(n):
+	Ps,signs=allperms(n)
+	return permtuple(Ps),signs
 
 if __name__=='__main__':
+	print(allpermtuples(3))
 
-	print(allperms(3))
+	
+

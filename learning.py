@@ -63,9 +63,11 @@ class Trainer:
 
 	def checkpoint(self):
 		self.paramshist.append([self.Ws,self.bs])
-		self.trainerrorhist.append(self.epochlosses[-1])
+		self.trainerrorhist.append(self.epochlosses[-1] if self.epochsdone()>0 else math.nan)
 		self.timestamps.append(time.perf_counter())
 
+	def epochsdone(self):
+		return len(self.epochlosses)
 
 	def savehist(self,filename):
 		bk.save({'paramshist':self.paramshist,'trainerrorhist':self.trainerrorhist,'timestamps':self.timestamps},filename)
@@ -196,7 +198,7 @@ def initandtrain(data_in_path,data_out_path,widths,batchsize,batchmode,action_on
 	try:
 		while True:
 			try:
-				print('\nEpoch '+str(len(T.epochlosses)))
+				print('\nEpoch '+str(T.epochsdone()))
 				T.epoch(batchsize)
 			except KeyboardInterrupt:
 				action_on_pause(T)
@@ -253,8 +255,8 @@ collectiveloss=util.sqloss
 
 @jax.jit
 def individuallossesAS(Wb,X,Y):
-	W,b=Wb
-	Z=AS_tools.AS_NN(W,b,X)
+	Ws,bs=Wb
+	Z=AS_tools.AS_NN(Ws,bs,X)
 	return individualloss(Y,Z)
 
 @jax.jit
@@ -263,8 +265,8 @@ def collectivelossAS(Wb,X,Y):
 
 @jax.jit
 def lossgradAS(Wb,X,Y):
-	W,b=Wb
-	loss,grad=jax.value_and_grad(collectivelossAS)([W,b],X,Y)
+	Ws,bs=Wb
+	loss,grad=jax.value_and_grad(collectivelossAS)([Ws,bs],X,Y)
 	return grad,loss
 
 

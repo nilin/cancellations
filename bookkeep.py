@@ -73,10 +73,10 @@ BOX='\u2588'
 box='\u2592'
 bar='\u2015'
 
-def printbar(val,msg='',hold=True,printval=True,**kwargs):
+def printbar(val,msg='',hold=True,printval=True,shift=0,**kwargs):
 
 	msg=msg+(' '+'{:.4f}'.format(val) if printval else '')
-	print(progressbar(val,150,**kwargs)+' '+msg,end=('\r' if hold else '\n'))
+	print(shift*' '+progressbar(val,140,**kwargs)+' '+msg,end=('\r' if hold else '\n'))
 
 
 
