@@ -30,7 +30,7 @@ Example usage
 
 
 % 'p' (Enter)
-	>> Show plots. (These are saved each epoch anyway)
+	>> Show plots. (These are saved anyway)
 
 
 % 'q' (Enter)
