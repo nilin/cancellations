@@ -19,13 +19,13 @@ import matplotlib.pyplot as plt
 
 if __name__=='__main__':
 
-	requiredvars={'n','samples','batchsize','widths'}
+	requiredvars={'n','samples','minibatchsize','widths'}
 
 	n=5
 	d=1
 	samples=10000
 	testsamples=1000
-	batchsize=100
+	minibatchsize=100
 	widths=500
 	trainmode='AS'
 	batchmode='minibatch'
@@ -71,6 +71,6 @@ if __name__=='__main__':
 
 
 
-	learning.initandtrain('data/XY','data/hist',widths,batchsize,batchmode=batchmode,action_on_pause=on_pause)
+	learning.initandtrain('data/XY','data/hist',widths,minibatchsize,batchmode=batchmode,action_on_pause=on_pause)
 
 

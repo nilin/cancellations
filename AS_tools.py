@@ -33,9 +33,6 @@ def dot_nd(A,B):
 
 def AS_func(W0,func,X):
 	n=W0.shape[-2]					# W0:	m,n,d
-
-	assert(n<9)
-
 	Ps,signs=ps.allperms(n)				# Ps:	n!,n,n
 	PW0=util.apply_on_n(Ps,W0)			# PW0:	n!,m,n,d
 	L1=dot_nd(PW0,X)				# L1:	n!,m,s	

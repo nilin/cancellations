@@ -8,8 +8,9 @@ import jax.numpy as jnp
 import pdb
 	
 
-
-ReLU=lambda x:jnp.maximum(x,0)
+@jax.jit
+def ReLU(x):
+	return jnp.maximum(x,0) 
 
 activations={'ReLU':ReLU,'tanh':jnp.tanh}
 

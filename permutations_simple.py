@@ -20,38 +20,35 @@ import testing
 
 
 
-
-def toplevelperm(n,k):
-	I=jnp.eye(n)
-	top=I[1:k+1]
-	mid=I[0:1]
-	bottom=I[k+1:]
-	return jnp.concatenate([top,mid,bottom],axis=0)
-	
-
-def toplevelperms(n):
-	perms=jnp.stack([toplevelperm(n,k) for k in range(n)],axis=0)
-	signs=(-1)**jnp.arange(n)
-	return perms,signs
+#----------------------------------------------------------------------------------------------------
 
 
-def permblocks(n,level):
-	Ps,signs=toplevelperms(level)
-	h,r=level,n-level
-	top=jnp.eye(r,n)
-	tops=jnp.broadcast_to(top,(h,r,n))
-	#tops=top[None,:,:]
-	bottoms=jnp.concatenate([jnp.zeros((h,level,r)),Ps],axis=-1)
-	return jnp.concatenate([tops,bottoms],axis=-2),signs
+def applyrightshift_to_rows(shift,A):
+	i,j=shift
+	return jnp.concatenate([A[:,:i,:],A[:,i+1:j+1,:],A[:,i:i+1,:],A[:,j+1:,:]],axis=-2)
 
-def allperms(n):
-	allPs,allsigns=permblocks(n,1)
-	for level in range(2,n+1):
-		Ps,signs=permblocks(n,level)
-		allPs=util.allmatrixproducts(Ps,allPs)
+
+
+def rightshifts_of_i(i,n):
+	shifts=[(i,j) for j in range(i,n)]
+	signs=(-1)**jnp.arange(len(shifts))
+	return shifts,signs
+
+
+def allperms(n,keep_order_of_last_k=0):
+	Ps=jnp.expand_dims(jnp.eye(n),axis=0)
+	allsigns=jnp.array([1])
+
+	for i in range(n-1-keep_order_of_last_k,-1,-1):	
+		shifts,signs=rightshifts_of_i(i,n)
+		Ps=jnp.concatenate([applyrightshift_to_rows(S,Ps) for S in shifts],axis=0)
 		allsigns=jnp.ravel(signs[:,None]*allsigns[None,:])
-	return jnp.array(allPs,dtype=int),allsigns
-	
+
+	return Ps,allsigns
+
+
+#----------------------------------------------------------------------------------------------------
+
 
 
 def allpermtuples(n):
@@ -63,25 +60,12 @@ def permtuple(Ps):
 	n=Ps.shape[-1]
 	return jnp.dot(jnp.arange(n),Ps)
 
+
+
+#----------------------------------------------------------------------------------------------------
 	
 
 
-
-
-
-"""
-
-----------------------------------------------------------------------------------------------------
-test
-----------------------------------------------------------------------------------------------------
-"""
-
-def testallperms(n):
-	Ps,signs=allperms(n)
-	testing.testperms(Ps,signs)
-	ps,signs=allpermtuples(n)
-	testing.testpermtuples(ps,signs)
-
-
 if __name__=='__main__':
-	testallperms(5)
+
+	print(allperms(3))
