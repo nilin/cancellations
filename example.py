@@ -11,7 +11,7 @@ import learning
 import plottools as pt
 import mcmc
 import matplotlib.pyplot as plt
-
+import util
 
 
 
@@ -44,12 +44,17 @@ if __name__=='__main__':
 
 
 
-	targetAS=targets.HermiteSlater(n,'H',1/8)
 
 	k0,k1,k2,*keys=rnd.split(rnd.PRNGKey(0),100)
 	X_train=rnd.uniform(k0,(samples,n,d),minval=-1,maxval=1)
-	Y_train=targetAS(X_train)
 
+	
+	
+	targetAS=targets.HermiteSlater(n,'H',1/8)
+	targetAS=util.normalize(targetAS,X_train[:100])
+
+
+	Y_train=targetAS(X_train)
 	bk.save([X_train,Y_train],'data/XY')
 
 

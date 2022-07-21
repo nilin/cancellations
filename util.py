@@ -36,7 +36,6 @@ def dot_nd(A,B):
 
 
 
-# for universality.train # v v v v v v v v v v v v v v 
 
 def randperm(*Xs):
 	X=Xs[0]
@@ -47,7 +46,6 @@ def randperm(*Xs):
 	return [jnp.array(PX) for PX in PXs]
 	
 
-# apply matrix A[...,:,:] on X[...,:,.]
 @jax.jit
 def apply_on_n(A,X):
 
@@ -65,7 +63,6 @@ def flatten_first(X):
 	
 
 
-# for universality.train # ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ 
 
 
 
@@ -75,3 +72,16 @@ def allmatrixproducts(As,Bs):
 	return flatten_first(products)
 
 
+
+
+
+def normalize(f,X_):
+
+	scalesquared=sqloss(f(X_),0)
+	C=1/math.sqrt(scalesquared)
+
+	@jax.jit
+	def g(X):
+		return C*f(X)
+
+	return g
