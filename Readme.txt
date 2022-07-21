@@ -9,7 +9,7 @@ Example usage
 
 % python example.py
 	or
-% python example.py n=6 trainsamples=25000 batchsize=100 widths=25,50,50 batchmode=minibatch
+% python example.py n=6 trainsamples=25000 minibatchsize=1000 widths=25,25,25 batchmode=minibatch
 	>> Trains minibatch g.d.
 
 
@@ -52,7 +52,7 @@ Force parameter updates with named definitions from command line
 
 % python example.py
 
-% python example.py n=6 trainsamples=25000 batchsize=100 widths=25,50,50
+% python example.py n=6 trainsamples=25000 minibatchsize=1000 widths=25,50,50
 
 
 

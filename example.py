@@ -21,12 +21,12 @@ if __name__=='__main__':
 
 	requiredvars={'n','samples','minibatchsize','widths'}
 
-	n=5
+	n=6
 	d=1
 	samples=25000
 	testsamples=1000
-	minibatchsize=100
-	widths=[25,50,100]
+	minibatchsize=1000
+	widths=[25,25,25]
 	trainmode='AS'
 	batchmode='minibatch'
 

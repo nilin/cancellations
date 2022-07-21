@@ -18,7 +18,7 @@ def linethrough(x):
 	corner[0][0]=1
 
 	x_rest=(1-corner)*x
-	I=jnp.arange(-1,1,.01)
+	I=jnp.arange(-1,1,.005)
 
 	X=I[:,None,None]*corner[None,:,:]+x_rest[None,:,:]
 	return I,X
@@ -44,8 +44,8 @@ def ploterrorhist(path):
 	trainerrors,valerrors=learning.losses_from_hist(path)
 
 	fig,ax=plt.subplots()
-	ax.plot(trainerrors,'r',label='training error')
-	ax.plot(valerrors,'b',label='validation error')
+	ax.plot(trainerrors,'rd:',label='training error')
+	ax.plot(valerrors,'bo-',label='validation error')
 	ax.legend()
 	ax.set_yscale('log')
 	return fig
