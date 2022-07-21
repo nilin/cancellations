@@ -5,7 +5,6 @@ import time
 import copy
 import jax
 import jax.numpy as jnp
-import legacy.permutations
 import pdb
 	
 
