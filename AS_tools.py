@@ -16,7 +16,6 @@ import copy
 import jax
 import jax.numpy as jnp
 import util
-from util import print_
 import sys
 import os
 import shutil

@@ -11,7 +11,7 @@ import pdb
 
 ReLU=lambda x:jnp.maximum(x,0)
 
-
+activations={'ReLU':ReLU,'tanh':jnp.tanh}
 
 @jax.jit
 def sqlossindividual(Y,Z):
