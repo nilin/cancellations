@@ -6,7 +6,7 @@ import copy
 import jax
 import jax.numpy as jnp
 import pdb
-	
+from jax.lax import collapse	
 
 @jax.jit
 def ReLU(x):
@@ -34,7 +34,11 @@ def dot_nd(A,B):
 
 
 
-
+@jax.jit
+def collapselast(A,k):
+	dims=A.shape
+	#return collapse(A,dims-k,dims)
+	return jnp.reshape(A,dims[:-2]+(dims[-2]*dims[-1],))
 
 
 def randperm(*Xs):
@@ -62,8 +66,7 @@ def flatten_first(X):
 	return jnp.reshape(X,(blocksize,)+shape)
 	
 
-
-
+	
 
 
 @jax.jit

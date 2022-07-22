@@ -32,7 +32,7 @@ def plotalongline(targetAS,learnedAS,X):
 	x0=X[jnp.argmax(Y**2)]
 	I,x=linethrough(x0)
 
-	fig,ax=plt.subplots()
+	fig,ax=plt.subplots(1)
 	ax.plot(I,targetAS(x),'b',label='target')
 	ax.plot(I,learnedAS(x),'r',label='learned')
 	ax.legend()
@@ -43,7 +43,7 @@ def plotalongline(targetAS,learnedAS,X):
 def ploterrorhist(path):
 	timestamps,trainerrors,valerrors=[learning.losses_from_hist(path)[k] for k in ['timestamps','trainerrorhist','valerrorhist']]
 	mins=timestamps/60
-	fig,ax=plt.subplots()
+	fig,ax=plt.subplots(1)
 	ax.plot(mins[1:]/2+mins[:-1]/2,trainerrors[1:],'rd:',label='training error')
 	ax.plot(mins,valerrors,'bo-',label='validation error')
 	ax.legend()

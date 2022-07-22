@@ -33,35 +33,38 @@ def rightshifts_of_i(i,n):
 	return shifts,signs
 
 
-def allperms(n,fix_first=0,keep_order_of_last=0):
-	Ps=jnp.expand_dims(jnp.eye(n),axis=0)
+def allpermsof(x,fix_first=0,keep_order_of_last=0):
+	n=x.shape[-2]
+	Ps=jnp.expand_dims(x,0)
 	allsigns=jnp.array([1])
 
 	for i in range(n-1-keep_order_of_last,fix_first-1,-1):	
-		shifts,signs=rightshifts_of_i(i,n)
+		shifts,shiftsigns=rightshifts_of_i(i,n)
 		Ps=jnp.concatenate([applyrightshift_to_rows(S,Ps) for S in shifts],axis=0)
-		allsigns=jnp.ravel(signs[:,None]*allsigns[None,:])
+		allsigns=jnp.ravel(shiftsigns[:,None]*allsigns[None,:])
 
 	return Ps,allsigns
 
+def allperms(n,**kwargs):
+	I=jnp.eye(n)
+	return allpermsof(I,**kwargs)
 
+def allpermtuples(n,**kwargs):
+	I=jnp.array([[i] for i in range(n)])
+	P,s=allpermsof(I)
+	return jnp.squeeze(P),s
 
+#----------------------------------------------------------------------------------------------------
 
 
 # testing ----------------------------------------------------------------------------------------------------
 
 
 
-def permtuple(Ps):
-	n=Ps.shape[-1]
-	return jnp.dot(jnp.arange(n),Ps)
-
-def allpermtuples(n):
-	Ps,signs=allperms(n)
-	return permtuple(Ps),signs
 
 if __name__=='__main__':
 	print(allpermtuples(3))
+	print(allperms(3))
 
 	
 

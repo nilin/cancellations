@@ -59,6 +59,8 @@ if __name__=='__main__':
 
 
 	def saveplots(trainer):
+	
+		plt.close('all')
 		trainer.checkpoint()
 		trainer.savehist('data/hist')
 
@@ -72,6 +74,7 @@ if __name__=='__main__':
 		bk.savefig(figpath+'losses.pdf',fig2)
 		bk.savefig('plots/plot.pdf',fig1)
 		bk.savefig('plots/losses.pdf',fig2)
+		
 		return fig1,fig2,figpath
 
 	

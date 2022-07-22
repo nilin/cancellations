@@ -42,7 +42,7 @@ class Trainer:
 
 		if initfromfile==None:
 			k0=rnd.PRNGKey(0)
-			self.Ws,self.bs=genW(k0,self.n,self.d,widths)
+			self.weights=genW(k0,self.n,self.d,widths)
 		else:
 			self.importparams(initfromfile)
 
@@ -71,10 +71,10 @@ class Trainer:
 			x=X[a:c]
 			y=Y[a:c]
 
-			grad,loss=self.lossgrad([self.Ws,self.bs],x,y)
+			grad,loss=self.lossgrad(self.weights,x,y)
 
-			updates,self.state=self.opt.update(grad,self.state,[self.Ws,self.bs])
-			[self.Ws,self.bs]=optax.apply_updates([self.Ws,self.bs],updates)
+			updates,self.state=self.opt.update(grad,self.state,self.weights)
+			self.weights=optax.apply_updates(self.weights,updates)
 
 			rloss=loss/self.nullloss
 			minibatchlosses.append(rloss)
@@ -97,7 +97,7 @@ class Trainer:
 			x=X[a:c]
 			y=Y[a:c]
 
-			grad,loss=self.lossgrad([self.Ws,self.bs],x,y)
+			grad,loss=self.lossgrad(self.weights,x,y)
 
 
 			rloss=loss/self.nullloss
@@ -106,8 +106,8 @@ class Trainer:
 
 			completeness=1.0*c/samples; bk.printbar(completeness,msg='Epoch '+str(round(completeness*100))+'% complete',printval=False,style=10*bk.bar+'minibatches done',emptystyle=' ')
 
-		updates,self.state=self.opt.update(minibatchparamgrads,self.state,[self.Ws,self.bs])
-		[self.Ws,self.bs]=optax.apply_updates([self.Ws,self.bs],updates)
+		updates,self.state=self.opt.update(minibatchparamgrads,self.state,self.weights)
+		self.weights=optax.apply_updates(self.weights,updates)
 
 		print('Parameter update'+200*' ')
 		bk.printbar(rloss,msg='training loss  ',style='\u2592',hold=False)
@@ -127,10 +127,10 @@ class Trainer:
 
 	def set_optstate(self,batchmode):
 		self.opt=optax.adamw({'batch':.001,'minibatch':.01}[batchmode])
-		self.state=self.opt.init([self.Ws,self.bs])
+		self.state=self.opt.init(self.weights)
 
 	def checkpoint(self):
-		self.paramshist.append([self.Ws,self.bs])
+		self.paramshist.append(self.weights)
 		self.trainerrorhist.append(self.epochlosses[-1] if self.epochsdone()>0 else math.nan)
 		self.timestamps.append(self.time_elapsed())
 		self.autosave()
@@ -151,16 +151,19 @@ class Trainer:
 
 
 	def importparams(self,path):
-		self.Ws,self.bs=bk.get(path)['paramshist'][-1]
+		self.weights=bk.get(path)['paramshist'][-1]
 		self.add_event('Imported params from '+path)
 		
 
 
 def addparamgrads(G1,G2):
+
 	if G1==None:
 		return G2
+	elif type(G2)==list:
+		return [addparamgrads(g1,g2) for g1,g2 in zip(G1,G2)]
 	else:
-		return [[a1+a2 for a1,a2 in zip(g1,g2)] for g1,g2 in zip(G1,G2)]
+		return G1+G2
 		
 
 
@@ -177,7 +180,7 @@ class TrainerWithValidation(Trainer):
 		super().__init__(widths,X_train,Y_train,**kwargs)
 
 	def validationerror(self,loud=False):
-		vallosses=self.individuallosses([self.Ws,self.bs],self.X_val,self.Y_val)/self.nullloss
+		vallosses=self.individuallosses(self.weights,self.X_val,self.Y_val)/self.nullloss
 		if loud:
 			bk.printbar(jnp.average(vallosses),msg='validation loss',hold=False)
 		return vallosses
@@ -250,19 +253,16 @@ def genW(k0,n,d,widths):
 	k1,*Wkeys=rnd.split(k0,100)
 	k2,*bkeys=rnd.split(k0,100)
 
-	Ws=[rnd.normal(k1,(widths[0],n,d))/math.sqrt(n*d)]
-	for m1,m2,key in zip(widths,widths[1:]+[1],Wkeys):
-		Ws.append(rnd.normal(key,(m2,m1))/math.sqrt(m1))
-
+	Ws=[rnd.normal(key,(m2,m1))/math.sqrt(m1) for m1,m2,key in zip([n*d]+widths,widths+[1],Wkeys)]
 	bs=[rnd.normal(key,(m,)) for m,key in zip(widths,bkeys)]
-	return Ws,bs
+	return [Ws,bs]
 
 
 def AS_from_hist(path):
-	Ws,bs=bk.get(path)['paramshist'][-1]
+	params=bk.get(path)['paramshist'][-1]
 	@jax.jit
 	def Af(X):
-		return AS_tools.AS_NN(Ws,bs,X)
+		return AS_tools.AS_NN(params,X)
 	return Af
 
 def losses_from_hist(path):
@@ -285,9 +285,8 @@ collectiveloss=util.sqloss
 
 
 @jax.jit
-def individuallossesAS(Wb,X,Y):
-	Ws,bs=Wb
-	Z=AS_tools.AS_NN(Ws,bs,X)
+def individuallossesAS(params,X,Y):
+	Z=AS_tools.AS_NN(params,X)
 	return individualloss(Y,Z)
 
 @jax.jit
@@ -295,17 +294,15 @@ def collectivelossAS(Wb,X,Y):
 	return jnp.average(individuallossesAS(Wb,X,Y))
 
 @jax.jit
-def lossgradAS(Wb,X,Y):
-	Ws,bs=Wb
-	loss,grad=jax.value_and_grad(collectivelossAS)([Ws,bs],X,Y)
+def lossgradAS(params,X,Y):
+	loss,grad=jax.value_and_grad(collectivelossAS)(params,X,Y)
 	return grad,loss
 
 
 
 @jax.jit
 def individuallossesNS(Wb,X,Y):
-	W,b=Wb
-	Z=AS_tools.NN(W,b,X)
+	Z=AS_tools.NN(Wb,X)
 	return individualloss(Y,Z)
 
 @jax.jit
@@ -314,8 +311,7 @@ def collectivelossNS(Wb,X,Y):
 
 @jax.jit
 def lossgradNS(Wb,X,Y):
-	W,b=Wb
-	loss,grad=jax.value_and_grad(collectivelossNS)([W,b],X,Y)
+	loss,grad=jax.value_and_grad(collectivelossNS)(Wb,X,Y)
 	return grad,loss
 
 
