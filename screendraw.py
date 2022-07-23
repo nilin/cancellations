@@ -10,11 +10,6 @@ def gotoline(n):
 def clear():
 	os.system('cls' if os.name == 'nt' else 'clear')
 
-def overwrite(n,k):
-	gotoline(n)
-	for i in range(k):
-		print()
-	gotoline(n)
 
 #----------------------------------------------------------------------------------------------------
 

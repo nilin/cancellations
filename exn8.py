@@ -11,9 +11,11 @@ import learning
 import plottools as pt
 import mcmc
 import matplotlib.pyplot as plt
+import numpy as np
 import util
-import math
+
 import screendraw
+
 
 
 
@@ -25,7 +27,7 @@ press Ctrl-C to stop training
 """
 def initandtrain(data_in_path,widths,action_each_epoch=util.donothing,action_on_pause=util.donothing,**kwargs): 
 	X,Y=bk.get(data_in_path)
-	T=learning.TrainerWithValidation(widths,X,Y,fractionforvalidation=.01,**kwargs)
+	T=learning.TrainerWithValidation(widths,X,Y,fractionforvalidation=.01,microbatchsize=5)
 	screendraw.clear()
 	try:
 		while True:
@@ -40,20 +42,18 @@ def initandtrain(data_in_path,widths,action_each_epoch=util.donothing,action_on_
 		print('\nEnding.\n')
 
 
-
-
 if __name__=='__main__':
 
 
 	bgvars=set(globals().keys())
 
-	n=9
+	n=8
 	d=1
-	samples=10000
-	testsamples=100
-	widths=[10,10]
+	samples=100000
+	testsamples=1000
+	widths=[25,25,25]
 	initfromfile=None
-	plotfineness=100
+	plotfineness=1000
 
 	bk.getparams(globals(),sys.argv)
 
@@ -77,12 +77,18 @@ if __name__=='__main__':
 	Y_train=targetAS(X_train)
 	bk.save([X_train,Y_train],'data/XY')
 
-
-	bk.addbar('training loss')
-	bk.addbar('validation loss')
-	bk.addcustombar('epoch',lambda v:'{} samples done'.format(v['samplesdone']),lambda v:v['samplesdone']/v['samples'])
-	bk.addcustombar('minibatch',lambda v:'minibatch {}% done'.format(round(v['minibatchcompl']*100)),lambda v:v['minibatchcompl'])
-	bk.addcustombar('permutation',lambda v:'permutation {:,}'.format(v['permutation']),lambda v:v['permutation']/math.factorial(n))
+	
+	bk.addtext('training loss of last minibatch, 10, 100 minibatches, epoch up to now')
+	bk.addbar(lambda defs:np.average(np.array(defs['minibatch losses'])[-1:]))
+	bk.addbar(lambda defs:np.average(np.array(defs['minibatch losses'])[-10:]))
+	bk.addbar(lambda defs:np.average(np.array(defs['minibatch losses'])[-100:]))
+	bk.addbar(lambda defs:jnp.average(jnp.array(defs['minibatch losses'])))
+	bk.addspace(1)
+	bk.addtext('validation loss')
+	bk.addbar(lambda defs:defs['validation loss'])
+	bk.addspace(1)
+	bk.addtext(lambda defs:'{:,} samples done'.format(defs['samplesdone']))
+	bk.addbar(lambda defs:defs['samplesdone']/defs['samples'])
 	
 
 	def saveplots(trainer):
@@ -110,7 +116,7 @@ if __name__=='__main__':
 		bk.savefig(figpath+str(round(trainer.time_elapsed()))+' s.pdf',fig1)
 
 		msg='\nPaused. Press (Enter) to continue training.'
-		msg=msg+'\nEnter (mb) to set minibatch size.'	
+		msg=msg+'\nEnter (set) to set training variable.'	
 		msg=msg+'\nEnter (p) to show plots.'	
 		msg=msg+'\nEnter (q) to end training.\n'
 
@@ -121,10 +127,15 @@ if __name__=='__main__':
 				print('\nShowing plots\n')
 				fig1.show(); fig2.show()
 			if inp=='q': raise KeyboardInterrupt
-			if inp=='mb':
-				trainer.set_default_minibatchsize(int(input('Enter minibatch size ')))
+			if inp=='set':
+				name=input('Enter variable name ')
+				val=bk.castval(input('Enter value to assign '))
+				trainer.setvals(**{name:val})
+		screendraw.clear()
+		
 
 		
+
 	initandtrain('data/XY',widths,action_each_epoch=saveplots,action_on_pause=on_pause,initfromfile=initfromfile)
 
 

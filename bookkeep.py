@@ -145,35 +145,88 @@ def getparams(globalvars,sysargv,requiredvars={}):
 
 
 #----------------------------------------------------------------------------------------------------
-
+# track values
+#----------------------------------------------------------------------------------------------------
 
 trackedvals=dict()
-bars=[]
 
 	
 
 def track(name,val):
 	trackedvals[name]=val
-	printbars()
+	printdisplays()
 
-"""
-# name
-# function to map tracked values to msg
-# function to map tracked values to value
-"""
-def addbar(name):	
-	msgfn=lambda v:'{} {:.4f}'.format(name,v[name])
-	valfn=lambda v:v[name]
-	addcustombar(name,msgfn,valfn)
-	
-def addcustombar(*bar):
-	bars.append((bar))
 
+#----------------------------------------------------------------------------------------------------
+# display tracked values
 #----------------------------------------------------------------------------------------------------
 
 
 
-def progressbar(val,outerwidth,style=BOX,emptystyle=' '):
+
+displays=[]
+
+
+class Display:
+	def print(self):
+		try:
+			self.tryprint()
+		except Exception as e:
+			printbar(1,style='...pending...'+str(e))
+
+class Bar(Display):
+	def __init__(self,valfn):
+		self.valfn=valfn
+
+	def tryprint(self):
+		val=self.valfn(trackedvals)
+		printbar(val)
+	
+
+class Text(Display):
+	def __init__(self,msg):
+		self._msg_=msg
+
+	def tryprint(self):
+		_msg_=self._msg_
+		msg=_msg_ if type(_msg_)==str else _msg_(trackedvals)
+		clearln()
+		print(msg)
+
+class Vspace(Display):
+	def __init__(self,n):
+		self.n=n
+
+	def tryprint(self):
+		for i in range(self.n):
+			clearln()
+			print()
+
+
+def add(display):
+	displays.append(display)
+
+def addbar(valfn):
+	add(Bar(valfn))
+
+def addtext(msg):
+	add(Text(msg))
+
+def addspace(n):
+	add(Vspace(n))
+
+def printdisplays():
+
+	screendraw.gotoline(0)
+	for display in displays:
+		display.print()
+
+
+
+
+#- bars ------------------------------------------------------------------------------------------------------------------------
+
+def barstring(val,outerwidth,style=BOX,emptystyle=' '):
 
 	fullwidth=outerwidth-2
 	barwidth=math.floor((fullwidth-1)*min(val,1))
@@ -189,28 +242,9 @@ def progressbar(val,outerwidth,style=BOX,emptystyle=' '):
 	return '['+Style[:barwidth]+BOX+remainderwidth*emptystyle[:remainderwidth]+']'
 
 
-			
-def printbar(val,**kwargs):
-	print(progressbar(val,os.get_terminal_size()[0]-10,**kwargs))
+# str, float
+def printbar(val,**kwargs): 
+	print(barstring(val,os.get_terminal_size()[0]-10,**kwargs))
 
-
-
-def printbars():
-
-	screendraw.gotoline(0)
-	for name,*fns in bars:
-		try:
-			msg,val=[fn(trackedvals) for fn in fns]
-			print(msg+10*' ')
-			printbar(val)
-		except:
-
-			#pdb.set_trace()
-
-			print(name)
-			printbar(1,style='?')
-		
-       	
-
-
-
+def clearln():
+	print((os.get_terminal_size()[0]-5)*' ',end='\r')

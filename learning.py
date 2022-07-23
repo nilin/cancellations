@@ -28,7 +28,7 @@ collectivelossfn=util.sqloss
 
 	
 class Trainer:
-	def __init__(self,widths,X,Y,initfromfile=None):
+	def __init__(self,widths,X,Y,initfromfile=None,**kwargs):
 
 
 		# init hist
@@ -40,14 +40,15 @@ class Trainer:
 		self.events=[]
 
 		# get data and init params
-		self.n,self.d=X.shape[-2:]
 		self.X,self.Y=X,Y
+		self.n,self.d=X.shape[-2:]
+		bk.track('samples',X.shape[0])
+
 		if initfromfile==None:
 			k0=rnd.PRNGKey(0)
 			self.weights=genW(k0,self.n,self.d,widths)
 		else:
 			self.importparams(initfromfile)
-		self.set_default_batchsizes()
 
 		self.ID=bk.nowstr()
 		self.autosavepaths=['data/hists/started '+self.ID,'data/hist']
@@ -62,6 +63,7 @@ class Trainer:
 		self.opt=optax.adamw(.01)
 		self.state=self.opt.init(self.weights)
 
+		self.setvals(**kwargs)
 		self.checkpoint()
 	
 
@@ -72,24 +74,36 @@ class Trainer:
 		self.lossgrad=AS_tools.gen_lossgrad_AS_NN(self.n,collectivelossfn)
 
 
+
+
+	def minibatch_step(self,X_mini,Y_mini,**kwargs):
+	
+		grad,loss=self.lossgrad(self.weights,X_mini,Y_mini)
+		
+		updates,self.state=self.opt.update(grad,self.state,self.weights)
+		self.weights=optax.apply_updates(self.weights,updates)
+
+		return loss
+
 	"""
 	# Each sample takes significant memory,
 	# so a minibatch can be done a few (microbatch) samples at a time
 	# [(X_micro1,Y_micro1),(X_micro2,Y_micro2),...]
 	# If minibatch fits in memory input [(X_minibatch,Y_minibatch)]
-	"""
-	def minibatch_step(self,minibatch_as_microbatches):
-	
+	# """
+	def minibatch_step_heavy(self,X_mini,Y_mini,**kwargs):
+
+		microbatches=util.chop((X_mini,Y_mini),memorybatchlimit(self.n))
 		microbatchlosses=[]
 		microbatchparamgrads=None
 
-		for i,(x,y) in enumerate(minibatch_as_microbatches):
+		for i,(x,y) in enumerate(microbatches):
 
 			grad,loss=self.lossgrad(self.weights,x,y)
 			microbatchlosses.append(loss/self.nullloss)
 			microbatchparamgrads=util.addgrads(microbatchparamgrads,grad)
 
-			bk.track('minibatchcompl',(i+1)/len(minibatch_as_microbatches))
+			bk.track('minibatchcompl',(i+1)/len(microbatches))
 		
 		updates,self.state=self.opt.update(microbatchparamgrads,self.state,self.weights)
 		self.weights=optax.apply_updates(self.weights,updates)
@@ -97,10 +111,9 @@ class Trainer:
 		return jnp.average(jnp.array(microbatchlosses))
 		
 
-	def epoch(self,minibatchsize=None,microbatchsize=None):
+	def epoch(self,minibatchsize=None,**kwargs):
 
 		if minibatchsize==None: minibatchsize=self.minibatchsize
-		if microbatchsize==None: microbatchsize=self.microbatchsize
 
 		X,Y=util.randperm(self.X,self.Y)
 		samples=X.shape[0]
@@ -108,11 +121,12 @@ class Trainer:
 		minibatches=util.chop((X,Y),minibatchsize)
 
 		for i,(X_mini,Y_mini) in enumerate(minibatches):
-			microbatches=util.chop((X_mini,Y_mini),microbatchsize)
-			loss=self.minibatch_step(microbatches)	
+
+			#loss=self.minibatch_step(X_mini,Y_mini,**kwargs)	
+			loss=self.minibatch_step_heavy(X_mini,Y_mini,**kwargs)	
 			minibatchlosses.append(loss/self.nullloss)
 
-			bk.track('training loss',loss/self.nullloss)
+			bk.track('minibatch losses',minibatchlosses)
 			bk.track('samplesdone',(i+1)*minibatchsize)
 			
 		self.epochlosses.append(jnp.average(minibatchlosses))
@@ -144,11 +158,10 @@ class Trainer:
 		self.add_event('Imported params from '+path)
 
 
-	def set_default_batchsizes(self,minibatchsize=100,microbatchsize=None):
-		self.minibatchsize=min(minibatchsize,self.X.shape[0])
-		self.microbatchsize=min(self.minibatchsize,microbatchsizechoice(self.n))	
+	def set_default_batchsizes(self,minibatchsize=None,**kwargs):
+		self.minibatchsize=min(self.X.shape[0],memorybatchlimit(self.n)) if minibatchsize==None else minibatchsize
 		print('minibatch size set to '+str(self.minibatchsize))
-		print('microbatch size set to '+str(self.microbatchsize))
+
 
 		
 	def autosave(self):
@@ -156,14 +169,18 @@ class Trainer:
 			self.savehist(path)
 
 
+	def setvals(self,**kwargs):
+		self.set_default_batchsizes(**kwargs)
 
 
-
-
-def microbatchsizechoice(n):
+def memorybatchlimit(n):
 	s=1
-	while(s*math.factorial(n)<10**4):
-		s=s*10
+	while(s*math.factorial(n)<200000):
+		s=s*2
+
+	if n>AS_tools.heavy_threshold:
+		assert s==1, 'AS_HEAVY assumes single samples'
+
 	return s
 
 
@@ -180,7 +197,6 @@ class TrainerWithValidation(Trainer):
 		self.X_val,self.Y_val=X__[trainingsamples:],Y__[trainingsamples:]
 		self.valerrorhist=[]
 		super().__init__(widths,X_train,Y_train,**kwargs)
-		bk.track('samples',X_train.shape[0])
 
 
 	"""
