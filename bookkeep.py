@@ -8,7 +8,11 @@ import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import os
 import datetime
+import pdb
 import sys
+
+import screendraw
+
 #from util import str_
 
 
@@ -89,28 +93,12 @@ BOX='\u2588'
 box='\u2592'
 bar='\u2015'
 
-def printbar(val,msg='',hold=True,printval=True,shift=0,**kwargs):
-
-	msg=msg+(' '+'{:.4f}'.format(val) if printval else '')
-	print(shift*' '+progressbar(val,140,**kwargs)+' '+msg,end=('\r' if hold else '\n'))
-
-
 
 def printemph(s):
 	s=10*box+' '+s+' '+200*box
 	print(s[:150])
 	
 
-
-def progressbar(relwidth,fullwidth,style=BOX,emptystyle=bar):
-	barwidth=int(math.floor(fullwidth*min(relwidth,1)))
-	remainderwidth=fullwidth-barwidth-1
-
-	Style=''	
-	while len(Style)<barwidth:
-		Style=Style+style
-
-	return '['+Style[:barwidth]+BOX+remainderwidth*emptystyle+']'
 
 
 
@@ -119,19 +107,6 @@ def progressbar(relwidth,fullwidth,style=BOX,emptystyle=bar):
 def formatvars(elements,separator=' ',ignore={}):
 	return separator.join([s+'='+str(v) for s,v in elements.items() if s not in ignore])
 
-
-
-class Bars:
-	def __init__(self):
-		self.bars=dict()
-
-	def setbar(self,name,val,txt):
-		self.bars[name]=(val,txt)
-		draw()
-
-	def draw(self):
-		data=[(val_txt[0],name+'='+str(val_txt[1])) for name,val_txt in self.bars.items()]
-		printbars(data)
 
 
 
@@ -166,4 +141,76 @@ def getparams(globalvars,sysargv,requiredvars={}):
 		if name not in defs and name not in globalvars:
 			defs[name]=castval(input(name+'='))
 	globalvars.update(defs)
+
+
+
+#----------------------------------------------------------------------------------------------------
+
+
+trackedvals=dict()
+bars=[]
+
+	
+
+def track(name,val):
+	trackedvals[name]=val
+	printbars()
+
+"""
+# name
+# function to map tracked values to msg
+# function to map tracked values to value
+"""
+def addbar(name):	
+	msgfn=lambda v:'{} {:.4f}'.format(name,v[name])
+	valfn=lambda v:v[name]
+	addcustombar(name,msgfn,valfn)
+	
+def addcustombar(*bar):
+	bars.append((bar))
+
+#----------------------------------------------------------------------------------------------------
+
+
+
+def progressbar(val,outerwidth,style=BOX,emptystyle=' '):
+
+	fullwidth=outerwidth-2
+	barwidth=math.floor((fullwidth-1)*min(val,1))
+	remainderwidth=fullwidth-barwidth
+
+	Style=''	
+	EmptyStyle=''
+	while len(Style)<barwidth:
+		Style=Style+style
+	while len(EmptyStyle)<barwidth:
+		EmptyStyle=EmptyStyle+emptystyle
+
+	return '['+Style[:barwidth]+BOX+remainderwidth*emptystyle[:remainderwidth]+']'
+
+
+			
+def printbar(val,**kwargs):
+	print(progressbar(val,os.get_terminal_size()[0]-10,**kwargs))
+
+
+
+def printbars():
+
+	screendraw.gotoline(0)
+	for name,*fns in bars:
+		try:
+			msg,val=[fn(trackedvals) for fn in fns]
+			print(msg+10*' ')
+			printbar(val)
+		except:
+
+			#pdb.set_trace()
+
+			print(name)
+			printbar(1,style='?')
+		
+       	
+
+
 

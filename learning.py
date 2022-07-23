@@ -83,18 +83,13 @@ class Trainer:
 		microbatchlosses=[]
 		microbatchparamgrads=None
 
-
-		t0=time.perf_counter()
-
 		for i,(x,y) in enumerate(minibatch_as_microbatches):
 
 			grad,loss=self.lossgrad(self.weights,x,y)
 			microbatchlosses.append(loss/self.nullloss)
 			microbatchparamgrads=util.addgrads(microbatchparamgrads,grad)
 
-			completeness=1.0*i/len(minibatch_as_microbatches)
-			if time.perf_counter()-t0>.5:			
-				bk.printbar(completeness,printval=False,style='minibatch '+str(round(completeness*100))+'% complete.    ',emptystyle=' ')
+			bk.track('minibatchcompl',(i+1)/len(minibatch_as_microbatches))
 		
 		updates,self.state=self.opt.update(microbatchparamgrads,self.state,self.weights)
 		self.weights=optax.apply_updates(self.weights,updates)
@@ -112,11 +107,13 @@ class Trainer:
 		minibatchlosses=[]
 		minibatches=util.chop((X,Y),minibatchsize)
 
-		for X_mini,Y_mini in minibatches:
+		for i,(X_mini,Y_mini) in enumerate(minibatches):
 			microbatches=util.chop((X_mini,Y_mini),microbatchsize)
 			loss=self.minibatch_step(microbatches)	
 			minibatchlosses.append(loss/self.nullloss)
-			bk.printbar(loss/self.nullloss,msg='training loss (minibatch) ',style=bk.box)
+
+			bk.track('training loss',loss/self.nullloss)
+			bk.track('samplesdone',(i+1)*minibatchsize)
 			
 		self.epochlosses.append(jnp.average(minibatchlosses))
 		print()
@@ -147,7 +144,7 @@ class Trainer:
 		self.add_event('Imported params from '+path)
 
 
-	def set_default_batchsizes(self,minibatchsize=250,microbatchsize=None):
+	def set_default_batchsizes(self,minibatchsize=100,microbatchsize=None):
 		self.minibatchsize=min(minibatchsize,self.X.shape[0])
 		self.microbatchsize=min(self.minibatchsize,microbatchsizechoice(self.n))	
 		print('minibatch size set to '+str(self.minibatchsize))
@@ -183,6 +180,7 @@ class TrainerWithValidation(Trainer):
 		self.X_val,self.Y_val=X__[trainingsamples:],Y__[trainingsamples:]
 		self.valerrorhist=[]
 		super().__init__(widths,X_train,Y_train,**kwargs)
+		bk.track('samples',X_train.shape[0])
 
 
 	"""
@@ -190,12 +188,13 @@ class TrainerWithValidation(Trainer):
 	# not optimized for grad (take self.lossgrad instead)
 	"""
 	def individuallosses(self,X,Y):
+		print(Y.shape)
 		return individuallossfn(self.Af(self.weights,X),Y)
 
 	def validationerror(self,loud=False):
-		vallosses=self.individuallosses(self.X_val,self.Y_val)/self.nullloss
+		vallosses=self.individuallosses(self.X_val,self.Y_val)
 		if loud:
-			bk.printbar(jnp.average(vallosses),msg='validation loss',hold=False)
+			bk.track('validation loss',jnp.average(vallosses)/self.nullloss)
 		return vallosses
 
 	def checkpoint(self):
@@ -228,28 +227,8 @@ def distinguishable(x,y,p_val=.10):
 #----------------------------------------------------------------------------------------------------
 
 
-def donothing(*args):
-	pass
 
 
-"""
-press Ctrl-C to stop training
-stopwhenstale either False (no stop) or p-value (smaller means earlier stopping)
-"""
-def initandtrain(data_in_path,widths,action_each_epoch=donothing,action_on_pause=donothing,**kwargs): 
-	X,Y=bk.get(data_in_path)
-	T=TrainerWithValidation(widths,X,Y,**kwargs)
-	try:
-		while True:
-			try:
-				print('\nEpoch '+str(T.epochsdone()))
-				T.epoch()
-				action_each_epoch(T)
-			except KeyboardInterrupt:
-				action_on_pause(T)
-				continue
-	except KeyboardInterrupt:
-		print('\nEnding.\n')
 
 
 
@@ -272,7 +251,6 @@ def AS_from_hist(path):
 	params=bk.get(path)['paramshist'][-1]
 	Af=AS_tools.gen_AS_NN(bk.get(path)['n'])
 
-	@jax.jit
 	def Af_of_X(X):
 		return Af(params,X)
 	return Af_of_X

@@ -27,7 +27,7 @@ import pdb
 
 
 activation=util.ReLU
-heavy_threshold=9
+heavy_threshold=8
 
   
 def permpairs(n):
@@ -46,6 +46,12 @@ def gen_partial_Af(f):
 	return partial_Af
 
 
+def gen_partial_grad_Af(f):
+	partial_Af=gen_partial_Af(f)
+	return jax.jit(jax.value_and_grad(partial_Af))
+
+
+
 def gen_Af_heavy(n,f):
 	(Qs,signs_l),(Ps,signs_r)=permpairs(n)
 	partial_Af=gen_partial_Af(f)
@@ -53,13 +59,11 @@ def gen_Af_heavy(n,f):
 	def Af_heavy(params,X):
 		PX=util.apply_on_n(Ps,X)
 		out=0
-		t0=time.perf_counter()
 		for i,(Q,sign_l) in enumerate(zip(Qs,signs_l)):
 			QPX=util.apply_on_n(Q,PX)				# PX:	n!,s,n,d
 			out=out+partial_Af(params,QPX,sign_l*signs_r)
 
-			if time.perf_counter()-t0>3:
-				bk.printbar(i/Qs.shape[0],style=str(i*signs_r.size)+' permutations. ')
+			bk.track('permutation',(i+1)*PX.shape[0])
 		return out
 
 	return Af_heavy
@@ -68,20 +72,18 @@ def gen_Af_heavy(n,f):
 
 def gen_grad_Af_heavy(n,f):
 	(Qs,signs_l),(Ps,signs_r)=permpairs(n)
-	partial_Af=gen_partial_Af(f)
+	partial_grad_Af=gen_partial_grad_Af(f)
 
 	def grad_Af_heavy(params,X):
 		PX=util.apply_on_n(Ps,X)
 		grad,out=None,0
-		t0=time.perf_counter()
 		for i,(Q,sign_l) in enumerate(zip(Qs,signs_l)):
 			QPX=util.apply_on_n(Q,PX)				# PX:	n!,s,n,d
-			blocksum,gradblocksum=jax.value_and_grad(partial_Af)(params,QPX,sign_l*signs_r)
+			blocksum,gradblocksum=partial_grad_Af(params,QPX,sign_l*signs_r)
 			out=out+blocksum
 			grad=util.addgrads(grad,gradblocksum)
 
-			if time.perf_counter()-t0>3:
-				bk.printbar(i/Qs.shape[0],style=str(i*signs_r.size)+' permutations. ')
+			bk.track('permutation',(i+1)*PX.shape[0])
 		return grad,out
 
 	return grad_Af_heavy

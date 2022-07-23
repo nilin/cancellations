@@ -12,15 +12,8 @@ import plottools as pt
 import mcmc
 import matplotlib.pyplot as plt
 import util
-
+import math
 import screendraw
-
-
-
-
-
-
-
 
 
 
@@ -32,7 +25,7 @@ press Ctrl-C to stop training
 """
 def initandtrain(data_in_path,widths,action_each_epoch=util.donothing,action_on_pause=util.donothing,**kwargs): 
 	X,Y=bk.get(data_in_path)
-	T=learning.TrainerWithValidation(widths,X,Y,**kwargs)
+	T=learning.TrainerWithValidation(widths,X,Y,fractionforvalidation=.01,**kwargs)
 	screendraw.clear()
 	try:
 		while True:
@@ -49,23 +42,18 @@ def initandtrain(data_in_path,widths,action_each_epoch=util.donothing,action_on_
 
 
 
-
-
-
-
-
 if __name__=='__main__':
 
 
 	bgvars=set(globals().keys())
 
-	n=6
+	n=10
 	d=1
-	samples=25000
-	testsamples=1000
-	widths=[25,25,25]
+	samples=1000
+	testsamples=1
+	widths=[10,10]
 	initfromfile=None
-	plotfineness=1000
+	plotfineness=10
 
 	bk.getparams(globals(),sys.argv)
 
@@ -92,7 +80,9 @@ if __name__=='__main__':
 
 	bk.addbar('training loss')
 	bk.addbar('validation loss')
-	bk.addcustombar('epoch',lambda v:'{:,} samples done'.format(v['samplesdone']),lambda v:v['samplesdone']/v['samples'])
+	bk.addcustombar('epoch',lambda v:'{} samples done'.format(v['samplesdone']),lambda v:v['samplesdone']/v['samples'])
+	bk.addcustombar('minibatch',lambda v:'minibatch {}% done'.format(round(v['minibatchcompl']*100)),lambda v:v['minibatchcompl'])
+	bk.addcustombar('permutation',lambda v:'permutation {:,}'.format(v['permutation']),lambda v:v['permutation']/math.factorial(n))
 	
 
 	def saveplots(trainer):
@@ -135,7 +125,6 @@ if __name__=='__main__':
 				trainer.set_default_minibatchsize(int(input('Enter minibatch size ')))
 
 		
-
 	initandtrain('data/XY',widths,action_each_epoch=saveplots,action_on_pause=on_pause,initfromfile=initfromfile)
 
 

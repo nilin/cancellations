@@ -121,3 +121,11 @@ def avg_grads(Gs):
 	for G in Gs:
 		Gsum=addgrads(Gsum,S)
 	return scalegrad(Gsum,1/len(Gs))
+
+
+
+
+
+
+def donothing(*args):
+	pass
