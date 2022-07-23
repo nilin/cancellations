@@ -25,10 +25,9 @@ if __name__=='__main__':
 	d=1
 	samples=25000
 	testsamples=1000
-	minibatchsize=1000
 	widths=[25,25,25]
-	batchmode='minibatch'
 	initfromfile=None
+	plotfineness=1000
 
 	bk.getparams(globals(),sys.argv)
 
@@ -37,11 +36,6 @@ if __name__=='__main__':
 
 	vardefs={k:globals()[k] for k in fgvars}
 	print(bk.formatvars(vardefs,'\n'))	
-
-
-
-
-
 
 
 
@@ -62,14 +56,13 @@ if __name__=='__main__':
 	
 		plt.close('all')
 		trainer.checkpoint()
-		trainer.savehist('data/hist')
 
 		learnedAS=learning.AS_from_hist('data/hist')
 		X_test=rnd.uniform(k1,(testsamples,n,d),minval=-1,maxval=1)
 
-		fig1=pt.plotalongline(targetAS,learnedAS,X_test)
+		fig1=pt.plotalongline(targetAS,learnedAS,X_test,fineness=plotfineness)
 		fig2=pt.ploterrorhist('data/hist')
-		figpath='plots/started '+trainer.ID+' | '+bk.formatvars(vardefs,ignore={'minibatchsize','initfromfile','testsamples','d','batchmode','samples'})+'/'
+		figpath='plots/started '+trainer.ID+' | '+bk.formatvars(vardefs,ignore={'plotfineness','minibatchsize','initfromfile','testsamples','d','samples'})+'/'
 		bk.savefig(figpath+'plot.pdf',fig1)
 		bk.savefig(figpath+'losses.pdf',fig2)
 		bk.savefig('plots/plot.pdf',fig1)
@@ -84,8 +77,8 @@ if __name__=='__main__':
 		bk.savefig(figpath+str(round(trainer.time_elapsed()))+' s.pdf',fig1)
 
 		msg='\nPaused. Press (Enter) to continue training.'
+		msg=msg+'\nEnter (mb) to set minibatch size.'	
 		msg=msg+'\nEnter (p) to show plots.'	
-		msg=msg+'\nEnter (b/m) to toggle batch/minibatch descent.'	
 		msg=msg+'\nEnter (q) to end training.\n'
 
 		while True:
@@ -94,11 +87,12 @@ if __name__=='__main__':
 			if inp=='p':
 				print('\nShowing plots\n')
 				fig1.show(); fig2.show()
-			if inp in {'b','m'}: trainer.set_batchmode({'b':'batch','m':'minibatch'}[inp])
 			if inp=='q': raise KeyboardInterrupt
+			if inp=='mb':
+				trainer.set_default_minibatchsize(int(input('Enter minibatch size ')))
 
 		
 
-	learning.initandtrain('data/XY','data/hist',widths,minibatchsize,action_each_epoch=saveplots,action_on_pause=on_pause,batchmode=batchmode,initfromfile=initfromfile)
+	learning.initandtrain('data/XY',widths,action_each_epoch=saveplots,action_on_pause=on_pause,initfromfile=initfromfile)
 
 

@@ -88,3 +88,36 @@ def normalize(f,X_):
 		return C*f(X)
 
 	return g
+
+
+
+
+def chop(Xs,chunksize):
+	S=Xs[0].shape[0]
+	limits=[(a,min(a+chunksize,S)) for a in range(0,S,chunksize)]
+	return [tuple([X[a:b] for X in Xs]) for a,b in limits]
+	
+
+
+
+
+def addgrads(G1,G2):
+	if G1==None:
+		return G2
+	elif type(G2)==list:
+		return [addgrads(g1,g2) for g1,g2 in zip(G1,G2)]
+	else:
+		return G1+G2
+		
+def scalegrad(G,r):
+	if type(G)==list:
+		return [scalegrad(g,r) for g in G]
+	else:
+		return r*G
+
+
+def avg_grads(Gs):
+	Gsum=None
+	for G in Gs:
+		Gsum=addgrads(Gsum,S)
+	return scalegrad(Gsum,1/len(Gs))

@@ -8,41 +8,38 @@ Example usage
 % python example.py
 
 
-% python example.py n=6 widths=25,25,50 minibatchsize=250
+% python example.py n=6 widths=25,25,50
 
 
-% python example.py n=6 widths=25,25,50 initfromfile=data/hist batchmode=batch
+% python example.py n=6 widths=25,25,50 initfromfile=data/hist 
 
 (requires previos run with same dimensions)
 
 ████████████████████████████████████████████████████████████████████████████████████████████████████
 
 % python example.py
-	>> Trains minibatch g.d.
+			>> Trains
 
 
 % Ctrl-C (KeyboardInterrupt)
-	>> Paused. 
+			>> Paused. 
 
 
-% 'b' (Enter)
-	>> Batch mode changed to batch g.d.
+% 'mb'		(Enter)
+% '5000'	(Enter)
+			>> Minibatch size changed to 5000
 
 
 % Enter
-	>> Trains batch g.d.
+			>> Trains
 
 
 % Ctrl-C
-	>> Paused
-
-
+			>> Paused
 % 'p' (Enter)
-	>> Show plots. (These are saved anyway)
-
-
+			>> Show plots. (These are saved anyway)
 % 'q' (Enter)
-	>> End
+			>> End
 
 
 
@@ -60,28 +57,8 @@ Force parameter updates with named definitions from command line
 
 % python example.py
 
-% python example.py n=6 trainsamples=25000 minibatchsize=1000 widths=25,50,50
+% python example.py n=6 samples=25000 widths=25,50,50
 
-
-
-――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――
-Params
-――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――
-
-widths prescribes layer widths. len(widths) is the number of internal layers
-
-
-batchmode
-....................................................................................................
-
-minibatch:	update weights for each minibatch
-
-batch:		Still iterates through minibatches to limit memory usage. 
-		Only updates weights after full epoch.
-		Equivalent with batch gradient descent. 
-
-
-I expect (minibatch) to work better initially and (batch) to work better when close to convergence.
 
 
 
@@ -89,7 +66,7 @@ I expect (minibatch) to work better initially and (batch) to work better when cl
 PAUSE or END training by KeyboardInterrupt (Ctrl-c) 
 ――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――
 
-Option to show plots or change batch mode when paused
+Option to show plots or change minibatch size when paused
 
 
 

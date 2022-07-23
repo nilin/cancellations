@@ -13,12 +13,12 @@ import learning
 
 
 
-def linethrough(x):
+def linethrough(x,fineness=1000):
 	corner=np.zeros_like(x)
 	corner[0][0]=1
 
 	x_rest=(1-corner)*x
-	I=jnp.arange(-1,1,.005)
+	I=jnp.arange(-1,1,2/fineness)
 
 	X=I[:,None,None]*corner[None,:,:]+x_rest[None,:,:]
 	return I,X
@@ -26,11 +26,11 @@ def linethrough(x):
 
 
 				
-def plotalongline(targetAS,learnedAS,X):
+def plotalongline(targetAS,learnedAS,X,**kwargs):
 
 	Y=targetAS(X)
 	x0=X[jnp.argmax(Y**2)]
-	I,x=linethrough(x0)
+	I,x=linethrough(x0,**kwargs)
 
 	fig,ax=plt.subplots(1)
 	ax.plot(I,targetAS(x),'b',label='target')

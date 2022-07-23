@@ -27,29 +27,14 @@ import pdb
 
 
 
-#allperms={n:ps.allperms(n) for n in range(9)}
-
 activation=util.ReLU
 
 
 
-# NN ----------------------------------------------------------------------------------------------------
+#=======================================================================================================
+# NN 
+#=======================================================================================================
 
-#@jax.jit
-#def apply_top_layers(params,Y):
-#	Ws,bs=params
-#	for W,b in zip(Ws,bs):
-#		Yb=jax.vmap(jnp.add,in_axes=(-2,0),out_axes=-2)(Y,b)
-#		acYb=activation(Yb)
-#		Y=util.apply_on_n(W,acYb)	
-#	return jnp.squeeze(Y)
-#
-#
-#@jax.jit
-#def NN(Ws,bs,X):
-#	L1=util.dot_nd(W0,X)
-#	return apply_top_layers([Ws[1:],bs],X)
-#
 
 
 @jax.jit
@@ -58,7 +43,7 @@ def NN(params,X):
 	for W,b in zip(Ws[:-1],bs):
 		X=jnp.inner(X,W)+b[None,:]
 		X=activation(X)
-	return jnp.squeeze(jnp.inner(X,W[-1]))
+	return jnp.squeeze(jnp.inner(X,Ws[-1]))
 
 
 @jax.jit
@@ -67,81 +52,74 @@ def NN_NS(params,X):
 	return NN(params,X)
 
 
-###====================================================================================================
-#AS ----------------------------------------------------------------------------------------------------
 
-def gen_Af(f):
+
+
+#=======================================================================================================
+# basic AS (n=1,..,8)
+#=======================================================================================================
+
+def gen_Af(n,f):
+	Ps,signs=ps.allperms(n)					# Ps:	n!,n,n
+
 	@jax.jit
 	def Af(params,X):
-		n=X.shape[-2]						# X:	s,n,d
-		Ps,signs=ps.allperms(n)					# Ps:	n!,n,n
 		PX=util.apply_on_n(Ps,X)				# PX:	n!,s,n,d
 		fX=f(params,PX)						# fX:	n!,s
-		return jnp.dot(signs,fX)/jnp.sqrt(math.factorial(n))	# s
+		return jnp.dot(signs,fX)				# s
 
 	return Af
 
 
-AS_NN=gen_Af(NN_NS)
+
+
+
+def gen_lossgrad_Af(n,f,lossfn):
+	Af=gen_Af(n,f)
+
+	@jax.jit
+	def collectiveloss(params,X,Y):
+		fX=Af(params,X)
+		return lossfn(fX,Y)
+
+	@jax.jit	
+	def lossgrad(params,X,Y):
+		loss,grad=jax.value_and_grad(collectiveloss)(params,X,Y)
+		return grad,loss
+
+	return lossgrad
 
 
 
 
 
 
-####====================================================================================================
-#heavy AS ----------------------------------------------------------------------------------------------
+		
+#=======================================================================================================
+# combine light and heavy regimes 
+#=======================================================================================================
 
 
-# 
-# 
-# def permpairs(n):
-# 	n_block=min(n,6)
-# 	preperms =ps.allperms(n,fix_first=n-n_block)
-# 	postperms=ps.allperms(n,keep_order_of_last=n_block)
-# 	return postperms,preperms
-# 
-# 
-# 
-# def gen_sumpermblock(f_top):
-# 	@jax.jit	
-# 	def sumpermblock(postperms,preperms,W0,f_top_params,X):
-# 		postP,postsign=postperms
-# 		prePs,presigns=preperms	
-# 		Ps=util.apply_on_n(postP,prePs)
-# 		signs=postsign*presigns
-# 		PW0=util.apply_on_n(Ps,W0)			
-# 		L1=util.dot_nd(PW0,X)				
-# 		fX=f_top(f_top_params,L1)					
-# 		return jnp.dot(signs,fX)			
-# 	return sumpermblock
-# 
-# sumpermblock=gen_sumpermblock(apply_top_layers)
-# 
-# 
-# def _AS_NN_(W0,f_params,X):
-# 	n=W0.shape[-2]					
-# 	postperms,preperms=permpairs(n)
-# 	out=0
-# 	for postperms in zip(postperms[0],postperms[1]):
-# 		out+=sumpermblock(postperms,preperms,W0,f_params,X)
-# 	return out/jnp.sqrt(math.factorial(n))
-# 
-# 
-# def AS_NN(Ws,bs,X):
-# 	return _AS_NN_(Ws[0],[Ws[1:],bs],X)
-# 
-# 
+from AS_HEAVY import gen_Af_heavy,gen_lossgrad_Af_heavy,heavy_threshold
+
+
+
+def gen_AS_NN(n):
+	return gen_Af(n,NN_NS) if n<=heavy_threshold else gen_Af_heavy(n,NN_NS)
+
+
+
+def gen_lossgrad_AS_NN(n,lossfn):
+	return gen_lossgrad_Af(n,NN_NS,lossfn) if n<=heavy_threshold else gen_lossgrad_Af_heavy(n,NN_NS,lossfn)
+		
 
 
 
 
 
-
-
-##---------------------------------------------------------------------------------------------------- 
+#=======================================================================================================
 ## test
-##---------------------------------------------------------------------------------------------------- 
+#=======================================================================================================
 
 
 def test_AS(Ws,bs,X):
@@ -152,4 +130,10 @@ def test_AS(Ws,bs,X):
 	testing.test_AS(Af,f,X)
 
 
+if __name__=='__main__':
 	
+	print(gen_AS_NN(6))
+	print(gen_lossgrad_AS_NN(6,util.sqloss))
+
+	print(gen_AS_NN(10))
+	print(gen_lossgrad_AS_NN(10,util.sqloss))
