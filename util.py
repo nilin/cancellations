@@ -124,6 +124,9 @@ def avg_grads(Gs):
 
 
 
+def distinguishable(x,y,p_val=.10,**kwargs): # alternative='greater' to stop when no longer decreasing
+	u,p=st.mannwhitneyu(x,y,**kwargs)
+	return p<p_val
 
 
 

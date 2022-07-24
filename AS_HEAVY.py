@@ -109,3 +109,34 @@ def gen_lossgrad_Af_heavy(n,f,lossfn):
 
 
 
+
+####################################################################################################
+#
+#class HeavyTrainer(learning.BasicTrainer):
+#
+#	"""
+#	# Each sample takes significant memory,
+#	# so a minibatch can be done a few (microbatch) samples at a time
+#	# [(X_micro1,Y_micro1),(X_micro2,Y_micro2),...]
+#	# If minibatch fits in memory input [(X_minibatch,Y_minibatch)]
+#	# """
+#	def minibatch_step(self,X_mini,Y_mini,**kwargs):
+#
+#		microbatches=util.chop((X_mini,Y_mini),memorybatchlimit(self.n))
+#		microbatchlosses=[]
+#		microbatchparamgrads=None
+#
+#		for i,(x,y) in enumerate(microbatches):
+#
+#			grad,loss=self.lossgrad(self.weights,x,y)
+#			microbatchlosses.append(loss/self.nullloss)
+#			microbatchparamgrads=util.addgrads(microbatchparamgrads,grad)
+#
+#			bk.track('minibatchcompl',(i+1)/len(microbatches))
+#		
+#		updates,self.state=self.opt.update(microbatchparamgrads,self.state,self.weights)
+#		self.weights=optax.apply_updates(self.weights,updates)
+#
+#		return jnp.average(jnp.array(microbatchlosses))
+#
+#
