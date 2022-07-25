@@ -138,7 +138,7 @@ if __name__=='__main__':
 
 
 	dashboard=db.Dashboard()
-	dashboard.addtext(bk.formatvars(vardefs,'\n'))
+	dashboard.addtext(*bk.formatvars(vardefs,'\n').split('\n'))
 	dashboard.addspace()
 	dashboard.addtext('training loss of last minibatch, 10, 100 minibatches, epoch up to now')
 	dashboard.addbar(lambda defs:np.average(np.array(defs['minibatch losses'])[-1:]))

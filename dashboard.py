@@ -14,15 +14,9 @@ def gotoline(n):
 def clear():
 	os.system('cls' if os.name == 'nt' else 'clear')
 
-#def clearln():
-#	print((os.get_terminal_size()[0]-5)*' ',end='\r')
-
 
 BOX='\u2588'
 box='\u2592'
-
-def maxwidth():
-	return os.get_terminal_size()[0]-5
 
 
 
@@ -38,28 +32,28 @@ class Dashboard:
 
 	def __init__(self):
 		self.elements=[]
+		self.ln=0
 		clear()
 
 	def add(self,*displays):
 		for display in displays:
-			self.elements.append(display)
+			self.elements.append((self.ln,display))
+			self.ln=self.ln+1
 
 	def refresh(self,defs):
-		gotoline(0)
-		print(self.getdashprint(defs))
-
-	def getdashprint(self,defs):
-		return '\n'.join([element.getprint(defs) for element in self.elements])
-
+		for ln,element in self.elements:
+			gotoline(ln)
+			print(element.getprint(defs))
 
 	def addbar(self,fn):
 		self.add(Bar(fn))
 
-	def addtext(self,msg):
-		self.add(Text(msg))
+	def addtext(self,*msgs):
+		for msg in msgs:
+			self.add(Text(msg))
 
 	def addspace(self,n=1):
-		self.add(Vspace(n))
+		self.ln=self.ln+n
 
 	
 		
@@ -69,7 +63,7 @@ class Display:
 			s=self.tryprint(defs)
 		except Exception as e:
 			s='pending...{}'.format(str(e))
-		s=s+' '*(maxwidth()-len(s))
+		s=s+' '*(os.get_terminal_size()[0]-len(s))
 		return s
 
 class Bar(Display):
@@ -97,9 +91,11 @@ class Vspace(Display):
 
 #- bars ------------------------------------------------------------------------------------------------------------------------
 
-def barstring(val,outerwidth=maxwidth(),style=BOX,emptystyle=' '):
+def barstring(val,fullwidth=None,style=BOX,emptystyle=' '):
 
-	fullwidth=outerwidth-2
+	if fullwidth==None:
+		fullwidth=os.get_terminal_size()[0]
+
 	barwidth=math.floor((fullwidth-1)*min(val,1))
 	remainderwidth=fullwidth-barwidth
 
@@ -110,7 +106,7 @@ def barstring(val,outerwidth=maxwidth(),style=BOX,emptystyle=' '):
 	while len(EmptyStyle)<barwidth:
 		EmptyStyle=EmptyStyle+emptystyle
 
-	return '['+Style[:barwidth]+BOX+remainderwidth*emptystyle[:remainderwidth]+']'
+	return Style[:barwidth]+BOX+remainderwidth*emptystyle[:remainderwidth]
 
 
 
