@@ -24,32 +24,8 @@ import typing
 import testing
 from jax.lax import collapse
 import pdb
+from multivariate import NN_NS
 
-
-
-activation=util.ReLU
-
-
-
-#=======================================================================================================
-# NN 
-#=======================================================================================================
-
-
-
-@jax.jit
-def NN(params,X):
-	Ws,bs=params
-	for W,b in zip(Ws[:-1],bs):
-		X=jnp.inner(X,W)+b[None,:]
-		X=activation(X)
-	return jnp.squeeze(jnp.inner(X,Ws[-1]))
-
-
-@jax.jit
-def NN_NS(params,X):
-	X=util.collapselast(X,2)
-	return NN(params,X)
 
 
 
@@ -112,6 +88,30 @@ def gen_AS_NN(n,tracker=emptytracker):
 def gen_lossgrad_AS_NN(n,lossfn,tracker=emptytracker):
 	return gen_lossgrad_Af(n,NN_NS,lossfn) if n<=heavy_threshold else gen_lossgrad_Af_heavy(n,NN_NS,lossfn,tracker=tracker)
 		
+
+
+
+
+
+
+
+
+#=======================================================================================================
+# special case: tensor product -> Slater
+#=======================================================================================================
+
+
+
+def Slater(F):								# F:x->(f1(x),..,fn(x))		s,d |-> s,n
+	@jax.jit
+	def AF(params,X):
+		FX=jax.vmap(F,in_axes=(None,1),out_axes=-1)(params,X)	# FX:	s,n (basisfunction),n (particle)
+		return jnp.linalg.det(FX)
+	return AF
+
+
+
+
 
 
 

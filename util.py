@@ -132,3 +132,20 @@ def distinguishable(x,y,p_val=.10,**kwargs): # alternative='greater' to stop whe
 
 def donothing(*args):
 	pass
+
+
+
+def noparams(f_):
+	@jax.jit
+	def f(x):
+		return f_(None,x)
+	return f
+
+def dummyparams(f):
+	@jax.jit
+	def f_(_,x):
+		return f(x)
+	return f_
+
+
+

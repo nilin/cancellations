@@ -46,8 +46,8 @@ def ploterrorhist(path):
 
 	A=bk.getvarhist(path,'epoch loss')
 
-	ax.plot(*bk.getvarhist(path,'epoch loss'),'rd:',label='training loss')
-	ax.plot(*bk.getvarhist(path,'validation loss'),'bo-',label='validation loss')
+	ax.plot(*bk.getvarhist(path,'epoch loss'),'r:',label='training loss')
+	ax.plot(*bk.getvarhist(path,'validation loss'),'b-',label='validation loss')
 	ax.legend()
 	ax.set_xlabel('seconds')
 	#ax.set_xlabel('minutes')
