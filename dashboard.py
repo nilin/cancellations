@@ -18,7 +18,7 @@ def clear():
 
 BOX='\u2588'
 box='\u2592'
-
+dash='\u2015'
 
 
 #----------------------------------------------------------------------------------------------------
@@ -47,8 +47,8 @@ class Dashboard:
 			gotoline(ln)
 			print(element.getprint(self.tracker.getvals(),self.tracker.gethists()))
 
-	def addbar(self,fn):
-		self.add(Bar(fn))
+	def addbar(self,fn,**kwargs):
+		self.add(Bar(fn,**kwargs))
 
 	def addtext(self,*msgs):
 		for msg in msgs:
@@ -69,12 +69,13 @@ class Display:
 		return s
 
 class Bar(Display):
-	def __init__(self,valfn):
+	def __init__(self,valfn,**kwargs):
 		self.valfn=valfn
+		self.kwargs=kwargs
 
 	def tryprint(self,defs,hists):
 		val=self.valfn(defs,hists)
-		return barstring(val)
+		return barstring(val,**self.kwargs)
 	
 class Text(Display):
 	def __init__(self,msg):
@@ -94,14 +95,7 @@ def barstring(val,fullwidth=None,style=BOX,emptystyle=' '):
 	barwidth=math.floor((fullwidth-1)*min(val,1))
 	remainderwidth=fullwidth-barwidth
 
-	Style=''	
-	EmptyStyle=''
-	while len(Style)<barwidth:
-		Style=Style+style
-	while len(EmptyStyle)<barwidth:
-		EmptyStyle=EmptyStyle+emptystyle
-
-	return Style[:barwidth]+BOX+remainderwidth*emptystyle[:remainderwidth]
+	return barwidth*style+BOX+remainderwidth*emptystyle
 
 
 

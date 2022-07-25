@@ -6,6 +6,7 @@ import copy
 import jax
 import jax.numpy as jnp
 import pdb
+import jax.random as rnd
 from jax.lax import collapse	
 
 @jax.jit
@@ -134,12 +135,16 @@ def donothing(*args):
 	pass
 
 
+def fixparams(f_,params):
+
+	@jax.jit
+	def f(X):
+		return f_(params,X)
+	return f
+
 
 def noparams(f_):
-	@jax.jit
-	def f(x):
-		return f_(None,x)
-	return f
+	return fixparams(f_,None)
 
 def dummyparams(f):
 	@jax.jit
@@ -148,4 +153,5 @@ def dummyparams(f):
 	return f_
 
 
-
+def keyfromstr(s):
+	return rnd.PRNGKey(hash(s))

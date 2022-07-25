@@ -7,6 +7,8 @@ import jax.numpy as jnp
 import jax
 import util
 
+import math
+import jax.random as rnd
 
 
 
@@ -80,4 +82,22 @@ def genpolynomialfunctions(coefficients):	#coefficients dimensions: function,deg
 
 	
 
+#----------------------------------------------------------------------------------------------------
+# random initializations
+#----------------------------------------------------------------------------------------------------
 
+
+
+def genW(k0,n,d,widths):
+
+	if type(widths)!=list:
+		print('Casting width to singleton list')
+		widths=[widths]
+
+	k1,*Wkeys=rnd.split(k0,100)
+	k2,*bkeys=rnd.split(k0,100)
+
+	Ws=[rnd.normal(key,(m2,m1))/math.sqrt(m1) for m1,m2,key in zip([n*d]+widths,widths+[1],Wkeys)]
+	bs=[rnd.normal(key,(m,)) for m,key in zip(widths,bkeys)]
+
+	return [Ws,bs]

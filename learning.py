@@ -18,7 +18,7 @@ import collections
 import copy
 from collections import deque
 from bookkeep import HistTracker,bgtracker
-
+import multivariate
 
 
 
@@ -40,19 +40,19 @@ class BasicTrainer:
 		self.X,self.Y=X,Y
 		self.samples,self.n,self.d=X.shape
 
-		self.weights=genW(rnd.PRNGKey(0),self.n,self.d,widths) if initfromfile==None else self.importparams(initfromfile)
-
 		#----------------------------------------------------------------------
 		self.set_Af()
 		#----------------------------------------------------------------------
 
-		# choose training functions according to modes
-		self.opt=optax.adamw(.01)
-		self.state=self.opt.init(self.weights)
 
 		self.tracker=HistTracker()
 		self.tracker.add_autosavepath('data/hists/ID {}'.format(self.tracker.ID))
 		self.tracker.add_autosavepath('data/hist')
+
+		self.weights=multivariate.genW(rnd.PRNGKey(0),self.n,self.d,widths) if initfromfile==None else self.importparams(initfromfile)
+		
+		self.opt=optax.adamw(.01)
+		self.state=self.opt.init(self.weights)
 
 		self.set_default_batchsizes(**kwargs)
 		self.minibatches=deque([])
@@ -87,7 +87,6 @@ class BasicTrainer:
 		self.tracker.set('event','start new epoch')
 		self.tracker.set('minibatchsize',self.minibatchsize)
 		self.tracker.set('minibatches',len(self.minibatches))
-
 
 
 	def importparams(self,path):
@@ -132,37 +131,37 @@ class TrainerWithValidation(BasicTrainer):
 
 
 
-
-class HeavyTrainer(TrainerWithValidation):
-
-	"""
-	# For the case when large minibatch updates are desired for to reduce noise,
-	# but minibatch sizes are a priori restricted by memory bound. 
-	# 
-	#
-	# Each sample takes significant memory,
-	# so a minibatch can be done a few (microbatch) samples at a time
-	# [(X_micro1,Y_micro1),(X_micro2,Y_micro2),...]
-	# If minibatch fits in memory input [(X_minibatch,Y_minibatch)]
-	# """
-	def minibatch_step(self,X_mini,Y_mini,**kwargs):
-
-		microbatches=util.chop((X_mini,Y_mini),memorybatchlimit(self.n))
-		microbatchlosses=[]
-		microbatchparamgrads=None
-
-		for i,(x,y) in enumerate(microbatches):
-
-			grad,loss=self.lossgrad(self.weights,x,y)
-			microbatchlosses.append(loss/self.nullloss)
-			microbatchparamgrads=util.addgrads(microbatchparamgrads,grad)
-
-		updates,self.state=self.opt.update(microbatchparamgrads,self.state,self.weights)
-		self.weights=optax.apply_updates(self.weights,updates)
-
-		minibatchloss=jnp.average(jnp.array(microbatchlosses))
-		self.tracker.set('minibatch loss',minibatchloss)
-
+"""
+# class HeavyTrainer(TrainerWithValidation):
+# 
+# 	# For the case when large minibatch updates are desired for to reduce noise,
+# 	# but minibatch sizes are a priori restricted by memory bound. 
+# 	# 
+# 	#
+# 	# Each sample takes significant memory,
+# 	# so a minibatch can be done a few (microbatch) samples at a time
+# 	# [(X_micro1,Y_micro1),(X_micro2,Y_micro2),...]
+# 	# If minibatch fits in memory input [(X_minibatch,Y_minibatch)]
+#
+#
+# 	def minibatch_step(self,X_mini,Y_mini,**kwargs):
+# 
+# 		microbatches=util.chop((X_mini,Y_mini),memorybatchlimit(self.n))
+# 		microbatchlosses=[]
+# 		microbatchparamgrads=None
+# 
+# 		for i,(x,y) in enumerate(microbatches):
+# 
+# 			grad,loss=self.lossgrad(self.weights,x,y)
+# 			microbatchlosses.append(loss/self.nullloss)
+# 			microbatchparamgrads=util.addgrads(microbatchparamgrads,grad)
+# 
+# 		updates,self.state=self.opt.update(microbatchparamgrads,self.state,self.weights)
+# 		self.weights=optax.apply_updates(self.weights,updates)
+# 
+# 		minibatchloss=jnp.average(jnp.array(microbatchlosses))
+# 		self.tracker.set('minibatch loss',minibatchloss)
+"""
 
 #----------------------------------------------------------------------------------------------------
 # setup
@@ -181,20 +180,6 @@ def memorybatchlimit(n):
 	return s
 
 
-
-def genW(k0,n,d,widths):
-
-	if type(widths)!=list:
-		print('Casting width to singleton list')
-		widths=[widths]
-
-	k1,*Wkeys=rnd.split(k0,100)
-	k2,*bkeys=rnd.split(k0,100)
-
-	Ws=[rnd.normal(key,(m2,m1))/math.sqrt(m1) for m1,m2,key in zip([n*d]+widths,widths+[1],Wkeys)]
-	bs=[rnd.normal(key,(m,)) for m,key in zip(widths,bkeys)]
-
-	return [Ws,bs]
 
 
 
