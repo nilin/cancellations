@@ -33,6 +33,7 @@ class Dashboard:
 	def __init__(self):
 		self.elements=[]
 		self.ln=0
+		self.defs=dict()
 		clear()
 
 	def add(self,*displays):
@@ -40,10 +41,11 @@ class Dashboard:
 			self.elements.append((self.ln,display))
 			self.ln=self.ln+1
 
-	def refresh(self,defs):
+	def refresh(self,name,val):
+		self.defs[name]=val
 		for ln,element in self.elements:
 			gotoline(ln)
-			print(element.getprint(defs))
+			print(element.getprint(self.defs))
 
 	def addbar(self,fn):
 		self.add(Bar(fn))
@@ -80,7 +82,7 @@ class Text(Display):
 
 	def tryprint(self,defs):
 		msg=self.msg
-		return msg if type(msg)==str else msg(defs)
+		return msg if type(msg)==str else str(msg(defs))
 
 class Vspace(Display):
 	def __init__(self,n):

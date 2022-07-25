@@ -27,32 +27,35 @@ def linethrough(x,fineness=1000):
 
 
 				
-def plotalongline(targetAS,learnedAS,X,**kwargs):
+def plotalongline(ax,targetAS,learnedAS,X,**kwargs):
 
 	Y=targetAS(X)
 	x0=X[jnp.argmax(Y**2)]
 	I,x=linethrough(x0,**kwargs)
 
-	fig,ax=plt.subplots(1)
 	ax.plot(I,targetAS(x),'b',label='target')
 	ax.plot(I,learnedAS(x),'r',label='learned')
 	ax.legend()
-	return fig
 
 
 
-def ploterrorhist(path):
-	fig,ax=plt.subplots(1)
+def ploterrorhist(ax,path,logscale=False):
 
-	A=bk.getvarhist(path,'epoch loss')
-
-	ax.plot(*bk.getvarhist(path,'epoch loss'),'r:',label='training loss')
-	ax.plot(*bk.getvarhist(path,'validation loss'),'b-',label='validation loss')
+	try:
+		ax.plot(*bk.getvarhist(path,'training loss'),'r:',label='training loss')
+		ax.plot(*bk.getvarhist(path,'epoch loss'),'rd--',label='loss of previous epoch')
+		ax.plot(*bk.getvarhist(path,'validation loss'),'b-',label='validation loss')
+	except Exception as e:
+		bk.log(str(e))
+		bk.log('no plot till first epoch')
+	
 	ax.legend()
 	ax.set_xlabel('seconds')
 	#ax.set_xlabel('minutes')
-	ax.set_yscale('log')
-	return fig
+	if logscale:
+		ax.set_yscale('log')
+	else:
+		ax.set_ylim(0,1)
 
 
 
@@ -92,4 +95,5 @@ def ploterrorhist(path):
 #
 
 if __name__=='__main__':
-	ploterrorhist('data/hist');plt.show()
+	fig,ax=plt.subplots(1)
+	ploterrorhist(ax,'data/hist');plt.show()

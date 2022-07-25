@@ -52,7 +52,7 @@ def gen_partial_grad_Af(f):
 
 
 class EmptyTracker:
-	def set():
+	def set(self,*args):
 		pass
 
 
@@ -61,7 +61,7 @@ emptytracker=EmptyTracker()
 
 
 
-def gen_Af_heavy(n,f,tracker=emptytracker):
+def gen_Af_heavy(n,f):
 	(Qs,signs_l),(Ps,signs_r)=permpairs(n)
 	partial_Af=gen_partial_Af(f)
 
@@ -72,7 +72,7 @@ def gen_Af_heavy(n,f,tracker=emptytracker):
 			QPX=util.apply_on_n(Q,PX)				# PX:	n!,s,n,d
 			out=out+partial_Af(params,QPX,sign_l*signs_r)
 
-			tracker.set('permutation',(i+1)*PX.shape[0])
+			bk.bgtracker.set('permutation',(i+1)*PX.shape[0])
 		return out
 
 	return Af_heavy
@@ -82,7 +82,7 @@ def gen_Af_heavy(n,f,tracker=emptytracker):
 
 
 
-def gen_grad_Af_heavy(n,f,tracker=emptytracker):
+def gen_grad_Af_heavy(n,f):
 	(Qs,signs_l),(Ps,signs_r)=permpairs(n)
 	partial_grad_Af=gen_partial_grad_Af(f)
 
@@ -95,7 +95,7 @@ def gen_grad_Af_heavy(n,f,tracker=emptytracker):
 			out=out+blocksum
 			grad=util.addgrads(grad,gradblocksum)
 
-			tracker.set('permutation',(i+1)*PX.shape[0])
+			bk.bgtracker.set('permutation',(i+1)*PX.shape[0])
 		return grad,out
 
 	return grad_Af_heavy
@@ -123,32 +123,4 @@ def gen_lossgrad_Af_heavy(n,f,lossfn,**kwargs):
 
 
 ####################################################################################################
-#
-#class HeavyTrainer(learning.BasicTrainer):
-#
-#	"""
-#	# Each sample takes significant memory,
-#	# so a minibatch can be done a few (microbatch) samples at a time
-#	# [(X_micro1,Y_micro1),(X_micro2,Y_micro2),...]
-#	# If minibatch fits in memory input [(X_minibatch,Y_minibatch)]
-#	# """
-#	def minibatch_step(self,X_mini,Y_mini,**kwargs):
-#
-#		microbatches=util.chop((X_mini,Y_mini),memorybatchlimit(self.n))
-#		microbatchlosses=[]
-#		microbatchparamgrads=None
-#
-#		for i,(x,y) in enumerate(microbatches):
-#
-#			grad,loss=self.lossgrad(self.weights,x,y)
-#			microbatchlosses.append(loss/self.nullloss)
-#			microbatchparamgrads=util.addgrads(microbatchparamgrads,grad)
-#
-#			bk.track('minibatchcompl',(i+1)/len(microbatches))
-#		
-#		updates,self.state=self.opt.update(microbatchparamgrads,self.state,self.weights)
-#		self.weights=optax.apply_updates(self.weights,updates)
-#
-#		return jnp.average(jnp.array(microbatchlosses))
-#
 #

@@ -15,20 +15,19 @@ import numpy as np
 import util
 import pdb
 import dashboard as db
-
-
+import math
 
 
 
 bgvars=set(globals().keys())
 
-n=7
+n=9
 d=1
-samples=10000
-testsamples=1000
+samples=1000
+testsamples=100
 widths=[25,25,25]
 initfromfile=None
-plotfineness=1000
+plotfineness=100
 
 bk.getparams(globals(),sys.argv)
 
@@ -45,8 +44,8 @@ fgvars=set(globals().keys())-bgvars-{'bgvars'}
 press Ctrl-C to stop training
 """
 def initandtrain(X,Y,widths,dashboard=bk.emptydashboard,**kwargs): 
-	T=learning.HeavyTrainer(widths,X,Y,fractionforvalidation=.01,microbatchsize=5)
-	T.tracker.add_listener(dashboard)
+	T=learning.HeavyTrainer(widths,X,Y,fractionforvalidation=.1,microbatchsize=5)
+	T.set_display_dash(dashboard)
 	db.clear()
 	try:
 		while True:
@@ -87,7 +86,7 @@ def on_pause(trainer):
 		if inp=='set':
 			name=input('Enter variable name ')
 			val=bk.castval(input('Enter value to assign '))
-			trainer.setvals(**{name:val})
+			trainer.redefinevars(**{name:val})
 	db.clear()
 		
 def saveplots(trainer):
@@ -106,7 +105,7 @@ def saveplots(trainer):
 	pt.ploterrorhist(ax21,'data/hist')
 	pt.ploterrorhist(ax22,'data/hist',logscale=True)
 
-	figpath='plots/started '+trainer.tracker.ID+' | '+bk.formatvars(vardefs,ignore={'plotfineness','minibatchsize','initfromfile','testsamples','d','samples'})+'/'
+	figpath='plots/started '+trainer.ID+' | '+bk.formatvars(vardefs,ignore={'plotfineness','minibatchsize','initfromfile','testsamples','d','samples'})+'/'
 	bk.savefig(figpath+'plot.pdf',fig1)
 	bk.savefig(figpath+'losses.pdf',fig2)
 	bk.savefig('plots/plot.pdf',fig1)
@@ -153,11 +152,15 @@ if __name__=='__main__':
 	dashboard.addspace()
 	dashboard.addtext('validation loss')
 	dashboard.addbar(lambda defs:defs['validation loss'])
-	dashboard.addspace(5)
+	dashboard.addspace()
 	dashboard.addtext(lambda defs:'{:,} samples done'.format(defs['samples done']))
-	dashboard.addbar(lambda defs:defs['samples done']/samples)
+	dashboard.addbar(lambda defs:defs['samples done']/defs['samples'])
+
+	dashboard.addspace()
+	dashboard.addtext(lambda defs:'permutation {:,}'.format(defs['permutation']))
+	dashboard.addbar(lambda defs:defs['permutation']/math.factorial(defs['n']))
 	
-	bk.bgtracker.add_listener(dashboard)	
+		
 
 	initandtrain(X_train,Y_train,widths,dashboard=dashboard,initfromfile=initfromfile)
 

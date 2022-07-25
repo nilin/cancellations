@@ -76,17 +76,17 @@ def gen_lossgrad_Af(n,f,lossfn):
 #=======================================================================================================
 
 
-from AS_HEAVY import gen_Af_heavy,gen_lossgrad_Af_heavy,heavy_threshold,emptytracker
+from AS_HEAVY import gen_Af_heavy,gen_lossgrad_Af_heavy,heavy_threshold
 
 
 
-def gen_AS_NN(n,tracker=emptytracker):
-	return gen_Af(n,NN_NS) if n<=heavy_threshold else gen_Af_heavy(n,NN_NS,tracker=tracker)
+def gen_AS_NN(n):
+	return gen_Af(n,NN_NS) if n<=heavy_threshold else gen_Af_heavy(n,NN_NS)
 
 
 
-def gen_lossgrad_AS_NN(n,lossfn,tracker=emptytracker):
-	return gen_lossgrad_Af(n,NN_NS,lossfn) if n<=heavy_threshold else gen_lossgrad_Af_heavy(n,NN_NS,lossfn,tracker=tracker)
+def gen_lossgrad_AS_NN(n,lossfn):
+	return gen_lossgrad_Af(n,NN_NS,lossfn) if n<=heavy_threshold else gen_lossgrad_Af_heavy(n,NN_NS,lossfn)
 		
 
 

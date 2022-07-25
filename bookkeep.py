@@ -16,6 +16,14 @@ from collections import deque
 
 
 
+def now(timesep=':'):
+	date,time=str(datetime.datetime.now()).split('.')[0].split(' ')
+	return date,time.replace(':',timesep)
+
+
+def nowstr():
+	date,time=now(timesep=' ')
+	return date+' time '+time
 
 
 
@@ -26,49 +34,41 @@ from collections import deque
 
 class Tracker:
 
-	def __init__(self,**kwargs):
+	def __init__(self):
 		self.autosavepaths=[]
 		self.t0=time.perf_counter()
 
-		self.passivelytracked=set()
 		self.trackedvals=dict()
-		self.dashboard=emptydashboard
+		self.listeners=[]
 
 		self.ID=nowstr()
 
-	def latestvals(self):
-		return {name:t_val[1] for name,t_val in self.trackedvals.items() if name!='timestamp'}
-
-	def set_display_dash(self,dashboard):
-		self.dashboard=dashboard
+	def add_listener(self,listener):
+		self.listeners.append(listener)
 		
 	def add_autosavepath(self,path):
 		self.autosavepaths.append(path)
 
-	def track(self,*names):
-		self.passivelytracked.update(set(names))
-
 	def set(self,name,val):
 		self.trackedvals[name]=(self.timestamp(),val)
-		self.dashboard.refresh(self.latestvals())
+		self.refresh(name,val)
 
-	def register(self,*varnames):
+	def refresh(self,name,val):
+		for l in self.listeners:
+			l.refresh(name,val)
+
+	"""
+	# only register once
+	"""
+	def register(self,obj,varnames):
 		for name in varnames:
-			self.set(name,vars(self)[name])
+			self.set(name,vars(obj)[name])
 
 	def timestamp(self):
 		return time.perf_counter()-self.t0
 
-	def getpassivevals(self):
-		return {name:(self.timestamp(),vars(self)[name]) for name in self.passivelytracked}
-
-	def updateandgetvals(self):
-		self.trackedvals.update(self.getpassivevals())
-		self.trackedvals['timestamp']=self.timestamp()
-		return copy.deepcopy(self.trackedvals)
-
 	def save(self,path):
-		save(self.updateandgetvals(),path)
+		save(trackedvals,path)
 		
 	def autosave(self):
 		for path in self.autosavepaths:
@@ -79,37 +79,39 @@ class Tracker:
 
 class HistTracker(Tracker):
 	
-	def __init__(self,**kwargs):
-		super().__init__(**kwargs)
-		self.hist=[]
+	def __init__(self):
+		Tracker.__init__(self)
+		self.hists=dict()
 		self.schedule=standardschedule
+		self.tracked_objs=dict()
+
+	def track(self,name,obj):
+		self.tracked_objs[name]=obj
+
+	def get_image(self):
+		return {name:copy.deepcopy(obj) for name,obj in self.tracked_objs.items()}
+
+	def set(self,name,val):
+		if name not in self.hists:
+			self.hists[name]={'timestamps':[],'vals':[]}
+		self.hists[name]['timestamps'].append(self.timestamp())
+		self.hists[name]['vals'].append(val)
+		self.trackedvals[name]=(self.timestamp(),val)
+		self.refresh(name,val)
 
 	def checkpoint(self):
-		
-		self.hist.append(self.updateandgetvals())
+		self.set('image',self.get_image())
 		self.autosave()
 
-	def add_event(self,msg):
-		self.set('event',msg)
-		self.checkpoint()
-	
 	def save(self,path):
-		hist=self.hist		
+		save(self.hists,path)
 
-		save(hist,path)
-
-	def poke(self):
-		if self.timestamp()<self.schedule[0]:
+	def refresh(self,name,val):
+		super().refresh(name,val)
+		if self.timestamp()>self.schedule[0]:
 			self.schedule.popleft()
 			self.checkpoint()
 
-	def set(self,*args):
-		super().set(*args)
-		self.poke()
-
-	def setvals(self,vals):
-		super().setvals(vals)
-		self.poke()
 
 
 
@@ -117,25 +119,30 @@ class HistTracker(Tracker):
 
 
 def getvarhist(path,varname):
-
-	hist=get(path)
-	timestamps,vals=zip(*[image[varname] for image in hist if varname in image])
-	return list(timestamps),list(vals)
+	varhist=get(path)[varname][x]
+	return varhist['timestamps'],varhist['vals']
 
 def getlastval(path,varname):
-	timestamp,val=get(path)[-1][varname]
-	return val
+	return get(path)[varname]['vals'][-1]
+
+
+
 
 
 
 class EmptyDashboard:
+
+	def __init__(self):
+		self.n=0
+
 	def refresh(self,defs):
-		print('empty dashboard')
+		print('empty dashboard call number {}'.format(self.n),end='\r')
+		self.n=self.n+1
 		pass
 
+
 emptydashboard=EmptyDashboard()
-
-
+bgtracker=Tracker()
 
 
 #====================================================================================================
@@ -192,14 +199,6 @@ def save(data,path):
 		pickle.dump(data,file)
 
 
-def now(timesep=':'):
-	date,time=str(datetime.datetime.now()).split('.')[0].split(' ')
-	return date,time.replace(':',timesep)
-
-
-def nowstr():
-	date,time=now(timesep=' ')
-	return date+' time '+time
 
 def nowpath(toplevelfolder,fn=''):
 	tl=toplevelfolder
@@ -274,5 +273,6 @@ def getparams(globalvars,sysargv,requiredvars={}):
 		if name not in defs and name not in globalvars:
 			defs[name]=castval(input(name+'='))
 	globalvars.update(defs)
+
 
 

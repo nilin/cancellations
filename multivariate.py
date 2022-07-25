@@ -43,6 +43,7 @@ def NN_NS(params,X):
 
 
 def genmonomialfunctions(n):
+
 	@jax.jit
 	def F(x):
 		x=jnp.squeeze(x)
@@ -55,13 +56,28 @@ def genmonomialfunctions(n):
 	return F
 		
 
-def genpolynomialfunctions(coefficients):	#coefficients dimensions: function,degree
-	degree=coefficients.shape[-1]-1
+def genericpolynomialfunctions(degree):		#coefficients dimensions: function,degree
 	monos=genmonomialfunctions(degree)
+
 	@jax.jit
-	def P(x):
+	def P(coefficients,x):
 		return jnp.inner(monos(x),coefficients)
 	return P
+
+def genpolynomialfunctions(coefficients):	#coefficients dimensions: function,degree
+	degree=coefficients.shape[1]-1
+	P_=genericpolynomialfunctions(degree)
+
+	@jax.jit
+	def P(x):
+		return P_(coefficients,x)
+
+	return P
+
+
+
+
+
 	
 
 
