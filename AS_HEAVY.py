@@ -51,8 +51,17 @@ def gen_partial_grad_Af(f):
 	return jax.jit(jax.value_and_grad(partial_Af))
 
 
+class EmptyTracker:
+	def set():
+		pass
 
-def gen_Af_heavy(n,f):
+
+
+emptytracker=EmptyTracker()
+
+
+
+def gen_Af_heavy(n,f,tracker=emptytracker):
 	(Qs,signs_l),(Ps,signs_r)=permpairs(n)
 	partial_Af=gen_partial_Af(f)
 
@@ -63,14 +72,17 @@ def gen_Af_heavy(n,f):
 			QPX=util.apply_on_n(Q,PX)				# PX:	n!,s,n,d
 			out=out+partial_Af(params,QPX,sign_l*signs_r)
 
-			bk.track('permutation',(i+1)*PX.shape[0])
+			tracker.set('permutation',(i+1)*PX.shape[0])
 		return out
 
 	return Af_heavy
 
 
 
-def gen_grad_Af_heavy(n,f):
+
+
+
+def gen_grad_Af_heavy(n,f,tracker=emptytracker):
 	(Qs,signs_l),(Ps,signs_r)=permpairs(n)
 	partial_grad_Af=gen_partial_grad_Af(f)
 
@@ -83,7 +95,7 @@ def gen_grad_Af_heavy(n,f):
 			out=out+blocksum
 			grad=util.addgrads(grad,gradblocksum)
 
-			bk.track('permutation',(i+1)*PX.shape[0])
+			tracker.set('permutation',(i+1)*PX.shape[0])
 		return grad,out
 
 	return grad_Af_heavy
@@ -91,9 +103,9 @@ def gen_grad_Af_heavy(n,f):
 
 
 
-def gen_lossgrad_Af_heavy(n,f,lossfn):
+def gen_lossgrad_Af_heavy(n,f,lossfn,**kwargs):
 
-	grad_Af_heavy=gen_grad_Af_heavy(n,f)
+	grad_Af_heavy=gen_grad_Af_heavy(n,f,**kwargs)
 
 	def lossgrad_singlesample(params,x,y):
 	

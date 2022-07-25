@@ -10,10 +10,140 @@ import os
 import datetime
 import pdb
 import sys
+from collections import deque
 
-import screendraw
 
-#from util import str_
+
+
+
+
+
+
+#====================================================================================================
+# tracking
+#====================================================================================================
+
+class Tracker:
+
+	def __init__(self,**kwargs):
+		self.autosavepaths=[]
+		self.t0=time.perf_counter()
+
+		self.passivelytracked=set()
+		self.trackedvals=dict()
+		self.dashboard=emptydashboard
+
+		self.ID=nowstr()
+
+	def latestvals(self):
+		return {name:t_val[1] for name,t_val in self.trackedvals.items() if name!='timestamp'}
+
+	def set_display_dash(self,dashboard):
+		self.dashboard=dashboard
+		
+	def add_autosavepath(self,path):
+		self.autosavepaths.append(path)
+
+	def track(self,*names):
+		self.passivelytracked.update(set(names))
+
+	def set(self,name,val):
+		self.trackedvals[name]=(self.timestamp(),val)
+		self.refresh()
+
+	def refresh(self):
+		self.dashboard.refresh(self.latestvals())
+
+	def register(self,*varnames):
+		for name in varnames:
+			self.set(name,vars(self)[name])
+
+	def timestamp(self):
+		return time.perf_counter()-self.t0
+
+	def getpassivevals(self):
+		return {name:(self.timestamp(),vars(self)[name]) for name in self.passivelytracked}
+
+	def updateandgetvals(self):
+		self.trackedvals.update(self.getpassivevals())
+		self.trackedvals['timestamp']=self.timestamp()
+		return self.trackedvals
+
+	def save(self,path):
+		save(self.updateandgetvals(),path)
+		
+	def autosave(self):
+		for path in self.autosavepaths:
+			self.save(path)
+		
+
+
+
+class HistTracker(Tracker):
+	
+	def __init__(self,**kwargs):
+		super().__init__(**kwargs)
+		self.hist=[]
+		self.schedule=standardschedule
+
+	def checkpoint(self):
+		self.hist.append(self.updateandgetvals())
+		self.autosave()
+
+	def add_event(self,msg):
+		self.set('event',msg)
+		self.checkpoint()
+	
+	def save(self,path):
+		hist=self.hist		
+
+		save(hist,path)
+
+	def poke(self):
+		if self.time_elapsed<self.schedule[0]:
+			self.schedule.popleft()
+			self.checkpoint()
+
+	def setvals(self,vals):
+		super().setvals(vals)
+		self.poke()
+
+
+
+
+
+
+def getvarhist(path,varname):
+
+	hist=get(path)
+	timestamps,vals=zip(*[image[varname] for image in hist if varname in image])
+	return timestamps,vals
+
+def getlastval(path,varname):
+	timestamp,val=get(path)[-1][varname]
+	return val
+
+
+
+class EmptyDashboard:
+	def refresh(self,defs):
+		print('empty dashboard')
+		pass
+
+emptydashboard=EmptyDashboard()
+
+
+
+
+#====================================================================================================
+# 
+#====================================================================================================
+
+
+def arange(*args):
+	return list(range(*args))
+
+standardschedule=deque(arange(60)+arange(60,600,5)+arange(600,3600,60)+arange(3600,3600*24,300))
 
 
 def str_(*args):
@@ -143,108 +273,3 @@ def getparams(globalvars,sysargv,requiredvars={}):
 	globalvars.update(defs)
 
 
-
-#----------------------------------------------------------------------------------------------------
-# track values
-#----------------------------------------------------------------------------------------------------
-
-trackedvals=dict()
-
-	
-
-def track(name,val):
-	trackedvals[name]=val
-	printdisplays()
-
-
-#----------------------------------------------------------------------------------------------------
-# display tracked values
-#----------------------------------------------------------------------------------------------------
-
-
-
-
-displays=[]
-
-
-class Display:
-	def print(self):
-		try:
-			self.tryprint()
-		except Exception as e:
-			printbar(1,style='...pending...'+str(e))
-
-class Bar(Display):
-	def __init__(self,valfn):
-		self.valfn=valfn
-
-	def tryprint(self):
-		val=self.valfn(trackedvals)
-		printbar(val)
-	
-
-class Text(Display):
-	def __init__(self,msg):
-		self._msg_=msg
-
-	def tryprint(self):
-		_msg_=self._msg_
-		msg=_msg_ if type(_msg_)==str else _msg_(trackedvals)
-		clearln()
-		print(msg)
-
-class Vspace(Display):
-	def __init__(self,n):
-		self.n=n
-
-	def tryprint(self):
-		for i in range(self.n):
-			clearln()
-			print()
-
-
-def add(display):
-	displays.append(display)
-
-def addbar(valfn):
-	add(Bar(valfn))
-
-def addtext(msg):
-	add(Text(msg))
-
-def addspace(n):
-	add(Vspace(n))
-
-def printdisplays():
-
-	screendraw.gotoline(0)
-	for display in displays:
-		display.print()
-
-
-
-
-#- bars ------------------------------------------------------------------------------------------------------------------------
-
-def barstring(val,outerwidth,style=BOX,emptystyle=' '):
-
-	fullwidth=outerwidth-2
-	barwidth=math.floor((fullwidth-1)*min(val,1))
-	remainderwidth=fullwidth-barwidth
-
-	Style=''	
-	EmptyStyle=''
-	while len(Style)<barwidth:
-		Style=Style+style
-	while len(EmptyStyle)<barwidth:
-		EmptyStyle=EmptyStyle+emptystyle
-
-	return '['+Style[:barwidth]+BOX+remainderwidth*emptystyle[:remainderwidth]+']'
-
-
-# str, float
-def printbar(val,**kwargs): 
-	print(barstring(val,os.get_terminal_size()[0]-10,**kwargs))
-
-def clearln():
-	print((os.get_terminal_size()[0]-5)*' ',end='\r')
