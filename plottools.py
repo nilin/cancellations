@@ -9,6 +9,7 @@ import sys
 import matplotlib.pyplot as plt
 import numpy as np
 import learning
+import pdb
 
 
 
@@ -42,6 +43,9 @@ def plotalongline(targetAS,learnedAS,X,**kwargs):
 
 def ploterrorhist(path):
 	fig,ax=plt.subplots(1)
+
+	A=bk.getvarhist(path,'epoch loss')
+
 	ax.plot(*bk.getvarhist(path,'epoch loss'),'rd:',label='training loss')
 	ax.plot(*bk.getvarhist(path,'validation loss'),'bo-',label='validation loss')
 	ax.legend()

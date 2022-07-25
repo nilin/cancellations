@@ -121,7 +121,6 @@ if __name__=='__main__':
 
 
 	vardefs={k:globals()[k] for k in fgvars}
-	print(bk.formatvars(vardefs,'\n'))	
 
 
 
@@ -139,6 +138,8 @@ if __name__=='__main__':
 
 
 	dashboard=db.Dashboard()
+	dashboard.addtext(bk.formatvars(vardefs,'\n'))
+	dashboard.addspace()
 	dashboard.addtext('training loss of last minibatch, 10, 100 minibatches, epoch up to now')
 	dashboard.addbar(lambda defs:np.average(np.array(defs['minibatch losses'])[-1:]))
 	dashboard.addbar(lambda defs:np.average(np.array(defs['minibatch losses'])[-10:]))

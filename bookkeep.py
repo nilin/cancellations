@@ -10,6 +10,7 @@ import os
 import datetime
 import pdb
 import sys
+import copy
 from collections import deque
 
 
@@ -49,9 +50,6 @@ class Tracker:
 
 	def set(self,name,val):
 		self.trackedvals[name]=(self.timestamp(),val)
-		self.refresh()
-
-	def refresh(self):
 		self.dashboard.refresh(self.latestvals())
 
 	def register(self,*varnames):
@@ -67,7 +65,7 @@ class Tracker:
 	def updateandgetvals(self):
 		self.trackedvals.update(self.getpassivevals())
 		self.trackedvals['timestamp']=self.timestamp()
-		return self.trackedvals
+		return copy.deepcopy(self.trackedvals)
 
 	def save(self,path):
 		save(self.updateandgetvals(),path)
@@ -87,6 +85,7 @@ class HistTracker(Tracker):
 		self.schedule=standardschedule
 
 	def checkpoint(self):
+		
 		self.hist.append(self.updateandgetvals())
 		self.autosave()
 
@@ -100,9 +99,13 @@ class HistTracker(Tracker):
 		save(hist,path)
 
 	def poke(self):
-		if self.time_elapsed<self.schedule[0]:
+		if self.timestamp()<self.schedule[0]:
 			self.schedule.popleft()
 			self.checkpoint()
+
+	def set(self,*args):
+		super().set(*args)
+		self.poke()
 
 	def setvals(self,vals):
 		super().setvals(vals)
@@ -117,7 +120,7 @@ def getvarhist(path,varname):
 
 	hist=get(path)
 	timestamps,vals=zip(*[image[varname] for image in hist if varname in image])
-	return timestamps,vals
+	return list(timestamps),list(vals)
 
 def getlastval(path,varname):
 	timestamp,val=get(path)[-1][varname]

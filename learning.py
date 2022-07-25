@@ -82,8 +82,6 @@ class BasicTrainer:
 			loss=self.minibatch_step(X_mini,Y_mini,**kwargs)	
 			minibatchlosses.append(loss/self.nullloss)
 
-			#bk.track('minibatch losses',minibatchlosses)
-			#bk.track('samplesdone',(i+1)*minibatchsize)
 			self.set('minibatch losses',minibatchlosses)
 			self.set('samples done',(i+1)*minibatchsize)
 		
@@ -137,15 +135,6 @@ class Trainer(TrainerWithValidation,HistTracker):
 
 
 
-
-
-
-
-
-
-
-
-
 """
 #	def makingprogress(self,p_val=.10):
 #		return True if len(self.valerrorhist)<2 else util.distinguishable(self.valerrorhist[-2],self.valerrorhist[-1],p_val,alternative='greater')
@@ -172,8 +161,6 @@ def memorybatchlimit(n):
 		assert s==1, 'AS_HEAVY assumes single samples'
 
 	return s
-
-
 
 
 
