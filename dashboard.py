@@ -33,7 +33,6 @@ class Dashboard:
 	def __init__(self):
 		self.elements=[]
 		self.ln=1
-		#self.defs=dict()
 		self.tracker=HistTracker()
 		clear()
 
@@ -43,7 +42,6 @@ class Dashboard:
 			self.ln=self.ln+1
 
 	def refresh(self,name,val):
-		#self.defs[name]=val
 		self.tracker.set(name,val)
 		for ln,element in self.elements:
 			gotoline(ln)
