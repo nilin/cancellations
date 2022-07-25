@@ -53,6 +53,12 @@ class Tracker:
 		self.trackedvals[name]=(self.timestamp(),val)
 		self.refresh(name,val)
 
+	def get(self,name):
+		return self.trackedvals[name][1]
+
+	def getvals(self):
+		return {name:self.get(name) for name in self.trackedvals}
+
 	def refresh(self,name,val):
 		for l in self.listeners:
 			l.refresh(name,val)
@@ -85,12 +91,6 @@ class HistTracker(Tracker):
 		self.schedule=standardschedule
 		self.tracked_objs=dict()
 
-	def track(self,name,obj):
-		self.tracked_objs[name]=obj
-
-	def get_image(self):
-		return {name:copy.deepcopy(obj) for name,obj in self.tracked_objs.items()}
-
 	def set(self,name,val):
 		if name not in self.hists:
 			self.hists[name]={'timestamps':[],'vals':[]}
@@ -99,18 +99,14 @@ class HistTracker(Tracker):
 		self.trackedvals[name]=(self.timestamp(),val)
 		self.refresh(name,val)
 
-	def checkpoint(self):
-		self.set('image',self.get_image())
-		self.autosave()
+	def gethist(self,name):
+		return self.hists[name]['vals']
+
+	def gethists(self):
+		return {name:self.gethist(name) for name in self.hists}
 
 	def save(self,path):
 		save(self.hists,path)
-
-	def refresh(self,name,val):
-		super().refresh(name,val)
-		if self.timestamp()>self.schedule[0]:
-			self.schedule.popleft()
-			self.checkpoint()
 
 
 
@@ -119,7 +115,7 @@ class HistTracker(Tracker):
 
 
 def getvarhist(path,varname):
-	varhist=get(path)[varname][x]
+	varhist=get(path)[varname]
 	return varhist['timestamps'],varhist['vals']
 
 def getlastval(path,varname):
@@ -174,9 +170,12 @@ class Stopwatch:
 		self.tick()
 
 	def tick(self):
-		elapsed=time.perf_counter()-self.time
+		elapsed=self.elapsed()
 		self.time=time.perf_counter()
 		return elapsed
+
+	def elapsed(self):
+		return time.perf_counter()-self.time
 
 
 def mkdir(path):

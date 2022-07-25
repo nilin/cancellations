@@ -4,6 +4,7 @@ import sys
 import os
 import math
 import pdb
+from bookkeep import HistTracker
 
 
 #----------------------------------------------------------------------------------------------------
@@ -27,13 +28,13 @@ box='\u2592'
 
 
 
-
 class Dashboard:
 
 	def __init__(self):
 		self.elements=[]
-		self.ln=0
-		self.defs=dict()
+		self.ln=1
+		#self.defs=dict()
+		self.tracker=HistTracker()
 		clear()
 
 	def add(self,*displays):
@@ -42,10 +43,11 @@ class Dashboard:
 			self.ln=self.ln+1
 
 	def refresh(self,name,val):
-		self.defs[name]=val
+		#self.defs[name]=val
+		self.tracker.set(name,val)
 		for ln,element in self.elements:
 			gotoline(ln)
-			print(element.getprint(self.defs))
+			print(element.getprint(self.tracker.getvals(),self.tracker.gethists()))
 
 	def addbar(self,fn):
 		self.add(Bar(fn))
@@ -60,9 +62,9 @@ class Dashboard:
 	
 		
 class Display:
-	def getprint(self,defs):
+	def getprint(self,defs,hists):
 		try:
-			s=self.tryprint(defs)
+			s=self.tryprint(defs,hists)
 		except Exception as e:
 			s='pending...{}'.format(str(e))
 		s=s+' '*(os.get_terminal_size()[0]-len(s))
@@ -72,24 +74,17 @@ class Bar(Display):
 	def __init__(self,valfn):
 		self.valfn=valfn
 
-	def tryprint(self,defs):
-		val=self.valfn(defs)
+	def tryprint(self,defs,hists):
+		val=self.valfn(defs,hists)
 		return barstring(val)
 	
 class Text(Display):
 	def __init__(self,msg):
 		self.msg=msg
 
-	def tryprint(self,defs):
+	def tryprint(self,defs,hists):
 		msg=self.msg
-		return msg if type(msg)==str else str(msg(defs))
-
-class Vspace(Display):
-	def __init__(self,n):
-		self.n=n-1
-
-	def tryprint(self,defs):
-		return '\n'*self.n
+		return msg if type(msg)==str else str(msg(defs,hists))
 
 #- bars ------------------------------------------------------------------------------------------------------------------------
 

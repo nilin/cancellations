@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import learning
 import pdb
-
+from collections import deque
 
 
 
@@ -39,15 +39,21 @@ def plotalongline(ax,targetAS,learnedAS,X,**kwargs):
 
 
 
+def partition(bins,x,*ys):
+	bin_nrs=np.digitize(x,bins)
+	blocks=[np.where(bin_nrs==b)[0] for b in range(bin_nrs[-1]+1)]
+	return [[np.array(y)[I] for I in blocks] for y in (x,)+ys]
+
+	
+
 def ploterrorhist(ax,path,logscale=False):
 
-	try:
-		ax.plot(*bk.getvarhist(path,'training loss'),'r:',label='training loss')
-		ax.plot(*bk.getvarhist(path,'epoch loss'),'rd--',label='loss of previous epoch')
-		ax.plot(*bk.getvarhist(path,'validation loss'),'b-',label='validation loss')
-	except Exception as e:
-		bk.log(str(e))
-		bk.log('no plot till first epoch')
+	t_mb,mbhist=bk.getvarhist(path,'minibatch loss')
+	t_val,valhist=bk.getvarhist(path,'validation loss')
+	t_mb_blocks,mbhist_blocks=partition(t_val,t_mb,mbhist)
+
+	ax.plot([np.average(t) for t in t_mb_blocks],[np.average(l) for l in mbhist_blocks],'rd--',label='training loss')
+	ax.plot(t_val,valhist,'bo-',label='validation loss')
 	
 	ax.legend()
 	ax.set_xlabel('seconds')
@@ -97,3 +103,4 @@ def ploterrorhist(ax,path,logscale=False):
 if __name__=='__main__':
 	fig,ax=plt.subplots(1)
 	ploterrorhist(ax,'data/hist');plt.show()
+	#print(partition([10,20],np.arange(100),np.arange(0,1000,10)))

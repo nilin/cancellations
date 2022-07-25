@@ -14,8 +14,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import util
 import pdb
+import math
 import dashboard as db
-
+import time
 
 
 
@@ -39,36 +40,46 @@ fgvars=set(globals().keys())-bgvars-{'bgvars'}
 
 
 
+period=5
 
 
 """
 press Ctrl-C to stop training
 """
 def initandtrain(X,Y,widths,dashboard=bk.emptydashboard,**kwargs): 
-	T=learning.HeavyTrainer(widths,X,Y,fractionforvalidation=.01,microbatchsize=5)
+	T=learning.HeavyTrainer(widths,X,Y,fractionforvalidation=.01)
 	T.tracker.add_listener(dashboard)
 	db.clear()
+
+	stopwatch=bk.Stopwatch()
 	try:
 		while True:
-			try:
-				T.epoch()
-				each_epoch(T)
-			except KeyboardInterrupt:
-				on_pause(T)
-				continue
+			if stopwatch.elapsed()<period:
+				try:
+					T.step()
+					dashboard.refresh('stopwatch',stopwatch.elapsed())
+				except KeyboardInterrupt:
+					on_pause(T)
+			else:
+				stopwatch.tick()
+				do_periodic(T)
+
+				
 	except KeyboardInterrupt:
 		print('\nEnding.\n')
 
 
 
 
-def each_epoch(trainer):
+def do_periodic(trainer):
 	trainer.checkpoint()
-	saveplots(trainer)
+	try:
+		saveplots(trainer)
+	except Exception as e:
+		bk.log(str(e))
 
 
 def on_pause(trainer):
-	saveplots(trainer)
 
 	msg='\nPaused. Press (Enter) to continue training.'
 	msg=msg+'\nEnter (set) to set training variable.'	
@@ -88,7 +99,6 @@ def on_pause(trainer):
 			name=input('Enter variable name ')
 			val=bk.castval(input('Enter value to assign '))
 			trainer.setvals(**{name:val})
-	db.clear()
 		
 def saveplots(trainer):
 
@@ -120,7 +130,6 @@ def saveplots(trainer):
 
 
 
-
 if __name__=='__main__':
 
 
@@ -145,17 +154,19 @@ if __name__=='__main__':
 	dashboard=db.Dashboard()
 	dashboard.addtext(*bk.formatvars(vardefs,'\n').split('\n'))
 	dashboard.addspace()
-	dashboard.addtext('training loss of last minibatch, 10, 100 minibatches, epoch up to now')
-	dashboard.addbar(lambda defs:np.average(np.array(defs['minibatch losses'])[-1:]))
-	dashboard.addbar(lambda defs:np.average(np.array(defs['minibatch losses'])[-10:]))
-	dashboard.addbar(lambda defs:np.average(np.array(defs['minibatch losses'])[-100:]))
-	dashboard.addbar(lambda defs:jnp.average(jnp.array(defs['minibatch losses'])))
+	dashboard.addtext('time to next validation set/save')
+	dashboard.addbar(lambda defs,hists:1-defs['stopwatch']/period)
+	dashboard.addspace(1)
+	dashboard.addtext(lambda defs,hists:'{:,} samples left in epoch'.format(defs['minibatches left']*defs['minibatchsize']))
+	dashboard.addbar(lambda defs,hists:defs['minibatches left']/defs['minibatches'])
+	dashboard.addspace(5)
+	dashboard.addtext('training loss of last minibatch, 10, 100 minibatches')
+	dashboard.addbar(lambda defs,hists:defs['minibatch loss'])
+	dashboard.addbar(lambda defs,hists:np.average(np.array(hists['minibatch loss'])[-10:]))
+	dashboard.addbar(lambda defs,hists:np.average(np.array(hists['minibatch loss'])[-100:]))
 	dashboard.addspace()
 	dashboard.addtext('validation loss')
-	dashboard.addbar(lambda defs:defs['validation loss'])
-	dashboard.addspace(5)
-	dashboard.addtext(lambda defs:'{:,} samples done'.format(defs['samples done']))
-	dashboard.addbar(lambda defs:defs['samples done']/samples)
+	dashboard.addbar(lambda defs,hists:defs['validation loss'])
 	
 	bk.bgtracker.add_listener(dashboard)	
 

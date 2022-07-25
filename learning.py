@@ -16,6 +16,7 @@ import AS_tools
 import plottools as pt
 import collections
 import copy
+from collections import deque
 from bookkeep import HistTracker,bgtracker
 
 
@@ -37,7 +38,7 @@ class BasicTrainer:
 
 		# get data and init params
 		self.X,self.Y=X,Y
-		self.n,self.d=X.shape[-2:]
+		self.samples,self.n,self.d=X.shape
 
 		self.weights=genW(rnd.PRNGKey(0),self.n,self.d,widths) if initfromfile==None else self.importparams(initfromfile)
 
@@ -50,11 +51,11 @@ class BasicTrainer:
 		self.state=self.opt.init(self.weights)
 
 		self.tracker=HistTracker()
-		self.tracker.track('weights',self.weights)
 		self.tracker.add_autosavepath('data/hists/ID {}'.format(self.tracker.ID))
 		self.tracker.add_autosavepath('data/hist')
 
 		self.set_default_batchsizes(**kwargs)
+		self.minibatches=deque([])
 
 	
 	def set_Af(self):
@@ -62,34 +63,32 @@ class BasicTrainer:
 		self.lossgrad=AS_tools.gen_lossgrad_AS_NN(self.n,collectivelossfn)
 
 
-	def minibatch_step(self,X_mini,Y_mini,**kwargs):
+	def minibatch_step(self,X_mini,Y_mini):
 	
 		grad,loss=self.lossgrad(self.weights,X_mini,Y_mini)
 		updates,self.state=self.opt.update(grad,self.state,self.weights)
 		self.weights=optax.apply_updates(self.weights,updates)
 
 		self.tracker.set('minibatch loss',loss)
-		return loss
-		
 
-	def epoch(self,minibatchsize=None,**kwargs):
 
-		if minibatchsize==None: minibatchsize=self.minibatchsize
+	def step(self):
+		if len(self.minibatches)==0:
+			self.prepnextepoch()
+		(X_mini,Y_mini)=self.minibatches.popleft()
+		self.minibatch_step(X_mini,Y_mini)	
+		self.tracker.set('minibatches left',len(self.minibatches))
 
-		X,Y=util.randperm(self.X,self.Y)
-		samples=X.shape[0]
-		minibatchlosses=[]
-		minibatches=util.chop((X,Y),minibatchsize)
 
-		for i,(X_mini,Y_mini) in enumerate(minibatches):
+	def prepnextepoch(self):
+		self.X,self.Y=util.randperm(self.X,self.Y)
+		self.minibatches=deque(util.chop((self.X,self.Y),self.minibatchsize))
 
-			loss=self.minibatch_step(X_mini,Y_mini,**kwargs)	
-			minibatchlosses.append(loss/self.nullloss)
+		self.tracker.set('event','start new epoch')
+		self.tracker.set('minibatchsize',self.minibatchsize)
+		self.tracker.set('minibatches',len(self.minibatches))
 
-			bgtracker.set('samples done',(i+1)*minibatchsize)
-			bgtracker.set('minibatch losses',minibatchlosses)
-		
-		self.tracker.set('epoch loss',jnp.average(minibatchlosses))
+
 
 	def importparams(self,path):
 		self.tracker.set('event','Imported params from '+path)
@@ -125,7 +124,7 @@ class TrainerWithValidation(BasicTrainer):
 	def checkpoint(self):
 		self.tracker.set('validation loss',self.validationloss())
 		self.tracker.set('weights',copy.deepcopy(self.weights))
-		self.tracker.checkpoint()
+		self.tracker.autosave()
 
 
 
@@ -137,6 +136,10 @@ class TrainerWithValidation(BasicTrainer):
 class HeavyTrainer(TrainerWithValidation):
 
 	"""
+	# For the case when large minibatch updates are desired for to reduce noise,
+	# but minibatch sizes are a priori restricted by memory bound. 
+	# 
+	#
 	# Each sample takes significant memory,
 	# so a minibatch can be done a few (microbatch) samples at a time
 	# [(X_micro1,Y_micro1),(X_micro2,Y_micro2),...]
@@ -157,9 +160,8 @@ class HeavyTrainer(TrainerWithValidation):
 		updates,self.state=self.opt.update(microbatchparamgrads,self.state,self.weights)
 		self.weights=optax.apply_updates(self.weights,updates)
 
-		self.tracker.set('training loss',loss)
-		return jnp.average(jnp.array(microbatchlosses))
-
+		minibatchloss=jnp.average(jnp.array(microbatchlosses))
+		self.tracker.set('minibatch loss',minibatchloss)
 
 
 #----------------------------------------------------------------------------------------------------
