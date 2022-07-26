@@ -82,7 +82,7 @@ params={
 'samples_train':10000,
 'samples_val':100,
 'samples_test':1000,
-'learnerwidths':[25,100],
+'learnerwidths':[25,25,25],
 'targetwidths':[25,25,25],
 'plotfineness':1000,
 'checkpoint_interval':5
