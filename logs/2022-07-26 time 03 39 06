@@ -1,9 +1,0 @@
-2022-07-26 time 03 39 06 | Generating AS functions.
-2022-07-26 time 03 39 08 | Generating training data X.
-2022-07-26 time 03 39 08 | Generating training data Y.
-2022-07-26 time 03 39 10 | Training data done.
-2022-07-26 time 03 39 10 | minibatch size set to 256
-2022-07-26 time 03 39 10 | start new epoch
-2022-07-26 time 03 39 14 | start new epoch
-2022-07-26 time 03 39 15 | validation set
-2022-07-26 time 03 39 15 | Saved weights.
