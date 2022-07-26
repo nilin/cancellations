@@ -4,7 +4,7 @@ import sys
 import os
 import math
 import pdb
-from bookkeep import HistTracker
+from config import HistTracker
 
 
 #----------------------------------------------------------------------------------------------------

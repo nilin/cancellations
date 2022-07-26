@@ -4,6 +4,7 @@ import math
 import itertools
 import util
 import numpy as np
+import jax.random as rnd
 import pdb
 
 def assertequal(y,z,blockdim=0):
@@ -31,15 +32,16 @@ def verify_antisymmetrization(Af,f,X):
 	assertequal(Y,Z)
 
 
-def verify_antisymmetric(AS,X):
-	n=X.shape[-2]
+def verify_antisymmetric(AS,n=4,d=1):
+
+	X=rnd.normal(rnd.PRNGKey(0),(100,n,d))
+
 	Y=AS(X)
 	for _ in range(25):
 		p=np.random.permutation(n)
-		sign=lp.sign(p)
 
 		PX=np.array(X)[:,p,:]
-		assertequal(AS(PX),Y*sign)
+		assertequal(AS(PX),Y*sign(p))
 
 
 @jax.jit

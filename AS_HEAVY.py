@@ -11,7 +11,7 @@ import numpy as np
 import math
 import pickle
 import time
-import bookkeep as bk
+import config as cfg
 import copy
 import jax
 import jax.numpy as jnp
@@ -72,7 +72,7 @@ def gen_Af_heavy(n,f):
 			QPX=util.apply_on_n(Q,PX)				# PX:	n!,s,n,d
 			out=out+partial_Af(params,QPX,sign_l*signs_r)
 
-			bk.bgtracker.set('permutation',(i+1)*PX.shape[0])
+			cfg.bgtracker.set('permutation',(i+1)*PX.shape[0])
 		return out
 
 	return Af_heavy
@@ -95,7 +95,7 @@ def gen_grad_Af_heavy(n,f):
 			out=out+blocksum
 			grad=util.addgrads(grad,gradblocksum)
 
-			bk.bgtracker.set('permutation',(i+1)*PX.shape[0])
+			cfg.bgtracker.set('permutation',(i+1)*PX.shape[0])
 		return grad,out
 
 	return grad_Af_heavy

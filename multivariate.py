@@ -10,8 +10,9 @@ import util
 import math
 import jax.random as rnd
 
+import config as cfg
 
-
+import pdb
 
 
 #=======================================================================================================
@@ -79,7 +80,23 @@ def genpolynomialfunctions(coefficients):	#coefficients dimensions: function,deg
 
 
 
+#----------------------------------------------------------------------------------------------------
 
+
+
+
+def gen_lossgrad(f,lossfn=cfg.lossfn):
+
+	@jax.jit
+	def collectiveloss(params,X,Y):
+		fX=f(params,X)
+		return lossfn(fX,Y)
+
+	@jax.jit	
+	def lossgrad(params,X,Y):
+		return jax.value_and_grad(collectiveloss)(params,X,Y)
+
+	return lossgrad
 	
 
 #----------------------------------------------------------------------------------------------------
@@ -88,16 +105,16 @@ def genpolynomialfunctions(coefficients):	#coefficients dimensions: function,deg
 
 
 
-def genW(k0,n,d,widths):
+"""
+# computes widths[-1] functions
+"""
+def initweights_NN(widths,key):
 
-	if type(widths)!=list:
-		print('Casting width to singleton list')
-		widths=[widths]
 
-	k1,*Wkeys=rnd.split(k0,100)
-	k2,*bkeys=rnd.split(k0,100)
+	k1,*Wkeys=rnd.split(key,100)
+	k2,*bkeys=rnd.split(key,100)
 
-	Ws=[rnd.normal(key,(m2,m1))/math.sqrt(m1) for m1,m2,key in zip([n*d]+widths,widths+[1],Wkeys)]
-	bs=[rnd.normal(key,(m,)) for m,key in zip(widths,bkeys)]
+	Ws=[rnd.normal(key,(m2,m1))/math.sqrt(m1) for m1,m2,key in zip(widths[:-1],widths[1:],Wkeys)]
+	bs=[rnd.normal(key,(m,)) for m,key in zip(widths[1:-1],bkeys)]
 
 	return [Ws,bs]

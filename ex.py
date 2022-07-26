@@ -143,7 +143,7 @@ X_train=rnd.uniform(k0,(samples,n,d),minval=-1,maxval=1)
 
 
 
-targetAS=AS_functions.gen_static_AS_NN(n,d,targetwidths)
+targetAS=AS_functions.gen_static_SlaterSumNN(n,d,targetwidths)
 targetAS=util.normalize(targetAS,X_train[:100])
 
 

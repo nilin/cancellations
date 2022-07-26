@@ -4,14 +4,108 @@ import jax
 import jax.numpy as jnp
 import jax.random as rnd
 import util
-import bookkeep as bk
+import config as cfg
 #from GPU_sum import sum_perms_multilayer as sumperms
 import optax
 import math
 import testing
 import AS_tools
-import multivariate
+import multivariate as mv
+import jax.random as rnd
 
+
+
+
+
+
+#=======================================================================================================
+# antisymmetrized NN
+#=======================================================================================================
+
+from multivariate import NN_NS,NN
+from AS_tools import gen_Af,gen_lossgrad_Af
+from AS_HEAVY import gen_Af_heavy,gen_lossgrad_Af_heavy,heavy_threshold
+
+
+
+def gen_AS_NN(n):
+	return AS_tools.gen_Af(n,NN_NS)
+
+def gen_lossgrad_AS_NN(n,lossfn):
+	return AS_tools.gen_lossgrad_Af(n,NN_NS,lossfn)
+
+
+def initweights_AS_NN(n,d,innerwidths,key=cfg.nextkey()):
+	if type(innerwidths)!=list:
+		cfg.bgtracker.set('event','Casting width to singleton list')
+		innerwidths=[innerwidths]
+	return mv.initweights_NN([n*d]+innerwidths+[1],key=key)
+
+
+
+def init_AS_NN(n,d,innerwidths,key=cfg.nextkey()):
+	return gen_AS_NN(n),gen_lossgrad_AS_NN(n,cfg.lossfn),initweights_AS_NN(n,d,innerwidths,key=key)
+
+
+#=======================================================================================================
+# Slater sum with NN basis functions
+#=======================================================================================================
+
+
+
+def gen_SlaterSumNN(n):
+	return AS_tools.gen_SlaterSum(n,NN)
+
+
+def initweights_SlaterSumNN(n,d,topwidths,key=cfg.nextkey()):
+	_,*keys=rnd.split(key,n+3)
+	return [mv.initweights_NN([d]+topwidths,key=keys[i]) for i in range(n)]
+
+	
+def init_SlaterSumNN(n,d,topwidths,key=cfg.nextkey()):
+	Af=gen_SlaterSumNN(n)
+	return Af,mv.gen_lossgrad(Af),initweights_SlaterSumNN(n,d,topwidths,key=key)
+	
+
+
+
+
+
+
+
+
+#=======================================================================================================
+#=======================================================================================================
+# Static target functions
+#=======================================================================================================
+#=======================================================================================================
+
+
+def make_static(args):
+	Af,g_Af,weights=args
+	return util.fixparams(Af,weights)
+
+
+
+
+
+for Af in ['AS_NN','SlaterSumNN']:
+	def _gen_(*args):
+		return make_static(globals()['init_'+Af](*args))	
+	globals()['gen_static_'+Af]=_gen_
+
+#
+#def gen_static_AS_NN(n,d,innerwidths,key=cfg.nextkey()):
+#	return util.fixparams(gen_AS_NN(n),initweights_AS_NN(n,d,innerwidths,key=key))
+#
+#
+#def gen_static_SlaterSumNN(n,d,topwidths,key=cfg.nextkey()):
+#	return util.fixparams(gen_SlaterSumNN(n),initweights_SlaterSumNN(n,d,topwidths,key=key))
+#
+
+
+
+#----------------------------------------------------------------------------------------------------
 
 
 
@@ -62,13 +156,6 @@ def hermitecoefficientblock(n,convention):
 
 
 
-
-
-
-
-
-#----------------------------------------------------------------------------------------------------
-# 
 #----------------------------------------------------------------------------------------------------
 
 def HermiteSlater(n,convention,envelopevariance):
@@ -86,18 +173,11 @@ def HermiteSlater(n,convention,envelopevariance):
 
 def genhermitefunctions(n,convention):
 	coefficients=hermitecoefficientblock(n,convention)
-	return multivariate.genpolynomialfunctions(coefficients)	
+	return mv.genpolynomialfunctions(coefficients)	
 
 
 
 
-
-#----------------------------------------------------------------------------------------------------
-# AS neural network
-#----------------------------------------------------------------------------------------------------
-
-def gen_fixed_AS_NN(n,d,widths,key=util.keyfromstr('gen_fixed_AS_NN')):
-	return util.fixparams(AS_tools.gen_AS_NN(n),multivariate.genW(key,n,d,widths))
 
 
 
@@ -166,8 +246,8 @@ def gen_fixed_AS_NN(n,d,widths,key=util.keyfromstr('gen_fixed_AS_NN')):
 #	def __init__(self,key,n,d,m,featuremap):
 #		self.featuremap=featuremap
 #		d_,var=nfeatures(n,d,featuremap)
-#		self.W,self.b=genW(key,n,d_,m)
-#		#self.W,self.b=genW(key,n,d_,m,randb=True)
+#		self.W,self.b=genW_scalaroutput(key,n,d_,m)
+#		#self.W,self.b=genW_scalaroutput(key,n,d_,m,randb=True)
 #		self.normalization=1/math.sqrt(var)
 #
 #		
@@ -237,12 +317,28 @@ def printpoly(p):
 #plothermites(6,'H')
 #plothermites(6,'He')
 
+#
+#def testSlater():
+#	n=5
+#	X=rnd.normal(rnd.PRNGKey(0),(10,n,1))
+#
+#	AS=HermiteSlater(n,'H')
+#	testing.verify_antisymmetric(AS,X)
+#
+#	
 
-def testSlater():
-	n=5
-	X=rnd.normal(rnd.PRNGKey(0),(10,n,1))
 
-	AS=HermiteSlater(n,'H')
-	testing.verify_antisymmetric(AS,X)
+
+
+if __name__=='__main__':
+	
+	n,d=4,1
+	topwidths=[3,5]
+	Af=gen_static_SlaterSumNN(n,d,topwidths)
+	testing.verify_antisymmetric(Af,n=4,d=1)
 
 	
+
+
+
+

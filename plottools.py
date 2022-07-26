@@ -2,7 +2,7 @@ import jax
 import jax.numpy as jnp
 import jax.random as rnd
 import util
-import bookkeep as bk
+import config as cfg
 import optax
 import math
 import sys
@@ -48,8 +48,8 @@ def partition(bins,x,*ys):
 
 def ploterrorhist(ax,path,logscale=False):
 
-	t_mb,mbhist=bk.getvarhist(path,'minibatch loss')
-	t_val,valhist=bk.getvarhist(path,'validation loss')
+	t_mb,mbhist=cfg.getvarhist(path,'minibatch loss')
+	t_val,valhist=cfg.getvarhist(path,'validation loss')
 	t_mb_blocks,mbhist_blocks=partition(t_val,t_mb,mbhist)
 
 	ax.plot([np.average(t) for t in t_mb_blocks],[np.average(l) for l in mbhist_blocks],'rd--',label='training loss')
@@ -88,7 +88,7 @@ def ploterrorhist(ax,path,logscale=False):
 #
 #	m=10
 #	variables={'d':1,'n':n,'m':m}	
-#	hist=bk.get('data/hists/'+bk.formatvars_(variables))
+#	hist=cfg.get('data/hists/'+cfg.formatvars_(variables))
 #
 #	while True:
 #		ax2.cla()

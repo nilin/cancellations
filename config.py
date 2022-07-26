@@ -9,9 +9,17 @@ import matplotlib.pyplot as plt
 import os
 import datetime
 import pdb
+import jax.random as rnd
 import sys
+import util
 import copy
 from collections import deque
+import sys
+
+
+lossfn=util.sqloss
+heavy_threshold=8
+
 
 
 
@@ -264,14 +272,45 @@ def parsedef(s):
 		return None,None
 		
 
-def getparams(globalvars,sysargv,requiredvars={}):
-	cmdargs=sysargv[1:]
+def get_cmdln_args():
+	cmdargs=sys.argv[1:]
 	defs=dict([parsedef(_) for _ in cmdargs])
+	return defs
 
-	for name in requiredvars:
-		if name not in defs and name not in globalvars:
-			defs[name]=castval(input(name+'='))
-	globalvars.update(defs)
 
+
+
+
+keys=[rnd.PRNGKey(0)]
+keys=deque(keys)
+
+def nextkey():
+	keys=globals()['keys']
+	if len(keys)==1:
+		_,*keys=rnd.split(keys[0],1000)
+		globals()['keys']=deque(keys)
+	return globals()['keys'].popleft()
+
+
+def orderedunion(A,B):
+	A,B=list(A),deque(B)
+	S=set(A)
+	for b in B:
+		if b not in S:
+			A.append(b)
+			S.add(b)
+	return A
+		
+
+
+
+
+
+
+# testing
+
+if __name__=='__main__':
+	for i in range(10):
+		print(nextkey())
 
 

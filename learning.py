@@ -2,7 +2,7 @@ import jax
 import jax.numpy as jnp
 import jax.random as rnd
 import util
-import bookkeep as bk
+import config as cfg
 import optax
 import math
 #import universality
@@ -13,11 +13,13 @@ import scipy.stats as st
 import time
 import pdb
 import AS_tools
+import AS_functions
+import AS_HEAVY
 import plottools as pt
 import collections
 import copy
 from collections import deque
-from bookkeep import HistTracker,bgtracker
+from config import HistTracker,bgtracker
 import multivariate
 
 
@@ -31,41 +33,31 @@ collectivelossfn=util.sqloss
 
 	
 class BasicTrainer:
-	def __init__(self,widths,X,Y,initfromfile=None,**kwargs):
+	def __init__(self,__Af__,X,Y,**kwargs):
 
+		
+		#----------------------------------------------------------------------
+		self.Af,self.lossgrad,self.weights=__Af__		
+		#----------------------------------------------------------------------
 
 		self.nullloss=collectivelossfn(Y,0)
-
-		# get data and init params
 		self.X,self.Y=X,Y
 		self.samples,self.n,self.d=X.shape
-
-		#----------------------------------------------------------------------
-		self.set_Af()
-		#----------------------------------------------------------------------
-
 
 		self.tracker=HistTracker()
 		self.tracker.add_autosavepath('data/hists/ID {}'.format(self.tracker.ID))
 		self.tracker.add_autosavepath('data/hist')
 
-		self.weights=multivariate.genW(rnd.PRNGKey(0),self.n,self.d,widths) if initfromfile==None else self.importparams(initfromfile)
-		
 		self.opt=optax.adamw(.01)
 		self.state=self.opt.init(self.weights)
 
 		self.set_default_batchsizes(**kwargs)
 		self.minibatches=deque([])
 
-	
-	def set_Af(self):
-		self.Af=AS_tools.gen_AS_NN(self.n)
-		self.lossgrad=AS_tools.gen_lossgrad_AS_NN(self.n,collectivelossfn)
-
 
 	def minibatch_step(self,X_mini,Y_mini):
 	
-		grad,loss=self.lossgrad(self.weights,X_mini,Y_mini)
+		loss,grad=self.lossgrad(self.weights,X_mini,Y_mini)
 		updates,self.state=self.opt.update(grad,self.state,self.weights)
 		self.weights=optax.apply_updates(self.weights,updates)
 
@@ -89,10 +81,6 @@ class BasicTrainer:
 		self.tracker.set('minibatches',len(self.minibatches))
 
 
-	def importparams(self,path):
-		self.tracker.set('event','Imported params from '+path)
-		return bk.getlastval(path,'weights')
-
 	def set_default_batchsizes(self,minibatchsize=None,**kwargs):
 		self.minibatchsize=min(self.X.shape[0],memorybatchlimit(self.n)) if minibatchsize==None else minibatchsize
 		self.tracker.set('event','minibatch size set to '+str(self.minibatchsize))
@@ -106,7 +94,7 @@ class BasicTrainer:
 
 class TrainerWithValidation(BasicTrainer):
 
-	def __init__(self,widths,X__,Y__,validationbatchsize=1000,fractionforvalidation=None,**kwargs):
+	def __init__(self,__Af__,X__,Y__,validationbatchsize=1000,fractionforvalidation=None,**kwargs):
 		if fractionforvalidation!=None:
 			validationbatchsize=int(X__.shape[0]*fractionforvalidation)
 		trainingsamples=X__.shape[0]-validationbatchsize
@@ -114,7 +102,7 @@ class TrainerWithValidation(BasicTrainer):
 
 		X_train,Y_train=X__[:trainingsamples],Y__[:trainingsamples]
 		self.X_val,self.Y_val=X__[trainingsamples:],Y__[trainingsamples:]
-		super().__init__(widths,X_train,Y_train,**kwargs)
+		super().__init__(__Af__,X_train,Y_train,**kwargs)
 		self.tracker.register(self,['X','Y','X_val','Y_val','n','nullloss'])
 
 	def validationloss(self):
@@ -174,7 +162,7 @@ def memorybatchlimit(n):
 	while(s*math.factorial(n)<200000):
 		s=s*2
 
-	if n>AS_tools.heavy_threshold:
+	if n>AS_HEAVY.heavy_threshold:
 		assert s==1, 'AS_HEAVY assumes single samples'
 
 	return s
@@ -184,8 +172,8 @@ def memorybatchlimit(n):
 
 
 def AS_from_hist(path):
-	params=bk.getlastval(path,'weights')
-	Af=AS_tools.gen_AS_NN(bk.getlastval(path,'n'))
+	params=cfg.getlastval(path,'weights')
+	Af=AS_functions.gen_AS_NN(cfg.getlastval(path,'n'))
 
 	def Af_of_X(X):
 		return Af(params,X)

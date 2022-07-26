@@ -1,12 +1,11 @@
 # nilin
 
 
-import bookkeep as bk
+import config as cfg
 import sys
 import jax
 import jax.numpy as jnp
 import jax.random as rnd
-import targetfunctions as targets
 import learning
 import plottools as pt
 import mcmc
@@ -17,6 +16,7 @@ import pdb
 import math
 import dashboard as db
 import time
+import AS_functions
 
 
 
@@ -32,7 +32,7 @@ initfromfile=None
 plotfineness=1000
 period=5
 
-bk.getparams(globals(),sys.argv)
+cfg.getparams(globals(),sys.argv)
 
 
 fgvars=set(globals().keys())-bgvars-{'bgvars'}
@@ -46,12 +46,15 @@ fgvars=set(globals().keys())-bgvars-{'bgvars'}
 """
 press Ctrl-C to stop training
 """
-def initandtrain(X,Y,widths,dashboard=bk.emptydashboard,**kwargs): 
-	T=learning.TrainerWithValidation(widths,X,Y,fractionforvalidation=.01)
+def initandtrain(X,Y,widths,dashboard=cfg.emptydashboard,**kwargs): 
+
+	learner=AS_functions.init_AS_NN(n,d,widths)
+
+	T=learning.TrainerWithValidation(learner,X,Y,fractionforvalidation=.01)
 	T.tracker.add_listener(dashboard)
 	db.clear()
 
-	stopwatch=bk.Stopwatch()
+	stopwatch=cfg.Stopwatch()
 	try:
 		while True:
 			if stopwatch.elapsed()<period:
@@ -76,7 +79,7 @@ def do_periodic(trainer):
 	try:
 		saveplots(trainer)
 	except Exception as e:
-		bk.log(str(e))
+		cfg.log(str(e))
 
 
 def on_pause(trainer):
@@ -97,14 +100,14 @@ def on_pause(trainer):
 		if inp=='q': raise KeyboardInterrupt
 		if inp=='set':
 			name=input('Enter variable name ')
-			val=bk.castval(input('Enter value to assign '))
+			val=cfg.castval(input('Enter value to assign '))
 			trainer.setvals(**{name:val})
 		
 def saveplots(trainer):
 
 	plt.close('all')
 
-	test=bk.get('data/hist')
+	test=cfg.get('data/hist')
 
 	learnedAS=learning.AS_from_hist('data/hist')
 	X_test=rnd.uniform(k1,(testsamples,n,d),minval=-1,maxval=1)
@@ -116,11 +119,11 @@ def saveplots(trainer):
 	pt.ploterrorhist(ax21,'data/hist')
 	pt.ploterrorhist(ax22,'data/hist',logscale=True)
 
-	figpath='plots/started '+trainer.tracker.ID+' | '+bk.formatvars(vardefs,ignore={'plotfineness','minibatchsize','initfromfile','testsamples','d','samples'})+'/'
-	bk.savefig(figpath+'plot.pdf',fig1)
-	bk.savefig(figpath+'losses.pdf',fig2)
-	bk.savefig('plots/plot.pdf',fig1)
-	bk.savefig('plots/losses.pdf',fig2)
+	figpath='plots/started '+trainer.tracker.ID+' | '+cfg.formatvars(vardefs,ignore={'plotfineness','minibatchsize','initfromfile','testsamples','d','samples'})+'/'
+	cfg.savefig(figpath+'plot.pdf',fig1)
+	cfg.savefig(figpath+'losses.pdf',fig2)
+	cfg.savefig('plots/plot.pdf',fig1)
+	cfg.savefig('plots/losses.pdf',fig2)
 	
 	return fig1,fig2,figpath
 
@@ -138,7 +141,7 @@ X_train=rnd.uniform(k0,(samples,n,d),minval=-1,maxval=1)
 
 
 
-targetAS=targets.HermiteSlater(n,'H',1/8)
+targetAS=AS_functions.HermiteSlater(n,'H',1/8)
 targetAS=util.normalize(targetAS,X_train[:100])
 
 
@@ -147,7 +150,7 @@ Y_train=targetAS(X_train)
 
 
 dashboard=db.Dashboard()
-dashboard.addtext(*bk.formatvars(vardefs,'\n').split('\n'))
+dashboard.addtext(*cfg.formatvars(vardefs,'\n').split('\n'))
 dashboard.addspace()
 dashboard.addtext('time to next validation set/save')
 dashboard.addbar(lambda defs,hists:1-defs['stopwatch']/period,style=db.dash)
@@ -163,7 +166,7 @@ dashboard.addspace()
 dashboard.addtext('validation loss')
 dashboard.addbar(lambda defs,hists:defs['validation loss'])
 
-bk.bgtracker.add_listener(dashboard)	
+cfg.bgtracker.add_listener(dashboard)	
 
 initandtrain(X_train,Y_train,widths,dashboard=dashboard,initfromfile=initfromfile)
 

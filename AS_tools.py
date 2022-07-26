@@ -11,7 +11,6 @@ import numpy as np
 import math
 import pickle
 import time
-import bookkeep as bk
 import copy
 import jax
 import jax.numpy as jnp
@@ -22,10 +21,11 @@ import shutil
 import permutations_simple as ps
 import typing
 import testing
+import config as cfg
 from jax.lax import collapse
 import pdb
 from multivariate import NN_NS
-
+import multivariate as mv
 
 
 
@@ -35,7 +35,7 @@ from multivariate import NN_NS
 # basic AS (n=1,..,8)
 #=======================================================================================================
 
-def gen_Af(n,f):
+def gen_Af_simple(n,f):
 	Ps,signs=ps.allperms(n)					# Ps:	n!,n,n
 
 	@jax.jit
@@ -47,49 +47,21 @@ def gen_Af(n,f):
 	return Af
 
 
+	
 
 
 
-def gen_lossgrad_Af(n,f,lossfn):
-	Af=gen_Af(n,f)
-
-	@jax.jit
-	def collectiveloss(params,X,Y):
-		fX=Af(params,X)
-		return lossfn(fX,Y)
-
-	@jax.jit	
-	def lossgrad(params,X,Y):
-		loss,grad=jax.value_and_grad(collectiveloss)(params,X,Y)
-		return grad,loss
-
-	return lossgrad
-
-
-
-
-
-
-		
 #=======================================================================================================
 # combine light and heavy regimes 
 #=======================================================================================================
 
+def gen_Af(n,f):
+	return gen_Af_simple(n,f) if n<=cfg.heavy_threshold else gen_Af_heavy(n,f)
 
-from AS_HEAVY import gen_Af_heavy,gen_lossgrad_Af_heavy,heavy_threshold
+def gen_lossgrad_Af(n,f,lossfn):
+	return mv.gen_lossgrad(gen_Af(n,f),lossfn) if n<=cfg.heavy_threshold else gen_lossgrad_Af_heavy(n,f,lossfn)
 
-
-
-def gen_AS_NN(n):
-	return gen_Af(n,NN_NS) if n<=heavy_threshold else gen_Af_heavy(n,NN_NS)
-
-
-
-def gen_lossgrad_AS_NN(n,lossfn):
-	return gen_lossgrad_Af(n,NN_NS,lossfn) if n<=heavy_threshold else gen_lossgrad_Af_heavy(n,NN_NS,lossfn)
 		
-
-
 
 
 
@@ -100,9 +72,10 @@ def gen_lossgrad_AS_NN(n,lossfn):
 # special case: tensor product -> Slater
 #=======================================================================================================
 
-
-
-def Slater(F):								# F:x->(f1(x),..,fn(x))		s,d |-> s,n
+"""
+# F:x->(f1(x),..,fn(x))		s,d |-> s,n
+"""
+def Slater(F):								
 	@jax.jit
 	def AF(params,X):
 		FX=jax.vmap(F,in_axes=(None,1),out_axes=-1)(params,X)	# FX:	s,n (basisfunction),n (particle)
@@ -111,8 +84,20 @@ def Slater(F):								# F:x->(f1(x),..,fn(x))		s,d |-> s,n
 
 
 
+"""
+# phi_i(x) of k'th Slater = phi(weights[i],x)[k]
+"""
+def gen_SlaterSum(n,phi):
 
+	@jax.jit
+	def Af(weights,X):
 
+		nnsd=jnp.array([[phi(weights[i],X[:,j,:]) for j in range(n)] for i in range(n)])
+		for _ in range(2):
+			nnsd=jnp.moveaxis(nnsd,0,-1)
+		return jnp.sum(jnp.linalg.det(nnsd),axis=1)
+
+	return Af
 
 
 

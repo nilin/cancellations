@@ -9,7 +9,6 @@ import math
 import pickle
 import time
 import copy
-import bookkeep as bk
 import util
 import jax
 import sys

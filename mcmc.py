@@ -4,9 +4,8 @@
 import jax
 import jax.numpy as jnp
 import jax.random as rnd
-import bookkeep as bk
 import time
-
+import config as cfg
 
 
 scaleby=jax.vmap(jnp.multiply,in_axes=(0,0))
