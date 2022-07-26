@@ -108,7 +108,7 @@ TK.log('Generating AS functions.')
 t_args=(n,d,targetwidths)
 l_args=(n,d,learnerwidths)
 
-target={'AS_NN':gen_static_AS_NN(*t_args),'SlaterSumNN':gen_static_SlaterSumNN(*t_args),'HermiteSlater':AS_functions.HermiteSlater(n,'H',1/8)}[learnertype]
+target={'AS_NN':gen_static_AS_NN(*t_args),'SlaterSumNN':gen_static_SlaterSumNN(*t_args),'HermiteSlater':AS_functions.HermiteSlater(n,'H',1/8)}[targettype]
 learner={'AS_NN':init_AS_NN(*l_args),'SlaterSumNN':init_SlaterSumNN(*l_args)}[learnertype]
 
 
