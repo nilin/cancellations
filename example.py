@@ -57,7 +57,7 @@ def saveplots(Af,target):
 	fig1,ax1=plt.subplots(1)
 	fig2,(ax21,ax22)=plt.subplots(1,2)
 
-	pt.plotalongline(ax1,target,learned,X_test,fineness=plotfineness)
+	pt.plotalongline(ax1,target,learned,X_test,fineness=1000)
 	pt.ploterrorhist(ax21,'data/hist')
 	pt.ploterrorhist(ax22,'data/hist',logscale=True)
 
@@ -84,7 +84,6 @@ params={
 'samples_test':1000,
 'learnerwidths':[25,25,25],
 'targetwidths':[25,25,25],
-'plotfineness':1000,
 'checkpoint_interval':5
 }
 
@@ -108,7 +107,8 @@ cfg.savetxt(plotpath+'/info.txt',sessioninfo)
 TK.log('Generating AS functions.')
 t_args=(n,d,targetwidths)
 l_args=(n,d,learnerwidths)
-target={'AS_NN':gen_static_AS_NN(*t_args),'SlaterSumNN':gen_static_SlaterSumNN(*t_args)}[learnertype]
+
+target={'AS_NN':gen_static_AS_NN(*t_args),'SlaterSumNN':gen_static_SlaterSumNN(*t_args),'HermiteSlater':AS_functions.HermiteSlater(n,'H',1/8)}[learnertype]
 learner={'AS_NN':init_AS_NN(*l_args),'SlaterSumNN':init_SlaterSumNN(*l_args)}[learnertype]
 
 
