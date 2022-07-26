@@ -27,14 +27,13 @@ def linethrough(x,fineness=1000):
 
 
 				
-def plotalongline(ax,targetAS,learnedAS,X,**kwargs):
-
-	Y=targetAS(X)
+def plotalongline(ax,target,learned,X,**kwargs):
+	Y=target(X)
 	x0=X[jnp.argmax(Y**2)]
 	I,x=linethrough(x0,**kwargs)
 
-	ax.plot(I,targetAS(x),'b',label='target')
-	ax.plot(I,learnedAS(x),'r',label='learned')
+	ax.plot(I,target(x),'b',label='target')
+	ax.plot(I,learned(x),'r',label='learned')
 	ax.legend()
 
 

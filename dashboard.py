@@ -30,29 +30,37 @@ dash='\u2015'
 
 class Dashboard:
 
-	def __init__(self):
+	def __init__(self,tracker):
 		self.elements=[]
 		self.ln=1
-		self.tracker=HistTracker()
+		tracker.add_listener(self)
+		self.tracker=tracker
 		clear()
 
-	def add(self,*displays):
-		for display in displays:
-			self.elements.append((self.ln,display))
-			self.ln=self.ln+1
+	def add(self,display):
+		self.elements.append((self.ln,display))
+		self.ln=self.ln+1
 
-	def refresh(self,name,val):
-		self.tracker.set(name,val)
+	def poke(self,*args):
+		self.refresh()
+
+	def refresh(self):
 		for ln,element in self.elements:
 			gotoline(ln)
-			print(element.getprint(self.tracker.getvals(),self.tracker.gethists()))
+			print(element.getprint())
 
-	def addbar(self,fn,**kwargs):
-		self.add(Bar(fn,**kwargs))
 
-	def addtext(self,*msgs):
+	def addbar(self,fn,tracker=None,**kwargs):
+		self.add(Bar(fn,self.tracker if tracker==None else tracker,**kwargs))
+
+	def addtext(self,*msgs,tracker=None):
 		for msg in msgs:
-			self.add(Text(msg))
+			self.add(Text(msg,self.tracker if tracker==None else tracker))
+
+	def addlog(self,lines,tracker=None):
+		self.addtext('log'+200*'.')
+		self.add(Log(lines,self.tracker if tracker==None else tracker))
+		self.addspace(lines+5)
 
 	def addspace(self,n=1):
 		self.ln=self.ln+n
@@ -60,30 +68,34 @@ class Dashboard:
 	
 		
 class Display:
-	def getprint(self,defs,hists):
+	def __init__(self,fn,tracker,**kwargs):
+		self.fn=fn
+		self.tracker=tracker
+		self.kwargs=kwargs
+
+	def getprint(self):
 		try:
-			s=self.tryprint(defs,hists)
+			s=self.tryprint()
 		except Exception as e:
 			s='pending...{}'.format(str(e))
 		s=s+' '*(os.get_terminal_size()[0]-len(s))
 		return s
 
 class Bar(Display):
-	def __init__(self,valfn,**kwargs):
-		self.valfn=valfn
-		self.kwargs=kwargs
-
-	def tryprint(self,defs,hists):
-		val=self.valfn(defs,hists)
+	def tryprint(self):
+		val=self.fn(self.tracker)
 		return barstring(val,**self.kwargs)
 	
 class Text(Display):
-	def __init__(self,msg):
-		self.msg=msg
+	def tryprint(self):
+		msg=self.fn
+		return msg if type(msg)==str else str(msg(self.tracker))
 
-	def tryprint(self,defs,hists):
-		msg=self.msg
-		return msg if type(msg)==str else str(msg(defs,hists))
+class Log(Display):
+	def tryprint(self):
+		lines=self.fn
+		return (50*' '+'\n').join(self.tracker.gethist('log')[-lines:])
+
 
 #- bars ------------------------------------------------------------------------------------------------------------------------
 

@@ -1,0 +1,27 @@
+2022-07-26 time 03 03 29 | Generating AS functions.
+2022-07-26 time 03 03 30 | Generating training data X.
+2022-07-26 time 03 03 30 | Generating training data Y.
+2022-07-26 time 03 03 33 | Training data done.
+2022-07-26 time 03 03 33 | minibatch size set to 128
+2022-07-26 time 03 03 33 | start new epoch
+2022-07-26 time 03 03 37 | start new epoch
+2022-07-26 time 03 03 38 | Validation set done.
+2022-07-26 time 03 03 38 | Saved image of weights.
+2022-07-26 time 03 03 39 | 'tuple' object is not callable
+2022-07-26 time 03 03 42 | start new epoch
+2022-07-26 time 03 03 43 | Validation set done.
+2022-07-26 time 03 03 43 | Saved image of weights.
+2022-07-26 time 03 03 43 | 'tuple' object is not callable
+2022-07-26 time 03 03 46 | start new epoch
+2022-07-26 time 03 03 48 | Validation set done.
+2022-07-26 time 03 03 48 | Saved image of weights.
+2022-07-26 time 03 03 48 | 'tuple' object is not callable
+2022-07-26 time 03 03 50 | start new epoch
+2022-07-26 time 03 03 53 | Validation set done.
+2022-07-26 time 03 03 53 | Saved image of weights.
+2022-07-26 time 03 03 53 | 'tuple' object is not callable
+2022-07-26 time 03 03 53 | start new epoch
+2022-07-26 time 03 03 57 | start new epoch
+2022-07-26 time 03 03 58 | Validation set done.
+2022-07-26 time 03 03 58 | Saved image of weights.
+2022-07-26 time 03 03 58 | 'tuple' object is not callable

@@ -19,7 +19,7 @@ import plottools as pt
 import collections
 import copy
 from collections import deque
-from config import HistTracker,bgtracker
+from config import HistTracker
 import multivariate
 
 
@@ -33,7 +33,7 @@ collectivelossfn=util.sqloss
 
 	
 class BasicTrainer:
-	def __init__(self,__Af__,X,Y,**kwargs):
+	def __init__(self,__Af__,X,Y,tracker=None,**kwargs):
 
 		
 		#----------------------------------------------------------------------
@@ -44,15 +44,16 @@ class BasicTrainer:
 		self.X,self.Y=X,Y
 		self.samples,self.n,self.d=X.shape
 
-		self.tracker=HistTracker()
-		self.tracker.add_autosavepath('data/hists/ID {}'.format(self.tracker.ID))
-		self.tracker.add_autosavepath('data/hist')
+		self.tracker=HistTracker() if tracker==None else tracker
+		self.tracker.add_autosavepaths('data/hist','data/hists/'+self.tracker.ID)
 
 		self.opt=optax.adamw(.01)
 		self.state=self.opt.init(self.weights)
 
 		self.set_default_batchsizes(**kwargs)
 		self.minibatches=deque([])
+
+		return self.tracker
 
 
 	def minibatch_step(self,X_mini,Y_mini):
@@ -76,14 +77,14 @@ class BasicTrainer:
 		self.X,self.Y=util.randperm(self.X,self.Y)
 		self.minibatches=deque(util.chop((self.X,self.Y),self.minibatchsize))
 
-		self.tracker.set('event','start new epoch')
+		self.tracker.log('start new epoch')
 		self.tracker.set('minibatchsize',self.minibatchsize)
 		self.tracker.set('minibatches',len(self.minibatches))
 
 
 	def set_default_batchsizes(self,minibatchsize=None,**kwargs):
 		self.minibatchsize=min(self.X.shape[0],memorybatchlimit(self.n)) if minibatchsize==None else minibatchsize
-		self.tracker.set('event','minibatch size set to '+str(self.minibatchsize))
+		self.tracker.log('minibatch size set to '+str(self.minibatchsize))
 
 	def setvals(self,**kwargs):
 		self.set_default_batchsizes(**kwargs)
@@ -105,13 +106,15 @@ class TrainerWithValidation(BasicTrainer):
 		super().__init__(__Af__,X_train,Y_train,**kwargs)
 		self.tracker.register(self,['X','Y','X_val','Y_val','n','nullloss'])
 
-	def validationloss(self):
-		return collectivelossfn(self.Af(self.weights,self.X_val),self.Y_val)
+	def validation(self):
+		validationloss=collectivelossfn(self.Af(self.weights,self.X_val),self.Y_val)
+		self.tracker.set('validation loss',validationloss)
+		self.tracker.log('validation set')
 
-	def checkpoint(self):
-		self.tracker.set('validation loss',self.validationloss())
+	def save(self):
 		self.tracker.set('weights',copy.deepcopy(self.weights))
 		self.tracker.autosave()
+		self.tracker.log('Saved weights.')
 
 
 
@@ -119,37 +122,6 @@ class TrainerWithValidation(BasicTrainer):
 
 
 
-"""
-# class HeavyTrainer(TrainerWithValidation):
-# 
-# 	# For the case when large minibatch updates are desired for to reduce noise,
-# 	# but minibatch sizes are a priori restricted by memory bound. 
-# 	# 
-# 	#
-# 	# Each sample takes significant memory,
-# 	# so a minibatch can be done a few (microbatch) samples at a time
-# 	# [(X_micro1,Y_micro1),(X_micro2,Y_micro2),...]
-# 	# If minibatch fits in memory input [(X_minibatch,Y_minibatch)]
-#
-#
-# 	def minibatch_step(self,X_mini,Y_mini,**kwargs):
-# 
-# 		microbatches=util.chop((X_mini,Y_mini),memorybatchlimit(self.n))
-# 		microbatchlosses=[]
-# 		microbatchparamgrads=None
-# 
-# 		for i,(x,y) in enumerate(microbatches):
-# 
-# 			grad,loss=self.lossgrad(self.weights,x,y)
-# 			microbatchlosses.append(loss/self.nullloss)
-# 			microbatchparamgrads=util.addgrads(microbatchparamgrads,grad)
-# 
-# 		updates,self.state=self.opt.update(microbatchparamgrads,self.state,self.weights)
-# 		self.weights=optax.apply_updates(self.weights,updates)
-# 
-# 		minibatchloss=jnp.average(jnp.array(microbatchlosses))
-# 		self.tracker.set('minibatch loss',minibatchloss)
-"""
 
 #----------------------------------------------------------------------------------------------------
 # setup
@@ -159,7 +131,8 @@ class TrainerWithValidation(BasicTrainer):
 
 def memorybatchlimit(n):
 	s=1
-	while(s*math.factorial(n)<200000):
+	memlim=200000
+	while(s*math.factorial(n)<memlim):
 		s=s*2
 
 	if n>AS_HEAVY.heavy_threshold:
@@ -170,12 +143,4 @@ def memorybatchlimit(n):
 
 
 
-
-def AS_from_hist(path):
-	params=cfg.getlastval(path,'weights')
-	Af=AS_functions.gen_AS_NN(cfg.getlastval(path,'n'))
-
-	def Af_of_X(X):
-		return Af(params,X)
-	return Af_of_X
 

@@ -1,0 +1,36 @@
+2022-07-26 time 03 35 02 | Generating AS functions.
+2022-07-26 time 03 35 04 | Generating training data X.
+2022-07-26 time 03 35 04 | Generating training data Y.
+2022-07-26 time 03 35 07 | Training data done.
+2022-07-26 time 03 35 07 | minibatch size set to 256
+2022-07-26 time 03 35 07 | start new epoch
+2022-07-26 time 03 35 11 | start new epoch
+2022-07-26 time 03 35 12 | Validation set done.
+2022-07-26 time 03 35 12 | Saved image of weights.
+2022-07-26 time 03 35 13 | name 'figpath' is not defined
+2022-07-26 time 03 35 16 | start new epoch
+2022-07-26 time 03 35 17 | Validation set done.
+2022-07-26 time 03 35 17 | Saved image of weights.
+2022-07-26 time 03 35 17 | name 'figpath' is not defined
+2022-07-26 time 03 35 20 | start new epoch
+2022-07-26 time 03 35 22 | Validation set done.
+2022-07-26 time 03 35 22 | Saved image of weights.
+2022-07-26 time 03 35 22 | name 'figpath' is not defined
+2022-07-26 time 03 35 24 | start new epoch
+2022-07-26 time 03 35 27 | Validation set done.
+2022-07-26 time 03 35 27 | Saved image of weights.
+2022-07-26 time 03 35 27 | name 'figpath' is not defined
+2022-07-26 time 03 35 28 | start new epoch
+2022-07-26 time 03 35 32 | Validation set done.
+2022-07-26 time 03 35 32 | Saved image of weights.
+2022-07-26 time 03 35 32 | name 'figpath' is not defined
+2022-07-26 time 03 35 32 | start new epoch
+2022-07-26 time 03 35 36 | start new epoch
+2022-07-26 time 03 35 37 | Validation set done.
+2022-07-26 time 03 35 37 | Saved image of weights.
+2022-07-26 time 03 35 37 | name 'figpath' is not defined
+2022-07-26 time 03 35 40 | start new epoch
+2022-07-26 time 03 35 42 | Validation set done.
+2022-07-26 time 03 35 42 | Saved image of weights.
+2022-07-26 time 03 35 42 | name 'figpath' is not defined
+2022-07-26 time 03 35 44 | start new epoch

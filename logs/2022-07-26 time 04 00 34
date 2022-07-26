@@ -1,0 +1,59 @@
+2022-07-26 time 04 00 34 | Generating AS functions.
+2022-07-26 time 04 00 36 | Generating training data X.
+2022-07-26 time 04 00 36 | Generating training data Y.
+2022-07-26 time 04 00 37 | Training data done.
+2022-07-26 time 04 00 37 | minibatch size set to 2048
+2022-07-26 time 04 00 37 | start new epoch
+2022-07-26 time 04 00 38 | start new epoch
+2022-07-26 time 04 00 38 | start new epoch
+2022-07-26 time 04 00 39 | start new epoch
+2022-07-26 time 04 00 39 | start new epoch
+2022-07-26 time 04 00 39 | start new epoch
+2022-07-26 time 04 00 40 | start new epoch
+2022-07-26 time 04 00 40 | start new epoch
+2022-07-26 time 04 00 40 | start new epoch
+2022-07-26 time 04 00 41 | start new epoch
+2022-07-26 time 04 00 41 | start new epoch
+2022-07-26 time 04 00 41 | start new epoch
+2022-07-26 time 04 00 42 | start new epoch
+2022-07-26 time 04 00 42 | validation set
+2022-07-26 time 04 00 42 | Saved weights.
+2022-07-26 time 04 00 43 | start new epoch
+2022-07-26 time 04 00 44 | start new epoch
+2022-07-26 time 04 00 44 | start new epoch
+2022-07-26 time 04 00 44 | start new epoch
+2022-07-26 time 04 00 45 | start new epoch
+2022-07-26 time 04 00 45 | start new epoch
+2022-07-26 time 04 00 46 | start new epoch
+2022-07-26 time 04 00 46 | start new epoch
+2022-07-26 time 04 00 46 | start new epoch
+2022-07-26 time 04 00 47 | start new epoch
+2022-07-26 time 04 00 47 | start new epoch
+2022-07-26 time 04 00 47 | validation set
+2022-07-26 time 04 00 47 | Saved weights.
+2022-07-26 time 04 00 47 | start new epoch
+2022-07-26 time 04 00 48 | start new epoch
+2022-07-26 time 04 00 48 | start new epoch
+2022-07-26 time 04 00 48 | start new epoch
+2022-07-26 time 04 00 49 | start new epoch
+2022-07-26 time 04 00 49 | start new epoch
+2022-07-26 time 04 00 50 | start new epoch
+2022-07-26 time 04 00 50 | start new epoch
+2022-07-26 time 04 00 50 | start new epoch
+2022-07-26 time 04 00 51 | start new epoch
+2022-07-26 time 04 00 51 | start new epoch
+2022-07-26 time 04 00 51 | start new epoch
+2022-07-26 time 04 00 52 | start new epoch
+2022-07-26 time 04 00 52 | start new epoch
+2022-07-26 time 04 00 52 | validation set
+2022-07-26 time 04 00 52 | Saved weights.
+2022-07-26 time 04 00 53 | start new epoch
+2022-07-26 time 04 00 53 | start new epoch
+2022-07-26 time 04 00 53 | start new epoch
+2022-07-26 time 04 00 54 | start new epoch
+2022-07-26 time 04 00 54 | start new epoch
+2022-07-26 time 04 00 54 | start new epoch
+2022-07-26 time 04 00 55 | start new epoch
+2022-07-26 time 04 00 55 | start new epoch
+2022-07-26 time 04 00 55 | start new epoch
+2022-07-26 time 04 00 56 | start new epoch

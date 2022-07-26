@@ -1,0 +1,226 @@
+2022-07-26 time 04 08 00 | Generating AS functions.
+2022-07-26 time 04 08 02 | Generating training data X.
+2022-07-26 time 04 08 02 | Generating training data Y.
+2022-07-26 time 04 08 03 | Training data done.
+2022-07-26 time 04 08 03 | minibatch size set to 2048
+2022-07-26 time 04 08 03 | start new epoch
+2022-07-26 time 04 08 04 | start new epoch
+2022-07-26 time 04 08 04 | start new epoch
+2022-07-26 time 04 08 05 | start new epoch
+2022-07-26 time 04 08 05 | start new epoch
+2022-07-26 time 04 08 05 | start new epoch
+2022-07-26 time 04 08 06 | start new epoch
+2022-07-26 time 04 08 06 | start new epoch
+2022-07-26 time 04 08 06 | start new epoch
+2022-07-26 time 04 08 07 | start new epoch
+2022-07-26 time 04 08 07 | start new epoch
+2022-07-26 time 04 08 07 | start new epoch
+2022-07-26 time 04 08 08 | start new epoch
+2022-07-26 time 04 08 08 | validation set
+2022-07-26 time 04 08 08 | Saved weights.
+2022-07-26 time 04 08 09 | start new epoch
+2022-07-26 time 04 08 10 | start new epoch
+2022-07-26 time 04 08 10 | start new epoch
+2022-07-26 time 04 08 10 | start new epoch
+2022-07-26 time 04 08 11 | start new epoch
+2022-07-26 time 04 08 11 | start new epoch
+2022-07-26 time 04 08 11 | start new epoch
+2022-07-26 time 04 08 12 | start new epoch
+2022-07-26 time 04 08 12 | start new epoch
+2022-07-26 time 04 08 12 | start new epoch
+2022-07-26 time 04 08 13 | start new epoch
+2022-07-26 time 04 08 13 | validation set
+2022-07-26 time 04 08 13 | Saved weights.
+2022-07-26 time 04 08 13 | start new epoch
+2022-07-26 time 04 08 14 | start new epoch
+2022-07-26 time 04 08 14 | start new epoch
+2022-07-26 time 04 08 14 | start new epoch
+2022-07-26 time 04 08 15 | start new epoch
+2022-07-26 time 04 08 15 | start new epoch
+2022-07-26 time 04 08 15 | start new epoch
+2022-07-26 time 04 08 16 | start new epoch
+2022-07-26 time 04 08 16 | start new epoch
+2022-07-26 time 04 08 16 | start new epoch
+2022-07-26 time 04 08 17 | start new epoch
+2022-07-26 time 04 08 17 | start new epoch
+2022-07-26 time 04 08 17 | start new epoch
+2022-07-26 time 04 08 18 | start new epoch
+2022-07-26 time 04 08 18 | validation set
+2022-07-26 time 04 08 18 | Saved weights.
+2022-07-26 time 04 08 19 | start new epoch
+2022-07-26 time 04 08 19 | start new epoch
+2022-07-26 time 04 08 19 | start new epoch
+2022-07-26 time 04 08 20 | start new epoch
+2022-07-26 time 04 08 20 | start new epoch
+2022-07-26 time 04 08 20 | start new epoch
+2022-07-26 time 04 08 21 | start new epoch
+2022-07-26 time 04 08 21 | start new epoch
+2022-07-26 time 04 08 21 | start new epoch
+2022-07-26 time 04 08 22 | start new epoch
+2022-07-26 time 04 08 22 | start new epoch
+2022-07-26 time 04 08 22 | start new epoch
+2022-07-26 time 04 08 23 | start new epoch
+2022-07-26 time 04 08 23 | validation set
+2022-07-26 time 04 08 23 | Saved weights.
+2022-07-26 time 04 08 23 | start new epoch
+2022-07-26 time 04 08 24 | start new epoch
+2022-07-26 time 04 08 24 | start new epoch
+2022-07-26 time 04 08 25 | start new epoch
+2022-07-26 time 04 08 25 | start new epoch
+2022-07-26 time 04 08 26 | start new epoch
+2022-07-26 time 04 08 26 | start new epoch
+2022-07-26 time 04 08 26 | start new epoch
+2022-07-26 time 04 08 27 | start new epoch
+2022-07-26 time 04 08 27 | start new epoch
+2022-07-26 time 04 08 27 | start new epoch
+2022-07-26 time 04 08 28 | start new epoch
+2022-07-26 time 04 08 28 | start new epoch
+2022-07-26 time 04 08 28 | validation set
+2022-07-26 time 04 08 28 | Saved weights.
+2022-07-26 time 04 08 29 | start new epoch
+2022-07-26 time 04 08 29 | start new epoch
+2022-07-26 time 04 08 29 | start new epoch
+2022-07-26 time 04 08 30 | start new epoch
+2022-07-26 time 04 08 30 | start new epoch
+2022-07-26 time 04 08 31 | start new epoch
+2022-07-26 time 04 08 31 | start new epoch
+2022-07-26 time 04 08 31 | start new epoch
+2022-07-26 time 04 08 32 | start new epoch
+2022-07-26 time 04 08 32 | start new epoch
+2022-07-26 time 04 08 32 | start new epoch
+2022-07-26 time 04 08 33 | start new epoch
+2022-07-26 time 04 08 33 | validation set
+2022-07-26 time 04 08 33 | Saved weights.
+2022-07-26 time 04 08 33 | start new epoch
+2022-07-26 time 04 08 34 | start new epoch
+2022-07-26 time 04 08 34 | start new epoch
+2022-07-26 time 04 08 34 | start new epoch
+2022-07-26 time 04 08 35 | start new epoch
+2022-07-26 time 04 08 35 | start new epoch
+2022-07-26 time 04 08 35 | start new epoch
+2022-07-26 time 04 08 36 | start new epoch
+2022-07-26 time 04 08 36 | start new epoch
+2022-07-26 time 04 08 36 | start new epoch
+2022-07-26 time 04 08 37 | start new epoch
+2022-07-26 time 04 08 37 | start new epoch
+2022-07-26 time 04 08 38 | start new epoch
+2022-07-26 time 04 08 38 | start new epoch
+2022-07-26 time 04 08 38 | validation set
+2022-07-26 time 04 08 38 | Saved weights.
+2022-07-26 time 04 08 38 | start new epoch
+2022-07-26 time 04 08 39 | start new epoch
+2022-07-26 time 04 08 39 | start new epoch
+2022-07-26 time 04 08 40 | start new epoch
+2022-07-26 time 04 08 40 | start new epoch
+2022-07-26 time 04 08 40 | start new epoch
+2022-07-26 time 04 08 41 | start new epoch
+2022-07-26 time 04 08 41 | start new epoch
+2022-07-26 time 04 08 41 | start new epoch
+2022-07-26 time 04 08 42 | start new epoch
+2022-07-26 time 04 08 42 | start new epoch
+2022-07-26 time 04 08 42 | start new epoch
+2022-07-26 time 04 08 43 | start new epoch
+2022-07-26 time 04 08 43 | start new epoch
+2022-07-26 time 04 08 43 | validation set
+2022-07-26 time 04 08 43 | Saved weights.
+2022-07-26 time 04 08 44 | start new epoch
+2022-07-26 time 04 08 44 | start new epoch
+2022-07-26 time 04 08 44 | start new epoch
+2022-07-26 time 04 08 45 | start new epoch
+2022-07-26 time 04 08 45 | start new epoch
+2022-07-26 time 04 08 45 | start new epoch
+2022-07-26 time 04 08 46 | start new epoch
+2022-07-26 time 04 08 46 | start new epoch
+2022-07-26 time 04 08 47 | start new epoch
+2022-07-26 time 04 08 47 | start new epoch
+2022-07-26 time 04 08 47 | start new epoch
+2022-07-26 time 04 08 48 | start new epoch
+2022-07-26 time 04 08 48 | start new epoch
+2022-07-26 time 04 08 48 | validation set
+2022-07-26 time 04 08 48 | Saved weights.
+2022-07-26 time 04 08 49 | start new epoch
+2022-07-26 time 04 08 49 | start new epoch
+2022-07-26 time 04 08 49 | start new epoch
+2022-07-26 time 04 08 50 | start new epoch
+2022-07-26 time 04 08 50 | start new epoch
+2022-07-26 time 04 08 50 | start new epoch
+2022-07-26 time 04 08 51 | start new epoch
+2022-07-26 time 04 08 51 | start new epoch
+2022-07-26 time 04 08 51 | start new epoch
+2022-07-26 time 04 08 52 | start new epoch
+2022-07-26 time 04 08 52 | start new epoch
+2022-07-26 time 04 08 53 | start new epoch
+2022-07-26 time 04 08 53 | start new epoch
+2022-07-26 time 04 08 53 | validation set
+2022-07-26 time 04 08 53 | Saved weights.
+2022-07-26 time 04 08 54 | start new epoch
+2022-07-26 time 04 08 54 | start new epoch
+2022-07-26 time 04 08 54 | start new epoch
+2022-07-26 time 04 08 55 | start new epoch
+2022-07-26 time 04 08 55 | start new epoch
+2022-07-26 time 04 08 55 | start new epoch
+2022-07-26 time 04 08 56 | start new epoch
+2022-07-26 time 04 08 56 | start new epoch
+2022-07-26 time 04 08 57 | start new epoch
+2022-07-26 time 04 08 57 | start new epoch
+2022-07-26 time 04 08 57 | start new epoch
+2022-07-26 time 04 08 58 | start new epoch
+2022-07-26 time 04 08 58 | start new epoch
+2022-07-26 time 04 08 58 | validation set
+2022-07-26 time 04 08 58 | Saved weights.
+2022-07-26 time 04 08 59 | start new epoch
+2022-07-26 time 04 08 59 | start new epoch
+2022-07-26 time 04 08 59 | start new epoch
+2022-07-26 time 04 09 00 | start new epoch
+2022-07-26 time 04 09 00 | start new epoch
+2022-07-26 time 04 09 00 | start new epoch
+2022-07-26 time 04 09 01 | start new epoch
+2022-07-26 time 04 09 01 | start new epoch
+2022-07-26 time 04 09 02 | start new epoch
+2022-07-26 time 04 09 02 | start new epoch
+2022-07-26 time 04 09 02 | start new epoch
+2022-07-26 time 04 09 03 | start new epoch
+2022-07-26 time 04 09 03 | start new epoch
+2022-07-26 time 04 09 03 | validation set
+2022-07-26 time 04 09 03 | Saved weights.
+2022-07-26 time 04 09 04 | start new epoch
+2022-07-26 time 04 09 04 | start new epoch
+2022-07-26 time 04 09 04 | start new epoch
+2022-07-26 time 04 09 05 | start new epoch
+2022-07-26 time 04 09 05 | start new epoch
+2022-07-26 time 04 09 05 | start new epoch
+2022-07-26 time 04 09 06 | start new epoch
+2022-07-26 time 04 09 06 | start new epoch
+2022-07-26 time 04 09 07 | start new epoch
+2022-07-26 time 04 09 07 | start new epoch
+2022-07-26 time 04 09 07 | start new epoch
+2022-07-26 time 04 09 08 | start new epoch
+2022-07-26 time 04 09 08 | start new epoch
+2022-07-26 time 04 09 08 | validation set
+2022-07-26 time 04 09 08 | Saved weights.
+2022-07-26 time 04 09 09 | start new epoch
+2022-07-26 time 04 09 09 | start new epoch
+2022-07-26 time 04 09 09 | start new epoch
+2022-07-26 time 04 09 10 | start new epoch
+2022-07-26 time 04 09 10 | start new epoch
+2022-07-26 time 04 09 10 | start new epoch
+2022-07-26 time 04 09 11 | start new epoch
+2022-07-26 time 04 09 11 | start new epoch
+2022-07-26 time 04 09 12 | start new epoch
+2022-07-26 time 04 09 12 | start new epoch
+2022-07-26 time 04 09 12 | start new epoch
+2022-07-26 time 04 09 13 | start new epoch
+2022-07-26 time 04 09 13 | start new epoch
+2022-07-26 time 04 09 13 | start new epoch
+2022-07-26 time 04 09 13 | validation set
+2022-07-26 time 04 09 13 | Saved weights.
+2022-07-26 time 04 09 14 | start new epoch
+2022-07-26 time 04 09 14 | start new epoch
+2022-07-26 time 04 09 15 | start new epoch
+2022-07-26 time 04 09 15 | start new epoch
+2022-07-26 time 04 09 15 | start new epoch
+2022-07-26 time 04 09 16 | start new epoch
+2022-07-26 time 04 09 16 | start new epoch
+2022-07-26 time 04 09 16 | start new epoch
+2022-07-26 time 04 09 17 | start new epoch
+2022-07-26 time 04 09 17 | start new epoch

@@ -12,7 +12,7 @@ import testing
 import AS_tools
 import multivariate as mv
 import jax.random as rnd
-
+import pdb
 
 
 
@@ -111,6 +111,24 @@ for Af in ['AS_NN','SlaterSumNN']:
 
 def staticSlater(F):
 	return util.noparams(AS_tools.Slater(util.dummyparams(F)))
+
+
+
+
+
+
+
+
+def Af_from_hist(path,Af):
+	weights=cfg.getlastval(path,'weights')
+	return util.fixparams(Af,weights)
+
+
+
+
+
+
+
 
 
 

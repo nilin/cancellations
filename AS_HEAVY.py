@@ -57,7 +57,10 @@ class EmptyTracker:
 
 
 
-emptytracker=EmptyTracker()
+
+
+permtracker=cfg.Tracker()
+
 
 
 
@@ -72,14 +75,10 @@ def gen_Af_heavy(n,f):
 			QPX=util.apply_on_n(Q,PX)				# PX:	n!,s,n,d
 			out=out+partial_Af(params,QPX,sign_l*signs_r)
 
-			cfg.bgtracker.set('permutation',(i+1)*PX.shape[0])
+			permtracker.set('permutation',(i+1)*PX.shape[0])
 		return out
 
 	return Af_heavy
-
-
-
-
 
 
 def gen_grad_Af_heavy(n,f):
@@ -95,7 +94,7 @@ def gen_grad_Af_heavy(n,f):
 			out=out+blocksum
 			grad=util.addgrads(grad,gradblocksum)
 
-			cfg.bgtracker.set('permutation',(i+1)*PX.shape[0])
+			permtracker.set('permutation',(i+1)*PX.shape[0])
 		return grad,out
 
 	return grad_Af_heavy
@@ -124,3 +123,34 @@ def gen_lossgrad_Af_heavy(n,f,lossfn,**kwargs):
 
 ####################################################################################################
 #
+"""
+# class HeavyTrainer(learning.TrainerWithValidation):
+# 
+# 	# For the case when large minibatch updates are desired for to reduce noise,
+# 	# but minibatch sizes are a priori restricted by memory bound. 
+# 	# 
+# 	#
+# 	# Each sample takes significant memory,
+# 	# so a minibatch can be done a few (microbatch) samples at a time
+# 	# [(X_micro1,Y_micro1),(X_micro2,Y_micro2),...]
+# 	# If minibatch fits in memory input [(X_minibatch,Y_minibatch)]
+#
+#
+# 	def minibatch_step(self,X_mini,Y_mini,**kwargs):
+# 
+# 		microbatches=util.chop((X_mini,Y_mini),memorybatchlimit(self.n))
+# 		microbatchlosses=[]
+# 		microbatchparamgrads=None
+# 
+# 		for i,(x,y) in enumerate(microbatches):
+# 
+# 			grad,loss=self.lossgrad(self.weights,x,y)
+# 			microbatchlosses.append(loss/self.nullloss)
+# 			microbatchparamgrads=util.addgrads(microbatchparamgrads,grad)
+# 
+# 		updates,self.state=self.opt.update(microbatchparamgrads,self.state,self.weights)
+# 		self.weights=optax.apply_updates(self.weights,updates)
+# 
+# 		minibatchloss=jnp.average(jnp.array(microbatchlosses))
+# 		self.tracker.set('minibatch loss',minibatchloss)
+"""
