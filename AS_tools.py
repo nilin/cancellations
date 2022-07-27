@@ -5,8 +5,6 @@
 #----------------------------------------------------------------------------------------------------
 
 
-from jax.config import config
-#config.update("jax_enable_x64", True)
 import numpy as np
 import math
 import pickle
@@ -24,7 +22,6 @@ import testing
 import config as cfg
 from jax.lax import collapse
 import pdb
-from multivariate import NN_NS
 import multivariate as mv
 
 

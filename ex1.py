@@ -32,6 +32,16 @@ jax.config.update("jax_enable_x64", True)
 
 
 
+explanation='\
+In order not to give an unfair advantage to either activation function \n\
+we let the target function in this example be the sum of two antisymmetrized NNs, \n\
+one for each activation function. Both NNs are normalized to have the same magnitude.'
+
+
+
+
+
+
 
 def saveplots(plotpath,learned,target):
 
@@ -65,10 +75,11 @@ def run():
 	'n':5,
 	'd':1,
 	'samples_train':10000,
+	'samples_val':100,
 	'samples_test':1000,
-	'targetwidths':[5,25,25,1],
-	'learnerwidths':[5,100,1],
-	'targetactivation':'tanh',
+	'targetwidths':[5,25,25,25,1],
+	'learnerwidths':[5,250,1],
+	#'targetactivation':'tanh',
 	'learneractivation':'ReLU',
 	'checkpoint_interval':5,
 	'timebound':600
@@ -81,8 +92,9 @@ def run():
 	varnames=cfg.orderedunion(params,redefs)
 
 
-	ignore={'plotfineness','minibatchsize','initfromfile','samples_test','d','checkpoint_interval'}
-	if 'NN' not in targettype: ignore.update({'targetwidths','targetactivation'})
+	ignore={'plotfineness','minibatchsize','initfromfile','samples_test','samples_val','d','checkpoint_interval'}
+	#if 'NN' not in targettype: ignore.update({'targetwidths','targetactivation'})
+	assert('NN' in targettype)
 
 	sessioninfo=cfg.formatvars([(k,globals()[k]) for k in varnames],separator='\n',ignore=ignore)
 	cfg.setval('sessioninfo',sessioninfo)
@@ -96,28 +108,33 @@ def run():
 
 	cfg.log('Generating AS functions.')
 
+	targets=dict()
+	for ac in activations.keys():
+		t_args=(n,d,targetwidths,activations[ac])
+		#if targettype=='HermiteSlater': t_args=(n,'H',1/8)
+		targets[ac]={\
+		'AS_NN':ASf.init_static(ASf.init_AS_NN),\
+		'SlaterSumNN_singlePhi':ASf.init_static(ASf.init_SlaterSumNN_singlePhi),\
+		'SlaterSumNN_nPhis':ASf.init_static(ASf.init_SlaterSumNN_nPhis),\
+		'HermiteSlater':examplefunctions.HermiteSlater\
+		}[targettype](*t_args)
 
-	t_args=(n,d,targetwidths,activations[targetactivation])
 	l_args=(n,d,learnerwidths,activations[learneractivation])
-	if targettype=='HermiteSlater': t_args=(n,'H',1/8)
-
-	target={\
-	'AS_NN':ASf.init_static(ASf.init_AS_NN),\
-	'SlaterSumNN_singlePhi':ASf.init_static(ASf.init_SlaterSumNN_singlePhi),\
-	'SlaterSumNN_nPhis':ASf.init_static(ASf.init_SlaterSumNN_nPhis),\
-	'HermiteSlater':examplefunctions.HermiteSlater\
-	}[targettype](*t_args)
-
 	learner={\
 	'AS_NN':ASf.init_AS_NN,\
 	'SlaterSumNN_singlePhi':ASf.init_SlaterSumNN_singlePhi,\
 	'SlaterSumNN_nPhis':ASf.init_SlaterSumNN_nPhis\
 	}[learnertype](*l_args)
 
-	X=rnd.uniform(cfg.nextkey(),(samples_train,n,d),minval=-1,maxval=1)
+	cfg.log('Generating training data X.')
+	X=rnd.uniform(cfg.nextkey(),(samples_train+samples_val,n,d),minval=-1,maxval=1)
 
-	cfg.log('normalizing target')
-	target=util.normalize(target,X[:100])
+	cfg.log('normalizing targets')
+	for ac in activations.keys():
+		targets[ac]=util.normalize(targets[ac],X[:100])
+
+	target=jax.jit(lambda X:targets['ReLU'](X)+targets['tanh'](X))
+
 
 	cfg.log('Verifying antisymmetry of target.')
 	testing.verify_antisymmetric(target,n,d)
@@ -156,6 +173,7 @@ if __name__=='__main__':
 
 	slate=db.Slate()
 
+	slate.addtext(explanation,height=4)
 	slate.addtext(lambda tk:tk.get('sessioninfo'),height=10)
 	slate.addtext(lambda tk:[s+50*' ' for s in tk.gethist('log')[-20:]],height=20)
 	slate.addspace(2)

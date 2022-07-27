@@ -22,29 +22,23 @@ import pdb
 # antisymmetrized NN
 #=======================================================================================================
 
-from multivariate import NN_NS,NN
+from multivariate import gen_NN_NS,gen_NN
 from AS_tools import gen_Af,gen_lossgrad_Af,gen_SlaterSum_nPhis,gen_SlaterSum_singlePhi
 from AS_HEAVY import gen_Af_heavy,gen_lossgrad_Af_heavy,heavy_threshold
+from util import ReLU
 
 
 
-def gen_AS_NN(n):
-	return AS_tools.gen_Af(n,NN_NS)
-
-def gen_lossgrad_AS_NN(n,lossfn):
-	return AS_tools.gen_lossgrad_Af(n,NN_NS,lossfn)
-
-
-def initweights_AS_NN(n,d,innerwidths,key=cfg.nextkey()):
-	if type(innerwidths)!=list:
-		cfg.bgtracker.set('event','Casting width to singleton list')
-		innerwidths=[innerwidths]
-	return mv.initweights_NN([n*d]+innerwidths+[1],key=key)
+def initweights_AS_NN(n,d,widths,key=cfg.nextkey()):
+	assert widths[0]==n*d, 'AS NN takes n*d-dimensional input'
+	assert widths[-1]==1, 'AS NN output is 1-dimensional'
+	return mv.initweights_NN(widths,key=key)
 
 
 
-def init_AS_NN(n,d,innerwidths,key=cfg.nextkey()):
-	return gen_AS_NN(n),gen_lossgrad_AS_NN(n,cfg.lossfn),initweights_AS_NN(n,d,innerwidths,key=key)
+def init_AS_NN(n,d,widths,activation,key=cfg.nextkey()):
+	NN_NS=gen_NN_NS(activation)
+	return gen_Af(n,NN_NS),gen_lossgrad_Af(n,NN_NS,cfg.lossfn),initweights_AS_NN(n,d,widths,key=key)
 
 
 #=======================================================================================================
@@ -53,28 +47,29 @@ def init_AS_NN(n,d,innerwidths,key=cfg.nextkey()):
 
 
 
-def initweights_SlaterSumNN_singlePhi(n,d,topwidths,key=cfg.nextkey()):
-	assert topwidths[-1]%n==0, 'NN output needs n equal-sized blocks.'
-	return mv.initweights_NN([d]+topwidths,key=key)
+def initweights_SlaterSumNN_singlePhi(n,d,widths,key=cfg.nextkey()):
+	assert widths[0]==d, 'Slater NN takes d-dimensional inputs.'
+	assert widths[-1]%n==0, 'Slater NN (single Phi) output size must be a multiple of n.'
+	return mv.initweights_NN(widths,key=key)
 
-def initweights_SlaterSumNN_nPhis(n,d,topwidths,key=cfg.nextkey()):
+def initweights_SlaterSumNN_nPhis(n,d,widths,key=cfg.nextkey()):
+	assert widths[0]==d, 'Slater NN takes d-dimensional inputs.'
 	_,*keys=rnd.split(key,n+3)
-	return [mv.initweights_NN([d]+topwidths,key=keys[i]) for i in range(n)]
+	return [mv.initweights_NN(widths,key=keys[i]) for i in range(n)]
 
 
 
 
 	
-def init_SlaterSumNN_singlePhi(n,d,topwidths,key=cfg.nextkey()):
+def init_SlaterSumNN_singlePhi(n,d,widths,activation,key=cfg.nextkey()):
+	NN=gen_NN(activation)
 	Af=gen_SlaterSum_singlePhi(n,NN)
-	return Af,mv.gen_lossgrad(Af),initweights_SlaterSumNN_singlePhi(n,d,topwidths,key=key)
+	return Af,mv.gen_lossgrad(Af),initweights_SlaterSumNN_singlePhi(n,d,widths,key=key)
 	
-def init_SlaterSumNN_nPhis(n,d,topwidths,key=cfg.nextkey()):
+def init_SlaterSumNN_nPhis(n,d,widths,activation,key=cfg.nextkey()):
+	NN=gen_NN(activation)
 	Af=gen_SlaterSum_nPhis(n,NN)
-	return Af,mv.gen_lossgrad(Af),initweights_SlaterSumNN_nPhis(n,d,topwidths,key=key)
-
-init_SlaterSumNN=init_SlaterSumNN_singlePhi
-
+	return Af,mv.gen_lossgrad(Af),initweights_SlaterSumNN_nPhis(n,d,widths,key=key)
 
 
 
@@ -85,17 +80,12 @@ init_SlaterSumNN=init_SlaterSumNN_singlePhi
 #=======================================================================================================
 
 
-def make_static(args):
-	Af,g_Af,weights=args
-	return util.fixparams(Af,weights)
 
-
-
-for Af in ['AS_NN','SlaterSumNN','SlaterSumNN_nPhis','SlaterSumNN_singlePhi']:
-	def _gen_(*args):
-		return make_static(globals()['init_'+Af](*args))	
-	globals()['gen_static_'+Af]=_gen_
-
+def init_static(initfn):
+	def gen_static_function(*args):
+		Af,g_Af,weights=initfn(*args)
+		return util.fixparams(Af,weights)
+	return gen_static_function
 
 
 
@@ -109,10 +99,6 @@ def staticSlater(F):
 
 
 
-
-
-
-
 def Af_from_hist(path,Af):
 	weights=cfg.getlastval(path,'weights')
 	return util.fixparams(Af,weights)
@@ -121,75 +107,6 @@ def Af_from_hist(path,Af):
 
 
 
-
-
-# 
-# 
-# 
-# 	
-# 
-# #----------------------------------------------------------------------------------------------------
-# # Hermite polynomials
-# #----------------------------------------------------------------------------------------------------
-# 
-# 			
-# def hermitecoefficients(n,convention):
-# 	return He_coefficients(n) if convention=='He' else H_coefficients(n)
-# 
-# def He_coefficients(n):
-# 	if n==0:
-# 		return [[1]]
-# 	if n==1:
-# 		return [[1],[0,1]]
-# 	else:
-# 		A=He_coefficients(n-1)
-# 		a1,a2=A[-1],A[-2]+2*[0]
-# 		a=[-(n-1)*a2[0]]
-# 		for k in range(1,n+1):
-# 			a.append(a1[k-1]-(n-1)*a2[k])
-# 		A.append(a)
-# 		return A
-# 
-# def H_coefficients(n):
-# 	if n==0:
-# 		return [[1]]
-# 	else:
-# 		A=H_coefficients(n-1)
-# 		a1=A[-1]+2*[0]
-# 		a=[-a1[1]]
-# 		for k in range(1,n+1):
-# 			a.append(2*a1[k-1]-(k+1)*a1[k+1])
-# 		A.append(a)
-# 		return A
-# 
-# 
-# def hermitecoefficientblock(n,convention):
-# 	return jnp.array([p+[0]*(n+1-len(p)) for p in hermitecoefficients(n,convention)])
-# 
-# 
-# 
-# #----------------------------------------------------------------------------------------------------
-# 
-# def HermiteSlater(n,convention,envelopevariance):
-# 
-# 	envelope_singlesample=lambda x:jnp.exp(-jnp.sum(jnp.square(x))/(2*envelopevariance))
-# 	envelope=jax.vmap(envelope_singlesample)
-# 
-# 	@jax.jit
-# 	def AF_(X):
-# 		AF=staticSlater(genhermitefunctions(n-1,convention))
-# 		return envelope(X)*AF(X)
-# 
-# 	return AF_
-# 
-# 
-# def genhermitefunctions(n,convention):
-# 	coefficients=hermitecoefficientblock(n,convention)
-# 	return mv.genpolynomialfunctions(coefficients)	
-# 
-# 
-# 
-# 
 
 
 
@@ -345,7 +262,7 @@ def printpoly(p):
 if __name__=='__main__':
 	
 	n,d=4,1
-	topwidths=[3,5]
+	widths=[1,3,5]
 	Af=gen_static_SlaterSumNN(n,d,topwidths)
 	testing.verify_antisymmetric(Af,n=4,d=1)
 

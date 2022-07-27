@@ -9,11 +9,22 @@ import pdb
 import jax.random as rnd
 from jax.lax import collapse	
 
+
+
+
 @jax.jit
 def ReLU(x):
 	return jnp.maximum(x,0) 
 
+@jax.jit
+def DReLU(x):
+	return jnp.minimum(jnp.maximum(x,-1),1)
+
+
+
 activations={'ReLU':ReLU,'tanh':jnp.tanh}
+
+
 
 @jax.jit
 def sqlossindividual(Y,Z):
@@ -135,7 +146,8 @@ def donothing(*args):
 	pass
 
 
-def fixparams(f_,params):
+def fixparams(*args):
+	f_,params=args[0],args[-1]
 
 	@jax.jit
 	def f(X):

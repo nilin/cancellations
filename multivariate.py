@@ -20,21 +20,30 @@ import pdb
 #=======================================================================================================
 
 
-activation=util.ReLU
-
-@jax.jit
-def NN(params,X):
-	Ws,bs=params
-	for W,b in zip(Ws[:-1],bs):
-		X=jnp.inner(X,W)+b[None,:]
-		X=activation(X)
-	return jnp.squeeze(jnp.inner(X,Ws[-1]))
 
 
-@jax.jit
-def NN_NS(params,X):
-	X=util.collapselast(X,2)
-	return NN(params,X)
+def gen_NN(activation):
+
+	@jax.jit
+	def NN(params,X):
+		Ws,bs=params
+		for W,b in zip(Ws[:-1],bs):
+			X=jnp.inner(X,W)+b[None,:]
+			X=activation(X)
+		return jnp.squeeze(jnp.inner(X,Ws[-1]))
+
+	return NN
+
+def gen_NN_NS(activation):
+
+	NN=gen_NN(activation)
+
+	@jax.jit
+	def NN_NS(params,X):
+		X=util.collapselast(X,2)
+		return NN(params,X)
+
+	return NN_NS
 
 
 
@@ -109,7 +118,6 @@ def gen_lossgrad(f,lossfn=cfg.lossfn):
 # computes widths[-1] functions
 """
 def initweights_NN(widths,key):
-
 
 	k1,*Wkeys=rnd.split(key,100)
 	k2,*bkeys=rnd.split(key,100)

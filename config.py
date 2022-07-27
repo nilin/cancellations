@@ -14,6 +14,7 @@ import sys
 import util
 import copy
 from collections import deque
+import datetime
 import sys
 
 
@@ -58,14 +59,14 @@ class Tracker:
 
 	def set(self,name,val):
 		self.trackedvals[name]=(self.timestamp(),val)
-		self.poke(name,val)
+		self.pokelisteners(name,val)
 
 	def get(self,name):
 		return self.trackedvals[name][1]
 
-	def poke(self,name,val):
+	def pokelisteners(self,*args,**kwargs):
 		for l in self.listeners:
-			l.poke(name,val)
+			l.poke(*args,**kwargs)
 
 	"""
 	# only register once
@@ -100,18 +101,19 @@ class HistTracker(Tracker):
 		self.hists[name]['timestamps'].append(self.timestamp())
 		self.hists[name]['vals'].append(val)
 		self.trackedvals[name]=(self.timestamp(),val)
-		self.poke(name,val)
+		self.pokelisteners(name,val)
 
 	def log(self,msg):
-		msg='{} | {}'.format(nowstr(),msg)
+		msg='{} | {}'.format(datetime.timedelta(seconds=int(self.timestamp())),msg)
 		self.set('log',msg)
 		savetxt('logs/'+self.ID,msg+'\n')
+		self.pokelisteners('log')
 
 	def gethist(self,name,timestamps=False):
 		return self.hists[name] if timestamps else self.hists[name]['vals']
 
 	def gethists(self):
-		return {name:self.gethist(name) for name in self.hists}
+		return self.hists
 
 	def save(self,path):
 		save(path,self.hists)
@@ -151,7 +153,12 @@ def timestamp():
 def sessionID():
 	return getdefault_histtracker().ID
 
+def pokelisteners(*args):
+	getdefault_histtracker().pokelisteners(*args)
+	getdefault_temptracker().pokelisteners(*args)
 
+def gethists():
+	return getdefault_histtracker().gethists()
 
 
 #====================================================================================================
@@ -225,9 +232,9 @@ def savetxt(path,msg,mode='a'):
 	
 def get(path):
 	with open(path,"rb") as file:
-		data=pickle.load(file)
-	return data
+		return pickle.load(file)
 
+		
 
 
 #====================================================================================================
@@ -248,7 +255,7 @@ def castval(val):
 
 def cast_str_as_list_(dtype):
 	def cast(s):
-		return [dtype(x) for x in s[1:-1].split(',')]
+		return [dtype(x) for x in s.split(',')]
 	return cast
 
 

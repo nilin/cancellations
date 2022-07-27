@@ -45,14 +45,14 @@ def partition(bins,x,*ys):
 
 	
 
-def ploterrorhist(ax,path,logscale=False):
+def ploterrorhist(ax,hists,logscale=False):
 
-	t_mb,mbhist=cfg.getvarhist(path,'minibatch loss')
-	t_val,valhist=cfg.getvarhist(path,'validation loss')
-	t_mb_blocks,mbhist_blocks=partition(t_val,t_mb,mbhist)
-
-	ax.plot([np.average(t) for t in t_mb_blocks],[np.average(l) for l in mbhist_blocks],'rd--',label='training loss')
-	ax.plot(t_val,valhist,'bo-',label='validation loss')
+	train=hists['minibatch loss']
+	test=hists['test loss']
+	t_train_blocks,train_loss_blocks=partition(test['timestamps'],train['timestamps'],train['vals'])
+	t_train,train_loss=[np.average(t) for t in t_train_blocks],[np.average(l) for l in train_loss_blocks]
+	ax.plot(t_train,train_loss,'rd--',label='training loss')
+	ax.plot(test['timestamps'],test['vals'],'bo-',label='test loss')
 	
 	ax.legend()
 	ax.set_xlabel('seconds')

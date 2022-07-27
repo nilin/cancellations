@@ -32,7 +32,7 @@ import multivariate
 collectivelossfn=util.sqloss
 
 	
-class BasicTrainer:
+class Trainer:
 	def __init__(self,__Af__,X,Y,tracker=None,**kwargs):
 
 		
@@ -53,7 +53,6 @@ class BasicTrainer:
 		self.set_default_batchsizes(**kwargs)
 		self.minibatches=deque([])
 
-		return self.tracker
 
 
 	def minibatch_step(self,X_mini,Y_mini):
@@ -83,38 +82,25 @@ class BasicTrainer:
 
 
 	def set_default_batchsizes(self,minibatchsize=None,**kwargs):
-		self.minibatchsize=min(self.X.shape[0],memorybatchlimit(self.n)) if minibatchsize==None else minibatchsize
+		self.minibatchsize=min(self.X.shape[0],memorybatchlimit(self.n),1000) if minibatchsize==None else minibatchsize
 		self.tracker.log('minibatch size set to '+str(self.minibatchsize))
 
 	def setvals(self,**kwargs):
 		self.set_default_batchsizes(**kwargs)
 
 
+	def get_learner(self):
+		return self.Af,self.lossgrad,self.weights
 
-
-
-class TrainerWithValidation(BasicTrainer):
-
-	def __init__(self,__Af__,X__,Y__,validationbatchsize=1000,fractionforvalidation=None,**kwargs):
-		if fractionforvalidation!=None:
-			validationbatchsize=int(X__.shape[0]*fractionforvalidation)
-		trainingsamples=X__.shape[0]-validationbatchsize
-		assert trainingsamples>=validationbatchsize
-
-		X_train,Y_train=X__[:trainingsamples],Y__[:trainingsamples]
-		self.X_val,self.Y_val=X__[trainingsamples:],Y__[trainingsamples:]
-		super().__init__(__Af__,X_train,Y_train,**kwargs)
-		self.tracker.register(self,['X','Y','X_val','Y_val','n','nullloss'])
-
-	def validation(self):
-		validationloss=collectivelossfn(self.Af(self.weights,self.X_val),self.Y_val)
-		self.tracker.set('validation loss',validationloss)
-		self.tracker.log('validation set')
+	def get_learned(self):
+		return util.fixparams(self.Af,self.weights)
 
 	def save(self):
 		self.tracker.set('weights',copy.deepcopy(self.weights))
 		self.tracker.autosave()
 		self.tracker.log('Saved weights.')
+
+
 
 
 
@@ -131,7 +117,7 @@ class TrainerWithValidation(BasicTrainer):
 
 def memorybatchlimit(n):
 	s=1
-	memlim=200000
+	memlim=50000
 	while(s*math.factorial(n)<memlim):
 		s=s*2
 

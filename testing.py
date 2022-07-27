@@ -6,12 +6,17 @@ import util
 import numpy as np
 import jax.random as rnd
 import pdb
+import config as cfg
 
-def assertequal(y,z,blockdim=0):
-	print('comparing')
-	print(jnp.stack([y,z],axis=-blockdim-1))
-	print('yes, they agree')
-	return util.relloss(y,z)<.001
+def assertequal(y,z,blockdim=0,eps=.001):
+	cfg.log('comparing')
+	cfg.log(jnp.stack([y,z],axis=-blockdim-1))
+	loss=util.relloss(y,z)
+	cfg.log(loss)
+	assert loss<eps
+
+
+	#cfg.log('yes, they agree')
 
 
 
@@ -32,8 +37,7 @@ def verify_antisymmetrization(Af,f,X):
 	assertequal(Y,Z)
 
 
-def verify_antisymmetric(AS,n=4,d=1):
-
+def verify_antisymmetric(AS,n,d):
 	X=rnd.normal(rnd.PRNGKey(0),(100,n,d))
 
 	Y=AS(X)
