@@ -51,9 +51,8 @@ def gen_Af_simple(n,f):
 
 
 
-#=======================================================================================================
 # combine light and heavy regimes 
-#=======================================================================================================
+#----------------------------------------------------------------------------------------------------
 
 def gen_Af(n,f):
 	return gen_Af_simple(n,f) if n<=cfg.heavy_threshold else gen_Af_heavy(n,f)
@@ -87,19 +86,32 @@ def Slater(F):
 """
 # phi_i(x) of k'th Slater = phi(weights[i],x)[k]
 """
-def gen_SlaterSum(n,phi):
+def gen_SlaterSum_nPhis(n,phi):
 
 	@jax.jit
 	def Af(weights,X):
 
-		nnsd=jnp.array([[phi(weights[i],X[:,j,:]) for j in range(n)] for i in range(n)])
+		nnsm=jnp.array([[phi(weights[i],X[:,j,:]) for j in range(n)] for i in range(n)])
 		for _ in range(2):
-			nnsd=jnp.moveaxis(nnsd,0,-1)
-		return jnp.sum(jnp.linalg.det(nnsd),axis=1)
+			nnsm=jnp.moveaxis(nnsm,0,-1)
+		return jnp.sum(jnp.linalg.det(nnsm),axis=1)
 
 	return Af
 
 
+def gen_SlaterSum_singlePhi(n,phi):
+
+	@jax.jit
+	def Af(weights,X):
+
+		s_mn_n=jnp.stack([phi(weights,X[:,j,:]) for j in range(n)],axis=-1)
+
+		s,mn,_=s_mn_n.shape; m=mn//n
+		smnn=jnp.reshape(s_mn_n,(s,m,n,n))
+
+		return jnp.sum(jnp.linalg.det(smnn),axis=1)
+
+	return Af
 
 
 #=======================================================================================================

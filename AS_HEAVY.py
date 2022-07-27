@@ -59,10 +59,6 @@ class EmptyTracker:
 
 
 
-permtracker=cfg.Tracker()
-
-
-
 
 def gen_Af_heavy(n,f):
 	(Qs,signs_l),(Ps,signs_r)=permpairs(n)
@@ -75,7 +71,7 @@ def gen_Af_heavy(n,f):
 			QPX=util.apply_on_n(Q,PX)				# PX:	n!,s,n,d
 			out=out+partial_Af(params,QPX,sign_l*signs_r)
 
-			permtracker.set('permutation',(i+1)*PX.shape[0])
+			cfg.set_temp('permutation',(i+1)*PX.shape[0])
 		return out
 
 	return Af_heavy
@@ -94,7 +90,7 @@ def gen_grad_Af_heavy(n,f):
 			out=out+blocksum
 			grad=util.addgrads(grad,gradblocksum)
 
-			permtracker.set('permutation',(i+1)*PX.shape[0])
+			cfg.set_temp('permutation',(i+1)*PX.shape[0])
 		return grad,out
 
 	return grad_Af_heavy

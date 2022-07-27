@@ -31,11 +31,8 @@ def now(timesep=':'):
 
 
 def nowstr():
-	date,time=now(timesep=' ')
-	return date+' time '+time
-
-
-session_ID=nowstr()
+	date,time=now()
+	return date+' | '+time
 
 
 #====================================================================================================
@@ -108,7 +105,7 @@ class HistTracker(Tracker):
 	def log(self,msg):
 		msg='{} | {}'.format(nowstr(),msg)
 		self.set('log',msg)
-		log(msg,ID=self.ID)
+		savetxt('logs/'+self.ID,msg+'\n')
 
 	def gethist(self,name,timestamps=False):
 		return self.hists[name] if timestamps else self.hists[name]['vals']
@@ -121,8 +118,43 @@ class HistTracker(Tracker):
 
 
 
+histtracker=HistTracker()
+temptracker=Tracker()
+
+def setdefault_histtracker(tracker):
+	histtracker=tracker
+
+def setdefault_temptracker(tracker):
+	temptracker=tracker
+
+def getdefault_histtracker():
+	return histtracker
+
+def getdefault_temptracker():
+	return temptracker
+
+def set_temp(name,val):
+	getdefault_temptracker().set(name,val)
+
+def get_temp(name):
+	return getdefault_temptracker.get(name)
+
+def log(msg):
+	getdefault_histtracker().log(msg)
+
+def setval(name,val):
+	getdefault_histtracker().set(name,val)
+
+def timestamp():
+	return getdefault_histtracker().timestamp()
+
+def sessionID():
+	return getdefault_histtracker().ID
 
 
+
+
+#====================================================================================================
 
 
 def getvarhist(path,varname):
@@ -134,14 +166,8 @@ def getlastval(path,varname):
 
 
 
-
-
-
 #====================================================================================================
 
-
-def log(msg,ID=session_ID):
-	savetxt('logs/'+ID,msg+'\n')
 
 
 class Stopwatch:
@@ -174,13 +200,6 @@ def nextkey():
 
 
 #====================================================================================================
-
-def mkdir(path):
-	try:
-		os.mkdir(path)
-	except OSError:
-		pass
-
 
 def makedirs(filepath):
 	path='/'.join(filepath.split('/')[:-1])

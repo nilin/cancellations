@@ -19,7 +19,7 @@ import plottools as pt
 import collections
 import copy
 from collections import deque
-from config import HistTracker
+from config import getdefault_histtracker
 import multivariate
 
 
@@ -44,7 +44,7 @@ class BasicTrainer:
 		self.X,self.Y=X,Y
 		self.samples,self.n,self.d=X.shape
 
-		self.tracker=HistTracker() if tracker==None else tracker
+		self.tracker=getdefault_histtracker() if tracker==None else tracker
 		self.tracker.add_autosavepaths('data/hist','data/hists/'+self.tracker.ID)
 
 		self.opt=optax.adamw(.01)

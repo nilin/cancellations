@@ -4,7 +4,7 @@ import sys
 import os
 import math
 import pdb
-from config import HistTracker
+from config import getdefault_histtracker
 
 
 #----------------------------------------------------------------------------------------------------
@@ -30,11 +30,11 @@ dash='\u2015'
 
 class Dashboard:
 
-	def __init__(self,tracker):
+	def __init__(self,tracker=None):
 		self.elements=[]
 		self.ln=1
-		tracker.add_listener(self)
-		self.tracker=tracker
+		self.tracker=getdefault_histtracker() if tracker==None else tracker
+		self.tracker.add_listener(self)
 		clear()
 
 	def add(self,display):
