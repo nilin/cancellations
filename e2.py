@@ -80,8 +80,6 @@ def run(cmdargs):
 	varnames=cfg.orderedunion(params,redefs)
 	ignore={'plotfineness','minibatchsize','initfromfile','samples_test','d','checkpoint_interval'}
 
-	# e2
-	assert('NN' in targettype)
 
 
 
@@ -127,6 +125,14 @@ def run(cmdargs):
 	Y_test=target(X_test)
 
 
+
+
+	cfg.log('Preparing cross sections for plotting.')
+	sections=pt.CrossSections(X,Y,target,3)
+
+
+
+
 	#----------------------------------------------------------------------------------------------------
 	# train
 	#----------------------------------------------------------------------------------------------------
@@ -150,7 +156,7 @@ def run(cmdargs):
 
 		if sc1.dispatch():
 			trainer.save()
-			fig1=e1.getfnplot(trainer.get_learned(),target,X_test)
+			fig1=e1.getfnplot(sections,trainer.get_learned())
 			cfg.savefig(*['{}{}{}'.format(path,int(sc1.elapsed()),'s.pdf') for path in cfg.outpaths],fig=fig1)
 
 		if sc2.dispatch():

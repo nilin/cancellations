@@ -19,7 +19,8 @@ from collections import deque
 def samplepoints(X,Y,nsamples):
 	p=Y**2
 	p=p/jnp.sum(p)
-	I=np.random.choice(range(len(p)),nsamples,p=p)
+	#I=jnp.random.choice(,range(len(p)),nsamples,p=p)
+	I=rnd.choice(cfg.nextkey(),jnp.arange(len(p)),(nsamples,),p=p)
 	return X[I]
 	
 
@@ -33,7 +34,25 @@ def linethrough(x,interval):
 	return X
 
 
-#
+
+
+class CrossSections:
+	def __init__(self,X,Y,target,nsections,fineness=500):
+		x0s=samplepoints(X,Y,nsections)
+		self.interval=jnp.arange(-1,1,2/fineness)
+		self.lines=[linethrough(x0,self.interval) for x0 in x0s]
+		self.ys=[target(line) for line in self.lines]
+		self.target=target
+
+	def plot(self,axs,learned):
+		for ax,x,y in zip(axs,self.lines,self.ys):
+			ax.plot(self.interval,y,'b',label='target')
+			ax.plot(self.interval,learned(x),'r',label='learned')
+			ax.legend()
+		
+		
+"""
+
 #				
 #def plotalongline(ax,learned,target,X,Y,**kwargs):
 #
@@ -51,26 +70,6 @@ def linethrough(x,interval):
 #
 
 
-class CrossSections:
-	def __init__(self,X,Y,target,nsections,fineness=500):
-		x0s=samplepoints(X,Y,nsections)
-		self.interval=jnp.arange(-1,1,2/fineness)
-		self.lines=[linethrough(x0,I) for x0 in x0s]
-		self.ys=[target(line) for line in lines]
-		self.target=target
-
-	def plot(self,axs,learned):
-		for ax,x,y in zip(axs,lines,ys):
-			ax.plot(self.interval,y,'b',label='target')
-			ax.plot(self.interval,learned(x),'r',label='learned')
-			ax.legend()
-		
-		
-
-
-
-
-"""
 #
 #def partition(bins,x,*ys):
 #	bin_nrs=np.digitize(x,bins)

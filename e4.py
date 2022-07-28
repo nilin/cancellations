@@ -37,10 +37,8 @@ jax.config.update("jax_enable_x64", True)
 
 
 # e2
-explanation='Example 4\n\
-In order not to give an unfair advantage to either activation function \n\
-we let the target function in this example be the sum of two antisymmetrized NNs, \n\
-one for each activation function. Both NNs are normalized to have the same magnitude.'
+explanation='Example 4 fit slater of harmonic oscillators'
+
 
 
 exname='e4'
@@ -56,7 +54,7 @@ def run(cmdargs):
 	'samples_train':10000,
 	'samples_test':1000,
 	'targetwidths':[6,12,12,1],
-	'learnerwidths':[6,500,1],
+	'learnerwidths':[6,50,50,50,1],
 	# e2
 	#'targetactivation':both,
 	#'learneractivation':?,
@@ -80,10 +78,6 @@ def run(cmdargs):
 	varnames=cfg.orderedunion(params,redefs)
 	ignore={'plotfineness','minibatchsize','initfromfile','samples_test','d','checkpoint_interval'}
 
-	# e2
-	assert('NN' in targettype)
-
-
 
 
 
@@ -103,7 +97,7 @@ def run(cmdargs):
 	cfg.log('Generating AS functions.')
 
 	# e2
-	targets=[ASf.init_target(targettype,n,d,targetwidths,activations[ac]) for ac in ['ReLU','tanh']]
+	targets=ASf.init_target('HermiteSlater',n)
 	learner=ASf.init_learner(learnertype,n,d,learnerwidths,activations[learneractivation])
 
 	
@@ -111,10 +105,7 @@ def run(cmdargs):
 	X=rnd.uniform(cfg.nextkey(),(samples_train,n,d),minval=-1,maxval=1)
 	X_test=rnd.uniform(cfg.nextkey(),(samples_test,n,d),minval=-1,maxval=1)
 
-	# e2
-	cfg.log('normalizing target terms')
-	targets=[util.normalize(target,X[:100]) for target in targets]
-	target=jax.jit(lambda X:targets[0](X)+targets[1](X))
+	target=util.normalize(target,X[:100])
 
 	cfg.log('\nVerifying antisymmetry of target.')
 	testing.verify_antisymmetric(target,n,d)
@@ -125,6 +116,12 @@ def run(cmdargs):
 	cfg.log('\nGenerating data Y.')
 	Y=target(X)
 	Y_test=target(X_test)
+
+
+
+
+	cfg.log('Preparing cross sections for plotting.')
+	sections=pt.CrossSections(X,Y,target,3)
 
 
 	#----------------------------------------------------------------------------------------------------
@@ -150,7 +147,7 @@ def run(cmdargs):
 
 		if sc1.dispatch():
 			trainer.save()
-			fig1=e1.getfnplot(trainer.get_learned(),target,X_test)
+			fig1=e1.getfnplot(sections,trainer.get_learned())
 			cfg.savefig(*['{}{}{}'.format(path,int(sc1.elapsed()),'s.pdf') for path in cfg.outpaths],fig=fig1)
 
 		if sc2.dispatch():
@@ -172,7 +169,6 @@ def run(cmdargs):
 
 
 
-#----------------------------------------------------------------------------------------------------
 
 
 

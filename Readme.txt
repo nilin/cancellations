@@ -8,19 +8,12 @@ Examples
 ████████████████████████████████████████████████████████████████████████████████████████████████████
 
 
+To compare the performance of ReLU and tanh, run example e2 or e3 with argument r/t
 
-Learn Slater of Hermite polynomials
-――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――
-% python example_Hermite.py
+% python e2.py r
+% python e2.py t
 
-
-Learn antisymmetrized neural network
-――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――
-% python example_learn_NN_w_NN.py n=5 targetwidths=25,25,25 widths=100 
-
-
-
-
+After running both a plot will be generated comparing the test losses of each (outputs/e2/comparetraining.pdf).
 
 
 ████████████████████████████████████████████████████████████████████████████████████████████████████
@@ -29,8 +22,7 @@ Learn antisymmetrized neural network
 Force parameter updates with named definitions from command line
 ――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――
 
-% python example.py
-
-% python example.py n=6 samples=25000 widths=25,50,50
+% python e1.py
+% python e1.py n=6 samples=25000 widths=6,50,1
 
 

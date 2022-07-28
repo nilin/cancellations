@@ -56,7 +56,7 @@ def run(cmdargs):
 	'targetactivation':'tanh',
 	'learneractivation':'ReLU',
 	'checkpoint_interval':5,
-	'timebound':600
+	'timebound':60
 	}
 
 
@@ -103,7 +103,7 @@ def run(cmdargs):
 
 
 	#
-	cfg.log('prepare cross sections for plotting')
+	cfg.log('Preparing cross sections for plotting.')
 	sections=pt.CrossSections(X,Y,target,3)
 
 	#----------------------------------------------------------------------------------------------------
@@ -122,7 +122,7 @@ def run(cmdargs):
 
 		if sc1.dispatch():
 			trainer.save()
-			fig1=getfnplot(trainer.get_learned(),target,X_test,Y_test)
+			fig1=getfnplot(sections,trainer.get_learned())
 			cfg.savefig(*['{}{}{}'.format(path,int(sc1.elapsed()),'s.pdf') for path in cfg.outpaths],fig=fig1)
 
 		if sc2.dispatch():
@@ -161,10 +161,10 @@ def plotlosshist(ax,hists,logscale=False):
 		ax.set_ylim(0,1)
 
 
-def getfnplot(learned,target,X_test,Y_test):
+def getfnplot(sections,learned):
 	plt.close('all')
-	fig1,axs=plt.subplots(1,3,figsize=(15,5))
-	pt.plotalongline(ax1,learned,target,X_test,Y_test)
+	fig1,axs=plt.subplots(1,3,figsize=(16,4))
+	sections.plot(axs,learned)
 	return fig1
 
 #----------------------------------------------------------------------------------------------------
