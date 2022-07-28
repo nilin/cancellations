@@ -4,6 +4,7 @@ import pickle
 import time
 import copy
 import jax
+import config as cfg
 import jax.numpy as jnp
 import pdb
 import jax.random as rnd
@@ -32,12 +33,17 @@ def sqlossindividual(Y,Z):
 	return jnp.square(Y-Z)
 
 @jax.jit
-def sqloss(Y,Z):
-	return jnp.average(sqlossindividual(Y,Z))
+def sqloss(Y1,Y2):
+	return jnp.average(sqlossindividual(Y1,Y2))
 
 @jax.jit
-def relloss(Y,Z):
-	return sqloss(Y,Z)/sqloss(0,Z)
+def norm(Y):
+	return jnp.sqrt(sqloss(0,Y))
+
+
+@jax.jit
+def relloss(Y1,Y2):
+	return sqloss(Y1,Y2)/sqloss(0,Y2)
 
 
 @jax.jit
@@ -104,7 +110,7 @@ def normalize(f,X_):
 
 
 
-def chop(Xs,chunksize):
+def chop(*Xs,chunksize):
 	S=Xs[0].shape[0]
 	limits=[(a,min(a+chunksize,S)) for a in range(0,S,chunksize)]
 	return [tuple([X[a:b] for X in Xs]) for a,b in limits]
@@ -146,8 +152,7 @@ def donothing(*args):
 	pass
 
 
-def fixparams(*args):
-	f_,params=args[0],args[-1]
+def fixparams(f_,params):
 
 	@jax.jit
 	def f(X):
@@ -167,3 +172,18 @@ def dummyparams(f):
 
 def keyfromstr(s):
 	return rnd.PRNGKey(hash(s))
+
+
+
+
+def dimlist(l):
+	if type(l)==list:
+		return [dimlist(e) for e in l]
+	else:
+		return l.shape
+	
+def printliststructure(l):
+	return str(dimlist(l))
+
+
+	

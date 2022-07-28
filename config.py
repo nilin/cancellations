@@ -22,153 +22,111 @@ lossfn=util.sqloss
 heavy_threshold=8
 BOX='\u2588'
 box='\u2592'
-bar='\u2015'
+dash='\u2015'
 
 
 
-def now(timesep=':'):
-	date,time=str(datetime.datetime.now()).split('.')[0].split(' ')
-	return date,time.replace(':',timesep)
+def now():
+	return str(datetime.datetime.now()).split('.')[0].split(' ')
 
 
 def nowstr():
 	date,time=now()
-	return date+' | '+time
+	date='-'.join(date.split('-')[1:])
+	time=''.join([x for pair in zip(time.split(':'),['h','m','s']) for x in pair])
+	return date+'|'+time
+
+def timestamp():
+	return time.perf_counter()
 
 
 #====================================================================================================
 # tracking
 #====================================================================================================
 
-class Tracker:
+t0=time.perf_counter()
+trackedvals=dict()
+hists=dict()
+eventlisteners=dict()
+sessionID=nowstr()
 
-	def __init__(self):
-		self.autosavepaths=set()
-		self.t0=time.perf_counter()
 
-		self.trackedvals=dict()
-		self.listeners=[]
+outpaths=set()
 
-		self.ID=nowstr()
+def histpaths():
+	return [path+'hist' for path in outpaths]
 
-	def add_listener(self,listener):
-		self.listeners.append(listener)
+def logpaths():
+	return [path+'log' for path in outpaths]+['logs/'+sessionID]
+
+
+#----------------------------------------------------------------------------------------------------
+
+def addlistener(listener,*signals):
+	for signal in signals:
+		if signal not in eventlisteners: eventlisteners[signal]=set()
+		eventlisteners[signal].add(listener)
 		
-	def add_autosavepaths(self,*paths):
-		self.autosavepaths.update(paths)
+def trackcurrent(name,val):
+	trackedvals[name]=(timestamp(),val)
+	pokelisteners(name)
 
-	def set(self,name,val):
-		self.trackedvals[name]=(self.timestamp(),val)
-		self.pokelisteners(name,val)
+def setstatic(name,val):
+	assert name not in trackedvals
+	trackcurrent(name,val)
 
-	def get(self,name):
-		return self.trackedvals[name][1]
+def getval(name):
+	return trackedvals[name][1]
 
-	def pokelisteners(self,*args,**kwargs):
-		for l in self.listeners:
-			l.poke(*args,**kwargs)
+def pokelisteners(signal,*args):
+	if signal in eventlisteners:	
+		for listener in eventlisteners[signal]:
+			listener.poke(signal,*args)
 
-	"""
-	# only register once
-	"""
-	def register(self,obj,varnames):
-		for name in varnames:
-			self.set(name,vars(obj)[name])
+#----------------------------------------------------------------------------------------------------
 
-	def timestamp(self):
-		return time.perf_counter()-self.t0
 
-	def save(self,path):
-		save(path,trackedvals)
+def trackhist(name,val):
+	if name not in hists:
+		hists[name]={'timestamps':[],'vals':[]}
+	hists[name]['timestamps'].append(timestamp())
+	hists[name]['vals'].append(val)
+	trackcurrent(name,val)
+
+def savehist(*paths):
+	save(hists,*paths)
 		
-	def autosave(self):
-		for path in self.autosavepaths:
-			self.save(path)
-		
+def autosave():
+	savehist(*histpaths())
 
-
-
-class HistTracker(Tracker):
-	
-	def __init__(self):
-		Tracker.__init__(self)
-		self.hists=dict()
-		self.tracked_objs=dict()
-
-	def set(self,name,val):
-		if name not in self.hists:
-			self.hists[name]={'timestamps':[],'vals':[]}
-		self.hists[name]['timestamps'].append(self.timestamp())
-		self.hists[name]['vals'].append(val)
-		self.trackedvals[name]=(self.timestamp(),val)
-		self.pokelisteners(name,val)
-
-	def log(self,msg):
-		msg='{} | {}'.format(datetime.timedelta(seconds=int(self.timestamp())),msg)
-		self.set('log',msg)
-		savetxt('logs/'+self.ID,msg+'\n')
-		self.pokelisteners('log')
-
-	def gethist(self,name,timestamps=False):
-		return self.hists[name] if timestamps else self.hists[name]['vals']
-
-	def gethists(self):
-		return self.hists
-
-	def save(self,path):
-		save(path,self.hists)
-
-
-
-histtracker=HistTracker()
-temptracker=Tracker()
-
-def setdefault_histtracker(tracker):
-	histtracker=tracker
-
-def setdefault_temptracker(tracker):
-	temptracker=tracker
-
-def getdefault_histtracker():
-	return histtracker
-
-def getdefault_temptracker():
-	return temptracker
-
-def set_temp(name,val):
-	getdefault_temptracker().set(name,val)
-
-def get_temp(name):
-	return getdefault_temptracker.get(name)
-
-def log(msg):
-	getdefault_histtracker().log(msg)
-
-def setval(name,val):
-	getdefault_histtracker().set(name,val)
-
-def timestamp():
-	return getdefault_histtracker().timestamp()
-
-def sessionID():
-	return getdefault_histtracker().ID
-
-def pokelisteners(*args):
-	getdefault_histtracker().pokelisteners(*args)
-	getdefault_temptracker().pokelisteners(*args)
+def gethist(name,timestamps=False):
+	return hists[name] if timestamps else hists[name]['vals']
 
 def gethists():
-	return getdefault_histtracker().gethists()
+	return hists
 
 
+#----------------------------------------------------------------------------------------------------
+
+def log(msg):
+	msg='{} | {}'.format(datetime.timedelta(seconds=int(timestamp())),msg)
+	trackhist('log',msg)
+	write(msg+'\n',*logpaths())
+	pokelisteners('log')
+
+
+def debuglog(msg):
+	write(str(msg)+'\n\n\n','debug/'+sessionID)
+
+#----------------------------------------------------------------------------------------------------
 #====================================================================================================
 
 
-def getvarhist(path,varname):
+def retrievevarhist(path,varname):
 	varhist=get(path)[varname]
 	return varhist['timestamps'],varhist['vals']
 
-def getlastval(path,varname):
+def retrievelastval(path,varname):
 	return get(path)[varname]['vals'][-1]
 
 
@@ -183,12 +141,43 @@ class Stopwatch:
 		self.tick()
 
 	def tick(self):
-		elapsed=self.elapsed()
+		t=self.elapsed()
 		self.time=time.perf_counter()
-		return elapsed
+		return t
 
 	def elapsed(self):
 		return time.perf_counter()-self.time
+
+	def reset_after(self,timebound):
+		if self.elapsed()>timebound:
+			self.tick()
+			return True
+		else:
+			return False
+
+
+arange=lambda *ab:list(range(*ab))
+
+defaultsched=jnp.array(arange(5)+arange(5,20,5)+arange(20,60,10)+arange(60,300,30)+arange(300,600,60)+arange(600,3600,300)+arange(3600,24*3600,3600))
+
+
+class Scheduler:
+	def __init__(self,sched=defaultsched):
+		self.sched=deque(copy.deepcopy(sched))
+		self.t0=time.perf_counter()
+
+	def elapsed(self):
+		return time.perf_counter()-self.t0
+
+	def dispatch(self):
+		disp=False
+		t=self.elapsed()
+		while t>self.sched[0]:
+			self.sched.popleft()
+			disp=True
+		return disp
+		
+		
 
 
 #====================================================================================================
@@ -213,24 +202,29 @@ def makedirs(filepath):
 	filename=filepath.split('/')[-1]
 	os.makedirs(path,exist_ok=True)	
 
-def save(path,data):
-	makedirs(path)
-	with open(path,'wb') as file:
-		pickle.dump(data,file)
+def save(data,*paths):
+	for path in paths:
+		makedirs(path)
+		with open(path,'wb') as file:
+			pickle.dump(data,file)
+	log('Saved data to {}'.format(paths))
 
-def savefig(path,fig=None):
-	makedirs(path)
-	if fig==None:
-		plt.savefig(path)
-	else:
-		fig.savefig(path)
+def savefig(*paths,fig=None):
+	for path in paths:
+		makedirs(path)
+		if fig==None:
+			plt.savefig(path)
+		else:
+			fig.savefig(path)
+	log('Saved figure to {}'.format(paths))
 
-def savetxt(path,msg,mode='a'):
-	makedirs(path)
-	with open(path,mode) as f:
-		f.write(msg)
+def write(msg,*paths,mode='a'):
+	for path in paths:
+		makedirs(path)
+		with open(path,mode) as f:
+			f.write(msg)
 	
-def get(path):
+def retrieve(path):
 	with open(path,"rb") as file:
 		return pickle.load(file)
 
@@ -264,10 +258,14 @@ def parsedef(s):
 	return name,castval(val)
 		
 
-def get_cmdln_args():
-	cmdargs=sys.argv[1:]
+def parse_cmdln_args(cmdargs=sys.argv[1:]):
+	cmdargs=deque(cmdargs)
+	args=[]
+	while len(cmdargs)>0 and '=' not in cmdargs[0]:
+		args.append(cmdargs.popleft())
+
 	defs=dict([parsedef(_) for _ in cmdargs])
-	return defs
+	return args,defs
 
 
 
@@ -281,9 +279,8 @@ def orderedunion(A,B):
 	return A
 		
 
-
-
-
+def terse(l):
+	return str([round(float(e*1000))/1000 for e in l])
 
 #====================================================================================================
 

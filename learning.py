@@ -1,3 +1,14 @@
+#
+# nilin
+#
+# 2022/7
+#
+
+
+
+
+
+
 import jax
 import jax.numpy as jnp
 import jax.random as rnd
@@ -19,7 +30,6 @@ import plottools as pt
 import collections
 import copy
 from collections import deque
-from config import getdefault_histtracker
 import multivariate
 
 
@@ -33,22 +43,16 @@ collectivelossfn=util.sqloss
 
 	
 class Trainer:
-	def __init__(self,__Af__,X,Y,tracker=None,**kwargs):
+	def __init__(self,learner,X,Y,**kwargs):
 
-		
-		#----------------------------------------------------------------------
-		self.Af,self.lossgrad,self.weights=__Af__		
-		#----------------------------------------------------------------------
+		self.learner=learner
 
 		self.nullloss=collectivelossfn(Y,0)
 		self.X,self.Y=X,Y
 		self.samples,self.n,self.d=X.shape
 
-		self.tracker=getdefault_histtracker() if tracker==None else tracker
-		self.tracker.add_autosavepaths('data/hist','data/hists/'+self.tracker.ID)
-
 		self.opt=optax.adamw(.01)
-		self.state=self.opt.init(self.weights)
+		self.state=self.opt.init(self.learner.weights)
 
 		self.set_default_batchsizes(**kwargs)
 		self.minibatches=deque([])
@@ -57,11 +61,11 @@ class Trainer:
 
 	def minibatch_step(self,X_mini,Y_mini):
 	
-		loss,grad=self.lossgrad(self.weights,X_mini,Y_mini)
-		updates,self.state=self.opt.update(grad,self.state,self.weights)
-		self.weights=optax.apply_updates(self.weights,updates)
+		loss,grad=self.learner.lossgrad(self.learner.weights,X_mini,Y_mini)
+		updates,self.state=self.opt.update(grad,self.state,self.learner.weights)
+		self.learner.weights=optax.apply_updates(self.learner.weights,updates)
 
-		self.tracker.set('minibatch loss',loss)
+		cfg.trackhist('minibatch loss',loss)
 
 
 	def step(self):
@@ -69,64 +73,52 @@ class Trainer:
 			self.prepnextepoch()
 		(X_mini,Y_mini)=self.minibatches.popleft()
 		self.minibatch_step(X_mini,Y_mini)	
-		self.tracker.set('minibatches left',len(self.minibatches))
+		cfg.trackcurrent('minibatches left',len(self.minibatches))
 
 
 	def prepnextepoch(self):
 		self.X,self.Y=util.randperm(self.X,self.Y)
-		self.minibatches=deque(util.chop((self.X,self.Y),self.minibatchsize))
+		#self.minibatches=deque(util.chop((self.X,self.Y),self.minibatchsize))
+		self.minibatches=deque(util.chop(self.X,self.Y,chunksize=self.minibatchsize))
 
-		self.tracker.log('start new epoch')
-		self.tracker.set('minibatchsize',self.minibatchsize)
-		self.tracker.set('minibatches',len(self.minibatches))
+		cfg.log('start new epoch')
+		cfg.trackhist('minibatchsize',self.minibatchsize)
+		cfg.trackcurrent('minibatches',len(self.minibatches))
 
 
 	def set_default_batchsizes(self,minibatchsize=None,**kwargs):
-		self.minibatchsize=min(self.X.shape[0],memorybatchlimit(self.n),1000) if minibatchsize==None else minibatchsize
-		self.tracker.log('minibatch size set to '+str(self.minibatchsize))
+		self.minibatchsize=min(self.X.shape[0],AS_HEAVY.memorybatchlimit(self.n),1000) if minibatchsize==None else minibatchsize
+		cfg.log('minibatch size set to '+str(self.minibatchsize))
 
-	def setvals(self,**kwargs):
-		self.set_default_batchsizes(**kwargs)
-
-
-	def get_learner(self):
-		return self.Af,self.lossgrad,self.weights
 
 	def get_learned(self):
-		return util.fixparams(self.Af,self.weights)
+		return self.learner.as_static()
+
 
 	def save(self):
-		self.tracker.set('weights',copy.deepcopy(self.weights))
-		self.tracker.autosave()
-		self.tracker.log('Saved weights.')
+		cfg.trackhist('weights',copy.deepcopy(self.learner.weights))
+		cfg.log('learner checkpoint')
+		cfg.autosave()
 
 
 
 
 
+#----------------------------------------------------------------------------------------------------
 
+class Learner:
+	def __init__(self,*args):
+		self.f,self.lossgrad,*_=args[:-1]
+		self.weights=args[-1]
 
+	def as_static(self):
+		return util.fixparams(self.f,self.weights)
 
 
 
 #----------------------------------------------------------------------------------------------------
 # setup
 #----------------------------------------------------------------------------------------------------
-
-
-
-def memorybatchlimit(n):
-	s=1
-	memlim=50000
-	while(s*math.factorial(n)<memlim):
-		s=s*2
-
-	if n>AS_HEAVY.heavy_threshold:
-		assert s==1, 'AS_HEAVY assumes single samples'
-
-	return s
-
-
 
 
 

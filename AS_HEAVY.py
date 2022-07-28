@@ -150,3 +150,31 @@ def gen_lossgrad_Af_heavy(n,f,lossfn,**kwargs):
 # 		minibatchloss=jnp.average(jnp.array(microbatchlosses))
 # 		self.tracker.set('minibatch loss',minibatchloss)
 """
+
+
+def memorybatchlimit(n):
+	s=1
+	memlim=50000
+	while(s*math.factorial(n)<memlim):
+		s=s*2
+
+	if n>heavy_threshold:
+		assert s==1, 'AS_HEAVY assumes single samples'
+
+	return s
+
+
+
+def makeblockwise(f,msg=lambda i,blocks:None):
+	def blockwise_f(X):
+		_,n,_=X.shape	
+		Xs=util.chop(X,chunksize=memorybatchlimit(n))
+		out=[]
+		for i,(B,) in enumerate(Xs):
+			out.append(f(B))
+			msg(i,len(Xs))
+		return jnp.concatenate(out,axis=0)
+	return blockwise_f
+
+
+

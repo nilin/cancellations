@@ -8,15 +8,19 @@ import jax.random as rnd
 import pdb
 import config as cfg
 
+
+
 def assertequal(y,z,blockdim=0,eps=.001):
-	cfg.log('comparing')
-	cfg.log(jnp.stack([y,z],axis=-blockdim-1))
+	cfg.log('asserting equality')
 	loss=util.relloss(y,z)
 	cfg.log(loss)
-	assert loss<eps
-
-
-	#cfg.log('yes, they agree')
+	try:
+		assert(loss<eps)
+		cfg.log('yes, they agree')
+	except:
+		cfg.log('error x=/=y')
+		cfg.log(jnp.stack([y,z],axis=-blockdim-1))
+		raise ValueError
 
 
 
