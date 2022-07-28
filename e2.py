@@ -31,7 +31,7 @@ import AS_functions as ASf
 
 import e1
 
-jax.config.update("jax_enable_x64", True)
+#jax.config.update("jax_enable_x64", True)
 
 
 
