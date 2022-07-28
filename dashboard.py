@@ -97,7 +97,9 @@ def barstring(val,fullwidth,Style):
 	return Style[:barwidth]+cfg.BOX
 
 
-
+def wideline():
+	return (os.get_terminal_size()[0]-1)*dash
+	
 
 
 

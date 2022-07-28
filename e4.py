@@ -53,7 +53,7 @@ def run(cmdargs):
 	'd':1,
 	'samples_train':10000,
 	'samples_test':1000,
-	'targetwidths':[6,12,12,1],
+	#'targetwidths':[6,12,12,1],
 	'learnerwidths':[6,50,50,50,1],
 	# e2
 	#'targetactivation':both,
@@ -69,7 +69,8 @@ def run(cmdargs):
 	try:
 		l_a={'r':'ReLU','relu':'ReLU','ReLU':'ReLU','t':'tanh','tanh':'tanh'}[args[0]]
 	except:
-		raise ValueError('Pass activation function as first parameter.')
+		print(10*'\n'+'Pass activation function as first parameter.\n'+db.wideline()+10*'\n')	
+		sys.exit(0)
 	params['learneractivation']=l_a
 	
 
@@ -97,7 +98,7 @@ def run(cmdargs):
 	cfg.log('Generating AS functions.')
 
 	# e2
-	targets=ASf.init_target('HermiteSlater',n)
+	target=ASf.init_target('HermiteSlater',n)
 	learner=ASf.init_learner(learnertype,n,d,learnerwidths,activations[learneractivation])
 
 	

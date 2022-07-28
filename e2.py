@@ -71,7 +71,9 @@ def run(cmdargs):
 	try:
 		l_a={'r':'ReLU','relu':'ReLU','ReLU':'ReLU','t':'tanh','tanh':'tanh'}[args[0]]
 	except:
-		raise ValueError('Pass activation function as first parameter.')
+		print(10*'\n'+'Pass activation function as first parameter.\n'+db.wideline()+10*'\n')	
+		sys.exit(0)
+
 	params['learneractivation']=l_a
 	
 
