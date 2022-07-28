@@ -40,3 +40,7 @@ data/*
 plots/*
 logs/*
 debug/*
+__pycache__
+outputs
+logs
+debug*
