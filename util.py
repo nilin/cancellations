@@ -186,4 +186,12 @@ def printliststructure(l):
 	return str(dimlist(l))
 
 
+def scalarfunction(f):
+	def g(*inputs):
+		return jnp.squeeze(f(*inputs))
+	return g
+
+
+
+
 	

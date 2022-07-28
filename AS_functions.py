@@ -10,6 +10,7 @@ import optax
 import math
 import testing
 import AS_tools
+import AS_tools as ASt
 import AS_HEAVY
 import multivariate as mv
 import jax.random as rnd
@@ -24,10 +25,10 @@ import pdb
 # antisymmetrized NN
 #=======================================================================================================
 
-from multivariate import gen_NN_NS,gen_NN
-from AS_tools import gen_Af,gen_lossgrad_Af,gen_SlaterSum_nPhis,gen_SlaterSum_singlePhi
+from multivariate import gen_NN_NS,gen_NN,gen_NN_wideoutput
+from AS_tools import gen_Af,gen_lossgrad_Af,gen_SlaterSum #,gen_SlaterSum_nPhis,gen_SlaterSum_singlePhi
 from AS_HEAVY import gen_Af_heavy,gen_lossgrad_Af_heavy,heavy_threshold
-from learning import Learner
+from learning import Learner,AS_Learner
 
 
 def initweights_AS_NN(n,d,widths,key=cfg.nextkey()):
@@ -42,17 +43,24 @@ def initweights_AS_NN(n,d,widths,key=cfg.nextkey()):
 #=======================================================================================================
 
 
+"""
+#def initweights_SlaterSumNN_singlePhi(n,d,widths,key=cfg.nextkey()):
+#	assert widths[0]==d, 'Slater NN takes d-dimensional inputs.'
+#	assert widths[-1]%n==0, 'Slater NN (single Phi) output size must be a multiple of n.'
+#	return mv.initweights_NN(widths,key=key)
+#
+#def initweights_SlaterSumNN_nPhis(n,d,widths,key=cfg.nextkey()):
+#	assert widths[0]==d, 'Slater NN takes d-dimensional inputs.'
+#	_,*keys=rnd.split(key,n+3)
+#	return [mv.initweights_NN(widths,key=keys[i]) for i in range(n)]
+"""
 
-def initweights_SlaterSumNN_singlePhi(n,d,widths,key=cfg.nextkey()):
+
+def initweights_SlaterSumNN(n,d,widths_and_m):
+	widths,m=widths_and_m
 	assert widths[0]==d, 'Slater NN takes d-dimensional inputs.'
-	assert widths[-1]%n==0, 'Slater NN (single Phi) output size must be a multiple of n.'
-	return mv.initweights_NN(widths,key=key)
-
-def initweights_SlaterSumNN_nPhis(n,d,widths,key=cfg.nextkey()):
-	assert widths[0]==d, 'Slater NN takes d-dimensional inputs.'
-	_,*keys=rnd.split(key,n+3)
-	return [mv.initweights_NN(widths,key=keys[i]) for i in range(n)]
-
+	assert widths[-1]==1, 'Slater NN (separate phis) has 1-dimensional outputs.'
+	return [[mv.initweights_NN(widths,key=cfg.nextkey()) for i in range(n)] for k in range(m)]
 
 
 
@@ -64,18 +72,24 @@ def initweights_SlaterSumNN_nPhis(n,d,widths,key=cfg.nextkey()):
 
 def init_AS_NN(n,d,widths,activation,key=cfg.nextkey()):
 	NN_NS=gen_NN_NS(activation)
-	return Learner(gen_Af(n,NN_NS),gen_lossgrad_Af(n,NN_NS,cfg.lossfn),initweights_AS_NN(n,d,widths,key=key))
-	
-def init_SlaterSumNN_singlePhi(n,d,widths,activation,key=cfg.nextkey()):
-	NN=gen_NN(activation)
-	Af=gen_SlaterSum_singlePhi(n,NN)
-	return Learner(Af,mv.gen_lossgrad(Af),initweights_SlaterSumNN_singlePhi(n,d,widths,key=key))
-	
-def init_SlaterSumNN_nPhis(n,d,widths,activation,key=cfg.nextkey()):
-	NN=gen_NN(activation)
-	Af=gen_SlaterSum_nPhis(n,NN)
-	return Learner(Af,mv.gen_lossgrad(Af),initweights_SlaterSumNN_nPhis(n,d,widths,key=key))
+	return AS_Learner(gen_Af(n,NN_NS),gen_lossgrad_Af(n,NN_NS,cfg.lossfn),NN_NS,initweights_AS_NN(n,d,widths,key=key))
 
+def init_SlaterSumNN(n,d,widths_and_m,activation):
+	NN=gen_NN_wideoutput(activation)
+	Af=gen_SlaterSum(n,NN)
+	return AS_Learner(Af,mv.gen_lossgrad(Af),mv.sum_f(mv.product_f(NN)),initweights_SlaterSumNN(n,d,widths_and_m))
+
+"""	
+#def init_SlaterSumNN_singlePhi(n,d,widths,activation,key=cfg.nextkey()):
+#	NN=gen_NN(activation)
+#	Af=gen_SlaterSum_singlePhi(n,NN)
+#	return Learner(Af,mv.gen_lossgrad(Af),initweights_SlaterSumNN_singlePhi(n,d,widths,key=key))
+#	
+#def init_SlaterSumNN_nPhis(n,d,widths,activation,key=cfg.nextkey()):
+#	NN=gen_NN(activation)
+#	Af=gen_SlaterSum_nPhis(n,NN)
+#	return Learner(Af,mv.gen_lossgrad(Af),initweights_SlaterSumNN_nPhis(n,d,widths,key=key))
+"""	
 
 #----------------------------------------------------------------------------------------------------
 
@@ -85,17 +99,11 @@ def init_SlaterSumNN_nPhis(n,d,widths,activation,key=cfg.nextkey()):
 def init_target(targettype,*args):
 	cfg.log('loading target function '+targettype)
 
-	target={\
-	'AS_NN':init_AS_NN,\
-	'SlaterSumNN_singlePhi':init_SlaterSumNN_singlePhi,\
-	'SlaterSumNN_nPhis':init_SlaterSumNN_nPhis,\
-	}[targettype](*args).as_static() if 'NN' in targettype \
+	target=init_learner(targettype,*args).as_static() if 'NN' in targettype \
 	else\
 	{'HermiteSlater':examplefunctions.HermiteSlater}[targettype](args[0],'H',1/8)
 
-	if 'AS' in targettype:
-		target=AS_HEAVY.makeblockwise(target,lambda i,blocks:cfg.trackcurrent('blockeval','evaluating static function on block {}/{}'.format(i,blocks)))
-
+	target=AS_HEAVY.makeblockwise(target,lambda i,blocks:cfg.trackcurrent('blockeval','evaluating static function on block {}/{}'.format(i,blocks)))
 	return target
 		
 
@@ -106,8 +114,9 @@ def init_learner(learnertype,*args):
 
 	return {\
 	'AS_NN':init_AS_NN,\
-	'SlaterSumNN_singlePhi':init_SlaterSumNN_singlePhi,\
-	'SlaterSumNN_nPhis':init_SlaterSumNN_nPhis\
+	#'SlaterSumNN_singlePhi':init_SlaterSumNN_singlePhi,\
+	#'SlaterSumNN_nPhis':init_SlaterSumNN_nPhis\
+	'SlaterSumNN':init_SlaterSumNN,
 	}[learnertype](*args)
 
 

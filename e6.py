@@ -31,32 +31,32 @@ import AS_functions as ASf
 
 import e1
 
-#jax.config.update("jax_enable_x64", True)
+jax.config.update("jax_enable_x64", True)
 
 
 
 
 # e2
-explanation='Example 2\n\
+explanation='Example 6\n\
 In order not to give an unfair advantage to either activation function \n\
 we let the target function in this example be the sum of two antisymmetrized NNs, \n\
 one constructed with each activation function. Both NNs are normalized to have the same magnitude.'
 
 
-exname='e2'
+exname='e6'
 
 
 def run(cmdargs):
 
 	params={
-	'targettype':'AS_NN',
+	'targettype':'SlaterSumNN',
 	'learnertype':'AS_NN',
-	'n':5,
+	'n':4,
 	'd':1,
 	'samples_train':10000,
-	'samples_test':250,
-	'targetwidths':[5,5,5,5,5,1],
-	'learnerwidths':[5,250,1],
+	'samples_test':1000,
+	'targetwidths':[[1,25,25,1],10],
+	'learnerwidths':[4,100,1],
 	# e2
 	#'targetactivation':both,
 	#'learneractivation':?,
@@ -144,14 +144,12 @@ def run(cmdargs):
 
 	# e2
 	slate.addspace(2)
-	#slate.addtext(lambda *_:'magnitudes of weights in each layer: {}'.format(cfg.terse([util.norm(W) for W in cfg.getval('weights')[0]])))
-	#slate.addtext(lambda *_:'||f|| = {:.2f}'.format(cfg.getval('NS norm')))
-	#slate.addtext(lambda *_:'||f||/||Af|| = {:.2f}'.format(cfg.getval('normratio')))
+	slate.addtext(lambda *_:'magnitudes of weights in each layer: {}'.format(cfg.terse([util.norm(W) for W in cfg.getval('weights')[0]])))
 
 
 	trainer=learning.Trainer(learner,X,Y)
-	sc1=cfg.Scheduler(cfg.arange(60,3600,60))
-	sc3=cfg.Scheduler(cfg.expsched(.1,.1))
+	sc1=cfg.Scheduler(cfg.defaultsched)
+	sc2=cfg.Scheduler(cfg.arange(0,3600,5)+cfg.arange(3600,3600*24,3600))
 	cfg.log('\nStart training.\n')
 
 	while sc1.elapsed()<timebound:
@@ -161,15 +159,12 @@ def run(cmdargs):
 		if sc1.dispatch():
 			trainer.save()
 			fig1=e1.getfnplot(sections,trainer.get_learned())
-			fig2=e1.getlossplots()
-			fig3,fig4=e1.getnormplots()
-
-			for fig in [fig1,fig2,fig3,fig4]:
-				fig.title(learneractivation)
 			cfg.savefig(*['{}{}{}'.format(path,int(sc1.elapsed()),'s.pdf') for path in cfg.outpaths],fig=fig1)
+
+		if sc2.dispatch():
+			cfg.trackhist('test loss',cfg.lossfn(trainer.get_learned()(X_test),Y_test))
+			fig2=e1.getlossplots()
 			cfg.savefig(*[path+'losses.pdf' for path in cfg.outpaths],fig=fig2)
-			cfg.savefig(*[path+'fnorm.pdf' for path in cfg.outpaths],fig=fig3)
-			cfg.savefig(*[path+'Afnorm.pdf' for path in cfg.outpaths],fig=fig4)
 
 			# e2
 			try:
@@ -177,14 +172,6 @@ def run(cmdargs):
 				cfg.savefig('outputs/{}/comparetraining.pdf'.format(exname),fig=fig3)
 			except Exception as e:
 				cfg.log('Comparison plot of losses (outputs/[examplename]/comparetraining.pdf) will be generated once script has run with both activation functions.')
-
-
-
-		if sc3.dispatch():
-			cfg.trackhist('test loss',cfg.lossfn(learner.as_static()(X_test),Y_test))
-
-			cfg.trackhist('NS norm',util.norm(learner.static_NS()(X_test)))
-			cfg.trackhist('AS norm',util.norm(learner.as_static()(X_test)))
 
 		
 
@@ -195,36 +182,6 @@ def run(cmdargs):
 
 # e2
 def getlosscomparisonplots(histpaths):
-
-	plt.close('all')
-	fig2,(ax21,ax22)=plt.subplots(1,2,figsize=(15,7))
-	hists={ac:cfg.retrieve(histpaths[ac]) for ac in activations}
-
-	plottestloss(ax21,hists)
-	ax.set_ylim(0,1)
-	plottestloss(ax22,hists,logscale=True)
-	ax.set_yscale('log')
-
-	return fig2
-
-# e2
-def plottestloss(ax,hists,logscale=False):
-
-	ax.plot(*[hists['ReLU']['test loss'][_] for _ in ['timestamps','vals']],'bo-',label='ReLU')
-	ax.plot(*[hists['tanh']['test loss'][_] for _ in ['timestamps','vals']],'rd:',label='tanh')
-	
-	ax.legend()
-	ax.set_xlabel('seconds')
-
-	if logscale:
-	else:
-
-
-
-
-
-# e2
-def getnormcomparisonplots(histpaths):
 
 	plt.close('all')
 	fig2,(ax21,ax22)=plt.subplots(1,2,figsize=(15,7))
@@ -248,6 +205,7 @@ def plottestloss(ax,hists,logscale=False):
 		ax.set_yscale('log')
 	else:
 		ax.set_ylim(0,1)
+
 
 
 #----------------------------------------------------------------------------------------------------

@@ -158,8 +158,10 @@ class Stopwatch:
 
 arange=lambda *ab:list(range(*ab))
 
-defaultsched=jnp.array(arange(5)+arange(5,20,5)+arange(20,60,10)+arange(60,300,30)+arange(300,600,60)+arange(600,3600,300)+arange(3600,24*3600,3600))
+defaultsched=jnp.array(arange(0,60,10)+arange(60,300,30)+arange(300,600,60)+arange(600,3600,300)+arange(3600,24*3600,3600))
 
+def expsched(step1,delta):
+	return jnp.concatenate([jnp.arange(0,step1/delta,step1),(step1/delta)*jnp.exp(jnp.arange(0,100,delta))])
 
 class Scheduler:
 	def __init__(self,sched=defaultsched):

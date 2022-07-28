@@ -22,7 +22,7 @@ import pdb
 
 
 
-def gen_NN(activation):
+def gen_NN_wideoutput(activation):
 
 	@jax.jit
 	def NN(params,X):
@@ -30,9 +30,15 @@ def gen_NN(activation):
 		for W,b in zip(Ws[:-1],bs):
 			X=jnp.inner(X,W)+b[None,:]
 			X=activation(X)
-		return jnp.squeeze(jnp.inner(X,Ws[-1]))
+		#return jnp.squeeze(jnp.inner(X,Ws[-1]))
+		return jnp.inner(X,Ws[-1])
 
 	return NN
+
+
+def gen_NN(activation):
+	return util.scalarfunction(gen_NN_wideoutput(activation))
+
 
 def gen_NN_NS(activation):
 
@@ -126,3 +132,60 @@ def initweights_NN(widths,key):
 	bs=[rnd.normal(key,(m,)) for m,key in zip(widths[1:-1],bkeys)]
 
 	return [Ws,bs]
+
+
+
+#----------------------------------------------------------------------------------------------------
+# operations on functions
+#----------------------------------------------------------------------------------------------------
+
+
+def sum_f(f):
+	
+	@jax.jit
+	def sf(paramsbundle,X):
+		out=0
+		for params in paramsbundle:
+			out=out+f(params,X)
+		return out
+
+	return sf
+
+
+def product_f(f):
+	
+	@jax.jit
+	def pr(paramsbundle,X):
+		out=0
+		for i,params in enumerate(paramsbundle):
+			out=out*f(params,X[:,i,:])
+		return out
+
+	return pr
+
+
+
+def add_static_f(*fs):
+
+	@jax.jit
+	def sumf(X):
+		out=0
+		for f in fs:
+			out=out+f(X)
+		return out
+	return sumf
+
+
+		
+
+
+
+
+
+
+
+
+
+
+
+

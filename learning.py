@@ -116,6 +116,17 @@ class Learner:
 
 
 
+class AS_Learner(Learner):
+	def __init__(self,*args):
+		super().__init__(*args)
+		self.NS=args[-2]
+
+	def static_NS(self):
+		return util.fixparams(self.NS,self.weights)
+
+
+
+
 #----------------------------------------------------------------------------------------------------
 # setup
 #----------------------------------------------------------------------------------------------------
