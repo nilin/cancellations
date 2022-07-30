@@ -42,7 +42,6 @@ class CrossSections:
 		self.interval=jnp.arange(-1,1,2/fineness)
 		self.lines=[linethrough(x0,self.interval) for x0 in x0s]
 		self.ys=[target(line) for line in self.lines]
-		self.target=target
 
 	def plot(self,axs,learned):
 		for ax,x,y in zip(axs,self.lines,self.ys):
@@ -50,51 +49,23 @@ class CrossSections:
 			ax.plot(self.interval,learned(x),'r',label='learned')
 			ax.legend()
 		
+
+
+
+class Plotter(cfg.State):
+	
+	def registerstate(self,t,state):
+		data=processstate(state)
+		for k,val in data.items():
+			self.remember(k,val,t=t)
+
+
+	def processhist(self,paramshist,schedule):
+		sc=cfg.Scheduler()
+		timestamps,states=sc.filter(paramshist['timestamps'],paramshist['vals'])
+		for t,state in zip(timestamps,states):
+			registerstate(t,state)
 		
-"""
 
-#				
-#def plotalongline(ax,learned,target,X,Y,**kwargs):
-#
-#
-#	#x0=X[jnp.argmax(Y**2)]
-#
-#
-#	cfg.debuglog(x0.shape)
-#	I,x=linethrough(x0,**kwargs)
-#
-#	ax.plot(I,target(x),'b',label='target')
-#	ax.plot(I,learned(x),'r',label='learned')
-#	ax.legend()
-#
-#
-
-
-#
-#def partition(bins,x,*ys):
-#	bin_nrs=np.digitize(x,bins)
-#	blocks=[np.where(bin_nrs==b)[0] for b in range(bin_nrs[-1]+1)]
-#	return [[np.array(y)[I] for I in blocks] for y in (x,)+ys]
-#
-#	
-#
-#
-#def ploterrorhist(ax,hists,logscale=False):
-#
-#	train=hists['minibatch loss']
-#	test=hists['test loss']
-#	t_train_blocks,train_loss_blocks=partition(test['timestamps'],train['timestamps'],train['vals'])
-#	t_train,train_loss=[np.average(t) for t in t_train_blocks],[np.average(l) for l in train_loss_blocks]
-#	ax.plot(t_train,train_loss,'rd--',label='training loss')
-#	ax.plot(test['timestamps'],test['vals'],'bo-',label='test loss')
-#	
-#	ax.legend()
-#	ax.set_xlabel('seconds')
-#	if logscale:
-#		ax.set_yscale('log')
-#	else:
-#		ax.set_ylim(0,1)
-#
-#
-#
-"""
+	
+		

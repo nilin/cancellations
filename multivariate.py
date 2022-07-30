@@ -11,7 +11,7 @@ import math
 import jax.random as rnd
 
 import config as cfg
-
+from util import activations
 import pdb
 
 
@@ -22,7 +22,8 @@ import pdb
 
 
 
-def gen_NN_wideoutput(activation):
+def gen_NN_wideoutput(ac):
+	activation=activations[ac]
 
 	@jax.jit
 	def NN(params,X):
@@ -41,7 +42,6 @@ def gen_NN(activation):
 
 
 def gen_NN_NS(activation):
-
 	NN=gen_NN(activation)
 
 	@jax.jit

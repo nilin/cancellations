@@ -18,11 +18,6 @@ import datetime
 import sys
 
 
-lossfn=util.sqloss
-heavy_threshold=8
-BOX='\u2588'
-box='\u2592'
-dash='\u2015'
 
 
 
@@ -44,23 +39,10 @@ def timestamp():
 # tracking
 #====================================================================================================
 
-t0=time.perf_counter()
-trackedvals=dict()
-hists=dict()
-eventlisteners=dict()
-sessionID=nowstr()
-
-
-outpaths=set()
-
-def histpaths():
-	return [path+'hist' for path in outpaths]
-
-def logpaths():
-	return [path+'log' for path in outpaths]+['logs/'+sessionID]
 
 
 #----------------------------------------------------------------------------------------------------
+# temporary values
 
 def addlistener(listener,*signals):
 	for signal in signals:
@@ -71,121 +53,160 @@ def trackcurrent(name,val):
 	trackedvals[name]=(timestamp(),val)
 	pokelisteners(name)
 
-def setstatic(name,val):
-	assert name not in trackedvals
-	trackcurrent(name,val)
-
 def getval(name):
-	return trackedvals[name][1]
+	try:
+		return trackedvals[name][1]
+	except:
+		return sessionstate.static[name]
 
 def pokelisteners(signal,*args):
 	if signal in eventlisteners:	
 		for listener in eventlisteners[signal]:
 			listener.poke(signal,*args)
 
+
 #----------------------------------------------------------------------------------------------------
 
 
-def trackhist(name,val):
-	if name not in hists:
-		hists[name]={'timestamps':[],'vals':[]}
-	hists[name]['timestamps'].append(timestamp())
-	hists[name]['vals'].append(val)
+def histpaths():
+	return [path+'hist' for path in outpaths]
+
+def logpaths():
+	return [path+'log' for path in outpaths]+['logs/'+sessionID]
+
+
+
+class State:
+	def __init__(self,static=None,hists=None):
+		self.static=dict() if static==None else static
+		self.hists=dict() if hists==None else hists
+
+	def remember(self,name,val,t=timestamp()):
+		if name not in self.hists:
+			self.hists[name]={'timestamps':[],'vals':[]}
+		self.hists[name]['timestamps'].append(t)
+		self.hists[name]['vals'].append(val)
+
+	def save(self,*paths):
+		save({'static':self.static,'hists':self.hists},*paths)
+
+	def gethist(self,name):
+		return self.hists[name]['timestamps'],self.hists[name]['vals']
+
+
+def loadstate(path):
+	state,hists=[get(path)[k] for k in ['state','hists']]
+	return State(state=state,hists=hists)
+
+	
+def getrecentlog(n):
+	return sessionstate.gethist('log')[1][-n:]
+
+def get_errlog():
+	try:
+		return sessionstate.gethist('errlog')[1]
+	except:
+		return []
+
+def setstatic(name,val):
+	assert name not in sessionstate.static
+	sessionstate.static[name]=val
+	log(name+'={}'.format(val))
+
+def register(lcls,*names):
+	for name in names:
+		setstatic(name,lcls[name])
+
+def remember(name,val):
+	sessionstate.remember(name,val)
 	trackcurrent(name,val)
 
-def savehist(*paths):
-	save(hists,*paths)
+def savestate(*paths):
+	sessionstate.save(*paths)
 		
 def autosave():
-	savehist(*histpaths())
+	savestate(*histpaths())
+def loadvarhist(path,varname):
+	tempstate=loadstate(path)
+	hist=tempstate.gethist(varname)
+	del tempstate
+	return hist
 
-def gethist(name,timestamps=False):
-	return hists[name] if timestamps else hists[name]['vals']
 
-def gethists():
-	return hists
 
 
 #----------------------------------------------------------------------------------------------------
 
 def log(msg):
 	msg='{} | {}'.format(datetime.timedelta(seconds=int(timestamp())),msg)
-	trackhist('log',msg)
-	write(msg+'\n',*logpaths())
+	remember('log',msg)
+	write(msg.replace('\n','|')+'\n',*logpaths())
+	write(str(int(timestamp())),*[os.sep.join(pathlog.split(os.sep)[:-1])+os.sep+'last seen' for pathlog in logpaths()],mode='w')	
 	pokelisteners('log')
 
-
-def debuglog(msg):
+def errlog(msg):
+	remember('errlog',msg)
 	write(str(msg)+'\n\n\n','debug/'+sessionID)
+
+def dbprint(msg):
+	dbprintbuffer.append(msg)
 
 #----------------------------------------------------------------------------------------------------
 #====================================================================================================
 
 
-def retrievevarhist(path,varname):
-	varhist=get(path)[varname]
-	return varhist['timestamps'],varhist['vals']
-
-def retrievelastval(path,varname):
-	return get(path)[varname]['vals'][-1]
-
-
-
 #====================================================================================================
 
 
-
-class Stopwatch:
-	def __init__(self):
-		self.time=0
-		self.tick()
-
-	def tick(self):
-		t=self.elapsed()
-		self.time=time.perf_counter()
-		return t
-
-	def elapsed(self):
-		return time.perf_counter()-self.time
-
-	def reset_after(self,timebound):
-		if self.elapsed()>timebound:
-			self.tick()
-			return True
-		else:
-			return False
-
+class Timeup(Exception): pass
 
 arange=lambda *ab:list(range(*ab))
 
-defaultsched=jnp.array(arange(0,60,10)+arange(60,300,30)+arange(300,600,60)+arange(600,3600,300)+arange(3600,24*3600,3600))
+#def defaultsched(timebound):
+#	jnp.array([5]+arange(0,60,10)+arange(60,300,30)+arange(300,600,60)+arange(600,hour,300)+arange(hour,timebound,hour))
 
-def expsched(step1,delta):
-	return jnp.concatenate([jnp.arange(0,step1/delta,step1),(step1/delta)*jnp.exp(jnp.arange(0,100,delta))])
+def expsched(step1,timebound,delta=.1):
+	t1=step1/delta
+	return jnp.concatenate([jnp.arange(0,t1,step1),jnp.exp(jnp.arange(jnp.log(t1),jnp.log(timebound),delta)),jnp.array([timebound])])
+
+def periodicsched(step,timebound):
+	return jnp.array(arange(step,timebound,step)+[timebound])
+
 
 class Scheduler:
-	def __init__(self,sched=defaultsched):
+	def __init__(self,sched=None):
+		if sched==None:
+			sched=defaultsched
 		self.sched=deque(copy.deepcopy(sched))
 		self.t0=time.perf_counter()
 
 	def elapsed(self):
 		return time.perf_counter()-self.t0
 
-	def dispatch(self):
+	def dispatch(self,t=None):
+		if t==None:t=self.elapsed()
 		disp=False
-		t=self.elapsed()
 		while t>self.sched[0]:
-			self.sched.popleft()
 			disp=True
+			self.sched.popleft()
+			if len(self.sched)==0:
+				raise Timeup
 		return disp
-		
+	
+	def filter(self,times,*valueshists):
+		times=[]
+		filteredhists=[[] for hist in valueshists]
+		for t,*values in zip(times,*valueshists):
+			if self.dispatch(t):
+				times.append(t)
+				for val,hist in zip(values,filteredhists):
+					hist.append(val)
+		return times,*filteredhists
 		
 
 
 #====================================================================================================
 
-keys=[rnd.PRNGKey(0)]
-keys=deque(keys)
 
 def nextkey():
 	keys=globals()['keys']
@@ -287,8 +308,41 @@ def terse(l):
 #====================================================================================================
 
 
+def longestduration(folder):
+	def relorder(subfolder):
+		try:
+			with open(folder+'/'+subfolder+'/last seen','r') as f:
+				return int(f.read())
+		except:
+			return -1
+	return folder+max([(subfolder,relorder(subfolder)) for subfolder in os.listdir(folder)],key=lambda pair:pair[1])[0]
+	
 
 
+lossfn=util.sqloss
+heavy_threshold=8
+BOX='\u2588'
+box='\u2592'
+dash='\u2015'
+
+t0=time.perf_counter()
+trackedvals=dict()
+hists={'static':dict()}
+eventlisteners=dict()
+sessionID=nowstr()
+outpaths=set()
+
+sessionstate=State()
+dbprintbuffer=['no prints']
+
+keys=[rnd.PRNGKey(0)]
+keys=deque(keys)
+
+hour=3600
+day=24*hour
+week=7*day
+
+cmdparams,cmdredefs=parse_cmdln_args()
 
 # testing
 

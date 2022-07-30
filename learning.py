@@ -65,7 +65,7 @@ class Trainer:
 		updates,self.state=self.opt.update(grad,self.state,self.learner.weights)
 		self.learner.weights=optax.apply_updates(self.learner.weights,updates)
 
-		cfg.trackhist('minibatch loss',loss)
+		cfg.remember('minibatch loss',loss)
 
 
 	def step(self):
@@ -82,7 +82,7 @@ class Trainer:
 		self.minibatches=deque(util.chop(self.X,self.Y,chunksize=self.minibatchsize))
 
 		cfg.log('start new epoch')
-		cfg.trackhist('minibatchsize',self.minibatchsize)
+		cfg.remember('minibatchsize',self.minibatchsize)
 		cfg.trackcurrent('minibatches',len(self.minibatches))
 
 
@@ -94,10 +94,12 @@ class Trainer:
 	def get_learned(self):
 		return self.learner.as_static()
 
+	def checkpoint(self):
+		cfg.remember('weights',copy.deepcopy(self.learner.weights))
+		cfg.log('learner checkpoint')
 
 	def save(self):
-		cfg.trackhist('weights',copy.deepcopy(self.learner.weights))
-		cfg.log('learner checkpoint')
+		self.checkpoint()
 		cfg.autosave()
 
 

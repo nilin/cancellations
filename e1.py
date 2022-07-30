@@ -10,6 +10,7 @@ import sys
 import jax
 import jax.numpy as jnp
 import jax.random as rnd
+import numpy as np
 import AS_functions
 import learning
 import plottools as pt
@@ -50,7 +51,8 @@ def run(cmdargs):
 	'n':5,
 	'd':1,
 	'samples_train':10000,
-	'samples_test':1000,
+	'samples_test':10000,
+	'samples_quicktest':100,
 	'targetwidths':[5,25,25,1],
 	'learnerwidths':[5,100,1],
 	'targetactivation':'tanh',
@@ -71,16 +73,15 @@ def run(cmdargs):
 
 	sessioninfo=explanation+'\n'+cfg.formatvars([(k,globals()[k]) for k in varnames],separator='\n',ignore=ignore)
 	cfg.setstatic('sessioninfo',sessioninfo)
-	cfg.log('sessioninfo:\n'+sessioninfo)
 	cfg.write(sessioninfo,*[path+'info.txt' for path in cfg.outpaths],mode='w')
 
 
 	#----------------------------------------------------------------------------------------------------
 	cfg.log('Generating AS functions.')
 
-	t_args=(n,d,targetwidths,activations[targetactivation]) if 'NN' in targettype else (n,)
+	t_args=(n,d,targetwidths,targetactivation) if 'NN' in targettype else (n,)
 	target=ASf.init_target(targettype,*t_args) 
-	learner=ASf.init_learner(learnertype,n,d,learnerwidths,activations[learneractivation])
+	learner=ASf.init_learner(learnertype,n,d,learnerwidths,learneractivation)
 
 	
 	#----------------------------------------------------------------------------------------------------
@@ -105,6 +106,8 @@ def run(cmdargs):
 	#
 	cfg.log('Preparing cross sections for plotting.')
 	sections=pt.CrossSections(X,Y,target,3)
+	
+	plotter=E1plotter()
 
 	#----------------------------------------------------------------------------------------------------
 	# train
@@ -113,41 +116,60 @@ def run(cmdargs):
 	slate.addtext(lambda *_:'||f|| = {:.2f}'.format(cfg.getval('NS norm')))
 	slate.addtext(lambda *_:'||f||/||Af|| = {:.2f}'.format(cfg.getval('norm ratio')))
 
+	
+	
+
 
 	trainer=learning.Trainer(learner,X,Y)
-	sc1=cfg.Scheduler(cfg.defaultsched)
-	sc2=cfg.Scheduler(cfg.arange(0,3600,5)+cfg.arange(3600,3600*24,3600))
-	sc3=cfg.Scheduler(cfg.expsched(.1,.1))
+	sc0=cfg.Scheduler(cfg.expsched(.1,timebound))
+	sc1=cfg.Scheduler(cfg.periodicsched(1,timebound))
+	sc2=cfg.Scheduler(cfg.periodicsched(10,timebound))
 	cfg.log('\nStart training.\n')
 
-	while time.perf_counter()<timebound:
+
+	while True:
 		trainer.step()
 		cfg.pokelisteners('refresh')
 
+		if sc0.dispatch():
+			trainer.checkpoint()
+
 		if sc1.dispatch():
+			cfg.trackcurrent('quick test loss',quicktest(learner,X_test,Y_test,samples_quicktest))
+
+		if sc2.dispatch():
 			trainer.save()
+
 			fig1=getfnplot(sections,trainer.get_learned())
 			cfg.savefig(*['{}{}{}'.format(path,int(sc1.elapsed()),'s.pdf') for path in cfg.outpaths],fig=fig1)
 
-		if sc2.dispatch():
-			cfg.trackhist('test loss',cfg.lossfn(trainer.get_learned()(X_test),Y_test))
-			fig2=getlossplots()
+
+			plotdata=cfg.sessionstate.hists
+			cfg.remember('test loss',cfg.lossfn(trainer.get_learned()(X_test),Y_test))
+			fig2=getlossplots(plotdata)
 			cfg.savefig(*[path+'losses.pdf' for path in cfg.outpaths],fig=fig2)
-
-
-	#sc3=cfg.Scheduler(cfg.expsched(.1,.1))
-		if sc3.dispatch():
-			cfg.trackhist('NS norm',util.norm(learner.static_NS()(X_test)))
-			cfg.trackhist('AS norm',util.norm(learner.as_static()(X_test)))
-			fig3,fig4=getnormplots()
+			cfg.remember('NS norm',util.norm(learner.static_NS()(X_test)))
+			cfg.remember('AS norm',util.norm(learner.as_static()(X_test)))
+			fig3,fig4=getnormplots(plotdata)
 			cfg.savefig(*[path+'fnorm.pdf' for path in cfg.outpaths],fig=fig3)
 			cfg.savefig(*[path+'Afnorm.pdf' for path in cfg.outpaths],fig=fig4)
 
+		
 
-
+def quicktest(learner,X_test,Y_test,samples):
+	I=np.random.choice(X_test.shape[0],samples)
+	return cfg.lossfn(learner.as_static()(X_test[I]),Y_test[I])
 
 
 #----------------------------------------------------------------------------------------------------
+
+
+class E1plotter(pt.Plotter):pass
+#
+#	def processstate(weights):
+#		
+
+
 
 def getfnplot(sections,learned):
 	plt.close('all')
@@ -159,19 +181,19 @@ def getfnplot(sections,learned):
 
 
 
-def getlossplots():
+def getlossplots(plotdata):
 	plt.close('all')
 	fig2,(ax21,ax22)=plt.subplots(1,2,figsize=(15,7))
 
-	plotlosshist(ax21,cfg.gethists())
-	plotlosshist(ax22,cfg.gethists())
+	plotlosshist(ax21,plotdata)
+	plotlosshist(ax22,plotdata)
 	ax21.set_ylim(0,1)
 	ax22.set_yscale('log')
 	return fig2
 
-def plotlosshist(ax,hists,logscale=False):
-	train=hists['minibatch loss']
-	test=hists['test loss']
+def plotlosshist(ax,plotdata,logscale=False):
+	train=plotdata['minibatch loss']
+	test=plotdata['test loss']
 	ax.plot(train['timestamps'],train['vals'],'r:',label='training loss')
 	ax.plot(test['timestamps'],test['vals'],'bo-',label='test loss')
 	
@@ -182,20 +204,20 @@ def plotlosshist(ax,hists,logscale=False):
 
 
 
-def getnormplots():
+def getnormplots(plotdata):
 	plt.close('all')
 	fig1,(ax11,ax12)=plt.subplots(1,2,figsize=(15,7))
 	fig2,(ax21,ax22)=plt.subplots(1,2,figsize=(15,7))
 
-	plotnormhist(ax11,ax21,cfg.gethists()) # f/A,A/f
-	plotnormhist(ax12,ax22,cfg.gethists()) # f/A,A/f log plots
+	plotnormhist(ax11,ax21,plotdata) # f/A,A/f
+	plotnormhist(ax12,ax22,plotdata) # f/A,A/f log plots
 	ax12.set_yscale('log')
 	ax22.set_yscale('log')
 	return fig1,fig2
 
-def plotnormhist(ax1,ax2,hists):
-	NSnorm=hists['NS norm']
-	ASnorm=hists['AS norm']
+def plotnormhist(ax1,ax2,plotdata):
+	NSnorm=plotdata['NS norm']
+	ASnorm=plotdata['AS norm']
 
 	ts,NSnorm,ASnorm=zip(*zip(NSnorm['timestamps'],NSnorm['vals'],ASnorm['vals']))
 

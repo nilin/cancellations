@@ -100,8 +100,8 @@ def run(cmdargs):
 	cfg.log('Generating AS functions.')
 
 	# e2
-	targets=[ASf.init_target(targettype,n,d,targetwidths,activations[ac]) for ac in ['ReLU','tanh']]
-	learner=ASf.init_learner(learnertype,n,d,learnerwidths,activations[learneractivation])
+	targets=[ASf.init_target(targettype,n,d,targetwidths,ac) for ac in ['ReLU','tanh']]
+	learner=ASf.init_learner(learnertype,n,d,learnerwidths,learneractivation)
 
 	
 	#----------------------------------------------------------------------------------------------------

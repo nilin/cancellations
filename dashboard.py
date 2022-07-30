@@ -22,13 +22,19 @@ dash='\u2015'
 
 
 
-class AbstractSlate:
+class AbstractSlate():
 
 	def __init__(self,*signals):
 		self.elements=[]
 		self.ln=1
 		cfg.addlistener(self,*signals)
-		self.signals=signals
+		self.signals=list(signals)+['errlog']
+		self.trackedvarnames=set()
+		self.memory=cfg.State()
+
+	def trackvars(self,*names):
+		self.trackedvarnames.update(names)
+		cfg.addlistener(self,*names)
 
 	def add(self,display,height=1):
 		self.elements.append((self.ln,display))
@@ -37,9 +43,17 @@ class AbstractSlate:
 	def poke(self,signal,*args):
 		if signal in self.signals:
 			self.refresh()
+		if signal in self.trackedvarnames:
+			name=signal
+			self.memory.remember(name,cfg.getval(name))
 
 	def refresh(self):
 		self.draw()
+		print('\ndebug prints: {}'.format(cfg.dbprintbuffer[-1]))
+		for err in cfg.get_errlog():
+			print(err)
+
+		
 
 	def addbar(self,fn,**kwargs):
 		self.add(Bar(fn,self,**kwargs))
@@ -76,11 +90,12 @@ class DisplayElement:
 
 class Bar(DisplayElement):
 	def __init__(self,*x,style=cfg.BOX,**y):
+		#if 'emptystyle' not in y:y['emptystyle']='.'
 		super().__init__(*x,**y)
 		self.Style=math.ceil(self.slate.cols()/len(style))*style
 
 	def getstr(self):
-		val=self.fn()
+		val=self.fn(self.slate.memory)
 		return barstring(val,self.slate.cols(),Style=self.Style)
 	
 class Text(DisplayElement):
@@ -88,7 +103,7 @@ class Text(DisplayElement):
 		if type(self.fn)==str:
 			return self.fn
 		else:
-			msg=self.fn()
+			msg=self.fn(self.slate.memory)
 		return '\n'.join(msg) if type(msg)==list else msg
 
 
@@ -162,26 +177,27 @@ class MinimalSlate(AbstractSlate):
 
 def display_0():
 	slate=MinimalSlate('refresh','log')
-	slate.addtext(lambda *_:[s for s in cfg.gethist('log')[-1:]],height=1)
-	slate.addbar(lambda *_:np.average(np.array(cfg.gethist('minibatch loss'))[-10:]),style='training loss (avg of 10)',emptystyle='.')
-	slate.addbar(lambda *_:cfg.getval('test loss'),style='test loss',emptystyle='.')
+	slate.addtext(lambda *_:[s for s in cfg.getrecentlog(1)],height=1)
+	slate.addbar(lambda *_:np.average(np.array(slate.gethist('minibatch loss')[1])[10:]),style='training loss ',emptystyle='.')
 	return slate
 
 def display_1():
 	slate=Slate('refresh','log')
+	slate.trackvars('minibatch loss','quick test loss')
 	slate.addtext(lambda *_:cfg.getval('sessioninfo'),height=15)
 	slate.addline()
-	slate.addtext(lambda *_:[s for s in cfg.gethist('log')[-20:]],height=20)
+	slate.addtext(lambda *_:cfg.getrecentlog(20),height=20)
 	slate.addline()
 	slate.addspace(2)
 	slate.addtext('training loss of 10, 100 minibatches')
-	slate.addtext(lambda *_:'{:.2f}'.format(np.average(np.array(cfg.gethist('minibatch loss'))[-10:])))
-	slate.addbar(lambda *_:np.average(np.array(cfg.gethist('minibatch loss'))[-10:]),emptystyle='.')
-	slate.addtext(lambda *_:'{:.2f}'.format(np.average(np.array(cfg.gethist('minibatch loss'))[-100:])))
-	slate.addbar(lambda *_:np.average(np.array(cfg.gethist('minibatch loss'))[-100:]),emptystyle='.')
+	slate.addtext(lambda memory,*_:'{:.2f}'.format(np.average(memory.gethist('minibatch loss')[1][-10:])))
+	slate.addbar(lambda memory,*_:np.average(memory.gethist('minibatch loss')[1][-10:]))
+	slate.addtext(lambda memory,*_:'{:.2f}'.format(np.average(memory.gethist('minibatch loss')[1][-100:])))
+	slate.addbar(lambda memory,*_:np.average(memory.gethist('minibatch loss')[1][-100:]))
 	slate.addspace(2)
-	slate.addtext(lambda *_:'test loss {:.2}'.format(cfg.getval('test loss')))
-	slate.addbar(lambda *_:cfg.getval('test loss'),emptystyle='.')
+	slate.addtext(lambda memory,*_:'test loss {:.2}'.format(np.average(memory.gethist('quick test loss')[1][-10])))
+	slate.addbar(lambda memory,*_:np.average(memory.gethist('quick test loss')[1][-10]))
+	#slate.addbar(lambda *_:cfg.getval('test loss'),emptystyle='.')
 	return slate
 
 
