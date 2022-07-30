@@ -79,8 +79,9 @@ def run(cmdargs):
 	#----------------------------------------------------------------------------------------------------
 	cfg.log('Generating AS functions.')
 
-	t_args=(n,d,targetwidths,targetactivation) if 'NN' in targettype else (n,)
-	target=ASf.init_target(targettype,*t_args) 
+	targetinitparams=(n,d,targetwidths,targetactivation) if 'NN' in targettype else (n,)
+	learnerinitparams=(learnertype,n,d,learnerwidths,learneractivation)
+	target=ASf.init_target(targettype,*targetinitparams) 
 	learner=ASf.init_learner(learnertype,n,d,learnerwidths,learneractivation)
 
 	
@@ -104,25 +105,20 @@ def run(cmdargs):
 
 
 	#
-	cfg.log('Preparing cross sections for plotting.')
-	sections=pt.CrossSections(X,Y,target,3)
-	
-	plotter=E1plotter()
+	sections=pt.CrossSections(X,Y,target,3)	
+	plotter=Plotter(['X_test','Y_test'],['minibatch loss'])
 
+	cfg.register(locals(),'learnerinitparams','X','Y','X_test','Y_test','sections')
 	#----------------------------------------------------------------------------------------------------
 	# train
 	#----------------------------------------------------------------------------------------------------
 
-	slate.addtext(lambda *_:'||f|| = {:.2f}'.format(cfg.getval('NS norm')))
-	slate.addtext(lambda *_:'||f||/||Af|| = {:.2f}'.format(cfg.getval('norm ratio')))
-
-	
 	
 
 
 	trainer=learning.Trainer(learner,X,Y)
 	sc0=cfg.Scheduler(cfg.expsched(.1,timebound))
-	sc1=cfg.Scheduler(cfg.periodicsched(1,timebound))
+	sc1=cfg.Scheduler(cfg.periodicsched(5,timebound))
 	sc2=cfg.Scheduler(cfg.periodicsched(10,timebound))
 	cfg.log('\nStart training.\n')
 
@@ -140,19 +136,12 @@ def run(cmdargs):
 		if sc2.dispatch():
 			trainer.save()
 
-			fig1=getfnplot(sections,trainer.get_learned())
+			fig1=getfnplot(sections,learner.as_static())
 			cfg.savefig(*['{}{}{}'.format(path,int(sc1.elapsed()),'s.pdf') for path in cfg.outpaths],fig=fig1)
 
-
-			plotdata=cfg.sessionstate.hists
-			cfg.remember('test loss',cfg.lossfn(trainer.get_learned()(X_test),Y_test))
-			fig2=getlossplots(plotdata)
-			cfg.savefig(*[path+'losses.pdf' for path in cfg.outpaths],fig=fig2)
-			cfg.remember('NS norm',util.norm(learner.static_NS()(X_test)))
-			cfg.remember('AS norm',util.norm(learner.as_static()(X_test)))
-			fig3,fig4=getnormplots(plotdata)
-			cfg.savefig(*[path+'fnorm.pdf' for path in cfg.outpaths],fig=fig3)
-			cfg.savefig(*[path+'Afnorm.pdf' for path in cfg.outpaths],fig=fig4)
+			plotter.process_state(learner)
+			plotter.plotlosshist()
+			plotter.plotweightnorms()
 
 		
 
@@ -163,78 +152,144 @@ def quicktest(learner,X_test,Y_test,samples):
 
 #----------------------------------------------------------------------------------------------------
 
+def getfnplot(sections,learner):
+	plt.close('all')
+	fig,axs=plt.subplots(1,3,figsize=(16,4))
+	sections.plot(axs,learner)
+	return fig
 
-class E1plotter(pt.Plotter):pass
+
+
+class Plotter(pt.Plotter):
+
+	def __init__(self,statics,trackedvars):
+		super().__init__()
+		for name in statics:
+			self.static[name]=cfg.getval(name)
+		for name in trackedvars:
+			self.hists[name]=cfg.sessionstate.linkentry(name)
+
+	def process_state(self,learner,t=None):
+		if t==None:t=cfg.timestamp()
+		self.remember('test loss',cfg.lossfn(learner.as_static()(self.static['X_test']),self.static['Y_test']),t)
+		self.remember('NS norm',util.norm(learner.static_NS()(self.static['X_test'])),t)
+		self.remember('AS norm',util.norm(learner.as_static()(self.static['X_test'])),t)
+		self.remember('weight norms',[util.norm(W) for W in learner.weights[0]],t)
+	
+	def plotlosshist(self):
+		fig,(ax1,ax2)=plt.subplots(1,2,figsize=(15,7))
+
+		def plotax(ax):
+			ax.plot(*self.gethist('minibatch loss'),'r:',label='training loss')
+			ax.plot(*self.gethist('test loss'),'bo-',label='test loss')
+			ax.legend()
+			ax.set_xlabel('seconds')
+
+		plotax(ax1)
+		plotax(ax2)
+		ax1.set_ylim(0,1)
+		ax2.set_yscale('log')
+		cfg.savefig(*[path+'losses.pdf' for path in cfg.outpaths],fig=fig)
+
+	def plotweightnorms(self):
+		fig,ax=plt.subplots()
+		ts,tslices=self.gethist('weight norms')
+		w1norms,w2norms=zip(*tslices)
+		ax.plot(ts,w1norms,'bo-',label='layer 1 weights')
+		ax.plot(ts,w2norms,'rd--',label='layer 2 weights')
+		ax.legend()	
+		cfg.savefig(*[path+'weightnorms.pdf' for path in cfg.outpaths],fig=fig)
+
+	def plot3(self):
+		ts,tslices=self.gethist('weight norms')
+		_,fnorm=self.gethist('NS norm')
+		_,losses=self.gethist('test loss')
+		weightnorms=[np.sqrt(x**2+y**2) for x,y in tslices]
+
+
+		fig,(ax1,ax2,ax3)=plt.subplots(1,3,figsize=(15,5))
+		ax1.plot(weightnorms,jnp.sqrt(jnp.array(losses)),'bo-')
+		ax1.set_xlabel('weights')
+		ax1.set_ylabel('l2 loss')
+
+		ax2.plot(fnorm,jnp.sqrt(jnp.array(losses)),'bo-')
+		ax2.set_xlabel('||f||')
+		ax2.set_ylabel('l2 loss')
+
+		ax3.plot(weightnorms,fnorm,'bo-')
+		ax3.set_xlabel('weights')
+		ax3.set_ylabel('||f||')
+
+		cfg.savefig(*[path+'plot3.pdf' for path in cfg.outpaths],fig=fig)
+
+
+
+		
+"""
+#	def getnormplots(plotdata):
+#		fig1,(ax11,ax12)=plt.subplots(1,2,figsize=(15,7))
+#		fig2,(ax21,ax22)=plt.subplots(1,2,figsize=(15,7))
 #
-#	def processstate(weights):
+#		def plotnormhist(ax1,ax2,plotdata):
+#			NSnorm=plotdata['NS norm']
+#			ASnorm=plotdata['AS norm']
+#
+#			ts,NSnorm,ASnorm=zip(*zip(NSnorm['timestamps'],NSnorm['vals'],ASnorm['vals']))
+#			Af_over_f=jnp.array(ASnorm)/jnp.array(NSnorm)
+#
+#			ax1.plot(ts,NSnorm,'rd--',label='||f||')
+#			ax1.plot(ts,1/Af_over_f,'bo-',label='||f||/||Af||')
+#
+#			ax2.plot(ts,ASnorm,'rd--',label='||Af||')
+#			ax2.plot(ts,Af_over_f,'bo-',label='||Af||/||f||')
+#			
+#			for ax in [ax1,ax2]:
+#				ax.legend()
+#				ax.set_xlabel('seconds')
+#				ax.grid(which='both')
+#
+#		plotnormhist(ax11,ax21,plotdata) # f/A,A/f
+#		plotnormhist(ax12,ax22,plotdata) # f/A,A/f log plots
+#		ax12.set_yscale('log')
+#		ax22.set_yscale('log')
+#		return fig1,fig2
+#
+#
+#
+#
+#
+#
+#def getnormplots(plotdata):
+#	plt.close('all')
+#	fig1,(ax11,ax12)=plt.subplots(1,2,figsize=(15,7))
+#	fig2,(ax21,ax22)=plt.subplots(1,2,figsize=(15,7))
+#
+#	def plotnormhist(ax1,ax2,plotdata):
+#		NSnorm=plotdata['NS norm']
+#		ASnorm=plotdata['AS norm']
+#
+#		ts,NSnorm,ASnorm=zip(*zip(NSnorm['timestamps'],NSnorm['vals'],ASnorm['vals']))
+#		Af_over_f=jnp.array(ASnorm)/jnp.array(NSnorm)
+#
+#		ax1.plot(ts,NSnorm,'rd--',label='||f||')
+#		ax1.plot(ts,1/Af_over_f,'bo-',label='||f||/||Af||')
+#
+#		ax2.plot(ts,ASnorm,'rd--',label='||Af||')
+#		ax2.plot(ts,Af_over_f,'bo-',label='||Af||/||f||')
 #		
-
-
-
-def getfnplot(sections,learned):
-	plt.close('all')
-	fig1,axs=plt.subplots(1,3,figsize=(16,4))
-	sections.plot(axs,learned)
-	return fig1
-
-
-
-
-
-def getlossplots(plotdata):
-	plt.close('all')
-	fig2,(ax21,ax22)=plt.subplots(1,2,figsize=(15,7))
-
-	plotlosshist(ax21,plotdata)
-	plotlosshist(ax22,plotdata)
-	ax21.set_ylim(0,1)
-	ax22.set_yscale('log')
-	return fig2
-
-def plotlosshist(ax,plotdata,logscale=False):
-	train=plotdata['minibatch loss']
-	test=plotdata['test loss']
-	ax.plot(train['timestamps'],train['vals'],'r:',label='training loss')
-	ax.plot(test['timestamps'],test['vals'],'bo-',label='test loss')
-	
-	ax.legend()
-	ax.set_xlabel('seconds')
-
-
-
-
-
-def getnormplots(plotdata):
-	plt.close('all')
-	fig1,(ax11,ax12)=plt.subplots(1,2,figsize=(15,7))
-	fig2,(ax21,ax22)=plt.subplots(1,2,figsize=(15,7))
-
-	plotnormhist(ax11,ax21,plotdata) # f/A,A/f
-	plotnormhist(ax12,ax22,plotdata) # f/A,A/f log plots
-	ax12.set_yscale('log')
-	ax22.set_yscale('log')
-	return fig1,fig2
-
-def plotnormhist(ax1,ax2,plotdata):
-	NSnorm=plotdata['NS norm']
-	ASnorm=plotdata['AS norm']
-
-	ts,NSnorm,ASnorm=zip(*zip(NSnorm['timestamps'],NSnorm['vals'],ASnorm['vals']))
-
-	Af_over_f=jnp.array(ASnorm)/jnp.array(NSnorm)
-
-	ax1.plot(ts,NSnorm,'rd--',label='||f||')
-	ax1.plot(ts,1/Af_over_f,'bo-',label='||f||/||Af||')
-
-	ax2.plot(ts,ASnorm,'rd--',label='||Af||')
-	ax2.plot(ts,Af_over_f,'bo-',label='||Af||/||f||')
-	
-	for ax in [ax1,ax2]:
-		ax.legend()
-		ax.set_xlabel('seconds')
-		ax.grid(which='both')
-
-
+#		for ax in [ax1,ax2]:
+#			ax.legend()
+#			ax.set_xlabel('seconds')
+#			ax.grid(which='both')
+#
+#	plotnormhist(ax11,ax21,plotdata) # f/A,A/f
+#	plotnormhist(ax12,ax22,plotdata) # f/A,A/f log plots
+#	ax12.set_yscale('log')
+#	ax22.set_yscale('log')
+#	return fig1,fig2
+#
+#
+"""
 
 #----------------------------------------------------------------------------------------------------
 

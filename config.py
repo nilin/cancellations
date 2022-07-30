@@ -81,9 +81,9 @@ class State:
 		self.static=dict() if static==None else static
 		self.hists=dict() if hists==None else hists
 
-	def remember(self,name,val,t=timestamp()):
-		if name not in self.hists:
-			self.hists[name]={'timestamps':[],'vals':[]}
+	def remember(self,name,val,t=None):
+		if t==None:t=timestamp()
+		self.initentry(name)
 		self.hists[name]['timestamps'].append(t)
 		self.hists[name]['vals'].append(val)
 
@@ -93,10 +93,32 @@ class State:
 	def gethist(self,name):
 		return self.hists[name]['timestamps'],self.hists[name]['vals']
 
+	def initentry(self,name):
+		if name not in self.hists:
+			self.hists[name]={'timestamps':[],'vals':[]}
 
-def loadstate(path):
-	state,hists=[get(path)[k] for k in ['state','hists']]
-	return State(state=state,hists=hists)
+	def linkentry(self,name):
+		self.initentry(name)
+		return self.hists[name]
+
+	def clonefrom(self,path):
+		D=load(path)
+		self.static=D['static']
+		self.hists=D['hists']
+
+#
+
+
+def retrievestate(path):
+	globals()['sessionstate']=State(*[load(path)[k] for k in ['static','hists']])
+
+
+		
+#
+#
+#def loadstate(path):
+#	state,hists=[get(path)[k] for k in ['state','hists']]
+#	return State(state=state,hists=hists)
 
 	
 def getrecentlog(n):
@@ -126,6 +148,7 @@ def savestate(*paths):
 		
 def autosave():
 	savestate(*histpaths())
+
 def loadvarhist(path,varname):
 	tempstate=loadstate(path)
 	hist=tempstate.gethist(varname)
@@ -160,7 +183,7 @@ def dbprint(msg):
 
 class Timeup(Exception): pass
 
-arange=lambda *ab:list(range(*ab))
+arange=lambda *ab:list(jnp.arange(*ab))
 
 #def defaultsched(timebound):
 #	jnp.array([5]+arange(0,60,10)+arange(60,300,30)+arange(300,600,60)+arange(600,hour,300)+arange(hour,timebound,hour))
@@ -174,9 +197,7 @@ def periodicsched(step,timebound):
 
 
 class Scheduler:
-	def __init__(self,sched=None):
-		if sched==None:
-			sched=defaultsched
+	def __init__(self,sched):
 		self.sched=deque(copy.deepcopy(sched))
 		self.t0=time.perf_counter()
 
@@ -194,14 +215,17 @@ class Scheduler:
 		return disp
 	
 	def filter(self,times,*valueshists):
-		times=[]
+		timeticks=[]
 		filteredhists=[[] for hist in valueshists]
-		for t,*values in zip(times,*valueshists):
-			if self.dispatch(t):
-				times.append(t)
-				for val,hist in zip(values,filteredhists):
-					hist.append(val)
-		return times,*filteredhists
+		try:
+			for t,*values in zip(times,*valueshists):
+				if self.dispatch(t):
+					timeticks.append(t)
+					for val,hist in zip(values,filteredhists):
+						hist.append(val)
+		except Timeup:
+			pass
+		return timeticks,*filteredhists
 		
 
 
@@ -247,7 +271,7 @@ def write(msg,*paths,mode='a'):
 		with open(path,mode) as f:
 			f.write(msg)
 	
-def retrieve(path):
+def load(path):
 	with open(path,"rb") as file:
 		return pickle.load(file)
 
@@ -327,7 +351,6 @@ dash='\u2015'
 
 t0=time.perf_counter()
 trackedvals=dict()
-hists={'static':dict()}
 eventlisteners=dict()
 sessionID=nowstr()
 outpaths=set()

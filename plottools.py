@@ -7,6 +7,7 @@ import optax
 import math
 import numpy as np
 import sys
+import AS_functions
 import matplotlib.pyplot as plt
 import numpy as np
 import learning
@@ -38,6 +39,8 @@ def linethrough(x,interval):
 
 class CrossSections:
 	def __init__(self,X,Y,target,nsections,fineness=500):
+
+		cfg.log('Preparing cross sections for plotting.')
 		x0s=samplepoints(X,Y,nsections)
 		self.interval=jnp.arange(-1,1,2/fineness)
 		self.lines=[linethrough(x0,self.interval) for x0 in x0s]
@@ -53,19 +56,12 @@ class CrossSections:
 
 
 class Plotter(cfg.State):
-	
-	def registerstate(self,t,state):
-		data=processstate(state)
-		for k,val in data.items():
-			self.remember(k,val,t=t)
 
+	def prep(self,emptylearner,schedule):
+		sc=cfg.Scheduler(schedule)
+		timestamps,states=sc.filter(self.hists['weights']['timestamps'],self.hists['weights']['vals'])
+		#timestamps,states=self.hists['weights']['timestamps'],self.hists['weights']['vals']
+		for i,(t,state) in enumerate(zip(timestamps,states)):
+			print('processing snapshot {}/{}'.format(i,len(timestamps)))
+			self.process_state(emptylearner.reset(state),t)
 
-	def processhist(self,paramshist,schedule):
-		sc=cfg.Scheduler()
-		timestamps,states=sc.filter(paramshist['timestamps'],paramshist['vals'])
-		for t,state in zip(timestamps,states):
-			registerstate(t,state)
-		
-
-	
-		

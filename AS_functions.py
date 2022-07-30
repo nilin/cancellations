@@ -66,18 +66,28 @@ def initweights_SlaterSumNN(n,d,widths_and_m):
 
 
 
-# init learner ----------------------------------------------------------------------------------------------------
+# init empty learner ----------------------------------------------------------------------------------------------------
 
-
-
-def init_AS_NN(n,d,widths,activation,key=cfg.nextkey()):
+def gen_AS_NN(n,d,widths,activation):
 	NN_NS=gen_NN_NS(activation)
-	return AS_Learner(gen_Af(n,NN_NS),gen_lossgrad_Af(n,NN_NS,cfg.lossfn),NN_NS,initweights_AS_NN(n,d,widths,key=key))
+	return AS_Learner(gen_Af(n,NN_NS),gen_lossgrad_Af(n,NN_NS,cfg.lossfn),NN_NS)
 
-def init_SlaterSumNN(n,d,widths_and_m,activation):
+def gen_SlaterSumNN(n,d,widths_and_m,activation):
 	NN=gen_NN_wideoutput(activation)
 	Af=gen_SlaterSum(n,NN)
-	return AS_Learner(Af,mv.gen_lossgrad(Af),mv.sum_f(mv.product_f(NN)),initweights_SlaterSumNN(n,d,widths_and_m))
+	return AS_Learner(Af,mv.gen_lossgrad(Af),mv.sum_f(mv.product_f(NN)))
+
+
+
+# init learner ----------------------------------------------------------------------------------------------------
+
+def init_AS_NN(n,d,widths,activation,key=cfg.nextkey()):
+	learner=gen_AS_NN(n,d,widths,activation)
+	return learner.reset(initweights_AS_NN(n,d,widths,key=key))
+
+def init_SlaterSumNN(n,d,widths_and_m,activation):
+	learner=gen_SlaterSumNN(n,d,widths_and_m,activation)
+	return learner.reset(initweights_SlaterSumNN(n,d,widths_and_m))
 
 """	
 #def init_SlaterSumNN_singlePhi(n,d,widths,activation,key=cfg.nextkey()):
@@ -97,8 +107,6 @@ def init_SlaterSumNN(n,d,widths_and_m,activation):
 
 
 def init_target(targettype,*args):
-	cfg.log('loading target function '+targettype)
-
 	target=init_learner(targettype,*args).as_static() if 'NN' in targettype \
 	else\
 	{'HermiteSlater':examplefunctions.HermiteSlater}[targettype](args[0],'H',1/8)
@@ -110,17 +118,18 @@ def init_target(targettype,*args):
 
 
 def init_learner(learnertype,*args):
-	cfg.log('loading learner function '+learnertype)
-
 	return {\
 	'AS_NN':init_AS_NN,\
-	#'SlaterSumNN_singlePhi':init_SlaterSumNN_singlePhi,\
-	#'SlaterSumNN_nPhis':init_SlaterSumNN_nPhis\
 	'SlaterSumNN':init_SlaterSumNN,
 	}[learnertype](*args)
 
 
 
+def gen_learner(learnertype,*args):
+	return {\
+	'AS_NN':gen_AS_NN,\
+	'SlaterSumNN':gen_SlaterSumNN,
+	}[learnertype](*args)
 
 
 

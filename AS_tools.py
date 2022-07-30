@@ -30,7 +30,7 @@ import config as cfg
 from jax.lax import collapse
 import pdb
 import multivariate as mv
-
+from vecdets import DETS
 
 
 
@@ -82,7 +82,7 @@ def Slater(F):
 	@jax.jit
 	def AF(params,X):
 		FX=jax.vmap(F,in_axes=(None,1),out_axes=-1)(params,X)	# FX:	s,n (basisfunction),n (particle)
-		return jnp.linalg.det(FX)
+		return DETS(FX)
 	return AF
 
 
@@ -97,7 +97,7 @@ def gen_Slater(n,phi):
 	@jax.jit
 	def Af(weights,X):
 		matrices=jnp.stack([jnp.stack([phi(weights[i],X[:,j,:]) for j in range(n)],axis=-1) for i in range(n)],axis=-1)
-		return jnp.linalg.det(matrices)
+		return DETS(matrices)
 	return Af
 
 

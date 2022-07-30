@@ -109,9 +109,13 @@ class Trainer:
 #----------------------------------------------------------------------------------------------------
 
 class Learner:
-	def __init__(self,*args):
-		self.f,self.lossgrad,*_=args[:-1]
-		self.weights=args[-1]
+	def __init__(self,*args,weights=None):
+		self.f,self.lossgrad,*_=args
+		self.reset(weights)
+
+	def reset(self,weights):
+		self.weights=weights
+		return self
 
 	def as_static(self):
 		return util.fixparams(self.f,self.weights)
@@ -119,9 +123,9 @@ class Learner:
 
 
 class AS_Learner(Learner):
-	def __init__(self,*args):
-		super().__init__(*args)
-		self.NS=args[-2]
+	def __init__(self,*args,weights=None):
+		super().__init__(*args,weights)
+		self.NS=args[-1]
 
 	def static_NS(self):
 		return util.fixparams(self.NS,self.weights)
