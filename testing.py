@@ -41,11 +41,11 @@ def verify_antisymmetrization(Af,f,X):
 	assertequal(Y,Z)
 
 
-def verify_antisymmetric(AS,n,d):
-	X=rnd.normal(rnd.PRNGKey(0),(100,n,d))
+def verify_antisymmetric(AS,n,d,samples=5,nperms=5):
+	X=rnd.normal(rnd.PRNGKey(0),(10,n,d))
 
 	Y=AS(X)
-	for _ in range(25):
+	for _ in range(10):
 		p=np.random.permutation(n)
 
 		PX=np.array(X)[:,p,:]

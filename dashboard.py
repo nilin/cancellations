@@ -49,9 +49,7 @@ class AbstractSlate():
 
 	def refresh(self):
 		self.draw()
-		print('\ndebug prints: {}'.format(cfg.dbprintbuffer[-1]))
-		for err in cfg.get_errlog():
-			print(err)
+		#print('debug prints: {}'.format(cfg.dbprintbuffer[-1]))
 
 		
 
@@ -176,16 +174,17 @@ class MinimalSlate(AbstractSlate):
 
 
 def display_0():
-	slate=MinimalSlate('refresh','log')
+	slate=MinimalSlate('refresh','log','block')
 	slate.addtext(lambda *_:[s for s in cfg.getrecentlog(1)],height=1)
 	slate.addbar(lambda *_:np.average(np.array(slate.gethist('minibatch loss')[1])[10:]),style='training loss ',emptystyle='.')
 	return slate
 
 def display_1():
-	slate=Slate('refresh','log')
+	slate=Slate('refresh','log','block')
 	slate.trackvars('minibatch loss','quick test loss')
 	slate.addtext(lambda *_:cfg.getval('sessioninfo'),height=15)
 	slate.addline()
+	slate.addtext('log')
 	slate.addtext(lambda *_:cfg.getrecentlog(20),height=20)
 	slate.addline()
 	slate.addspace(2)
@@ -195,8 +194,14 @@ def display_1():
 	slate.addtext(lambda memory,*_:'{:.2f}'.format(np.average(memory.gethist('minibatch loss')[1][-100:])))
 	slate.addbar(lambda memory,*_:np.average(memory.gethist('minibatch loss')[1][-100:]))
 	slate.addspace(2)
-	slate.addtext(lambda memory,*_:'test loss {:.2}'.format(np.average(memory.gethist('quick test loss')[1][-10])))
-	slate.addbar(lambda memory,*_:np.average(memory.gethist('quick test loss')[1][-10]))
+	#slate.addtext(lambda memory,*_:'test loss {:.2}'.format(np.average(memory.gethist('quick test loss')[1][-10])))
+	#slate.addbar(lambda memory,*_:np.average(memory.gethist('quick test loss')[1][-10]))
+	slate.addbar(lambda *_:cfg.getval('block')[0]/cfg.getval('block')[1],style='sample blocks done ')
+	slate.addspace(2)
+	slate.addline()
+	slate.addtext('debug prints (cfg.dbprint(msg))')
+	slate.addtext(lambda *_:cfg.dbprintbuffer[-1],height=10)
+	#slate.addline()
 	#slate.addbar(lambda *_:cfg.getval('test loss'),emptystyle='.')
 	return slate
 

@@ -10,6 +10,7 @@ import sys
 import jax
 import jax.numpy as jnp
 import jax.random as rnd
+import numpy as np
 import AS_functions
 import learning
 import plottools as pt
@@ -26,21 +27,20 @@ import dashboard as db
 import time
 import testing
 import AS_tools
+import AS_HEAVY
 import examplefunctions
 import AS_functions as ASf
-
-import e1,e2
+import e1
 
 #jax.config.update("jax_enable_x64", True)
 
 
 
-
 # e2
-explanation='Example 3\n\
+explanation='Example 2\n\
 In order not to give an unfair advantage to either activation function \n\
 we let the target function in this example be the sum of two antisymmetrized NNs, \n\
-one for each activation function. Both NNs are normalized to have the same magnitude.'
+one constructed with each activation function. Both NNs are normalized to have the same magnitude.'
 
 
 exname='e3'
@@ -51,17 +51,17 @@ def run(cmdargs):
 	params={
 	'targettype':'AS_NN',
 	'learnertype':'AS_NN',
-	'n':5,
+	'n':7,
 	'd':1,
-	'samples_train':10000,
+	'samples_train':5000,
 	'samples_test':1000,
-	'targetwidths':[5,100,1],
-	'learnerwidths':[5,500,1],
-	# e2
-	#'targetactivation':both,
-	#'learneractivation':?,
-	'checkpoint_interval':2.5,
-	'timebound':120
+	'samples_quicktest':100,
+	'targetwidths':[7,100,1],
+	'learnerwidths':[7,100,1],
+	#'targetactivation':'tanh',
+	#'learneractivation':'ReLU',
+	'checkpoint_interval':5,
+	'timebound':cfg.hour
 	}
 	args,redefs=cfg.parse_cmdln_args(cmdargs)
 
@@ -73,34 +73,28 @@ def run(cmdargs):
 	except:
 		print(10*'\n'+'Pass activation function as first parameter.\n'+db.wideline()+10*'\n')	
 		sys.exit(0)
+
 	params['learneractivation']=l_a
-	
 
 	globals().update(params)
 	globals().update(redefs)
 	varnames=cfg.orderedunion(params,redefs)
+
+
 	ignore={'plotfineness','minibatchsize','initfromfile','samples_test','d','checkpoint_interval'}
 
-
-
-
-
-	# e2
 	cfg.outpaths.add('outputs/{}/{}/{}/'.format(exname,learneractivation,cfg.sessionID))
-	cfg.outpaths.add('outputs/{}/{}/lastrun/'.format(exname,learneractivation))
-
-
-	sessioninfo=explanation+'\n\n'+cfg.formatvars([(k,globals()[k]) for k in varnames],separator='\n',ignore=ignore)
+	sessioninfo=explanation+'\n'+cfg.formatvars([(k,globals()[k]) for k in varnames],separator='\n',ignore=ignore)
 	cfg.setstatic('sessioninfo',sessioninfo)
-	cfg.log('sessioninfo:\n'+sessioninfo)
-	cfg.write(sessioninfo,'outputs/{}/info.txt'.format(exname),mode='w')
+	cfg.write(sessioninfo,*[path+'info.txt' for path in cfg.outpaths],mode='w')
 
 
 	#----------------------------------------------------------------------------------------------------
 	cfg.log('Generating AS functions.')
 
-	# e2
 	targets=[ASf.init_target(targettype,n,d,targetwidths,ac) for ac in ['ReLU','tanh']]
+
+	learnerinitparams=(learnertype,n,d,learnerwidths,learneractivation)
 	learner=ASf.init_learner(learnertype,n,d,learnerwidths,learneractivation)
 
 	
@@ -112,77 +106,80 @@ def run(cmdargs):
 	cfg.log('normalizing target terms')
 	targets=[util.normalize(target,X[:100]) for target in targets]
 	target=jax.jit(lambda X:targets[0](X)+targets[1](X))
+	target=AS_HEAVY.makeblockwise(target)
 
-	cfg.log('\nVerifying antisymmetry of target.')
+	cfg.log('Verifying antisymmetry of target.')
 	testing.verify_antisymmetric(target,n,d)
 
 	cfg.log('Verifying antisymmetry of learner.')
 	testing.verify_antisymmetric(learner.as_static(),n,d)
 
-	cfg.log('\nGenerating data Y.')
+	cfg.log('Generating data Y.')
 	Y=target(X)
 	Y_test=target(X_test)
 
 
 
+	#
+	sections=pt.CrossSections(X,Y,target,3)	
 
-	cfg.log('Preparing cross sections for plotting.')
-	sections=pt.CrossSections(X,Y,target,3)
-
-
+	cfg.register(locals()|globals(),'learnerinitparams','X','Y','X_test','Y_test','sections','learneractivation')
+	plotter=e1.DynamicPlotter(locals()|globals(),['X_test','Y_test','learnerinitparams','learneractivation','sections'],['minibatch loss'])
 
 	#----------------------------------------------------------------------------------------------------
 	# train
 	#----------------------------------------------------------------------------------------------------
 
-
-
-
-	# e2
-	slate.addspace(2)
-	slate.addtext(lambda *_:'magnitudes of weights in each layer: {}'.format(cfg.terse([util.norm(W) for W in cfg.getval('weights')[0]])))
+	
 
 
 	trainer=learning.Trainer(learner,X,Y)
-	sc1=cfg.Scheduler(cfg.defaultsched)
-	sc2=cfg.Scheduler(cfg.arange(0,3600,5)+cfg.arange(3600,3600*24,3600))
+	sc0=cfg.Scheduler(cfg.stepwiseperiodicsched([1,10],[0,120,timebound]))
+	sc1=cfg.Scheduler(cfg.stepwiseperiodicsched([60],[0,timebound]))
+	sc2=cfg.Scheduler(cfg.stepwiseperiodicsched([10],[0,timebound]))
+	sc3=cfg.Scheduler(cfg.expsched(30,timebound,1))
+	#sc2=cfg.Scheduler(cfg.stepwiseperiodicsched([2],[0,timebound])) # for testing
+	#sc3=cfg.Scheduler(cfg.stepwiseperiodicsched([2],[0,timebound])) # for testing
 	cfg.log('\nStart training.\n')
 
-	while time.perf_counter()<timebound:
+
+
+	while True:
 		trainer.step()
 		cfg.pokelisteners('refresh')
 
+		if sc0.dispatch():
+			trainer.checkpoint()
+
 		if sc1.dispatch():
 			trainer.save()
-			fig1=e1.getfnplot(sections,trainer.get_learned())
-			cfg.savefig(*['{}{}{}'.format(path,int(sc1.elapsed()),'s.pdf') for path in cfg.outpaths],fig=fig1)
 
 		if sc2.dispatch():
-			cfg.trackhist('test loss',cfg.lossfn(trainer.get_learned()(X_test),Y_test))
-			fig2=e1.getlossplots()
-			cfg.savefig(*[path+'losses.pdf' for path in cfg.outpaths],fig=fig2)
+			cfg.trackcurrent('quick test loss',e1.quicktest(learner,X_test,Y_test,samples_quicktest))
 
-			# e2
-			try:
-				fig3=e2.getlosscomparisonplots({ac:'outputs/{}/{}/lastrun/hist'.format(exname,ac) for ac in activations})
-				cfg.savefig('outputs/{}/comparetraining.pdf'.format(exname),fig=fig3)
-			except Exception as e:
-				cfg.log('Comparison plot of losses (outputs/[examplename]/comparetraining.pdf) will be generated once script has run with both activation functions.')
+		if sc3.dispatch():
 
+			fig1=e1.getfnplot(sections,learner.as_static())
+			cfg.savefig(*['{}{}{}'.format(path,int(sc1.elapsed()),'s.pdf') for path in cfg.outpaths],fig=fig1)
+			plotter.process_state(learner)
+			plotter.plotlosshist()
+			plotter.plotweightnorms()
+			plotter.plot3()
+			plt.close('all')
+		
+		cfg.dbprint('test ')
+		
 
 
 #----------------------------------------------------------------------------------------------------
 
-
-
-
+#----------------------------------------------------------------------------------------------------
 
 
 
 if __name__=='__main__':
 
 	slate=db.display_1()
-	cfg.setstatic('display',slate)
 
-
+	cfg.trackduration=True
 	run(sys.argv[1:])

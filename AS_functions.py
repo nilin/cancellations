@@ -111,7 +111,6 @@ def init_target(targettype,*args):
 	else\
 	{'HermiteSlater':examplefunctions.HermiteSlater}[targettype](args[0],'H',1/8)
 
-	target=AS_HEAVY.makeblockwise(target,lambda i,blocks:cfg.trackcurrent('blockeval','evaluating static function on block {}/{}'.format(i,blocks)))
 	return target
 		
 

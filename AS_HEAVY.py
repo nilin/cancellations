@@ -165,14 +165,15 @@ def memorybatchlimit(n):
 
 
 
-def makeblockwise(f,msg=lambda i,blocks:None):
+def makeblockwise(f):
 	def blockwise_f(X):
 		_,n,_=X.shape	
 		Xs=util.chop(X,chunksize=memorybatchlimit(n))
 		out=[]
 		for i,(B,) in enumerate(Xs):
 			out.append(f(B))
-			msg(i,len(Xs))
+			cfg.trackcurrent('block',(i+1,len(Xs)))
+		cfg.trackcurrent('block',(0,1))
 		return jnp.concatenate(out,axis=0)
 	return blockwise_f
 

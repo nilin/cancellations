@@ -27,6 +27,7 @@ import dashboard as db
 import time
 import testing
 import AS_tools
+import AS_HEAVY
 import examplefunctions
 import AS_functions as ASf
 import e1
@@ -105,6 +106,7 @@ def run(cmdargs):
 	cfg.log('normalizing target terms')
 	targets=[util.normalize(target,X[:100]) for target in targets]
 	target=jax.jit(lambda X:targets[0](X)+targets[1](X))
+	target=AS_HEAVY.makeblockwise(target)
 
 	cfg.log('Verifying antisymmetry of target.')
 	testing.verify_antisymmetric(target,n,d)
@@ -135,7 +137,8 @@ def run(cmdargs):
 	sc0=cfg.Scheduler(cfg.stepwiseperiodicsched([1,10],[0,120,timebound]))
 	sc1=cfg.Scheduler(cfg.stepwiseperiodicsched([60],[0,timebound]))
 	sc2=cfg.Scheduler(cfg.stepwiseperiodicsched([10],[0,timebound]))
-	sc3=cfg.Scheduler(cfg.expsched(2,timebound,.5))
+	sc3=cfg.Scheduler(cfg.expsched(5,timebound,1))
+	sc4=cfg.Scheduler(cfg.expsched(15,timebound,1))
 	#sc2=cfg.Scheduler(cfg.stepwiseperiodicsched([2],[0,timebound])) # for testing
 	#sc3=cfg.Scheduler(cfg.stepwiseperiodicsched([2],[0,timebound])) # for testing
 	cfg.log('\nStart training.\n')
@@ -156,13 +159,15 @@ def run(cmdargs):
 			cfg.trackcurrent('quick test loss',e1.quicktest(learner,X_test,Y_test,samples_quicktest))
 
 		if sc3.dispatch():
-
 			fig1=e1.getfnplot(sections,learner.as_static())
 			cfg.savefig(*['{}{}{}'.format(path,int(sc1.elapsed()),'s.pdf') for path in cfg.outpaths],fig=fig1)
+
+		if sc4.dispatch():
 			plotter.process_state(learner)
 			plotter.plotlosshist()
 			plotter.plotweightnorms()
 			plotter.plot3()
+			plt.close('all')
 
 		
 

@@ -27,6 +27,7 @@ import dashboard as db
 import time
 import testing
 import AS_tools
+import AS_HEAVY
 import examplefunctions
 import AS_functions as ASf
 
@@ -92,6 +93,7 @@ def run(cmdargs):
 
 	cfg.log('normalizing target')
 	target=util.normalize(target,X[:100])
+	target=AS_HEAVY.makeblockwise(target)
 
 	cfg.log('Verifying antisymmetry of target.')
 	testing.verify_antisymmetric(target,n,d)
@@ -142,6 +144,7 @@ def run(cmdargs):
 			plotter.process_state(learner)
 			plotter.plotlosshist()
 			plotter.plotweightnorms()
+			plt.close('all')
 
 		
 

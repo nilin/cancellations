@@ -195,7 +195,8 @@ arange=lambda *ab:list(jnp.arange(*ab))
 #def defaultsched(timebound):
 #	jnp.array([5]+arange(0,60,10)+arange(60,300,30)+arange(300,600,60)+arange(600,hour,300)+arange(hour,timebound,hour))
 
-def expsched(step1,timebound,delta=.1):
+def expsched(step1,timebound,percentincrease=.1):
+	delta=jnp.log(1+percentincrease)
 	t1=step1/delta
 	return jnp.concatenate([jnp.arange(0,t1,step1),jnp.exp(jnp.arange(jnp.log(t1),jnp.log(timebound),delta)),jnp.array([timebound])])
 
@@ -382,7 +383,7 @@ outpaths=set()
 trackduration=False
 
 sessionstate=State()
-dbprintbuffer=['no prints']
+dbprintbuffer=['']
 
 keys=[rnd.PRNGKey(0)]
 keys=deque(keys)
