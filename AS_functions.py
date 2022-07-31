@@ -32,8 +32,8 @@ from learning import Learner,AS_Learner
 
 
 def initweights_AS_NN(n,d,widths,key=cfg.nextkey()):
-	assert widths[0]==n*d, 'AS NN takes n*d-dimensional input'
-	assert widths[-1]==1, 'AS NN output is 1-dimensional'
+	assert widths[0]==n*d, 'first layer of AS NN should have width n*d'
+	assert widths[-1]==1, 'AS NN output layer width should be 1'
 	return mv.initweights_NN(widths,key=key)
 
 
