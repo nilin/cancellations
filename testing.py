@@ -11,12 +11,12 @@ import config as cfg
 
 
 def assertequal(y,z,blockdim=0,eps=.001):
-	cfg.log('asserting equality')
+	#cfg.log('asserting equality')
 	loss=util.relloss(y,z)
-	cfg.log(loss)
+	#cfg.log(loss)
 	try:
 		assert(loss<eps)
-		cfg.log('yes, they agree')
+		#cfg.log('yes, they agree')
 	except:
 		cfg.log('error x=/=y')
 		cfg.log(jnp.stack([y,z],axis=-blockdim-1))
@@ -50,6 +50,7 @@ def verify_antisymmetric(AS,n,d,samples=5,nperms=5):
 
 		PX=np.array(X)[:,p,:]
 		assertequal(AS(PX),Y*sign(p))
+	cfg.log('antisymmetry test passed')
 
 
 @jax.jit

@@ -42,36 +42,33 @@ cfg.outpaths.add('outputs/e1/{}/'.format(cfg.sessionID))
 
 explanation='Example 1\n'
 
+params={
+'targettype':'AS_NN',
+'learnertype':'AS_NN',
+'n':5,
+'d':1,
+'samples_train':10000,
+'samples_test':10000,
+'samples_quicktest':100,
+#'targetwidths':[5,25,25,1],
+'targetwidths':[5,100,1],
+'learnerwidths':[5,100,1],
+'targetactivation':'tanh',
+'learneractivation':'ReLU',
+'checkpoint_interval':5,
+'timebound':60
+}
 
 
-def run(cmdargs):
+def run():
 
-	params={
-	'targettype':'AS_NN',
-	'learnertype':'AS_NN',
-	'n':5,
-	'd':1,
-	'samples_train':10000,
-	'samples_test':10000,
-	'samples_quicktest':100,
-	#'targetwidths':[5,25,25,1],
-	'targetwidths':[5,100,1],
-	'learnerwidths':[5,100,1],
-	'targetactivation':'tanh',
-	'learneractivation':'ReLU',
-	'checkpoint_interval':5,
-	'timebound':60
-	}
-
-
-	_,redefs=cfg.parse_cmdln_args(cmdargs)
-	if 'n' in redefs:
-		params['targetwidths'][0]=redefs['n']
-		params['learnerwidths'][0]=redefs['n']
+	if 'n' in cfg.cmdredefs:
+		params['targetwidths'][0]=cfg.cmdredefs['n']
+		params['learnerwidths'][0]=cfg.cmdredefs['n']
 
 	globals().update(params)
-	globals().update(redefs)
-	varnames=cfg.orderedunion(params,redefs)
+	globals().update(cfg.cmdredefs)
+	varnames=cfg.orderedunion(params,cfg.cmdredefs)
 
 
 	ignore={'plotfineness','minibatchsize','initfromfile','samples_test','d','checkpoint_interval'}
@@ -240,7 +237,13 @@ class Plotter(pt.Plotter):
 	def plotfn(self,staticlearner,figname='fnplot'):
 		fig=getfnplot(self.static['sections'],staticlearner)
 		cfg.savefig_(figname+'.pdf',fig=fig)
+		plt.close('all')
 
+	def learningplots(self):
+		self.plotlosshist()
+		self.plotweightnorms()
+		self.plot3()
+		plt.close('all')
 
 
 class DynamicPlotter(Plotter):
@@ -259,7 +262,71 @@ class LoadedPlotter(cfg.LoadedState,Plotter):
 	def __init__(self,path):
 		super().__init__(path)
 		self.loadlearnerclone()
-		
+
+
+
+
+
+
+
+
+
+
+
+class CompPlotter():
+	def __init__(self,datapaths):
+		self.plotters={ac:LoadedPlotter(datapaths[ac]) for ac in activations}
+
+	def prep(self,schedule):
+		for ac,plotter in self.plotters.items():
+			plotter.filtersnapshots(schedule)
+			plotter.prep()
+
+	def compareweightnorms(self):
+		fig,(ax1,ax2)=plt.subplots(1,2,figsize=(14,7))
+
+		rts,rtslices=self.plotters['ReLU'].gethist('weight norms')
+		tts,ttslices=self.plotters['tanh'].gethist('weight norms')
+		rw1norms,rw2norms=zip(*rtslices)
+		tw1norms,tw2norms=zip(*ttslices)
+
+		ax1.set_title('layer 1')
+		ax1.plot(rts,rw1norms,'bo-',label='ReLU',markersize=2,lw=1)
+		ax1.plot(tts,tw1norms,'rd--',label='tanh',markersize=2,lw=1)
+
+		ax2.set_title('layer 2')
+		ax2.plot(rts,rw2norms,'bo-',label='ReLU',markersize=2,lw=1)
+		ax2.plot(tts,tw2norms,'rd--',label='tanh',markersize=2,lw=1)
+
+		ax1.legend()	
+		ax2.legend()	
+		cfg.savefig_('weightcomp.pdf',fig=fig)
+
+
+	def comp3(self):
+		rts,rtslices=self.plotters['ReLU'].gethist('weight norms')
+		tts,ttslices=self.plotters['tanh'].gethist('weight norms')
+		_,rfnorm=self.plotters['ReLU'].gethist('NS norm')
+		_,tfnorm=self.plotters['tanh'].gethist('NS norm')
+		_,rlosses=self.plotters['ReLU'].gethist('test loss')
+		_,tlosses=self.plotters['tanh'].gethist('test loss')
+		rweightnorms=[np.sqrt(x**2+y**2) for x,y in rtslices]
+		tweightnorms=[np.sqrt(x**2+y**2) for x,y in ttslices]
+
+
+		fig,(ax1,ax2,ax3)=plt.subplots(1,3,figsize=(15,5))
+
+		ax1.plot(rweightnorms,jnp.sqrt(jnp.array(rlosses)),'bo-',markersize=2,lw=1,label='ReLU')
+		ax1.plot(tweightnorms,jnp.sqrt(jnp.array(tlosses)),'rd:',markersize=2,lw=1,label='tanh')
+		ax1.set_xlabel('weights')
+		ax1.set_ylabel('l2 loss')
+		ax1.annotate('start',(rweightnorms[0],jnp.sqrt(rlosses[0])))
+		ax1.annotate('end',(rweightnorms[-1],jnp.sqrt(rlosses[-1])))
+		ax1.annotate('start',(tweightnorms[0],jnp.sqrt(tlosses[0])))
+
+
+
+
 	
 """
 #	def getnormplots(plotdata):
@@ -333,7 +400,7 @@ class LoadedPlotter(cfg.LoadedState,Plotter):
 
 if __name__=='__main__':
 
-	slate=db.display_1()
+	slate=db.display_1(params)
 
 	cfg.trackduration=True
-	run(sys.argv[1:])
+	run()

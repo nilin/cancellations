@@ -68,7 +68,7 @@ if __name__=='__main__':
 
 
 			
-	cp=e2.CompPlotter({ac:cfg.longestduration('outputs/{}/{}/'.format(exname,ac))+'/hist' for ac in activations})
+	cp=e1.CompPlotter({ac:cfg.longestduration('outputs/{}/{}/'.format(exname,ac))+'/hist' for ac in activations})
 	cp.prep(cfg.expsched(1,timebound,.2))
 	cfg.outpaths={'outputs/{}/comparison/processed {}/'.format(exname,cfg.nowstr())}
 	cp.compareweightnorms()

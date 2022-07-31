@@ -69,7 +69,11 @@ class Plotter(cfg.State):
 	def getstaticlearner(self,weights):
 		return self.getlearner(weights).as_static()
 
-	def prep(self):
+	def prep(self,schedule=None):
+
+		if schedule!=None:
+			self.filtersnapshots(schedule)
+
 		self.loadlearnerclone()
 		timestamps,states=self.hists['weights']['timestamps'],self.hists['weights']['vals']
 		for i,(t,state) in enumerate(zip(timestamps,states)):

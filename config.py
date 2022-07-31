@@ -138,7 +138,7 @@ def get_errlog():
 def setstatic(name,val):
 	assert name not in sessionstate.static
 	sessionstate.static[name]=val
-	log('{}={}'.format(name,val))
+	#log('{}={}'.format(name,val))
 
 def register(lcls,*names):
 	#pdb.set_trace()
@@ -195,10 +195,10 @@ arange=lambda *ab:list(jnp.arange(*ab))
 #def defaultsched(timebound):
 #	jnp.array([5]+arange(0,60,10)+arange(60,300,30)+arange(300,600,60)+arange(600,hour,300)+arange(hour,timebound,hour))
 
-def expsched(step1,timebound,percentincrease=.1):
+def expsched(step1,timebound,percentincrease=.1,skipzero=False):
 	delta=jnp.log(1+percentincrease)
 	t1=step1/delta
-	return jnp.concatenate([jnp.arange(0,t1,step1),jnp.exp(jnp.arange(jnp.log(t1),jnp.log(timebound),delta)),jnp.array([timebound])])
+	return jnp.concatenate([jnp.arange(step1 if skipzero else 0,t1,step1),jnp.exp(jnp.arange(jnp.log(t1),jnp.log(timebound),delta)),jnp.array([timebound])])
 
 def periodicsched(step,timebound,skipzero=False):
 	return jnp.array(arange(step if skipzero else 0,timebound,step)+[timebound])
@@ -211,8 +211,9 @@ def never(*args):
 
 
 class Scheduler:
-	def __init__(self,sched):
-		self.sched=deque(copy.deepcopy(sched))
+	def __init__(self,schedule):
+		self.schedule=schedule
+		self.rem_sched=deque(copy.deepcopy(schedule))
 		self.t0=time.perf_counter()
 
 	def elapsed(self):
@@ -221,10 +222,10 @@ class Scheduler:
 	def dispatch(self,t=None):
 		if t==None:t=self.elapsed()
 		disp=False
-		while t>self.sched[0]:
+		while t>self.rem_sched[0]:
 			disp=True
-			self.sched.popleft()
-			if len(self.sched)==0:
+			self.rem_sched.popleft()
+			if len(self.rem_sched)==0:
 				raise Timeup
 		return disp
 

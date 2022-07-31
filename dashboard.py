@@ -14,6 +14,8 @@ BOX='\u2588'
 box='\u2592'
 dash='\u2015'
 
+def clear():
+	os.system('cls' if os.name == 'nt' else 'clear')
 
 #----------------------------------------------------------------------------------------------------
 # display tracked values
@@ -126,11 +128,8 @@ class Slate(AbstractSlate):
 
 	def __init__(self,*args):
 		super().__init__(*args)
-		self.clear()
+		clear()
 
-	@staticmethod
-	def clear():
-		os.system('cls' if os.name == 'nt' else 'clear')
 
 	@staticmethod
 	def gotoline(n):
@@ -179,7 +178,8 @@ def display_0():
 	slate.addbar(lambda *_:np.average(np.array(slate.gethist('minibatch loss')[1])[10:]),style='training loss ',emptystyle='.')
 	return slate
 
-def display_1():
+def display_1(*_):
+
 	slate=Slate('refresh','log','block')
 	slate.trackvars('minibatch loss','quick test loss')
 	slate.addtext(lambda *_:cfg.getval('sessioninfo'),height=15)
@@ -196,7 +196,11 @@ def display_1():
 	slate.addspace(2)
 	#slate.addtext(lambda memory,*_:'test loss {:.2}'.format(np.average(memory.gethist('quick test loss')[1][-10])))
 	#slate.addbar(lambda memory,*_:np.average(memory.gethist('quick test loss')[1][-10]))
+
+	slate.addtext(lambda *_:'epoch {}% done'.format(int(100*(1-cfg.getval('minibatches left')/cfg.getval('minibatches')))))
+	slate.addspace(1)
 	slate.addbar(lambda *_:cfg.getval('block')[0]/cfg.getval('block')[1],style='sample blocks done ')
+
 	slate.addspace(2)
 	slate.addline()
 	slate.addtext('debug prints (cfg.dbprint(msg))')
