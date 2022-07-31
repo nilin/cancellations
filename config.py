@@ -107,6 +107,9 @@ class State:
 		self.hists=D['hists']
 
 #
+class LoadedState:
+	def __init__(self,path):
+		self.clonefrom(path)
 
 
 def retrievestate(path):
@@ -197,6 +200,9 @@ def expsched(step1,timebound,delta=.1):
 
 def periodicsched(step,timebound,skipzero=False):
 	return jnp.array(arange(step if skipzero else 0,timebound,step)+[timebound])
+
+def stepwiseperiodicsched(stepsizes,transitions):
+	return jnp.concatenate([jnp.arange(transitions[i],transitions[i+1],step) for i,step in enumerate(stepsizes)])
 
 def never(*args):
 	return jnp.array([args[-1]])
@@ -388,6 +394,8 @@ cmdparams,cmdredefs=parse_cmdln_args()
 # testing
 
 if __name__=='__main__':
+
+	print(stepwiseperiodicsched([10,100],[0,60,600]))
 	for i in range(10):
 		print(nextkey())
 

@@ -121,7 +121,7 @@ def run(cmdargs):
 	#
 	sections=pt.CrossSections(X,Y,target,3)	
 	cfg.register(locals(),'learnerinitparams','X','Y','X_test','Y_test','sections')
-	plotter=Plotter(['X_test','Y_test'],['minibatch loss'])
+	plotter=e1.DynamicPlotter(['X_test','Y_test'],['minibatch loss'])
 
 	#----------------------------------------------------------------------------------------------------
 	# train
@@ -168,9 +168,80 @@ def run(cmdargs):
 #----------------------------------------------------------------------------------------------------
 
 
-class Plotter(e1.Plotter):pass
+class CompPlotter():
+	def __init__(self,datapaths):
+		self.plotters={ac:e1.LoadedPlotter(datapaths[ac]) for ac in activations}
+
+	def prep(self,schedule):
+		for ac,plotter in self.plotters.items():
+			plotter.filtersnapshots(schedule)
+			plotter.prep()
+
+	def compareweightnorms(self):
+		fig,(ax1,ax2)=plt.subplots(1,2,figsize=(14,7))
+
+		rts,rtslices=self.plotters['ReLU'].gethist('weight norms')
+		tts,ttslices=self.plotters['tanh'].gethist('weight norms')
+		rw1norms,rw2norms=zip(*rtslices)
+		tw1norms,tw2norms=zip(*ttslices)
+
+		ax1.set_title('layer 1')
+		ax1.plot(rts,rw1norms,'bo-',label='ReLU',markersize=2,lw=1)
+		ax1.plot(tts,tw1norms,'rd--',label='tanh',markersize=2,lw=1)
+
+		ax2.set_title('layer 2')
+		ax2.plot(rts,rw2norms,'bo-',label='ReLU',markersize=2,lw=1)
+		ax2.plot(tts,tw2norms,'rd--',label='tanh',markersize=2,lw=1)
+
+		ax1.legend()	
+		ax2.legend()	
+		cfg.savefig_('weightcomp.pdf',fig=fig)
 
 
+	def comp3(self):
+		rts,rtslices=self.plotters['ReLU'].gethist('weight norms')
+		tts,ttslices=self.plotters['tanh'].gethist('weight norms')
+		_,rfnorm=self.plotters['ReLU'].gethist('NS norm')
+		_,tfnorm=self.plotters['tanh'].gethist('NS norm')
+		_,rlosses=self.plotters['ReLU'].gethist('test loss')
+		_,tlosses=self.plotters['tanh'].gethist('test loss')
+		rweightnorms=[np.sqrt(x**2+y**2) for x,y in rtslices]
+		tweightnorms=[np.sqrt(x**2+y**2) for x,y in ttslices]
+
+
+		fig,(ax1,ax2,ax3)=plt.subplots(1,3,figsize=(15,5))
+
+		ax1.plot(rweightnorms,jnp.sqrt(jnp.array(rlosses)),'bo-',markersize=2,lw=1)
+		ax1.plot(tweightnorms,jnp.sqrt(jnp.array(tlosses)),'rd:',markersize=2,lw=1)
+		ax1.set_xlabel('weights')
+		ax1.set_ylabel('l2 loss')
+		ax1.annotate('start',(rweightnorms[0],jnp.sqrt(rlosses[0])))
+		ax1.annotate('end',(rweightnorms[-1],jnp.sqrt(rlosses[-1])))
+		ax1.annotate('start',(tweightnorms[0],jnp.sqrt(tlosses[0])))
+		ax1.annotate('end',(tweightnorms[-1],jnp.sqrt(tlosses[-1])))
+
+		ax2.plot(rfnorm,jnp.sqrt(jnp.array(rlosses)),'bo-',markersize=2,lw=1)
+		ax2.plot(tfnorm,jnp.sqrt(jnp.array(tlosses)),'rd:',markersize=2,lw=1)
+		ax2.set_xlabel('||f||')
+		ax2.set_ylabel('l2 loss')
+		ax2.annotate('start',(rfnorm[0],jnp.sqrt(rlosses[0])))
+		ax2.annotate('end',(rfnorm[-1],jnp.sqrt(rlosses[-1])))
+		ax2.annotate('start',(tfnorm[0],jnp.sqrt(tlosses[0])))
+		ax2.annotate('end',(tfnorm[-1],jnp.sqrt(tlosses[-1])))
+
+		ax3.plot(rweightnorms,rfnorm,'bo-',markersize=2,lw=1)
+		ax3.plot(tweightnorms,tfnorm,'rd:',markersize=2,lw=1)
+		ax3.set_xlabel('weights')
+		ax3.set_ylabel('||f||')
+		ax3.annotate('start',(rweightnorms[0],rfnorm[0]))
+		ax3.annotate('end',(rweightnorms[-1],rfnorm[-1]))
+		ax3.annotate('start',(tweightnorms[0],tfnorm[0]))
+		ax3.annotate('end',(tweightnorms[-1],tfnorm[-1]))
+
+		ax1.legend()	
+		ax2.legend()	
+		ax3.legend()	
+		cfg.savefig_('comp3.pdf',fig=fig)
 #----------------------------------------------------------------------------------------------------
 
 

@@ -4,7 +4,6 @@ import pickle
 import time
 import copy
 import jax
-import config as cfg
 import jax.numpy as jnp
 import pdb
 import jax.random as rnd

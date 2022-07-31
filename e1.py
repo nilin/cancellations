@@ -162,13 +162,6 @@ def getfnplot(sections,learner):
 
 class Plotter(pt.Plotter):
 
-	def __init__(self,statics,trackedvars):
-		super().__init__()
-		for name in statics:
-			self.static[name]=cfg.getval(name)
-		for name in trackedvars:
-			self.hists[name]=cfg.sessionstate.linkentry(name)
-
 	def process_state(self,learner,t=None):
 		if t==None:t=cfg.timestamp()
 		X_test=self.static['X_test'][:1000]
@@ -242,7 +235,25 @@ class Plotter(pt.Plotter):
 		fig=getfnplot(self.static['sections'],staticlearner)
 		cfg.savefig_(figname+'.pdf',fig=fig)
 
+
+
+class DynamicPlotter(Plotter):
+
+	def __init__(self,statics,trackedvars):
+		super().__init__()
+		for name in statics:
+			self.static[name]=cfg.getval(name)
+		for name in trackedvars:
+			self.hists[name]=cfg.sessionstate.linkentry(name)
+
+
+class LoadedPlotter(cfg.LoadedState,Plotter):
+
+	def __init__(self,path):
+		super().__init__(path)
+		self.loadlearnerclone()
 		
+	
 """
 #	def getnormplots(plotdata):
 #		fig1,(ax11,ax12)=plt.subplots(1,2,figsize=(15,7))

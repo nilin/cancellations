@@ -61,7 +61,7 @@ class Plotter(cfg.State):
 		self.hists['weights']['timestamps'],self.hists['weights']['vals']=cfg.filterschedule(schedule,self.hists['weights']['timestamps'],self.hists['weights']['vals'])
 
 	def loadlearnerclone(self):
-		self.emptylearner=AS_functions.gen_learner(*cfg.getval('learnerinitparams'))
+		self.emptylearner=AS_functions.gen_learner(*self.static['learnerinitparams'])
 
 	def getlearner(self,weights):
 		return self.emptylearner.reset(weights)
