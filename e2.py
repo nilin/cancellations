@@ -68,7 +68,6 @@ params={
 
 def run():
 
-	# e2
 	try:
 		l_a={'r':'ReLU','relu':'ReLU','ReLU':'ReLU','t':'tanh','tanh':'tanh'}[cfg.cmdparams[0]]
 	except:

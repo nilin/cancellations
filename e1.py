@@ -54,14 +54,22 @@ params={
 'targetwidths':[5,100,1],
 'learnerwidths':[5,100,1],
 'targetactivation':'tanh',
-'learneractivation':'ReLU',
+#'learneractivation':'ReLU',
 'checkpoint_interval':5,
-'timebound':60
+'timebound':600,
+'fnplotfineness':250
 }
 
 
 def run():
 
+	try:
+		l_a={'r':'ReLU','relu':'ReLU','ReLU':'ReLU','t':'tanh','tanh':'tanh'}[cfg.cmdparams[0]]
+	except:
+		print(10*'\n'+'Pass activation function as first parameter.\n'+db.wideline()+10*'\n')	
+		sys.exit(0)
+
+	params['learneractivation']=l_a
 	if 'n' in cfg.cmdredefs:
 		params['targetwidths'][0]=cfg.cmdredefs['n']
 		params['learnerwidths'][0]=cfg.cmdredefs['n']
@@ -109,43 +117,68 @@ def run():
 
 
 	#
-	sections=pt.CrossSections(X,Y,target,3)	
-	plotter=DynamicPlotter(locals()|globals(),['X_test','Y_test','sections','learnerinitparams','learneractivation'],['minibatch loss'])
-	cfg.register(locals()|globals(),'learnerinitparams','X','Y','X_test','Y_test','sections','learneractivation')
+	sections=pt.CrossSections(X,Y,target,3,fineness=fnplotfineness)	
+
+	reg_args=['learnerinitparams','X','Y','X_test','Y_test','sections','learneractivation']
+	cfg.register(locals()|globals(),*reg_args)
+	dynamicplotter=DynamicPlotter(locals()|globals(),reg_args,['minibatch loss','weights'])
+
+
 	#----------------------------------------------------------------------------------------------------
 	# train
 	#----------------------------------------------------------------------------------------------------
 
-	
-
-
 	trainer=learning.Trainer(learner,X,Y)
-	sc0=cfg.Scheduler(cfg.expsched(.1,timebound))
-	sc1=cfg.Scheduler(cfg.periodicsched(5,timebound))
-	sc2=cfg.Scheduler(cfg.periodicsched(10,timebound))
+	sc0=cfg.Scheduler(cfg.stepwiseperiodicsched([1,10],[0,120,timebound]))
+	sc1=cfg.Scheduler(cfg.stepwiseperiodicsched([60],[0,timebound]))
+	sc2=cfg.Scheduler(cfg.stepwiseperiodicsched([10],[0,timebound]))
+	sc3=cfg.Scheduler(cfg.expsched(5,timebound,.2))
+	sc4=cfg.Scheduler(cfg.stepwiseperiodicsched([5,30],[0,120,timebound]))
 	cfg.log('\nStart training.\n')
 
 
 	while True:
-		trainer.step()
-		cfg.pokelisteners('refresh')
+		try:
+			trainer.step()
+			cfg.pokelisteners('refresh')
 
-		if sc0.dispatch():
-			trainer.checkpoint()
+			if sc0.dispatch():
+				trainer.checkpoint()
 
-		if sc1.dispatch():
-			cfg.trackcurrent('quick test loss',quicktest(learner,X_test,Y_test,samples_quicktest))
+			if sc1.dispatch():
+				trainer.save()
 
-		if sc2.dispatch():
-			trainer.save()
+			if sc2.dispatch():
+				cfg.trackcurrent('quick test loss',quicktest(learner,X_test,Y_test,samples_quicktest))
 
-			fig1=getfnplot(sections,learner.as_static())
-			cfg.savefig(*['{}{}{}'.format(path,int(sc1.elapsed()),'s.pdf') for path in cfg.outpaths],fig=fig1)
+			if sc3.dispatch():
+				"""
+				fig1=getfnplot(sections,learner.as_static())
+				cfg.savefig(*['{}{}{}'.format(path,int(sc1.elapsed()),'s.pdf') for path in cfg.outpaths],fig=fig1)
+				"""
+				pass
 
-			plotter.process_state(learner)
-			plotter.plotlosshist()
-			plotter.plotweightnorms()
-			plt.close('all')
+			if sc4.dispatch():
+				"""
+				dynamicplotter.process_state(learner)
+				dynamicplotter.learningplots()
+				"""
+				pass
+
+		except KeyboardInterrupt:
+			db.clear()			
+			inp=input('Enter to continute, p+Enter to plot, q+Enter to end.\n')
+			if inp=='p':
+				fig1=getfnplot(sections,learner.as_static())
+				cfg.savefig(*['{}{}{}'.format(path,int(sc1.elapsed()),'s.pdf') for path in cfg.outpaths],fig=fig1)
+
+				temp_plotter=DynamicPlotter(locals()|globals(),reg_args,['minibatch loss','weights'])
+				temp_plotter.prep(sc3.schedule)
+				temp_plotter.learningplots()
+				del temp_plotter
+			if inp=='q':
+				break
+			db.clear()			
 
 		
 
@@ -269,13 +302,6 @@ class LoadedPlotter(cfg.LoadedState,Plotter):
 
 
 
-
-
-
-
-
-
-
 class CompPlotter():
 	def __init__(self,datapaths):
 		self.plotters={ac:LoadedPlotter(datapaths[ac]) for ac in activations}
@@ -327,75 +353,6 @@ class CompPlotter():
 		ax1.annotate('end',(rweightnorms[-1],jnp.sqrt(rlosses[-1])))
 		ax1.annotate('start',(tweightnorms[0],jnp.sqrt(tlosses[0])))
 
-
-
-
-	
-"""
-#	def getnormplots(plotdata):
-#		fig1,(ax11,ax12)=plt.subplots(1,2,figsize=(15,7))
-#		fig2,(ax21,ax22)=plt.subplots(1,2,figsize=(15,7))
-#
-#		def plotnormhist(ax1,ax2,plotdata):
-#			NSnorm=plotdata['NS norm']
-#			ASnorm=plotdata['AS norm']
-#
-#			ts,NSnorm,ASnorm=zip(*zip(NSnorm['timestamps'],NSnorm['vals'],ASnorm['vals']))
-#			Af_over_f=jnp.array(ASnorm)/jnp.array(NSnorm)
-#
-#			ax1.plot(ts,NSnorm,'rd--',label='||f||')
-#			ax1.plot(ts,1/Af_over_f,'bo-',label='||f||/||Af||')
-#
-#			ax2.plot(ts,ASnorm,'rd--',label='||Af||')
-#			ax2.plot(ts,Af_over_f,'bo-',label='||Af||/||f||')
-#			
-#			for ax in [ax1,ax2]:
-#				ax.legend()
-#				ax.set_xlabel('seconds')
-#				ax.grid(which='both')
-#
-#		plotnormhist(ax11,ax21,plotdata) # f/A,A/f
-#		plotnormhist(ax12,ax22,plotdata) # f/A,A/f log plots
-#		ax12.set_yscale('log')
-#		ax22.set_yscale('log')
-#		return fig1,fig2
-#
-#
-#
-#
-#
-#
-#def getnormplots(plotdata):
-#	plt.close('all')
-#	fig1,(ax11,ax12)=plt.subplots(1,2,figsize=(15,7))
-#	fig2,(ax21,ax22)=plt.subplots(1,2,figsize=(15,7))
-#
-#	def plotnormhist(ax1,ax2,plotdata):
-#		NSnorm=plotdata['NS norm']
-#		ASnorm=plotdata['AS norm']
-#
-#		ts,NSnorm,ASnorm=zip(*zip(NSnorm['timestamps'],NSnorm['vals'],ASnorm['vals']))
-#		Af_over_f=jnp.array(ASnorm)/jnp.array(NSnorm)
-#
-#		ax1.plot(ts,NSnorm,'rd--',label='||f||')
-#		ax1.plot(ts,1/Af_over_f,'bo-',label='||f||/||Af||')
-#
-#		ax2.plot(ts,ASnorm,'rd--',label='||Af||')
-#		ax2.plot(ts,Af_over_f,'bo-',label='||Af||/||f||')
-#		
-#		for ax in [ax1,ax2]:
-#			ax.legend()
-#			ax.set_xlabel('seconds')
-#			ax.grid(which='both')
-#
-#	plotnormhist(ax11,ax21,plotdata) # f/A,A/f
-#	plotnormhist(ax12,ax22,plotdata) # f/A,A/f log plots
-#	ax12.set_yscale('log')
-#	ax22.set_yscale('log')
-#	return fig1,fig2
-#
-#
-"""
 
 #----------------------------------------------------------------------------------------------------
 

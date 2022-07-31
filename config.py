@@ -204,10 +204,8 @@ def periodicsched(step,timebound,skipzero=False):
 	return jnp.array(arange(step if skipzero else 0,timebound,step)+[timebound])
 
 def stepwiseperiodicsched(stepsizes,transitions):
-	return jnp.concatenate([jnp.arange(transitions[i],transitions[i+1],step) for i,step in enumerate(stepsizes)])
+	return jnp.concatenate([jnp.arange(transitions[i],transitions[i+1],step) for i,step in enumerate(stepsizes)]+[jnp.array([transitions[-1]])])
 
-def never(*args):
-	return jnp.array([args[-1]])
 
 
 class Scheduler:
