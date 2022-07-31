@@ -198,9 +198,12 @@ class Plotter(pt.Plotter):
 		fig.suptitle(self.static['learneractivation'])
 
 		ts,tslices=self.gethist('weight norms')
-		w1norms,w2norms=zip(*tslices)
-		ax.plot(ts,w1norms,'bo-',label='layer 1 weights',markersize=2,lw=1)
-		ax.plot(ts,w2norms,'rd--',label='layer 2 weights',markersize=2,lw=1)
+		wnorms=zip(*tslices)
+		
+		#styles=['bo-','r0-','bd:','rd:']
+		colors=['r','g','b']
+		for i,wnorm in enumerate(wnorms):
+			ax.plot(ts,wnorm,'o-',color=colors[i],label='layer {} weights'.format(i+1),markersize=2,lw=1)
 		ax.legend()	
 		cfg.savefig_('weightnorms.pdf',fig=fig)
 
@@ -208,7 +211,7 @@ class Plotter(pt.Plotter):
 		ts,tslices=self.gethist('weight norms')
 		_,fnorm=self.gethist('NS norm')
 		_,losses=self.gethist('test loss')
-		weightnorms=[np.sqrt(x**2+y**2) for x,y in tslices]
+		weightnorms=[max([weights for weights in lweights]) for lweights in tslices]
 
 
 		fig,(ax1,ax2,ax3)=plt.subplots(1,3,figsize=(15,5))
@@ -287,8 +290,8 @@ class CompPlotter():
 
 		rts,rtslices=self.plotters['ReLU'].gethist('weight norms')
 		tts,ttslices=self.plotters['tanh'].gethist('weight norms')
-		rw1norms,rw2norms=zip(*rtslices)
-		tw1norms,tw2norms=zip(*ttslices)
+		rw1norms,rw2norms,*_=zip(*rtslices)
+		tw1norms,tw2norms,*_=zip(*ttslices)
 
 		ax1.set_title('layer 1')
 		ax1.plot(rts,rw1norms,'bo-',label='ReLU',markersize=2,lw=1)
@@ -310,8 +313,8 @@ class CompPlotter():
 		_,tfnorm=self.plotters['tanh'].gethist('NS norm')
 		_,rlosses=self.plotters['ReLU'].gethist('test loss')
 		_,tlosses=self.plotters['tanh'].gethist('test loss')
-		rweightnorms=[np.sqrt(x**2+y**2) for x,y in rtslices]
-		tweightnorms=[np.sqrt(x**2+y**2) for x,y in ttslices]
+		rweightnorms=[np.sqrt(x**2+y**2) for x,y,*_ in rtslices]
+		tweightnorms=[np.sqrt(x**2+y**2) for x,y,*_ in ttslices]
 
 
 		fig,(ax1,ax2,ax3)=plt.subplots(1,3,figsize=(15,5))

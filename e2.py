@@ -142,7 +142,7 @@ def run():
 	sc0=cfg.Scheduler(cfg.stepwiseperiodicsched([1,10],[0,120,timebound]))
 	sc1=cfg.Scheduler(cfg.stepwiseperiodicsched([60],[0,timebound]))
 	sc2=cfg.Scheduler(cfg.stepwiseperiodicsched([10],[0,timebound]))
-	sc3=cfg.Scheduler(cfg.expsched(5,timebound,1))
+	sc3=cfg.Scheduler(cfg.expsched(5,timebound,.2))
 	sc4=cfg.Scheduler(cfg.stepwiseperiodicsched([5,30],[0,120,timebound]))
 	cfg.log('\nStart training.\n')
 
