@@ -120,8 +120,9 @@ def run(cmdargs):
 
 	#
 	sections=pt.CrossSections(X,Y,target,3)	
-	cfg.register(locals(),'learnerinitparams','X','Y','X_test','Y_test','sections')
-	plotter=e1.DynamicPlotter(['X_test','Y_test'],['minibatch loss'])
+
+	cfg.register(locals()|globals(),'learnerinitparams','X','Y','X_test','Y_test','sections','learneractivation')
+	plotter=e1.DynamicPlotter(locals()|globals(),['X_test','Y_test','learnerinitparams','learneractivation','sections'],['minibatch loss'])
 
 	#----------------------------------------------------------------------------------------------------
 	# train
@@ -131,10 +132,12 @@ def run(cmdargs):
 
 
 	trainer=learning.Trainer(learner,X,Y)
-	sc0=cfg.Scheduler(cfg.periodicsched(1,timebound))
-	sc1=cfg.Scheduler(cfg.periodicsched(10,timebound))
-	sc2=cfg.Scheduler(cfg.never(5,timebound))
-	sc3=cfg.Scheduler(cfg.never(60,timebound))
+	sc0=cfg.Scheduler(cfg.stepwiseperiodicsched([1,10],[0,120,timebound]))
+	sc1=cfg.Scheduler(cfg.stepwiseperiodicsched([60],[0,timebound]))
+	sc2=cfg.Scheduler(cfg.stepwiseperiodicsched([10],[0,timebound]))
+	sc3=cfg.Scheduler(cfg.expsched(2,timebound,.5))
+	#sc2=cfg.Scheduler(cfg.stepwiseperiodicsched([2],[0,timebound])) # for testing
+	#sc3=cfg.Scheduler(cfg.stepwiseperiodicsched([2],[0,timebound])) # for testing
 	cfg.log('\nStart training.\n')
 
 
@@ -156,7 +159,6 @@ def run(cmdargs):
 
 			fig1=e1.getfnplot(sections,learner.as_static())
 			cfg.savefig(*['{}{}{}'.format(path,int(sc1.elapsed()),'s.pdf') for path in cfg.outpaths],fig=fig1)
-
 			plotter.process_state(learner)
 			plotter.plotlosshist()
 			plotter.plotweightnorms()

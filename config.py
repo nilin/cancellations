@@ -138,9 +138,10 @@ def get_errlog():
 def setstatic(name,val):
 	assert name not in sessionstate.static
 	sessionstate.static[name]=val
-	log(name+'={}'.format(val))
+	log('{}={}'.format(name,val))
 
 def register(lcls,*names):
+	#pdb.set_trace()
 	for name in names:
 		setstatic(name,lcls[name])
 
@@ -238,7 +239,8 @@ class Scheduler:
 						hist.append(val)
 		except Timeup:
 			pass
-		return timeticks,*filteredhists
+		return (timeticks,*filteredhists)
+		#return (timeticks,)+filteredhists
 
 
 def filterschedule(sched,times,*valueshist):

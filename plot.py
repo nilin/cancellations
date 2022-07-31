@@ -2,6 +2,7 @@ import e1,e2
 import pdb
 import plottools as pt
 import config as cfg
+import jax.numpy as jnp
 import AS_functions
 
 
@@ -59,7 +60,7 @@ if __name__=='__main__':
 
 		
 		#----------------------------------------------------------------------------------------------------	
-		plotter=load_plotter(histpath,cfg.expsched(1,timebound,2))
+		plotter=load_plotter(histpath,cfg.expsched(1,timebound,jnp.log(2)))
 		for t,snapshot in zip(*plotter.gethist('weights')):
 			print('function plot for time {}'.format(int(t)))
 			plotter.plotfn(plotter.getstaticlearner(snapshot),figname='fnplots/{} s'.format(int(t)))

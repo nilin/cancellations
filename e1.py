@@ -107,9 +107,8 @@ def run(cmdargs):
 
 	#
 	sections=pt.CrossSections(X,Y,target,3)	
-	plotter=Plotter(['X_test','Y_test','sections'],['minibatch loss'])
-
-	cfg.register(locals(),'learnerinitparams','X','Y','X_test','Y_test','sections','learneractivation')
+	plotter=DynamicPlotter(locals()|globals(),['X_test','Y_test','sections','learnerinitparams','learneractivation'],['minibatch loss'])
+	cfg.register(locals()|globals(),'learnerinitparams','X','Y','X_test','Y_test','sections','learneractivation')
 	#----------------------------------------------------------------------------------------------------
 	# train
 	#----------------------------------------------------------------------------------------------------
@@ -239,10 +238,11 @@ class Plotter(pt.Plotter):
 
 class DynamicPlotter(Plotter):
 
-	def __init__(self,statics,trackedvars):
+	def __init__(self,lcls,statics,trackedvars):
 		super().__init__()
 		for name in statics:
-			self.static[name]=cfg.getval(name)
+			#self.static[name]=cfg.getval(name)
+			self.static[name]=lcls[name]
 		for name in trackedvars:
 			self.hists[name]=cfg.sessionstate.linkentry(name)
 
