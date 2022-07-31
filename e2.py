@@ -211,8 +211,8 @@ class CompPlotter():
 
 		fig,(ax1,ax2,ax3)=plt.subplots(1,3,figsize=(15,5))
 
-		ax1.plot(rweightnorms,jnp.sqrt(jnp.array(rlosses)),'bo-',markersize=2,lw=1)
-		ax1.plot(tweightnorms,jnp.sqrt(jnp.array(tlosses)),'rd:',markersize=2,lw=1)
+		ax1.plot(rweightnorms,jnp.sqrt(jnp.array(rlosses)),'bo-',markersize=2,lw=1,label='ReLU')
+		ax1.plot(tweightnorms,jnp.sqrt(jnp.array(tlosses)),'rd:',markersize=2,lw=1,label='tanh')
 		ax1.set_xlabel('weights')
 		ax1.set_ylabel('l2 loss')
 		ax1.annotate('start',(rweightnorms[0],jnp.sqrt(rlosses[0])))
@@ -220,8 +220,8 @@ class CompPlotter():
 		ax1.annotate('start',(tweightnorms[0],jnp.sqrt(tlosses[0])))
 		ax1.annotate('end',(tweightnorms[-1],jnp.sqrt(tlosses[-1])))
 
-		ax2.plot(rfnorm,jnp.sqrt(jnp.array(rlosses)),'bo-',markersize=2,lw=1)
-		ax2.plot(tfnorm,jnp.sqrt(jnp.array(tlosses)),'rd:',markersize=2,lw=1)
+		ax2.plot(rfnorm,jnp.sqrt(jnp.array(rlosses)),'bo-',markersize=2,lw=1,label='ReLU')
+		ax2.plot(tfnorm,jnp.sqrt(jnp.array(tlosses)),'rd:',markersize=2,lw=1,label='tanh')
 		ax2.set_xlabel('||f||')
 		ax2.set_ylabel('l2 loss')
 		ax2.annotate('start',(rfnorm[0],jnp.sqrt(rlosses[0])))
@@ -229,8 +229,8 @@ class CompPlotter():
 		ax2.annotate('start',(tfnorm[0],jnp.sqrt(tlosses[0])))
 		ax2.annotate('end',(tfnorm[-1],jnp.sqrt(tlosses[-1])))
 
-		ax3.plot(rweightnorms,rfnorm,'bo-',markersize=2,lw=1)
-		ax3.plot(tweightnorms,tfnorm,'rd:',markersize=2,lw=1)
+		ax3.plot(rweightnorms,rfnorm,'bo-',markersize=2,lw=1,label='ReLU')
+		ax3.plot(tweightnorms,tfnorm,'rd:',markersize=2,lw=1,label='tanh')
 		ax3.set_xlabel('weights')
 		ax3.set_ylabel('||f||')
 		ax3.annotate('start',(rweightnorms[0],rfnorm[0]))
