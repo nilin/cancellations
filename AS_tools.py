@@ -30,7 +30,7 @@ import config as cfg
 from jax.lax import collapse
 import pdb
 import multivariate as mv
-from vecdets import DETS
+from dets import DETS
 
 
 

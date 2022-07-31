@@ -57,11 +57,22 @@ class CrossSections:
 
 class Plotter(cfg.State):
 
-	def prep(self,emptylearner,schedule):
-		sc=cfg.Scheduler(schedule)
-		timestamps,states=sc.filter(self.hists['weights']['timestamps'],self.hists['weights']['vals'])
-		#timestamps,states=self.hists['weights']['timestamps'],self.hists['weights']['vals']
+	def filtersnapshots(self,schedule):
+		self.hists['weights']['timestamps'],self.hists['weights']['vals']=cfg.filterschedule(schedule,self.hists['weights']['timestamps'],self.hists['weights']['vals'])
+
+	def loadlearnerclone(self):
+		self.emptylearner=AS_functions.gen_learner(*cfg.getval('learnerinitparams'))
+
+	def getlearner(self,weights):
+		return self.emptylearner.reset(weights)
+
+	def getstaticlearner(self,weights):
+		return self.getlearner(weights).as_static()
+
+	def prep(self):
+		self.loadlearnerclone()
+		timestamps,states=self.hists['weights']['timestamps'],self.hists['weights']['vals']
 		for i,(t,state) in enumerate(zip(timestamps,states)):
-			print('processing snapshot {}/{}'.format(i,len(timestamps)))
-			self.process_state(emptylearner.reset(state),t)
+			print('processing snapshot {}/{}'.format(i+1,len(timestamps)),end='\r')
+			self.process_state(self.getlearner(state),t)
 

@@ -35,7 +35,6 @@ import e1
 
 
 
-
 # e2
 explanation='Example 2\n\
 In order not to give an unfair advantage to either activation function \n\
@@ -54,9 +53,9 @@ def run(cmdargs):
 	'n':5,
 	'd':1,
 	'samples_train':10000,
-	'samples_test':10000,
+	'samples_test':1000,
 	'samples_quicktest':100,
-	'targetwidths':[5,25,25,1],
+	'targetwidths':[5,100,1],
 	'learnerwidths':[5,100,1],
 	#'targetactivation':'tanh',
 	#'learneractivation':'ReLU',
@@ -132,9 +131,10 @@ def run(cmdargs):
 
 
 	trainer=learning.Trainer(learner,X,Y)
-	sc0=cfg.Scheduler(cfg.expsched(.25,timebound))
-	sc1=cfg.Scheduler(cfg.periodicsched(5,timebound))
-	sc2=cfg.Scheduler(cfg.periodicsched(1,timebound))
+	sc0=cfg.Scheduler(cfg.periodicsched(1,timebound))
+	sc1=cfg.Scheduler(cfg.periodicsched(10,timebound))
+	sc2=cfg.Scheduler(cfg.never(5,timebound))
+	sc3=cfg.Scheduler(cfg.never(60,timebound))
 	cfg.log('\nStart training.\n')
 
 
@@ -147,10 +147,12 @@ def run(cmdargs):
 			trainer.checkpoint()
 
 		if sc1.dispatch():
-			cfg.trackcurrent('quick test loss',e1.quicktest(learner,X_test,Y_test,samples_quicktest))
+			trainer.save()
 
 		if sc2.dispatch():
-			trainer.save()
+			cfg.trackcurrent('quick test loss',e1.quicktest(learner,X_test,Y_test,samples_quicktest))
+
+		if sc3.dispatch():
 
 			fig1=e1.getfnplot(sections,learner.as_static())
 			cfg.savefig(*['{}{}{}'.format(path,int(sc1.elapsed()),'s.pdf') for path in cfg.outpaths],fig=fig1)
@@ -176,4 +178,6 @@ class Plotter(e1.Plotter):pass
 if __name__=='__main__':
 
 	slate=db.display_1()
+
+	cfg.trackduration=True
 	run(sys.argv[1:])

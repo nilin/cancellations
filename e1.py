@@ -30,7 +30,7 @@ import AS_tools
 import examplefunctions
 import AS_functions as ASf
 
-jax.config.update("jax_enable_x64", True)
+#jax.config.update("jax_enable_x64", True)
 
 
 
@@ -53,7 +53,8 @@ def run(cmdargs):
 	'samples_train':10000,
 	'samples_test':10000,
 	'samples_quicktest':100,
-	'targetwidths':[5,25,25,1],
+	#'targetwidths':[5,25,25,1],
+	'targetwidths':[5,100,1],
 	'learnerwidths':[5,100,1],
 	'targetactivation':'tanh',
 	'learneractivation':'ReLU',
@@ -106,9 +107,9 @@ def run(cmdargs):
 
 	#
 	sections=pt.CrossSections(X,Y,target,3)	
-	plotter=Plotter(['X_test','Y_test'],['minibatch loss'])
+	plotter=Plotter(['X_test','Y_test','sections'],['minibatch loss'])
 
-	cfg.register(locals(),'learnerinitparams','X','Y','X_test','Y_test','sections')
+	cfg.register(locals(),'learnerinitparams','X','Y','X_test','Y_test','sections','learneractivation')
 	#----------------------------------------------------------------------------------------------------
 	# train
 	#----------------------------------------------------------------------------------------------------
@@ -153,7 +154,6 @@ def quicktest(learner,X_test,Y_test,samples):
 #----------------------------------------------------------------------------------------------------
 
 def getfnplot(sections,learner):
-	plt.close('all')
 	fig,axs=plt.subplots(1,3,figsize=(16,4))
 	sections.plot(axs,learner)
 	return fig
@@ -171,17 +171,23 @@ class Plotter(pt.Plotter):
 
 	def process_state(self,learner,t=None):
 		if t==None:t=cfg.timestamp()
-		self.remember('test loss',cfg.lossfn(learner.as_static()(self.static['X_test']),self.static['Y_test']),t)
-		self.remember('NS norm',util.norm(learner.static_NS()(self.static['X_test'])),t)
-		self.remember('AS norm',util.norm(learner.as_static()(self.static['X_test'])),t)
+		X_test=self.static['X_test'][:1000]
+		Y_test=self.static['Y_test'][:1000]
+		self.static['learneractivation']=self.static['learnerinitparams'][-1]
+
+		self.remember('test loss',cfg.lossfn(learner.as_static()(X_test),Y_test),t)
+		self.remember('NS norm',util.norm(learner.static_NS()(X_test)),t)
+		self.remember('AS norm',util.norm(learner.as_static()(X_test)),t)
 		self.remember('weight norms',[util.norm(W) for W in learner.weights[0]],t)
+
 	
 	def plotlosshist(self):
 		fig,(ax1,ax2)=plt.subplots(1,2,figsize=(15,7))
+		fig.suptitle(self.static['learneractivation'])
 
 		def plotax(ax):
-			ax.plot(*self.gethist('minibatch loss'),'r:',label='training loss')
-			ax.plot(*self.gethist('test loss'),'bo-',label='test loss')
+			ax.scatter(*self.gethist('minibatch loss'),color='r',label='training loss',s=.3,alpha=.3)
+			ax.plot(*self.gethist('test loss'),'bo-',label='test loss',markersize=3,lw=1)
 			ax.legend()
 			ax.set_xlabel('seconds')
 
@@ -189,16 +195,18 @@ class Plotter(pt.Plotter):
 		plotax(ax2)
 		ax1.set_ylim(0,1)
 		ax2.set_yscale('log')
-		cfg.savefig(*[path+'losses.pdf' for path in cfg.outpaths],fig=fig)
+		cfg.savefig_('losses.pdf',fig=fig)
 
 	def plotweightnorms(self):
 		fig,ax=plt.subplots()
+		fig.suptitle(self.static['learneractivation'])
+
 		ts,tslices=self.gethist('weight norms')
 		w1norms,w2norms=zip(*tslices)
-		ax.plot(ts,w1norms,'bo-',label='layer 1 weights')
-		ax.plot(ts,w2norms,'rd--',label='layer 2 weights')
+		ax.plot(ts,w1norms,'bo-',label='layer 1 weights',markersize=2,lw=1)
+		ax.plot(ts,w2norms,'rd--',label='layer 2 weights',markersize=2,lw=1)
 		ax.legend()	
-		cfg.savefig(*[path+'weightnorms.pdf' for path in cfg.outpaths],fig=fig)
+		cfg.savefig_('weightnorms.pdf',fig=fig)
 
 	def plot3(self):
 		ts,tslices=self.gethist('weight norms')
@@ -208,21 +216,31 @@ class Plotter(pt.Plotter):
 
 
 		fig,(ax1,ax2,ax3)=plt.subplots(1,3,figsize=(15,5))
-		ax1.plot(weightnorms,jnp.sqrt(jnp.array(losses)),'bo-')
+		fig.suptitle(self.static['learneractivation'])
+
+		ax1.plot(weightnorms,jnp.sqrt(jnp.array(losses)),'bo-',markersize=2,lw=1)
 		ax1.set_xlabel('weights')
 		ax1.set_ylabel('l2 loss')
+		ax1.annotate('start',(weightnorms[0],jnp.sqrt(losses[0])))
+		ax1.annotate('end',(weightnorms[-1],jnp.sqrt(losses[-1])))
 
-		ax2.plot(fnorm,jnp.sqrt(jnp.array(losses)),'bo-')
+		ax2.plot(fnorm,jnp.sqrt(jnp.array(losses)),'bo-',markersize=2,lw=1)
 		ax2.set_xlabel('||f||')
 		ax2.set_ylabel('l2 loss')
+		ax2.annotate('start',(fnorm[0],jnp.sqrt(losses[0])))
+		ax2.annotate('end',(fnorm[-1],jnp.sqrt(losses[-1])))
 
-		ax3.plot(weightnorms,fnorm,'bo-')
+		ax3.plot(weightnorms,fnorm,'bo-',markersize=2,lw=1)
 		ax3.set_xlabel('weights')
 		ax3.set_ylabel('||f||')
+		ax3.annotate('start',(weightnorms[0],fnorm[0]))
+		ax3.annotate('end',(weightnorms[-1],fnorm[-1]))
 
-		cfg.savefig(*[path+'plot3.pdf' for path in cfg.outpaths],fig=fig)
+		cfg.savefig_('plot3.pdf',fig=fig)
 
-
+	def plotfn(self,staticlearner,figname='fnplot'):
+		fig=getfnplot(self.static['sections'],staticlearner)
+		cfg.savefig_(figname+'.pdf',fig=fig)
 
 		
 """
@@ -298,4 +316,6 @@ class Plotter(pt.Plotter):
 if __name__=='__main__':
 
 	slate=db.display_1()
+
+	cfg.trackduration=True
 	run(sys.argv[1:])

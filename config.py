@@ -110,7 +110,9 @@ class State:
 
 
 def retrievestate(path):
-	globals()['sessionstate']=State(*[load(path)[k] for k in ['static','hists']])
+	print('\nloading from \n'+path+'\n')
+	data=load(path)
+	globals()['sessionstate']=State(*[data[k] for k in ['static','hists']])
 
 
 		
@@ -164,7 +166,8 @@ def log(msg):
 	msg='{} | {}'.format(datetime.timedelta(seconds=int(timestamp())),msg)
 	remember('log',msg)
 	write(msg.replace('\n','|')+'\n',*logpaths())
-	write(str(int(timestamp())),*[os.sep.join(pathlog.split(os.sep)[:-1])+os.sep+'last seen' for pathlog in logpaths()],mode='w')	
+	if trackduration:
+		write(str(int(timestamp())),*[os.sep.join(pathlog.split(os.sep)[:-1])+os.sep+'duration' for pathlog in logpaths()],mode='w')	
 	pokelisteners('log')
 
 def errlog(msg):
@@ -192,8 +195,11 @@ def expsched(step1,timebound,delta=.1):
 	t1=step1/delta
 	return jnp.concatenate([jnp.arange(0,t1,step1),jnp.exp(jnp.arange(jnp.log(t1),jnp.log(timebound),delta)),jnp.array([timebound])])
 
-def periodicsched(step,timebound):
-	return jnp.array(arange(step,timebound,step)+[timebound])
+def periodicsched(step,timebound,skipzero=False):
+	return jnp.array(arange(step if skipzero else 0,timebound,step)+[timebound])
+
+def never(*args):
+	return jnp.array([args[-1]])
 
 
 class Scheduler:
@@ -213,7 +219,8 @@ class Scheduler:
 			if len(self.sched)==0:
 				raise Timeup
 		return disp
-	
+
+		
 	def filter(self,times,*valueshists):
 		timeticks=[]
 		filteredhists=[[] for hist in valueshists]
@@ -226,7 +233,13 @@ class Scheduler:
 		except Timeup:
 			pass
 		return timeticks,*filteredhists
-		
+
+
+def filterschedule(sched,times,*valueshist):
+	sc=Scheduler(sched)
+	out=sc.filter(times,*valueshist)	
+	del sc
+	return out
 
 
 #====================================================================================================
@@ -264,6 +277,10 @@ def savefig(*paths,fig=None):
 		else:
 			fig.savefig(path)
 	log('Saved figure to {}'.format(paths))
+
+
+def savefig_(pathsuffixes,fig=None):
+	savefig(*[path+pathsuffixes for path in outpaths],fig=fig)
 
 def write(msg,*paths,mode='a'):
 	for path in paths:
@@ -335,7 +352,7 @@ def terse(l):
 def longestduration(folder):
 	def relorder(subfolder):
 		try:
-			with open(folder+'/'+subfolder+'/last seen','r') as f:
+			with open(folder+'/'+subfolder+'/duration','r') as f:
 				return int(f.read())
 		except:
 			return -1
@@ -354,6 +371,7 @@ trackedvals=dict()
 eventlisteners=dict()
 sessionID=nowstr()
 outpaths=set()
+trackduration=False
 
 sessionstate=State()
 dbprintbuffer=['no prints']
