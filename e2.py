@@ -183,7 +183,7 @@ def run():
 				cfg.savefig(*['{}{}{}'.format(path,int(sc1.elapsed()),'s.pdf') for path in cfg.outpaths],fig=fig1)
 
 				temp_plotter=e1.DynamicPlotter(locals()|globals(),reg_args,['minibatch loss','weights'])
-				temp_plotter.prep(sc4.schedule)
+				temp_plotter.prep(sc3.schedule)
 				temp_plotter.learningplots()
 				del temp_plotter
 			if inp=='q':
