@@ -65,6 +65,10 @@ def run(cmdargs):
 
 
 	_,redefs=cfg.parse_cmdln_args(cmdargs)
+	if 'n' in redefs:
+		params['targetwidths'][0]=redefs['n']
+		params['learnerwidths'][0]=redefs['n']
+
 	globals().update(params)
 	globals().update(redefs)
 	varnames=cfg.orderedunion(params,redefs)

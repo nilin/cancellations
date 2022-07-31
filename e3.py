@@ -75,6 +75,9 @@ def run(cmdargs):
 		sys.exit(0)
 
 	params['learneractivation']=l_a
+	if 'n' in redefs:
+		params['targetwidths'][0]=redefs['n']
+		params['learnerwidths'][0]=redefs['n']
 
 	globals().update(params)
 	globals().update(redefs)
