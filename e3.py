@@ -33,25 +33,23 @@ import examplefunctions
 import AS_functions as ASf
 
 
-#jax.config.update("jax_enable_x64", True)
+jax.config.update("jax_enable_x64", True)
 
 
 exname='e3'
 
-explanation='Train a network with activation fn #1 to fit one with activation #2'
-
-
+explanation='Fit a Slater determinant of harmonic oscillators'
 
 params={
-'targettype':'AS_NN',
+'targettype':'HermiteSlater',
 'learnertype':'AS_NN',
 'n':7,
 'd':1,
-'samples_train':2500,
+'samples_train':10000,
 'samples_test':250,
 'fnplotfineness':250,
-'targetwidths':[7,100,1],
-'learnerwidths':[7,250,1],
+#'targetwidths':[5,100,1],
+'learnerwidths':[7,200,1],
 #'targetactivation':'tanh',
 #'learneractivation':'ReLU',
 'timebound':cfg.hour
@@ -64,13 +62,14 @@ def run():
 
 
 	try:
-		params['learneractivation'],params['targetactivation']=[{'r':'ReLU','t':'tanh'}[k] for k in cfg.cmdparams[-2:]]
+		l_a={'r':'ReLU','t':'tanh'}[cfg.selectone({'r','t'},cfg.cmdparams)]
 	except:
-		print(10*'\n'+'Pass activation functions as parameters (learner, target).\n'+db.wideline()+10*'\n')	
+		print(10*'\n'+'Pass activation function as parameter.\n'+db.wideline()+10*'\n')	
 		raise Exception
 
+	params['learneractivation']=l_a
 	if 'n' in cfg.cmdredefs:
-		params['targetwidths'][0]=cfg.cmdredefs['n']
+		#params['targetwidths'][0]=cfg.cmdredefs['n']
 		params['learnerwidths'][0]=cfg.cmdredefs['n']
 
 	globals().update(params)
@@ -101,7 +100,7 @@ def run():
 	#target=jax.jit(lambda X:targets[0](X)+targets[1](X))
 	#target=AS_HEAVY.makeblockwise(target)
 
-	target=ASf.init_target(targettype,n,d,targetwidths,targetactivation)
+	target=ASf.init_target(targettype,n,d)
 	cfg.log('normalizing target')
 	target=util.normalize(target,X[:100])
 	target=AS_HEAVY.makeblockwise(target)
