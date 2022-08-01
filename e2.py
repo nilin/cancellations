@@ -38,37 +38,40 @@ import AS_functions as ASf
 
 exname='e2'
 
-explanation='Train a network with activation fn #1 to fit one with activation #2'
-
-
+explanation='Example '+exname
+timebound=cfg.hour
 
 params={
 'targettype':'AS_NN',
 'learnertype':'AS_NN',
-'n':7,
+'n':5,
 'd':1,
-'samples_train':2500,
+'samples_train':5000,
 'samples_test':250,
 'fnplotfineness':250,
-'targetwidths':[7,100,1],
-'learnerwidths':[7,250,1],
-#'targetactivation':'tanh',
+'targetwidths':[5,100,1],
+'learnerwidths':[5,100,1],
+'targetactivation':'softplus',
 #'learneractivation':'ReLU',
-'timebound':cfg.hour
+'checkpoint_interval':5,
+'timebound':timebound
 }
 # does reach
 
+fnplotsched=cfg.stepwiseperiodicsched([5,10,60],[0,60,120,timebound])
+learningplotsched=cfg.stepwiseperiodicsched([5,10,60],[0,60,120,timebound])
 
 def run():
 
 
 
 	try:
-		params['learneractivation'],params['targetactivation']=[{'r':'ReLU','t':'tanh'}[k] for k in cfg.cmdparams[-2:]]
+		l_a={'r':'ReLU','t':'tanh'}[cfg.selectone({'r','t'},cfg.cmdparams)]
 	except:
-		print(10*'\n'+'Pass activation functions as parameters (learner, target).\n'+db.wideline()+10*'\n')	
+		print(10*'\n'+'Pass activation function as parameter.\n'+db.wideline()+10*'\n')	
 		raise Exception
 
+	params['learneractivation']=l_a
 	if 'n' in cfg.cmdredefs:
 		params['targetwidths'][0]=cfg.cmdredefs['n']
 		params['learnerwidths'][0]=cfg.cmdredefs['n']
@@ -135,10 +138,12 @@ def run():
 	#----------------------------------------------------------------------------------------------------
 
 	sc0=cfg.Scheduler(cfg.stepwiseperiodicsched([1,10],[0,120,timebound]))
-	sc1=cfg.Scheduler(cfg.stepwiseperiodicsched([60],[0,timebound]))
-	#sc2=cfg.Scheduler(cfg.stepwiseperiodicsched([10],[0,timebound]))
-	#sc3=cfg.Scheduler(cfg.stepwiseperiodicsched([5,30],[0,120,timebound]))
-	sc4=cfg.Scheduler(cfg.expsched(2,timebound,.1))
+	sc1=cfg.Scheduler(cfg.stepwiseperiodicsched([15],[0,timebound]))
+
+
+	sc_fnplot=cfg.Scheduler(fnplotsched)
+	sc_learnplot=cfg.Scheduler(learningplotsched)
+
 	cfg.log('\nStart training.\n')
 
 	
@@ -153,24 +158,15 @@ def run():
 			if sc1.dispatch():
 				trainer.save()
 
-			#if sc2.dispatch():
-			#	"""
-			#	cfg.trackcurrent('quick test loss',e0.quicktest(learner,X_test,Y_test,samples_quicktest))
-			#	"""
+			if sc_fnplot.dispatch():
+				fig1=pt.getfnplot(sections,learner.as_static())
+				cfg.savefig(*['{}{}{}'.format(path,int(sc1.elapsed()),'s.pdf') for path in cfg.outpaths],fig=fig1)
+				pass
 
-			#if sc3.dispatch():
-			#	"""
-			#	fig1=pt.getfnplot(sections,learner.as_static())
-			#	cfg.savefig(*['{}{}{}'.format(path,int(sc1.elapsed()),'s.pdf') for path in cfg.outpaths],fig=fig1)
-			#	"""
-			#	pass
-
-			#if sc4.dispatch():
-			#	"""
-			#	dynamicplotter.process_state(learner)
-			#	dynamicplotter.learningplots()
-			#	"""
-			#	pass
+			if sc_learnplot.dispatch():
+				dynamicplotter.process_state(learner)
+				dynamicplotter.learningplots()
+				pass
 
 
 		except KeyboardInterrupt:
@@ -181,7 +177,7 @@ def run():
 				cfg.savefig(*['{}{}{}'.format(path,int(sc1.elapsed()),'s.pdf') for path in cfg.outpaths],fig=fig1)
 
 				temp_plotter=pt.DynamicPlotter(locals()|globals(),reg_args,trainer.getlinks('minibatch loss','weights'))
-				temp_plotter.prep(sc4.schedule)
+				temp_plotter.prep(learningplotsched)
 				temp_plotter.learningplots()
 				del temp_plotter
 			if inp=='q': break

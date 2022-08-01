@@ -9,7 +9,7 @@ import pdb
 import jax.random as rnd
 from jax.lax import collapse	
 
-
+from jax.nn import softplus
 
 
 @jax.jit
@@ -22,7 +22,7 @@ def DReLU(x):
 
 
 
-activations={'ReLU':ReLU,'tanh':jnp.tanh}
+activations={'ReLU':ReLU,'tanh':jnp.tanh,'softplus':softplus}
 
 
 
