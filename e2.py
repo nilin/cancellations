@@ -46,10 +46,10 @@ params={
 'learnertype':'AS_NN',
 'n':5,
 'd':1,
-'samples_train':5000,
+'samples_train':25000,
 'samples_test':250,
 'fnplotfineness':250,
-'targetwidths':[5,100,1],
+'targetwidths':[5,10,10,10,1],
 'learnerwidths':[5,100,1],
 'targetactivation':'softplus',
 #'learneractivation':'ReLU',
@@ -58,7 +58,8 @@ params={
 }
 # does reach
 
-fnplotsched=cfg.stepwiseperiodicsched([5,10,60],[0,60,120,timebound])
+fnplotsched=cfg.stepwiseperiodicsched([1,5,10,60],[0,5,10,60,timebound])
+#learningplotsched=cfg.stepwiseperiodicsched([1,5,10,60],[0,5,10,60,timebound])
 learningplotsched=cfg.stepwiseperiodicsched([5,10,60],[0,60,120,timebound])
 
 def run():

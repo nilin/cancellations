@@ -99,7 +99,7 @@ class Plotter(AbstractPlotter):
 
 		cfg.dbprint('process_state called')
 
-		if t==None:t=cfg.timestamp()
+		if t==None:t=self.timestamp()
 		X_test=self.static['X_test'][:1000]
 		Y_test=self.static['Y_test'][:1000]
 		self.static['learneractivation']=self.static['learnerinitparams'][-1]

@@ -80,9 +80,13 @@ class State:
 	def __init__(self,static=None,hists=None):
 		self.static=dict() if static==None else static
 		self.hists=dict() if hists==None else hists
+		self.t0=time.perf_counter()
+
+	def timestamp(self):
+		return time.perf_counter()-self.t0
 
 	def remember(self,name,val,t=None):
-		if t==None:t=timestamp()
+		if t==None:t=self.timestamp()
 		self.initentry(name)
 		self.hists[name]['timestamps'].append(t)
 		self.hists[name]['vals'].append(val)
