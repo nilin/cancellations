@@ -72,17 +72,18 @@ def run():
 		print(10*'\n'+'Pass activation function as parameter.\n'+db.wideline()+10*'\n')	
 		raise Exception
 
+	params.update(cfg.cmdredefs)
+
 	if 'n' in cfg.cmdredefs:
 		params['widths'][0]=cfg.cmdredefs['n']
-
 	params['learnerwidths']=params['widths']
 	params['targetwidths']=params['widths']
 	params['learneractivation']=params['activation']
 	params['targetactivation']=params['activation']
 
 	globals().update(params)
-	globals().update(cfg.cmdredefs)
-	varnames=cfg.orderedunion(params,cfg.cmdredefs)
+	#globals().update(cfg.cmdredefs)
+	varnames=list(params)#cfg.orderedunion(params,cfg.cmdredefs)
 
 
 	ignore={'plotfineness','minibatchsize','initfromfile','d','checkpoint_interval'}

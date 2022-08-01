@@ -182,12 +182,22 @@ def keyfromstr(s):
 
 
 
-
-def dimlist(l):
-	if type(l)==list:
-		return [dimlist(e) for e in l]
+def nestedstructure(T,fn):
+	if type(T)==list:
+		return [nestedstructure(e,fn) for e in T]
 	else:
-		return l.shape
+		return fn(T)
+
+def dimlist(T):
+	return nestedstructure(T,lambda A:A.shape)
+
+
+
+
+#	if type(l)==list:
+#		return [dimlist(e) for e in l]
+#	else:
+#		return l.shape
 	
 def printliststructure(l):
 	return str(dimlist(l))

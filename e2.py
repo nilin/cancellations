@@ -126,7 +126,13 @@ def run():
 
 
 
-	trainer=learning.Trainer(learner,X,Y,weight_decay=weight_decay,minibatchsize=500)
+	lastlayermask=util.nestedstructure(learner.cloneweights(),lambda W:False)
+	lastlayermask[0][-1]=True
+	cfg.dblog(lastlayermask)
+
+	trainer=learning.Trainer(learner,X,Y,weight_decay=weight_decay,mask=lastlayermask)
+	#trainer=learning.Trainer(learner,X,Y,weight_decay=weight_decay,minibatchsize=500)
+
 	sections=pt.CrossSections(X,Y,target,3,fineness=fnplotfineness)	
 	reg_args=['learnerinitparams','X','Y','X_test','Y_test','sections','learneractivation']
 	cfg.register(locals()|globals(),*reg_args)
