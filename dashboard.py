@@ -204,7 +204,7 @@ def display_1(*_):
 	slate.addspace(2)
 	slate.addline()
 	slate.addtext('debug prints (cfg.dbprint(msg))')
-	slate.addtext(lambda *_:str(cfg.dbprintbuffer[-1]),height=10)
+	slate.addtext(lambda *_:'\n'.join([str(msg) for msg in cfg.dbprintbuffer[-5:]]),height=10)
 	#slate.addline()
 	#slate.addbar(lambda *_:cfg.getval('test loss'),emptystyle='.')
 	return slate

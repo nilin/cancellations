@@ -174,9 +174,12 @@ def log(msg):
 		write(str(int(timestamp())),*[os.sep.join(pathlog.split(os.sep)[:-1])+os.sep+'duration' for pathlog in logpaths()],mode='w')	
 	pokelisteners('log')
 
+def dblog(msg):
+	dbprint(msg)
+	write(str(msg)+'\n','debug/'+sessionID)
+
 def errlog(msg):
-	remember('errlog',msg)
-	write(str(msg)+'\n\n\n','debug/'+sessionID)
+	write(str(msg)+'\n\n\n','debug/errordump '+sessionID)
 
 def dbprint(msg):
 	dbprintbuffer.append(msg)
@@ -229,10 +232,10 @@ class Scheduler:
 
 		
 	def filter(self,times,*valueshists):
-		timeticks=[]
-		filteredhists=[[] for hist in valueshists]
+		timeticks=[times[0]]
+		filteredhists=[[hist[0]] for hist in valueshists]
 		try:
-			for t,*values in zip(times,*valueshists):
+			for t,*values in zip(times,*valueshists)[1:]:
 				if self.dispatch(t):
 					timeticks.append(t)
 					for val,hist in zip(values,filteredhists):
@@ -354,6 +357,12 @@ def orderedunion(A,B):
 def terse(l):
 	return str([round(float(e*1000))/1000 for e in l])
 
+def selectone(options,l):
+	choice=list(options.intersection(l))
+	assert(len(choice)==1)
+	return choice[0]
+
+
 #====================================================================================================
 
 
@@ -397,8 +406,8 @@ cmdparams,cmdredefs=parse_cmdln_args()
 
 if __name__=='__main__':
 
-	print(stepwiseperiodicsched([10,100],[0,60,600]))
-	for i in range(10):
-		print(nextkey())
+#	print(stepwiseperiodicsched([10,100],[0,60,600]))
+#	for i in range(10):
+#		print(nextkey())
 
-
+	print(selectone({'r','t'},[1,4,'r',5,'d']))

@@ -59,6 +59,8 @@ class Plotter(cfg.State):
 
 	def filtersnapshots(self,schedule):
 		self.hists['weights']['timestamps'],self.hists['weights']['vals']=cfg.filterschedule(schedule,self.hists['weights']['timestamps'],self.hists['weights']['vals'])
+		cfg.dblog('len(self.hists[weights][timestamps]) in plottools.Plotter.filtersnapshots')
+		cfg.dblog(len(self.hists['weights']['timestamps']))
 
 	def loadlearnerclone(self):
 		self.emptylearner=AS_functions.gen_learner(*self.static['learnerinitparams'])
@@ -77,6 +79,7 @@ class Plotter(cfg.State):
 		self.loadlearnerclone()
 		timestamps,states=self.hists['weights']['timestamps'],self.hists['weights']['vals']
 		for i,(t,state) in enumerate(zip(timestamps,states)):
-			print('processing snapshot {}/{}'.format(i+1,len(timestamps)),end='\r')
+
+			cfg.log('processing snapshot {}/{}'.format(i+1,len(timestamps)))
 			self.process_state(self.getlearner(state),t)
 
