@@ -38,7 +38,7 @@ import AS_functions as ASf
 
 exname='e2'
 
-explanation='Example '+exname
+explanation='Example '+exname+': softplus target function'
 timebound=cfg.hour
 
 params={
