@@ -111,7 +111,7 @@ def run():
 	_target_=ASf.init_learner(targettype,n,d,targetwidths,targetactivation)
 	util.normalize_by_weights(_target_,X[:100])
 
-	weights0=_target_.weights
+	weights0=_target_.cloneweights()
 	target=_target_.as_static()
 	#target=ASf.init_target(targettype,n,d,targetwidths,targetactivation)
 	#cfg.log('normalizing target')

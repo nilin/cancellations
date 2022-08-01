@@ -119,7 +119,7 @@ class Learner:
 		self.reset(weights)
 
 	def reset(self,weights):
-		self.weights=weights
+		self.weights=copy.deepcopy(weights)
 		return self
 
 	def as_static(self):
