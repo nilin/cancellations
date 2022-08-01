@@ -159,17 +159,13 @@ def run():
 				trainer.save()
 
 			if sc_fnplot.dispatch():
-			#	"""
-			#	fig1=pt.getfnplot(sections,learner.as_static())
-			#	cfg.savefig(*['{}{}{}'.format(path,int(sc1.elapsed()),'s.pdf') for path in cfg.outpaths],fig=fig1)
-			#	"""
+				fig1=pt.getfnplot(sections,learner.as_static())
+				cfg.savefig(*['{}{}{}'.format(path,int(sc1.elapsed()),'s.pdf') for path in cfg.outpaths],fig=fig1)
 				pass
 
 			if sc_learnplot.dispatch():
-			#	"""
-			#	dynamicplotter.process_state(learner)
-			#	dynamicplotter.learningplots()
-			#	"""
+				dynamicplotter.process_state(learner)
+				dynamicplotter.learningplots()
 				pass
 
 

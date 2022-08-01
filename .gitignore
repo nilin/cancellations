@@ -8,7 +8,6 @@ datastash*
 **/datastash/*
 log
 runlocal*
-run.py
 *stash*
 hpc*
 sum2*
