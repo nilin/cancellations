@@ -43,7 +43,7 @@ collectivelossfn=util.sqloss
 
 	
 class Trainer(cfg.State):
-	def __init__(self,learner,X,Y,**kwargs):
+	def __init__(self,learner,X,Y,learning_rate=.01,**kwargs):
 
 		self.learner=learner
 
@@ -51,7 +51,7 @@ class Trainer(cfg.State):
 		self.X,self.Y=X,Y
 		self.samples,self.n,self.d=X.shape
 
-		self.opt=optax.adamw(.01)
+		self.opt=optax.adamw(learning_rate,**{k:val for k,val in kwargs.items() if k in ['weight_decay','mask']})
 		self.state=self.opt.init(self.learner.weights)
 
 		self.set_default_batchsizes(**kwargs)
@@ -69,6 +69,7 @@ class Trainer(cfg.State):
 
 		cfg.remember('minibatch loss',loss)
 		self.remember('minibatch loss',loss)
+		self.remember('total steps done',len(self.gethist('minibatch loss')[0]))
 
 
 	def step(self):
@@ -123,6 +124,9 @@ class Learner:
 
 	def as_static(self):
 		return util.fixparams(self.f,self.weights)
+
+	def cloneweights(self):
+		return copy.deepcopy(self.weights)
 
 
 

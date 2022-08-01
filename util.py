@@ -22,7 +22,7 @@ def DReLU(x):
 
 
 
-activations={'ReLU':ReLU,'tanh':jnp.tanh,'softplus':softplus}
+activations={'ReLU':ReLU,'tanh':jnp.tanh,'softplus':softplus,'DReLU':DReLU}
 
 
 
@@ -107,6 +107,14 @@ def normalize(f,X_):
 	return g
 
 
+def normalize_by_weights(learner,X_):
+
+	f=learner.as_static()	
+	scalesquared=sqloss(f(X_),0)
+	C=1/math.sqrt(scalesquared)
+
+	weights=learner.weights
+	weights[0][-1]=weights[0][-1]*C
 
 
 def chop(*Xs,chunksize):

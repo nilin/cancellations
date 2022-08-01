@@ -264,6 +264,25 @@ def filterschedule(sched,times,*valueshist):
 	return out
 
 
+def filterschedule_w_ordinals(sched,times,*valshist):
+	_valshist=(list(range(len(times))),)+tuple(valshist)
+	return filterschedule(times,*_valshist)
+	
+
+def times_to_ordinals(allts,ticks,*vals):
+	ordn=0
+	ts=deque(allts)
+	ordns=[]
+
+	for tick in ticks:
+		while len(ts)>0 and ts[0]<tick:
+			ts.popleft()
+			ordn=ordn+1
+		ordns.append(ordn)
+	return (ordns,*vals)
+
+
+
 #====================================================================================================
 
 
@@ -426,4 +445,7 @@ if __name__=='__main__':
 #	for i in range(10):
 #		print(nextkey())
 
-	print(selectone({'r','t'},[1,4,'r',5,'d']))
+	#print(selectone({'r','t'},[1,4,'r',5,'d']))
+
+	print(times_to_ordinals([.1,.2,.3,.4,.5,.6,.7,.8],[.3,.7],['a','b']))
+	print(times_to_ordinals([.1,.2,.3,.4,.5,.6,.7,.8],[.1,.2,.3,.4,.5,.6,.7,.8],[1,2,3,4,5,6,7,8]))

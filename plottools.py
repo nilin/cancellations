@@ -58,8 +58,6 @@ class CrossSections:
 class AbstractPlotter(cfg.State):
 
 	def filtersnapshots(self,schedule):
-
-		#self.weightshist['timestamps'],self.weightshist['vals']=cfg.filterschedule(schedule,self.weightshist['timestamps'],self.weightshist['vals'])
 		self.hists['weights']['timestamps'],self.hists['weights']['vals']=cfg.filterschedule(schedule,self.hists['weights']['timestamps'],self.hists['weights']['vals'])
 
 	def loadlearnerclone(self):
@@ -115,10 +113,17 @@ class Plotter(AbstractPlotter):
 		fig.suptitle(self.static['learneractivation'])
 
 		def plotax(ax):
-			ax.scatter(*self.gethist('minibatch loss'),color='r',label='training loss',s=.3,alpha=.3)
-			ax.plot(*self.gethist('test loss'),'bo-',label='test loss',markersize=3,lw=1)
+
+			ts=self.gethist('minibatch loss')[0]
+			ax.scatter(*cfg.times_to_ordinals(ts,*self.gethist('minibatch loss')),color='r',label='training loss',s=.3,alpha=.3)
+			ax.plot(*cfg.times_to_ordinals(ts,*self.gethist('test loss')),'bo-',label='test loss',markersize=3,lw=1)
 			ax.legend()
-			ax.set_xlabel('seconds')
+			ax.set_xlabel('minibatches')
+
+			# ax.scatter(*self.gethist('minibatch loss'),color='r',label='training loss',s=.3,alpha=.3)
+			# ax.plot(*self.gethist('test loss'),'bo-',label='test loss',markersize=3,lw=1)
+			# ax.legend()
+			# ax.set_xlabel('seconds')
 
 		plotax(ax1)
 		plotax(ax2)
@@ -130,13 +135,14 @@ class Plotter(AbstractPlotter):
 		fig,ax=plt.subplots()
 		fig.suptitle(self.static['learneractivation'])
 
+		all_ts=self.gethist('minibatch loss')[0]
 		ts,tslices=self.gethist('weight norms')
 		wnorms=zip(*tslices)
 		
-		#styles=['bo-','r0-','bd:','rd:']
 		colors=['r','g','b']
 		for i,wnorm in enumerate(wnorms):
-			ax.plot(ts,wnorm,'o-',color=colors[i],label='layer {} weights'.format(i+1),markersize=2,lw=1)
+			ax.plot(*cfg.times_to_ordinals(all_ts,ts,wnorm),'o-',color=colors[i],label='layer {} weights'.format(i+1),markersize=2,lw=1)
+		ax.set_xlabel('minibatches')
 		ax.legend()	
 		cfg.savefig_('weightnorms.pdf',fig=fig)
 

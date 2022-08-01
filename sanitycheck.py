@@ -36,7 +36,7 @@ import AS_functions as ASf
 #jax.config.update("jax_enable_x64", True)
 
 
-exname='e2'
+exname='sanitycheck'
 
 explanation='Example '+exname+': softplus target function'
 timebound=cfg.hour
@@ -49,11 +49,11 @@ params={
 'samples_train':25000,
 'samples_test':250,
 'fnplotfineness':250,
-'targetwidths':[6,2,2,1],
-'learnerwidths':[6,100,1],
-'targetactivation':'softplus',
+'widths':[6,2,2,1],
+#'learnerwidths':[6,100,1],
+#'targetactivation':'softplus',
 #'learneractivation':'ReLU',
-'weight_decay':.1,
+'weight_decay':.01,
 'timebound':timebound
 }
 # does reach
@@ -67,14 +67,18 @@ def run():
 
 
 	try:
-		params['learneractivation']={'r':'ReLU','t':'tanh','s':'softplus','d':'DReLU'}[cfg.selectone({'r','t','s','d'},cfg.cmdparams)]
+		params['activation']={'r':'ReLU','t':'tanh','s':'softplus','d':'DReLU'}[cfg.selectone({'r','t','s','d'},cfg.cmdparams)]
 	except:
 		print(10*'\n'+'Pass activation function as parameter.\n'+db.wideline()+10*'\n')	
 		raise Exception
 
 	if 'n' in cfg.cmdredefs:
-		params['targetwidths'][0]=cfg.cmdredefs['n']
-		params['learnerwidths'][0]=cfg.cmdredefs['n']
+		params['widths'][0]=cfg.cmdredefs['n']
+
+	params['learnerwidths']=params['widths']
+	params['targetwidths']=params['widths']
+	params['learneractivation']=params['activation']
+	params['targetactivation']=params['activation']
 
 	globals().update(params)
 	globals().update(cfg.cmdredefs)
@@ -104,11 +108,19 @@ def run():
 	#target=jax.jit(lambda X:targets[0](X)+targets[1](X))
 	#target=AS_HEAVY.makeblockwise(target)
 
-	target=ASf.init_target(targettype,n,d,targetwidths,targetactivation)
-	cfg.log('normalizing target')
-	target=util.normalize(target,X[:100])
+	_target_=ASf.init_learner(targettype,n,d,targetwidths,targetactivation)
+	util.normalize_by_weights(_target_,X[:100])
+
+	weights0=_target_.weights
+	target=_target_.as_static()
+	#target=ASf.init_target(targettype,n,d,targetwidths,targetactivation)
+	#cfg.log('normalizing target')
 	target=AS_HEAVY.makeblockwise(target)
 
+
+
+	# for sanity check
+	learner.reset(weights0)
 
 
 	#----------------------------------------------------------------------------------------------------
