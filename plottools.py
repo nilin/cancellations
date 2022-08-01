@@ -178,7 +178,7 @@ class Plotter(AbstractPlotter):
 	def learningplots(self):
 		self.plotlosshist()
 		self.plotweightnorms()
-		self.plot3()
+		#self.plot3()
 		plt.close('all')
 
 
@@ -206,10 +206,9 @@ class LoadedPlotter(cfg.LoadedState,Plotter):
 
 
 
-
 class CompPlotter():
 	def __init__(self,datapaths):
-		self.plotters={ac:LoadedPlotter(datapaths[ac]) for ac in activations}
+		self.plotters={ac:LoadedPlotter(datapaths[ac]) for ac in ['ReLU','tanh']}
 
 	def prep(self,schedule):
 		for ac,plotter in self.plotters.items():
@@ -237,35 +236,35 @@ class CompPlotter():
 		cfg.savefig_('weightcomp.pdf',fig=fig)
 
 
-	def plot3(self):
-		ts,tslices=self.gethist('weight norms')
-		_,fnorm=self.gethist('NS norm')
-		_,losses=self.gethist('test loss')
-		weightnorms=[max([weights for weights in lweights]) for lweights in tslices]
-
-
-		fig,(ax1,ax2,ax3)=plt.subplots(1,3,figsize=(15,5))
-		fig.suptitle(self.static['learneractivation'])
-
-		ax1.plot(weightnorms,jnp.sqrt(jnp.array(losses)),'bo-',markersize=2,lw=1)
-		ax1.set_xlabel('weights')
-		ax1.set_ylabel('l2 loss')
-		ax1.annotate('start',(weightnorms[0],jnp.sqrt(losses[0])))
-		ax1.annotate('end',(weightnorms[-1],jnp.sqrt(losses[-1])))
-
-		ax2.plot(fnorm,jnp.sqrt(jnp.array(losses)),'bo-',markersize=2,lw=1)
-		ax2.set_xlabel('||f||')
-		ax2.set_ylabel('l2 loss')
-		ax2.annotate('start',(fnorm[0],jnp.sqrt(losses[0])))
-		ax2.annotate('end',(fnorm[-1],jnp.sqrt(losses[-1])))
-
-		ax3.plot(weightnorms,fnorm,'bo-',markersize=2,lw=1)
-		ax3.set_xlabel('weights')
-		ax3.set_ylabel('||f||')
-		ax3.annotate('start',(weightnorms[0],fnorm[0]))
-		ax3.annotate('end',(weightnorms[-1],fnorm[-1]))
-
-		cfg.savefig_('plot3.pdf',fig=fig)
+#	def plot3(self):
+#		ts,tslices=self.gethist('weight norms')
+#		_,fnorm=self.gethist('NS norm')
+#		_,losses=self.gethist('test loss')
+#		weightnorms=[max([weights for weights in lweights]) for lweights in tslices]
+#
+#
+#		fig,(ax1,ax2,ax3)=plt.subplots(1,3,figsize=(15,5))
+#		fig.suptitle(self.static['learneractivation'])
+#
+#		ax1.plot(weightnorms,jnp.sqrt(jnp.array(losses)),'bo-',markersize=2,lw=1)
+#		ax1.set_xlabel('weights')
+#		ax1.set_ylabel('l2 loss')
+#		ax1.annotate('start',(weightnorms[0],jnp.sqrt(losses[0])))
+#		ax1.annotate('end',(weightnorms[-1],jnp.sqrt(losses[-1])))
+#
+#		ax2.plot(fnorm,jnp.sqrt(jnp.array(losses)),'bo-',markersize=2,lw=1)
+#		ax2.set_xlabel('||f||')
+#		ax2.set_ylabel('l2 loss')
+#		ax2.annotate('start',(fnorm[0],jnp.sqrt(losses[0])))
+#		ax2.annotate('end',(fnorm[-1],jnp.sqrt(losses[-1])))
+#
+#		ax3.plot(weightnorms,fnorm,'bo-',markersize=2,lw=1)
+#		ax3.set_xlabel('weights')
+#		ax3.set_ylabel('||f||')
+#		ax3.annotate('start',(weightnorms[0],fnorm[0]))
+#		ax3.annotate('end',(weightnorms[-1],fnorm[-1]))
+#
+#		cfg.savefig_('plot3.pdf',fig=fig)
 
 	def plotfn(self,staticlearner,figname='fnplot'):
 		fig=getfnplot(self.static['sections'],staticlearner)

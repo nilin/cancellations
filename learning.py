@@ -98,7 +98,7 @@ class Trainer(cfg.State):
 		return self.learner.as_static()
 
 	def checkpoint(self):
-		#cfg.remember('weights',copy.deepcopy(self.learner.weights))
+		cfg.remember('weights',copy.deepcopy(self.learner.weights))
 		self.remember('weights',copy.deepcopy(self.learner.weights))
 		cfg.log('learner checkpoint')
 

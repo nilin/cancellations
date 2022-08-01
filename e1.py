@@ -43,7 +43,7 @@ In order not to give an unfair advantage to either activation function \n\
 we let the target function in this example be the sum of two antisymmetrized NNs, \n\
 one constructed with each activation function. Both NNs are normalized to have the same magnitude.'
 
-
+timebound=cfg.hour
 
 params={
 'targettype':'AS_NN',
@@ -58,10 +58,12 @@ params={
 #'targetactivation':'tanh',
 #'learneractivation':'ReLU',
 'checkpoint_interval':5,
-'timebound':cfg.hour
+'timebound':timebound
 }
 # does reach
 
+fnplotsched=cfg.stepwiseperiodicsched([5,10,60],[0,60,120,timebound])
+learningplotsched=cfg.stepwiseperiodicsched([5,10,60],[0,60,120,timebound])
 
 def run():
 
@@ -136,10 +138,12 @@ def run():
 	#----------------------------------------------------------------------------------------------------
 
 	sc0=cfg.Scheduler(cfg.stepwiseperiodicsched([1,10],[0,120,timebound]))
-	sc1=cfg.Scheduler(cfg.stepwiseperiodicsched([60],[0,timebound]))
-	#sc2=cfg.Scheduler(cfg.stepwiseperiodicsched([10],[0,timebound]))
-	#sc3=cfg.Scheduler(cfg.stepwiseperiodicsched([5,30],[0,120,timebound]))
-	sc4=cfg.Scheduler(cfg.expsched(2,timebound,.1))
+	sc1=cfg.Scheduler(cfg.stepwiseperiodicsched([15],[0,timebound]))
+
+
+	sc_fnplot=cfg.Scheduler(fnplotsched)
+	sc_learnplot=cfg.Scheduler(learningplotsched)
+
 	cfg.log('\nStart training.\n')
 
 	
@@ -154,24 +158,19 @@ def run():
 			if sc1.dispatch():
 				trainer.save()
 
-			#if sc2.dispatch():
-			#	"""
-			#	cfg.trackcurrent('quick test loss',e0.quicktest(learner,X_test,Y_test,samples_quicktest))
-			#	"""
-
-			#if sc3.dispatch():
+			if sc_fnplot.dispatch():
 			#	"""
 			#	fig1=pt.getfnplot(sections,learner.as_static())
 			#	cfg.savefig(*['{}{}{}'.format(path,int(sc1.elapsed()),'s.pdf') for path in cfg.outpaths],fig=fig1)
 			#	"""
-			#	pass
+				pass
 
-			#if sc4.dispatch():
+			if sc_learnplot.dispatch():
 			#	"""
 			#	dynamicplotter.process_state(learner)
 			#	dynamicplotter.learningplots()
 			#	"""
-			#	pass
+				pass
 
 
 		except KeyboardInterrupt:
@@ -182,7 +181,7 @@ def run():
 				cfg.savefig(*['{}{}{}'.format(path,int(sc1.elapsed()),'s.pdf') for path in cfg.outpaths],fig=fig1)
 
 				temp_plotter=pt.DynamicPlotter(locals()|globals(),reg_args,trainer.getlinks('minibatch loss','weights'))
-				temp_plotter.prep(sc4.schedule)
+				temp_plotter.prep(learningplotsched)
 				temp_plotter.learningplots()
 				del temp_plotter
 			if inp=='q': break

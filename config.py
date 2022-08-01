@@ -16,7 +16,7 @@ import copy
 from collections import deque
 import datetime
 import sys
-
+import re
 
 
 
@@ -382,6 +382,11 @@ def longestduration(folder):
 			return -1
 	return folder+max([(subfolder,relorder(subfolder)) for subfolder in os.listdir(folder)],key=lambda pair:pair[1])[0]
 	
+def latest(folder):
+	folders=[f for f in os.listdir(folder) if len(f)==15 and len(re.sub('[^0-9]','',f))==10]
+	def relorder(subfoldername):
+		return int(re.sub('[^0-9]','',subfoldername))
+	return folder+max([(subfolder,relorder(subfolder)) for subfolder in folders],key=lambda pair:pair[1])[0]
 
 
 lossfn=util.sqloss

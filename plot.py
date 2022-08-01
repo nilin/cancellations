@@ -10,13 +10,6 @@ import AS_functions
 
 
 
-def load_plotter(histpath,schedule):
-	plotter=e1.LoadedPlotter(histpath)
-	#plotter.clonefrom(histpath)
-	#plotter.loadlearnerclone()
-	#cfg.retrievestate(histpath)
-	plotter.filtersnapshots(schedule)
-	return plotter
 
 
 activations=['ReLU','tanh']
@@ -28,6 +21,8 @@ if __name__=='__main__':
 
 
 	exname=cfg.cmdparams[0]
+	ex={'e1':e1,'e2':e2}[exname]
+
 	print(exname)
 
 	for k,val in cfg.cmdredefs.items():
@@ -38,42 +33,66 @@ if __name__=='__main__':
 
 	for ac in ['tanh','ReLU']:
 
-		path='outputs/{}/{}/'.format(exname,ac)
-		longest_run_path=cfg.longestduration(path)
-		histpath=longest_run_path+'/hist'
-		outpath=path+'processed '+cfg.nowstr()+'/'
-		cfg.outpaths={outpath}
 
-		print('output will be saved to\n'+outpath+'\n')
+		try:		
+			top_path='outputs/{}/{}/'.format(exname,ac)
+			folders={'longest duration':cfg.longestduration(top_path),'newest':cfg.latest(top_path)}
+			alreadyprocessed=set()
+
+			for prop,folder in folders.items():
+
+				print('\n'+prop)
+				if folder in alreadyprocessed:
+					print('already processed')
+					continue
+
+				alreadyprocessed.add(folder)	
 
 
-		#----------------------------------------------------------------------------------------------------	
-		plotter=load_plotter(histpath,cfg.periodicsched(5,timebound))
-		plotter.prep()
-		plotter.plot3()
-		
-		#----------------------------------------------------------------------------------------------------	
-		plotter=load_plotter(histpath,cfg.stepwiseperiodicsched([2,10,60],[0,60,120,timebound]))
-		plotter.prep()
-		plotter.plotweightnorms()
-		plotter.plotlosshist()
+				histpath=folder+'/hist'
+				outpath=top_path+'processed '+cfg.nowstr()+'/'
+				cfg.outpaths={outpath}
 
-		
-		#----------------------------------------------------------------------------------------------------	
-		plotter=load_plotter(histpath,cfg.expsched(1,timebound,jnp.log(2)))
-		for t,snapshot in zip(*plotter.gethist('weights')):
-			print('function plot for time {}'.format(int(t)))
-			plotter.plotfn(plotter.getstaticlearner(snapshot),figname='fnplots/{} s'.format(int(t)))
+				print('output will be saved to\n'+outpath+'\n')
+
+
+				#----------------------------------------------------------------------------------------------------	
+				#plotter=pt.LoadedPlotter(histpath)
+				#plotter.prep(cfg.periodicsched(5,timebound))
+				#plotter.plot3()
+				
+				#----------------------------------------------------------------------------------------------------	
+				plotter=pt.LoadedPlotter(histpath)
+				#plotter.prep(cfg.stepwiseperiodicsched([5,10,60],[0,60,120,timebound]))
+				plotter.prep(ex.learningplotsched)
+				plotter.plotweightnorms()
+				plotter.plotlosshist()
+
+				
+				#----------------------------------------------------------------------------------------------------	
+				plotter=pt.LoadedPlotter(histpath)
+				#plotter.filtersnapshots(cfg.expsched(5,timebound,1))
+				plotter.filtersnapshots(ex.fnplotsched)
+				for t,snapshot in zip(*plotter.gethist('weights')):
+					print('function plot for time {}'.format(int(t)))
+					plotter.plotfn(plotter.getstaticlearner(snapshot),figname='fnplots/{} s'.format(int(t)))
+
+		except Exception as e:
+			print('something went wrong, maybe data was not generated yet')
+			print(str(e))
 
 
 
 			
-	cp=e1.CompPlotter({ac:cfg.longestduration('outputs/{}/{}/'.format(exname,ac))+'/hist' for ac in activations})
-	cp.prep(cfg.expsched(1,timebound,.2))
-	cfg.outpaths={'outputs/{}/comparison/processed {}/'.format(exname,cfg.nowstr())}
-	cp.compareweightnorms()
-	cp.comp3()
+	try:		
+		cp=pt.CompPlotter({ac:cfg.longestduration('outputs/{}/{}/'.format(exname,ac))+'/hist' for ac in activations})
+		cp.prep(cfg.expsched(1,timebound,.2))
+		cfg.outpaths={'outputs/{}/comparison/processed {}/'.format(exname,cfg.nowstr())}
+		cp.compareweightnorms()
+		#cp.plot3()
 
+	except:
+		print('something went wrong with comparison plot, maybe data was not generated for both activations yet')
 
 
 
