@@ -36,28 +36,24 @@ import AS_functions as ASf
 #jax.config.update("jax_enable_x64", True)
 
 
-exname='e1'
+exname='e3'
 
-explanation='Example '+exname+'\n\
-In order not to give an unfair advantage to either activation function \n\
-we let the target function in this example be the sum of two antisymmetrized NNs, \n\
-one constructed with each activation function. Both NNs are normalized to have the same magnitude.'
+explanation='Train a network with activation fn #1 to fit one with activation #2'
 
 
 
 params={
 'targettype':'AS_NN',
 'learnertype':'AS_NN',
-'n':5,
+'n':7,
 'd':1,
-'samples_train':5000,
+'samples_train':2500,
 'samples_test':250,
 'fnplotfineness':250,
-'targetwidths':[5,100,1],
-'learnerwidths':[5,100,1],
+'targetwidths':[7,100,1],
+'learnerwidths':[7,250,1],
 #'targetactivation':'tanh',
 #'learneractivation':'ReLU',
-'checkpoint_interval':5,
 'timebound':cfg.hour
 }
 # does reach
@@ -68,12 +64,11 @@ def run():
 
 
 	try:
-		l_a={'r':'ReLU','t':'tanh'}[cfg.selectone({'r','t'},cfg.cmdparams)]
+		params['learneractivation'],params['targetactivation']=[{'r':'ReLU','t':'tanh'}[k] for k in cfg.cmdparams[-2:]]
 	except:
-		print(10*'\n'+'Pass activation function as parameter.\n'+db.wideline()+10*'\n')	
+		print(10*'\n'+'Pass activation functions as parameters (learner, target).\n'+db.wideline()+10*'\n')	
 		raise Exception
 
-	params['learneractivation']=l_a
 	if 'n' in cfg.cmdredefs:
 		params['targetwidths'][0]=cfg.cmdredefs['n']
 		params['learnerwidths'][0]=cfg.cmdredefs['n']
@@ -100,12 +95,16 @@ def run():
 	X=rnd.uniform(cfg.nextkey(),(samples_train,n,d),minval=-1,maxval=1)
 	X_test=rnd.uniform(cfg.nextkey(),(samples_test,n,d),minval=-1,maxval=1)
 
-	targets=[ASf.init_target(targettype,n,d,targetwidths,ac) for ac in ['ReLU','tanh']]
-	cfg.log('normalizing target terms')
-	targets=[util.normalize(target,X[:100]) for target in targets]
-	target=jax.jit(lambda X:targets[0](X)+targets[1](X))
-	target=AS_HEAVY.makeblockwise(target)
+	#targets=[ASf.init_target(targettype,n,d,targetwidths,ac) for ac in ['ReLU','tanh']]
+	#cfg.log('normalizing target terms')
+	#targets=[util.normalize(target,X[:100]) for target in targets]
+	#target=jax.jit(lambda X:targets[0](X)+targets[1](X))
+	#target=AS_HEAVY.makeblockwise(target)
 
+	target=ASf.init_target(targettype,n,d,targetwidths,targetactivation)
+	cfg.log('normalizing target')
+	target=util.normalize(target,X[:100])
+	target=AS_HEAVY.makeblockwise(target)
 
 
 
