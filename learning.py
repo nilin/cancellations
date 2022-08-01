@@ -42,7 +42,7 @@ import multivariate
 collectivelossfn=util.sqloss
 
 	
-class Trainer:
+class Trainer(cfg.State):
 	def __init__(self,learner,X,Y,**kwargs):
 
 		self.learner=learner
@@ -57,6 +57,8 @@ class Trainer:
 		self.set_default_batchsizes(**kwargs)
 		self.minibatches=deque([])
 
+		super().__init__()
+		cfg.setstatic('weightshistpointer',self.linkentry('weights'))
 
 
 	def minibatch_step(self,X_mini,Y_mini):
@@ -66,6 +68,7 @@ class Trainer:
 		self.learner.weights=optax.apply_updates(self.learner.weights,updates)
 
 		cfg.remember('minibatch loss',loss)
+		self.remember('minibatch loss',loss)
 
 
 	def step(self):
@@ -95,7 +98,8 @@ class Trainer:
 		return self.learner.as_static()
 
 	def checkpoint(self):
-		cfg.remember('weights',copy.deepcopy(self.learner.weights))
+		#cfg.remember('weights',copy.deepcopy(self.learner.weights))
+		self.remember('weights',copy.deepcopy(self.learner.weights))
 		cfg.log('learner checkpoint')
 
 	def save(self):

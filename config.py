@@ -101,6 +101,11 @@ class State:
 		self.initentry(name)
 		return self.hists[name]
 
+	def getlinks(self,*names):
+		for name in names:
+			self.initentry(name)
+		return {name:self.hists[name] for name in names}
+
 	def clonefrom(self,path):
 		D=load(path)
 		self.static=D['static']
@@ -136,12 +141,14 @@ def get_errlog():
 		return []
 
 def setstatic(name,val):
-	assert name not in sessionstate.static
+#	try:
+#		assert name not in sessionstate.static
+#	except:
+#		dblog(name)
 	sessionstate.static[name]=val
 	#log('{}={}'.format(name,val))
 
 def register(lcls,*names):
-	#pdb.set_trace()
 	for name in names:
 		setstatic(name,lcls[name])
 
@@ -235,7 +242,7 @@ class Scheduler:
 		timeticks=[times[0]]
 		filteredhists=[[hist[0]] for hist in valueshists]
 		try:
-			for t,*values in zip(times,*valueshists)[1:]:
+			for t,*values in list(zip(times,*valueshists))[1:]:
 				if self.dispatch(t):
 					timeticks.append(t)
 					for val,hist in zip(values,filteredhists):
