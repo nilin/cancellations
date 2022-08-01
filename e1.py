@@ -36,13 +36,14 @@ import AS_functions as ASf
 #jax.config.update("jax_enable_x64", True)
 
 
-explanation='Example 2\n\
+exname='e1'
+
+explanation='Example '+exname+'\n\
 In order not to give an unfair advantage to either activation function \n\
 we let the target function in this example be the sum of two antisymmetrized NNs, \n\
 one constructed with each activation function. Both NNs are normalized to have the same magnitude.'
 
 
-exname='e1'
 
 params={
 'targettype':'AS_NN',
