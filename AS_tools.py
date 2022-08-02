@@ -165,9 +165,4 @@ def test_AS(Ws,bs,X):
 
 
 if __name__=='__main__':
-	
-	print(gen_AS_NN(6))
-	print(gen_lossgrad_AS_NN(6,util.sqloss))
-
-	print(gen_AS_NN(10))
-	print(gen_lossgrad_AS_NN(10,util.sqloss))
+	pass	

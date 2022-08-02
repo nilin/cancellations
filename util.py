@@ -8,6 +8,7 @@ import jax.numpy as jnp
 import pdb
 import jax.random as rnd
 from jax.lax import collapse	
+import config as cfg
 
 from jax.nn import softplus
 
@@ -27,9 +28,9 @@ activations={'ReLU':ReLU,'tanh':jnp.tanh,'softplus':softplus,'DReLU':DReLU}
 
 
 @jax.jit
-def sqlossindividual(Y,Z):
-	Y,Z=[jnp.squeeze(_) for _ in (Y,Z)]
-	return jnp.square(Y-Z)
+def sqlossindividual(Y1,Y2):
+	Y1,Y2=[jnp.squeeze(_) for _ in (Y1,Y2)]
+	return jnp.square(Y1-Y2)
 
 @jax.jit
 def sqloss(Y1,Y2):
@@ -92,19 +93,17 @@ def allmatrixproducts(As,Bs):
 	return flatten_first(products)
 
 
+def scale(f,C):
+	return jax.jit(lambda X:C*f(X))
 
 
-
-def normalize(f,X_):
+def normalize(f,X_,echo=False):
 
 	scalesquared=sqloss(f(X_),0)
 	C=1/math.sqrt(scalesquared)
-
-	@jax.jit
-	def g(X):
-		return C*f(X)
-
-	return g
+	if echo:
+		cfg.log('normalized by factor {:.3}'.format(C))
+	return scale(f,C)
 
 
 def normalize_by_weights(learner,X_):

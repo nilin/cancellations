@@ -11,7 +11,6 @@ import datetime
 import pdb
 import jax.random as rnd
 import sys
-import util
 import copy
 from collections import deque
 import datetime
@@ -180,7 +179,7 @@ def loadvarhist(path,varname):
 def log(msg):
 	msg='{} | {}'.format(datetime.timedelta(seconds=int(timestamp())),msg)
 	remember('log',msg)
-	write(msg.replace('\n','|')+'\n',*logpaths())
+	write(msg+'\n',*logpaths())
 	if trackduration:
 		write(str(int(timestamp())),*[os.sep.join(pathlog.split(os.sep)[:-1])+os.sep+'duration' for pathlog in logpaths()],mode='w')	
 	pokelisteners('log')
@@ -412,7 +411,48 @@ def latest(folder):
 	return folder+max([(subfolder,relorder(subfolder)) for subfolder in folders],key=lambda pair:pair[1])[0]
 
 
-lossfn=util.sqloss
+
+
+
+
+
+
+
+@jax.jit
+def sqloss(Y1,Y2):
+	Y1,Y2=[jnp.squeeze(_) for _ in (Y1,Y2)]
+	return jnp.average(jnp.square(Y1-Y2))
+
+
+@jax.jit
+def dot(Y1,Y2):
+	Y1,Y2=[jnp.squeeze(_) for _ in (Y1,Y2)]
+	n=Y1.shape[0]
+	return jnp.dot(Y1,Y2)/n
+
+
+@jax.jit
+def SI_loss(Y,Y_target):
+	return dot(Y_target,Y_target)-dot(Y,Y_target)**2/dot(Y,Y)
+
+@jax.jit
+def log_SI_loss(Y,Y_target):
+	Y,Y_target=[jnp.squeeze(_) for _ in (Y,Y_target)]
+	return jnp.log(dot(Y,Y))-2*jnp.log(dot(Y,Y_target))
+	
+
+
+def setlossfn(lossname):
+	globals()['lossfn']=globals()[lossname]
+	
+
+
+#setlossfn('sqloss')
+#setlossfn('SI_loss')
+#setlossfn('log_SI_loss')
+
+
+#lossfn=sqloss
 heavy_threshold=8
 BOX='\u2588'
 box='\u2592'

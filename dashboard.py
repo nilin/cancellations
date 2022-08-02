@@ -210,6 +210,37 @@ def display_1(*_):
 	return slate
 
 
+def display_2(*_):
+
+	slate=Slate('refresh','log','block')
+	slate.trackvars('minibatch loss','quick test loss')
+	slate.addtext(lambda *_:cfg.getval('sessioninfo'),height=15)
+	slate.addline()
+	slate.addtext('log')
+	slate.addtext(lambda *_:cfg.getrecentlog(20),height=20)
+	slate.addline()
+	slate.addspace(2)
+	slate.addtext('training loss of 10, 100 minibatches')
+	slate.addtext(lambda memory,*_:'{:.2f}'.format(np.average(memory.gethist('minibatch loss')[1][-10:])))
+	#slate.addbar(lambda memory,*_:np.average(memory.gethist('minibatch loss')[1][-10:]))
+	slate.addtext(lambda memory,*_:'{:.2f}'.format(np.average(memory.gethist('minibatch loss')[1][-100:])))
+	#slate.addbar(lambda memory,*_:np.average(memory.gethist('minibatch loss')[1][-100:]))
+	slate.addspace(2)
+	#slate.addtext(lambda memory,*_:'test loss {:.2}'.format(np.average(memory.gethist('quick test loss')[1][-10])))
+	#slate.addbar(lambda memory,*_:np.average(memory.gethist('quick test loss')[1][-10]))
+
+	slate.addtext(lambda *_:'epoch {}% done'.format(int(100*(1-cfg.getval('minibatches left')/cfg.getval('minibatches')))))
+	slate.addspace(1)
+	slate.addbar(lambda *_:cfg.getval('block')[0]/cfg.getval('block')[1],style='sample blocks done ')
+
+	slate.addspace(2)
+	slate.addline()
+	slate.addtext('debug prints (cfg.dbprint(msg))')
+	slate.addtext(lambda *_:'\n'.join([str(msg) for msg in cfg.dbprintbuffer[-5:]]),height=10)
+	#slate.addline()
+	#slate.addbar(lambda *_:cfg.getval('test loss'),emptystyle='.')
+	return slate
+
 
 
 

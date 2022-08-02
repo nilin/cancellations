@@ -39,7 +39,6 @@ import multivariate
 # training object
 #----------------------------------------------------------------------------------------------------
 
-collectivelossfn=util.sqloss
 
 	
 class Trainer(cfg.State):
@@ -47,7 +46,6 @@ class Trainer(cfg.State):
 
 		self.learner=learner
 
-		self.nullloss=collectivelossfn(Y,0)
 		self.X,self.Y=X,Y
 		self.samples,self.n,self.d=X.shape
 

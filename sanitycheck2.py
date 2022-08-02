@@ -41,7 +41,7 @@ import AS_functions as ASf
 #jax.config.update("jax_enable_x64", True)
 
 
-exname='e2'
+exname='sanitycheck2'
 
 explanation='Example '+exname+': softplus target function'
 timebound=cfg.hour
@@ -54,11 +54,11 @@ params={
 'samples_train':25000,
 'samples_test':250,
 'fnplotfineness':250,
-'targetwidths':[6,2,2,1],
-'learnerwidths':[6,100,1],
-'targetactivation':'softplus',
+'widths':[6,10,1],
+#'learnerwidths':[6,100,1],
+#'targetactivation':'softplus',
 #'learneractivation':'ReLU',
-'weight_decay':.1,
+'weight_decay':.01,
 'timebound':timebound
 }
 # does reach
@@ -72,25 +72,29 @@ def run():
 
 
 	try:
-		params['learneractivation']={'r':'ReLU','t':'tanh','s':'softplus','d':'DReLU'}[cfg.selectone({'r','t','s','d'},cfg.cmdparams)]
+		params['activation']={'r':'ReLU','t':'tanh','s':'softplus','d':'DReLU'}[cfg.selectone({'r','t','s','d'},cfg.cmdparams)]
 	except:
 		print(10*'\n'+'Pass activation function as parameter.\n'+db.wideline()+10*'\n')	
 		raise Exception
 
-	if 'n' in cfg.cmdredefs:
-		params['targetwidths'][0]=cfg.cmdredefs['n']
-		params['learnerwidths'][0]=cfg.cmdredefs['n']
-
 	params.update(cfg.cmdredefs)
+
+	if 'n' in cfg.cmdredefs:
+		params['widths'][0]=cfg.cmdredefs['n']
+	params['learnerwidths']=params['widths']
+	params['targetwidths']=params['widths']
+	params['learneractivation']=params['activation']
+	params['targetactivation']=params['activation']
+
 	globals().update(params)
-	varnames=list(params)
+	#globals().update(cfg.cmdredefs)
+	varnames=list(params)#cfg.orderedunion(params,cfg.cmdredefs)
 
 
 	ignore={'plotfineness','minibatchsize','initfromfile','d','checkpoint_interval'}
 
 	cfg.outpaths.add('outputs/{}/{}/{}/'.format(exname,learneractivation,cfg.sessionID))
 	sessioninfo=explanation+'\n\nsessionID: '+cfg.sessionID+'\n'+cfg.formatvars([(k,globals()[k]) for k in varnames],separator='\n',ignore=ignore)
-	cfg.log(sessioninfo)
 	cfg.setstatic('sessioninfo',sessioninfo)
 	cfg.write(sessioninfo,*[path+'info.txt' for path in cfg.outpaths],mode='w')
 
@@ -110,11 +114,18 @@ def run():
 	#target=jax.jit(lambda X:targets[0](X)+targets[1](X))
 	#target=AS_HEAVY.makeblockwise(target)
 
-	target=ASf.init_target(targettype,n,d,targetwidths,targetactivation)
+	_target_=ASf.init_learner(targettype,n,d,targetwidths,targetactivation)
+	weights0=_target_.cloneweights()
+	target=_target_.as_static()
+	
 	cfg.log('normalizing target')
-	target=util.normalize(target,X[:100])
+	target=util.normalize(target,X[:250],echo=True)
 	target=AS_HEAVY.makeblockwise(target)
 
+
+
+	# for sanity check
+	learner.reset(weights0)
 
 
 	#----------------------------------------------------------------------------------------------------
@@ -132,13 +143,7 @@ def run():
 
 
 
-	lastlayermask=util.nestedstructure(learner.cloneweights(),lambda W:False)
-	lastlayermask[0][-1]=True
-	cfg.dblog(lastlayermask)
-
-	trainer=learning.Trainer(learner,X,Y,weight_decay=weight_decay,mask=lastlayermask)
-	#trainer=learning.Trainer(learner,X,Y,weight_decay=weight_decay,minibatchsize=500)
-
+	trainer=learning.Trainer(learner,X,Y,weight_decay=weight_decay,minibatchsize=500)
 	sections=pt.CrossSections(X,Y,target,3,fineness=fnplotfineness)	
 	reg_args=['learnerinitparams','X','Y','X_test','Y_test','sections','learneractivation']
 	cfg.register(locals()|globals(),*reg_args)
@@ -171,13 +176,11 @@ def run():
 				trainer.save()
 
 			if sc_fnplot.dispatch():
-				#fig1=pt.getfnplot(sections,learner.as_static())
-				#cfg.savefig(*['{}{}{}'.format(path,int(sc1.elapsed()),'s.pdf') for path in cfg.outpaths],fig=fig1)
-
 				lrn=learner.as_static()
 				nlrn=util.normalize(lrn,X_test[:250])
 				fig1=pt.getfnplot(sections,lrn,nlrn)
 				cfg.savefig(*['{}{}{}'.format(path,int(sc1.elapsed()),'s.pdf') for path in cfg.outpaths],fig=fig1)
+				#fig1=pt.getfnplot(sections,lrn,*[util.scale(nlrn,c) for c in [1,-1]])
 				pass
 
 			if sc_learnplot.dispatch():

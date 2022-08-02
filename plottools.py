@@ -46,10 +46,11 @@ class CrossSections:
 		self.lines=[linethrough(x0,self.interval) for x0 in x0s]
 		self.ys=[target(line) for line in self.lines]
 
-	def plot(self,axs,learned):
+	def plot(self,axs,*learnedfns):
 		for ax,x,y in zip(axs,self.lines,self.ys):
+			for learned,ls in zip(learnedfns,['dotted']+10*['solid']):
+				ax.plot(self.interval,learned(x),'r',ls=ls,label='learned')
 			ax.plot(self.interval,y,'b',label='target')
-			ax.plot(self.interval,learned(x),'r',label='learned')
 			ax.legend()
 		
 
@@ -84,9 +85,9 @@ class AbstractPlotter(cfg.State):
 
 
 
-def getfnplot(sections,learner):
+def getfnplot(sections,*learners):
 	fig,axs=plt.subplots(1,3,figsize=(16,4))
-	sections.plot(axs,learner)
+	sections.plot(axs,*learners)
 	return fig
 
 

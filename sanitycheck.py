@@ -6,6 +6,11 @@
 
 
 import config as cfg
+
+cfg.setlossfn('sqloss')
+#cfg.setlossfn('SI_loss')
+#cfg.setlossfn('log_SI_loss')
+
 import sys
 import jax
 import jax.numpy as jnp
