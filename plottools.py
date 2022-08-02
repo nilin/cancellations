@@ -103,7 +103,7 @@ class Plotter(AbstractPlotter):
 		Y_test=self.static['Y_test'][:1000]
 		self.static['learneractivation']=self.static['learnerinitparams'][-1]
 
-		self.remember('test loss',cfg.lossfn(learner.as_static()(X_test),Y_test),t)
+		self.remember('test loss',cfg.getlossfn()(learner.as_static()(X_test),Y_test),t)
 		self.remember('NS norm',util.norm(learner.static_NS()(X_test)),t)
 		self.remember('AS norm',util.norm(learner.as_static()(X_test)),t)
 		self.remember('weight norms',[util.norm(W) for W in learner.weights[0]],t)

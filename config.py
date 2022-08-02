@@ -433,19 +433,20 @@ def dot(Y1,Y2):
 
 @jax.jit
 def SI_loss(Y,Y_target):
-	return dot(Y_target,Y_target)-dot(Y,Y_target)**2/dot(Y,Y)
+	return 1-dot(Y,Y_target)**2/(dot(Y,Y)*dot(Y_target,Y_target))
 
 @jax.jit
 def log_SI_loss(Y,Y_target):
 	Y,Y_target=[jnp.squeeze(_) for _ in (Y,Y_target)]
-	return jnp.log(dot(Y,Y))-2*jnp.log(dot(Y,Y_target))
+	return jnp.log(dot(Y_target,Y_target))+jnp.log(dot(Y,Y))-2*jnp.log(dot(Y,Y_target))
 	
 
 
 def setlossfn(lossname):
 	globals()['lossfn']=globals()[lossname]
 	
-
+def getlossfn():
+	return lossfn
 
 #setlossfn('sqloss')
 #setlossfn('SI_loss')

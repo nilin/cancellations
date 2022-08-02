@@ -6,11 +6,6 @@
 
 
 import config as cfg
-
-#cfg.setlossfn('sqloss')
-cfg.setlossfn('SI_loss')
-#cfg.setlossfn('log_SI_loss')
-
 import sys
 import jax
 import jax.numpy as jnp
@@ -59,6 +54,7 @@ params={
 'targetactivation':'softplus',
 #'learneractivation':'ReLU',
 'weight_decay':.1,
+'lossfn':'SI_loss',
 'timebound':timebound
 }
 # does reach
@@ -84,6 +80,9 @@ def run():
 	params.update(cfg.cmdredefs)
 	globals().update(params)
 	varnames=list(params)
+
+
+	cfg.setlossfn(lossfn)
 
 
 	ignore={'plotfineness','minibatchsize','initfromfile','d','checkpoint_interval'}

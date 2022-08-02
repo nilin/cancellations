@@ -100,7 +100,10 @@ def genpolynomialfunctions(coefficients):	#coefficients dimensions: function,deg
 
 
 
-def gen_lossgrad(f,lossfn=cfg.lossfn):
+def gen_lossgrad(f,lossfn=None):
+
+	if lossfn==None:
+		lossfn=cfg.getlossfn()
 
 	@jax.jit
 	def collectiveloss(params,X,Y):
