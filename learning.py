@@ -30,7 +30,7 @@ import plottools as pt
 import collections
 import copy
 from collections import deque
-import multivariate
+import multivariate as mv
 
 
 
@@ -113,7 +113,11 @@ class Trainer(cfg.State):
 
 class Learner:
 	def __init__(self,*args,weights=None):
-		self.f,self.lossgrad,*_=args
+		if len(args)>1:
+			self.f,self.lossgrad,*_=args
+		else:
+			(self.f,)=args
+			self.lossgrad=mv.gen_lossgrad(f)
 		self.reset(weights)
 
 	def reset(self,weights):
@@ -129,9 +133,9 @@ class Learner:
 
 
 class AS_Learner(Learner):
-	def __init__(self,*args,weights=None):
+	def __init__(self,*args,NS=None,weights=None):
 		super().__init__(*args,weights)
-		self.NS=args[-1]
+		self.NS=NS
 
 	def static_NS(self):
 		return util.fixparams(self.NS,self.weights)

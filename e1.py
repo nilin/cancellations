@@ -6,11 +6,6 @@
 
 
 import config as cfg
-
-cfg.setlossfn('sqloss')
-#cfg.setlossfn('SI_loss')
-#cfg.setlossfn('log_SI_loss')
-
 import sys
 import jax
 import jax.numpy as jnp
@@ -53,16 +48,16 @@ timebound=cfg.hour
 params={
 'targettype':'AS_NN',
 'learnertype':'AS_NN',
-'n':5,
+'n':6,
 'd':1,
-'samples_train':5000,
-'samples_test':250,
-'fnplotfineness':250,
-'targetwidths':[5,100,1],
-'learnerwidths':[5,100,1],
+'samples_train':25000,
+'samples_test':1000,
+'fnplotfineness':500,
+'targetwidths':[6,100,100,1],
+'learnerwidths':[6,250,1],
 #'targetactivation':'tanh',
 #'learneractivation':'ReLU',
-'checkpoint_interval':5,
+'lossfn':'SI_loss',
 'timebound':timebound
 }
 # does reach
@@ -89,6 +84,7 @@ def run():
 	globals().update(cfg.cmdredefs)
 	varnames=cfg.orderedunion(params,cfg.cmdredefs)
 
+	cfg.setlossfn(lossfn)
 
 	ignore={'plotfineness','minibatchsize','initfromfile','d','checkpoint_interval'}
 
@@ -107,9 +103,9 @@ def run():
 	X=rnd.uniform(cfg.nextkey(),(samples_train,n,d),minval=-1,maxval=1)
 	X_test=rnd.uniform(cfg.nextkey(),(samples_test,n,d),minval=-1,maxval=1)
 
-	targets=[ASf.init_target(targettype,n,d,targetwidths,ac) for ac in ['ReLU','tanh']]
+	targets=[ASf.init_target(targettype,n,d,targetwidths,ac) for ac in ['DReLU','tanh']]
 	cfg.log('normalizing target terms')
-	targets=[util.normalize(target,X[:100]) for target in targets]
+	targets=[util.normalize(target,X[:1000]) for target in targets]
 	target=jax.jit(lambda X:targets[0](X)+targets[1](X))
 	target=AS_HEAVY.makeblockwise(target)
 
@@ -164,7 +160,8 @@ def run():
 				trainer.save()
 
 			if sc_fnplot.dispatch():
-				fig1=pt.getfnplot(sections,learner.as_static())
+				nlrn=util.closest_multiple(learner.as_static(),X_test[:500],Y_test[:500],normalized=True)
+				fig1=pt.getfnplot(sections,nlrn)
 				cfg.savefig(*['{}{}{}'.format(path,int(sc1.elapsed()),'s.pdf') for path in cfg.outpaths],fig=fig1)
 				pass
 

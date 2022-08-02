@@ -38,7 +38,7 @@ import AS_functions as ASf
 
 exname='e2'
 
-explanation='Example '+exname+': softplus target function'
+explanation='Example '+exname#+': softplus target function'
 timebound=cfg.hour
 
 params={
@@ -49,9 +49,9 @@ params={
 'samples_train':25000,
 'samples_test':250,
 'fnplotfineness':250,
-'targetwidths':[6,2,2,1],
+'targetwidths':[6,1,1],
 'learnerwidths':[6,100,1],
-'targetactivation':'softplus',
+'targetactivation':'DReLU',
 #'learneractivation':'ReLU',
 'weight_decay':.1,
 'lossfn':'SI_loss',
@@ -111,7 +111,7 @@ def run():
 
 	target=ASf.init_target(targettype,n,d,targetwidths,targetactivation)
 	cfg.log('normalizing target')
-	target=util.normalize(target,X[:100])
+	target=util.normalize(target,X[:500],echo=True)
 	target=AS_HEAVY.makeblockwise(target)
 
 
@@ -135,8 +135,8 @@ def run():
 	lastlayermask[0][-1]=True
 	cfg.dblog(lastlayermask)
 
-	trainer=learning.Trainer(learner,X,Y,weight_decay=weight_decay,mask=lastlayermask)
-	#trainer=learning.Trainer(learner,X,Y,weight_decay=weight_decay,minibatchsize=500)
+	#trainer=learning.Trainer(learner,X,Y,weight_decay=weight_decay,mask=lastlayermask)
+	trainer=learning.Trainer(learner,X,Y,weight_decay=weight_decay,minibatchsize=500)
 
 	sections=pt.CrossSections(X,Y,target,3,fineness=fnplotfineness)	
 	reg_args=['learnerinitparams','X','Y','X_test','Y_test','sections','learneractivation']
@@ -170,8 +170,7 @@ def run():
 				trainer.save()
 
 			if sc_fnplot.dispatch():
-				lrn=learner.as_static()
-				nlrn=util.closest_multiple(lrn,X_test[:500],Y_test[:500])
+				nlrn=util.closest_multiple(learner.as_static(),X_test[:500],Y_test[:500],normalized=True)
 				fig1=pt.getfnplot(sections,nlrn)
 				cfg.savefig(*['{}{}{}'.format(path,int(sc1.elapsed()),'s.pdf') for path in cfg.outpaths],fig=fig1)
 				pass

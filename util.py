@@ -117,9 +117,12 @@ def normalize_by_weights(learner,X_):
 
 
 
-def closest_multiple(f,X,Y_target):
+def closest_multiple(f,X,Y_target,normalized=False):
 	Y=f(X)
-	C=jnp.dot(Y,Y_target)/jnp.dot(Y,Y)
+	if normalized:
+		C=jnp.sign(jnp.dot(Y,Y_target))/jnp.sqrt(cfg.dot(Y,Y))
+	else:
+		C=jnp.dot(Y,Y_target)/jnp.dot(Y,Y)
 	return scale(f,C)
 
 

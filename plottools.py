@@ -130,6 +130,8 @@ class Plotter(AbstractPlotter):
 		plotax(ax2)
 		ax1.set_ylim(0,1)
 		ax2.set_yscale('log')
+		ax2.grid(True,which='major',ls='-',axis='y')
+		ax2.grid(True,which='minor',ls=':',axis='y')
 		cfg.savefig_('losses.pdf',fig=fig)
 
 	def plotweightnorms(self):

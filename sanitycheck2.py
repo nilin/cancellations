@@ -175,7 +175,7 @@ def run():
 
 			if sc_fnplot.dispatch():
 				lrn=learner.as_static()
-				nlrn=util.closest_multiple(lrn,X_test[:500],Y_test[:500])
+				nlrn=util.closest_multiple(lrn,X_test[:500],Y_test[:500],normalized=True)
 				fig1=pt.getfnplot(sections,nlrn)
 				cfg.savefig(*['{}{}{}'.format(path,int(sc1.elapsed()),'s.pdf') for path in cfg.outpaths],fig=fig1)
 				pass

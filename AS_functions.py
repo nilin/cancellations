@@ -70,12 +70,12 @@ def initweights_SlaterSumNN(n,d,widths_and_m):
 
 def gen_AS_NN(n,d,widths,activation):
 	NN_NS=gen_NN_NS(activation)
-	return AS_Learner(gen_Af(n,NN_NS),gen_lossgrad_Af(n,NN_NS,cfg.getlossfn()),NN_NS)
+	return AS_Learner(gen_Af(n,NN_NS),gen_lossgrad_Af(n,NN_NS,cfg.getlossfn()),NS=NN_NS)
 
 def gen_SlaterSumNN(n,d,widths_and_m,activation):
 	NN=gen_NN_wideoutput(activation)
 	Af=gen_SlaterSum(n,NN)
-	return AS_Learner(Af,mv.gen_lossgrad(Af),mv.sum_f(mv.product_f(NN)))
+	return AS_Learner(Af,mv.gen_lossgrad(Af),NS=mv.sum_f(mv.product_f(NN)))
 
 
 
