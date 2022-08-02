@@ -144,12 +144,7 @@ def get_errlog():
 		return []
 
 def setstatic(name,val):
-#	try:
-#		assert name not in sessionstate.static
-#	except:
-#		dblog(name)
 	sessionstate.static[name]=val
-	#log('{}={}'.format(name,val))
 
 def register(lcls,*names):
 	for name in names:
@@ -185,7 +180,6 @@ def log(msg):
 	pokelisteners('log')
 
 def dblog(msg):
-	dbprint(msg)
 	write(str(msg)+'\n','debug/'+sessionID)
 
 def errlog(msg):

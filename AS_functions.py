@@ -31,7 +31,8 @@ from AS_HEAVY import gen_Af_heavy,gen_lossgrad_Af_heavy,heavy_threshold
 from learning import Learner,AS_Learner
 
 
-def initweights_AS_NN(n,d,widths,key=cfg.nextkey()):
+def initweights_AS_NN(n,d,widths,key=None):
+	if key==None: key=cfg.nextkey()
 	assert widths[0]==n*d, 'first layer of AS NN should have width n*d'
 	assert widths[-1]==1, 'AS NN output layer width should be 1'
 	return mv.initweights_NN(widths,key=key)
@@ -81,7 +82,8 @@ def gen_SlaterSumNN(n,d,widths_and_m,activation):
 
 # init learner ----------------------------------------------------------------------------------------------------
 
-def init_AS_NN(n,d,widths,activation,key=cfg.nextkey()):
+def init_AS_NN(n,d,widths,activation,key=None):
+	if key==None: key=cfg.nextkey()
 	learner=gen_AS_NN(n,d,widths,activation)
 	return learner.reset(initweights_AS_NN(n,d,widths,key=key))
 
@@ -107,11 +109,11 @@ def init_SlaterSumNN(n,d,widths_and_m,activation):
 
 
 def init_target(targettype,*args):
-	target=init_learner(targettype,*args).as_static() if 'NN' in targettype \
-	else\
-	{'HermiteSlater':examplefunctions.HermiteSlater}[targettype](args[0],'H',1/8)
-
-	return target
+	if 'NN' in targettype:
+		_target_=init_learner(targettype,*args)
+		return _target_.as_static(),_target_
+	else:
+		return {'HermiteSlater':examplefunctions.HermiteSlater}[targettype](args[0],'H',1/8)
 		
 
 

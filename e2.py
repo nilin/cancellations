@@ -109,7 +109,7 @@ def run():
 	#target=jax.jit(lambda X:targets[0](X)+targets[1](X))
 	#target=AS_HEAVY.makeblockwise(target)
 
-	target=ASf.init_target(targettype,n,d,targetwidths,targetactivation)
+	target,*_=ASf.init_target(targettype,n,d,targetwidths,targetactivation)
 	cfg.log('normalizing target')
 	target=util.normalize(target,X[:500],echo=True)
 	target=AS_HEAVY.makeblockwise(target)
@@ -136,7 +136,7 @@ def run():
 	cfg.dblog(lastlayermask)
 
 	#trainer=learning.Trainer(learner,X,Y,weight_decay=weight_decay,mask=lastlayermask)
-	trainer=learning.Trainer(learner,X,Y,weight_decay=weight_decay,minibatchsize=500)
+	trainer=learning.Trainer(learner,X,Y,weight_decay=weight_decay)#,minibatchsize=500)
 
 	sections=pt.CrossSections(X,Y,target,3,fineness=fnplotfineness)	
 	reg_args=['learnerinitparams','X','Y','X_test','Y_test','sections','learneractivation']

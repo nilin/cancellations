@@ -103,7 +103,7 @@ def run():
 	X=rnd.uniform(cfg.nextkey(),(samples_train,n,d),minval=-1,maxval=1)
 	X_test=rnd.uniform(cfg.nextkey(),(samples_test,n,d),minval=-1,maxval=1)
 
-	targets=[ASf.init_target(targettype,n,d,targetwidths,ac) for ac in ['DReLU','tanh']]
+	targets=[ASf.init_target(targettype,n,d,targetwidths,ac)[0] for ac in ['DReLU','tanh']]
 	cfg.log('normalizing target terms')
 	targets=[util.normalize(target,X[:1000]) for target in targets]
 	target=jax.jit(lambda X:targets[0](X)+targets[1](X))
