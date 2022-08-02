@@ -9,6 +9,7 @@ import pdb
 import jax.random as rnd
 from jax.lax import collapse	
 import config as cfg
+import customactivations as ca
 
 from jax.nn import softplus
 
@@ -23,7 +24,7 @@ def DReLU(x):
 
 
 
-activations={'ReLU':ReLU,'tanh':jnp.tanh,'softplus':softplus,'DReLU':DReLU}
+activations={'ReLU':ReLU,'tanh':jnp.tanh,'softplus':softplus,'DReLU':DReLU}|ca.c_acs
 
 
 
@@ -222,5 +223,6 @@ def scalarfunction(f):
 
 
 
-
-	
+#def deltasquared(w):
+#	sqdists=jnp.sum(jnp.square(w[:,None,:]-w[None,:,:]),axis=-1)
+#	return 1/jnp.max(jnp.triu(1/sqdists))

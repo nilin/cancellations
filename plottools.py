@@ -107,6 +107,7 @@ class Plotter(AbstractPlotter):
 		self.remember('NS norm',util.norm(learner.static_NS()(X_test)),t)
 		self.remember('AS norm',util.norm(learner.as_static()(X_test)),t)
 		self.remember('weight norms',[util.norm(W) for W in learner.weights[0]],t)
+		#self.remember('delta',[util.norm(W) for W in learner.weights[0]],t)
 
 	
 	def plotlosshist(self):
