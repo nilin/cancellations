@@ -119,7 +119,7 @@ def run():
 	target=_target_.as_static()
 	
 	cfg.log('normalizing target')
-	target=util.normalize(target,X[:250],echo=True)
+	target=util.normalize(target,X[:500],echo=True)
 	target=AS_HEAVY.makeblockwise(target)
 
 
@@ -177,10 +177,9 @@ def run():
 
 			if sc_fnplot.dispatch():
 				lrn=learner.as_static()
-				nlrn=util.normalize(lrn,X_test[:250])
-				fig1=pt.getfnplot(sections,lrn,nlrn)
+				nlrn=util.closest_multiple(lrn,X_test[:500],Y_test[:500])
+				fig1=pt.getfnplot(sections,nlrn)
 				cfg.savefig(*['{}{}{}'.format(path,int(sc1.elapsed()),'s.pdf') for path in cfg.outpaths],fig=fig1)
-				#fig1=pt.getfnplot(sections,lrn,*[util.scale(nlrn,c) for c in [1,-1]])
 				pass
 
 			if sc_learnplot.dispatch():

@@ -171,12 +171,9 @@ def run():
 				trainer.save()
 
 			if sc_fnplot.dispatch():
-				#fig1=pt.getfnplot(sections,learner.as_static())
-				#cfg.savefig(*['{}{}{}'.format(path,int(sc1.elapsed()),'s.pdf') for path in cfg.outpaths],fig=fig1)
-
 				lrn=learner.as_static()
-				nlrn=util.normalize(lrn,X_test[:250])
-				fig1=pt.getfnplot(sections,lrn,nlrn)
+				nlrn=util.closest_multiple(lrn,X_test[:500],Y_test[:500])
+				fig1=pt.getfnplot(sections,nlrn)
 				cfg.savefig(*['{}{}{}'.format(path,int(sc1.elapsed()),'s.pdf') for path in cfg.outpaths],fig=fig1)
 				pass
 

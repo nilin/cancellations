@@ -48,9 +48,9 @@ class CrossSections:
 
 	def plot(self,axs,*learnedfns):
 		for ax,x,y in zip(axs,self.lines,self.ys):
-			for learned,ls in zip(learnedfns,['dotted']+10*['solid']):
-				ax.plot(self.interval,learned(x),'r',ls=ls,label='learned')
 			ax.plot(self.interval,y,'b',label='target')
+			for learned,ls in zip(learnedfns,10*['dashed']):
+				ax.plot(self.interval,learned(x),'r',ls=ls,label='learned')
 			ax.legend()
 		
 
