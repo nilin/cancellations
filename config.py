@@ -279,12 +279,26 @@ def times_to_ordinals(allts,ticks,*vals):
 #====================================================================================================
 
 
+class Keychain:
+
+	def __init__(self,seed=0):
+		self.resetkeys(seed)
+
+	def resetkeys(self,seed):
+		self.keys=deque([rnd.PRNGKey(seed)])
+
+	def refresh(self,key):
+		_,*newkeys=rnd.split(key,1000)
+		self.keys=deque(newkeys)
+
+	def nextkey(self):
+		if len(self.keys)==1: self.refresh(self.keys[-1])
+		return self.keys.popleft()
+
+keychain=Keychain()
+
 def nextkey():
-	keys=globals()['keys']
-	if len(keys)==1:
-		_,*keys=rnd.split(keys[0],1000)
-		globals()['keys']=deque(keys)
-	return globals()['keys'].popleft()
+	return keychain.nextkey()
 
 
 
@@ -447,6 +461,8 @@ def getlossfn():
 #setlossfn('log_SI_loss')
 
 
+
+
 #lossfn=sqloss
 heavy_threshold=8
 BOX='\u2588'
@@ -463,8 +479,6 @@ trackduration=False
 sessionstate=State()
 dbprintbuffer=['']
 
-keys=[rnd.PRNGKey(0)]
-keys=deque(keys)
 
 hour=3600
 day=24*hour

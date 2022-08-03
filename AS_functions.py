@@ -31,11 +31,10 @@ from AS_HEAVY import gen_Af_heavy,gen_lossgrad_Af_heavy,heavy_threshold
 from learning import Learner,AS_Learner
 
 
-def initweights_AS_NN(n,d,widths,key=None):
-	if key==None: key=cfg.nextkey()
+def initweights_AS_NN(n,d,widths):
 	assert widths[0]==n*d, 'first layer of AS NN should have width n*d'
 	assert widths[-1]==1, 'AS NN output layer width should be 1'
-	return mv.initweights_NN(widths,key=key)
+	return mv.initweights_NN(widths)
 
 
 
@@ -61,7 +60,7 @@ def initweights_SlaterSumNN(n,d,widths_and_m):
 	widths,m=widths_and_m
 	assert widths[0]==d, 'Slater NN takes d-dimensional inputs.'
 	assert widths[-1]==1, 'Slater NN (separate phis) has 1-dimensional outputs.'
-	return [[mv.initweights_NN(widths,key=cfg.nextkey()) for i in range(n)] for k in range(m)]
+	return [[mv.initweights_NN(widths) for i in range(n)] for k in range(m)]
 
 
 
@@ -71,21 +70,20 @@ def initweights_SlaterSumNN(n,d,widths_and_m):
 
 def gen_AS_NN(n,d,widths,activation):
 	NN_NS=gen_NN_NS(activation)
-	return AS_Learner(gen_Af(n,NN_NS),gen_lossgrad_Af(n,NN_NS,cfg.getlossfn()),NS=NN_NS)
+	return AS_Learner(gen_Af(n,NN_NS),lossgrad=gen_lossgrad_Af(n,NN_NS),NS=NN_NS)
 
 def gen_SlaterSumNN(n,d,widths_and_m,activation):
 	NN=gen_NN_wideoutput(activation)
 	Af=gen_SlaterSum(n,NN)
-	return AS_Learner(Af,mv.gen_lossgrad(Af),NS=mv.sum_f(mv.product_f(NN)))
+	return AS_Learner(Af,NS=mv.sum_f(mv.product_f(NN)))
 
 
 
 # init learner ----------------------------------------------------------------------------------------------------
 
-def init_AS_NN(n,d,widths,activation,key=None):
-	if key==None: key=cfg.nextkey()
+def init_AS_NN(n,d,widths,activation):
 	learner=gen_AS_NN(n,d,widths,activation)
-	return learner.reset(initweights_AS_NN(n,d,widths,key=key))
+	return learner.reset(initweights_AS_NN(n,d,widths))
 
 def init_SlaterSumNN(n,d,widths_and_m,activation):
 	learner=gen_SlaterSumNN(n,d,widths_and_m,activation)

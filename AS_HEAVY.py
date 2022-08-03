@@ -98,8 +98,9 @@ def gen_grad_Af_heavy(n,f):
 
 
 
-def gen_lossgrad_Af_heavy(n,f,lossfn,**kwargs):
+def gen_lossgrad_Af_heavy(n,f,**kwargs):
 
+	lossfn=cfg.getlossfn()
 	grad_Af_heavy=gen_grad_Af_heavy(n,f,**kwargs)
 
 	def lossgrad_singlesample(params,x,y):

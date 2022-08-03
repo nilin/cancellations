@@ -24,9 +24,7 @@ import scipy.stats as st
 import time
 import pdb
 import AS_tools
-import AS_functions
 import AS_HEAVY
-import plottools as pt
 import collections
 import copy
 from collections import deque
@@ -112,13 +110,14 @@ class Trainer(cfg.State):
 #----------------------------------------------------------------------------------------------------
 
 class Learner:
-	def __init__(self,*args,weights=None):
-		if len(args)>1:
-			self.f,self.lossgrad,*_=args
+	def __init__(self,f,lossgrad=None,weights=None,deepcopy=True):
+		self.f=f
+		self.lossgrad=mv.gen_lossgrad(f) if lossgrad==None else lossgrad
+		if deepcopy:
+			self.reset(weights)
 		else:
-			(self.f,)=args
-			self.lossgrad=mv.gen_lossgrad(f)
-		self.reset(weights)
+			self.weights=weights
+
 
 	def reset(self,weights):
 		self.weights=copy.deepcopy(weights)
@@ -133,14 +132,25 @@ class Learner:
 
 
 class AS_Learner(Learner):
-	def __init__(self,*args,NS=None,weights=None):
-		super().__init__(*args,weights)
+	def __init__(self,*args,NS=None,weights=None,**kwargs):
+		super().__init__(*args,weights=weights,**kwargs)
 		self.NS=NS
 
-	def static_NS(self):
-		return util.fixparams(self.NS,self.weights)
+	def get_NS(self):
+		return NS_Learner(self.NS,weights=self.weights)
 
 
+class NS_Learner(Learner):
+	def get_AS(self):
+		return AS_Learner(AS_tools.gen_Af(self.f),lossgrad=AS_tools.gen_lossgrad_Af(self.f),NS=self.f,weights=self.weights)
+
+
+def static_NS(learner):
+	if type(learner) in {NS_Learner,Learner}:
+		return learner.as_static()
+	if type(learner)==AS_Learner:
+		return learner.get_NS().as_static()
+	
 
 
 #----------------------------------------------------------------------------------------------------
