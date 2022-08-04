@@ -185,7 +185,7 @@ def dblog(msg):
 def errlog(msg):
 	write(str(msg)+'\n\n\n','debug/errordump '+sessionID)
 
-def dbprint(msg):
+def print(msg):
 	dbprintbuffer.append(msg)
 
 #----------------------------------------------------------------------------------------------------
@@ -447,12 +447,15 @@ def SI_loss(Y,Y_target):
 def log_SI_loss(Y,Y_target):
 	Y,Y_target=[jnp.squeeze(_) for _ in (Y,Y_target)]
 	return jnp.log(dot(Y_target,Y_target))+jnp.log(dot(Y,Y))-2*jnp.log(dot(Y,Y_target))
-	
+
+
+		
 
 
 def setlossfn(lossname):
-	globals()['lossfn']=globals()[lossname]
-	
+	globals()['lossfn']=globals()[lossname]	
+
+
 def getlossfn():
 	return lossfn
 
@@ -479,6 +482,7 @@ trackduration=False
 sessionstate=State()
 dbprintbuffer=['']
 
+biasinitsize=.1
 
 hour=3600
 day=24*hour

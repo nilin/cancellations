@@ -40,9 +40,10 @@ import multivariate as mv
 
 	
 class Trainer(cfg.State):
-	def __init__(self,learner,X,Y,learning_rate=.01,**kwargs):
+	def __init__(self,learner,X,Y,lossgrad=None,learning_rate=.01,**kwargs):
 
 		self.learner=learner
+		self.lossgrad=learner.lossgrads[0] if lossgrad==None else lossgrad
 
 		self.X,self.Y=X,Y
 		self.samples,self.n,self.d=X.shape
@@ -57,28 +58,30 @@ class Trainer(cfg.State):
 		cfg.setstatic('weightshistpointer',self.linkentry('weights'))
 
 
-	def minibatch_step(self,X_mini,Y_mini):
+	def minibatch_step(self,X_mini,*Y_mini):
 	
-		loss,grad=self.learner.lossgrad(self.learner.weights,X_mini,Y_mini)
+		loss,grad=self.lossgrad(self.learner.weights,X_mini,*Y_mini)
 		updates,self.state=self.opt.update(grad,self.state,self.learner.weights)
 		self.learner.weights=optax.apply_updates(self.learner.weights,updates)
 
 		cfg.remember('minibatch loss',loss)
 		self.remember('minibatch loss',loss)
 		self.remember('total steps done',len(self.gethist('minibatch loss')[0]))
+		return loss
 
 
 	def step(self):
+
 		if len(self.minibatches)==0:
 			self.prepnextepoch()
 		(X_mini,Y_mini)=self.minibatches.popleft()
-		self.minibatch_step(X_mini,Y_mini)	
 		cfg.trackcurrent('minibatches left',len(self.minibatches))
+
+		return self.minibatch_step(X_mini,Y_mini)	
 
 
 	def prepnextepoch(self):
 		self.X,self.Y=util.randperm(self.X,self.Y)
-		#self.minibatches=deque(util.chop((self.X,self.Y),self.minibatchsize))
 		self.minibatches=deque(util.chop(self.X,self.Y,chunksize=self.minibatchsize))
 
 		cfg.log('start new epoch')
@@ -107,12 +110,44 @@ class Trainer(cfg.State):
 
 
 
+class DynamicTrainer(Trainer):
+	def __init__(self,learner,X,**kwargs):
+		super().__init__(learner,X,None,**kwargs)
+
+	def next_X_minibatch(self):
+		if len(self.minibatches)==0:
+			self.prepnextepoch()
+		cfg.trackcurrent('minibatches left',len(self.minibatches))
+		return self.minibatches.popleft()
+
+	def step(self,f_target):
+		(X_mini,)=self.next_X_minibatch()
+		return self.minibatch_step(X_mini,f_target(X_mini))	
+
+	def prepnextepoch(self):
+		[self.X]=util.randperm(self.X)
+		#cfg.dblog(len(util.chop(self.X,chunksize=self.minibatchsize)))
+		self.minibatches=util.chop(self.X,chunksize=self.minibatchsize)
+		self.minibatches=deque(self.minibatches)
+
+		cfg.log('start new epoch')
+		cfg.remember('minibatchsize',self.minibatchsize)
+		cfg.trackcurrent('minibatches',len(self.minibatches))
+
+
+class NoTargetTrainer(DynamicTrainer):
+
+	def step(self):
+		(X_mini,)=self.next_X_minibatch()
+		return self.minibatch_step(X_mini)	
+
+
 #----------------------------------------------------------------------------------------------------
 
 class Learner:
-	def __init__(self,f,lossgrad=None,weights=None,deepcopy=True):
+	def __init__(self,f,lossgrads=None,weights=None,deepcopy=True):
 		self.f=f
-		self.lossgrad=mv.gen_lossgrad(f) if lossgrad==None else lossgrad
+		self.lossgrads=[mv.gen_lossgrad(f)] if lossgrads==None else lossgrads
 		if deepcopy:
 			self.reset(weights)
 		else:
@@ -142,7 +177,7 @@ class AS_Learner(Learner):
 
 class NS_Learner(Learner):
 	def get_AS(self):
-		return AS_Learner(AS_tools.gen_Af(self.f),lossgrad=AS_tools.gen_lossgrad_Af(self.f),NS=self.f,weights=self.weights)
+		return AS_Learner(AS_tools.gen_Af(self.f),lossgrads=[AS_tools.gen_lossgrad_Af(self.f)],NS=self.f,weights=self.weights)
 
 
 def static_NS(learner):

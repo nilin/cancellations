@@ -96,7 +96,7 @@ class Plotter(AbstractPlotter):
 
 	def process_state(self,learner,t=None):
 
-		cfg.dbprint('process_state called')
+		#cfg.dbprint('process_state called')
 
 		if t==None:t=self.timestamp()
 		X_test=self.static['X_test'][:1000]
@@ -143,7 +143,7 @@ class Plotter(AbstractPlotter):
 		ts,tslices=self.gethist('weight norms')
 		wnorms=zip(*tslices)
 		
-		colors=['r','g','b']
+		colors=['r','g','b','m']*5
 		for i,wnorm in enumerate(wnorms):
 			ax.plot(*cfg.times_to_ordinals(all_ts,ts,wnorm),'o-',color=colors[i],label='layer {} weights'.format(i+1),markersize=2,lw=1)
 		ax.set_xlabel('minibatches')

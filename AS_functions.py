@@ -15,6 +15,7 @@ import AS_HEAVY
 import multivariate as mv
 import jax.random as rnd
 import examplefunctions
+import learning as lrn
 import pdb
 
 
@@ -25,10 +26,6 @@ import pdb
 # antisymmetrized NN
 #=======================================================================================================
 
-from multivariate import gen_NN_NS,gen_NN,gen_NN_wideoutput
-from AS_tools import gen_Af,gen_lossgrad_Af,gen_SlaterSum #,gen_SlaterSum_nPhis,gen_SlaterSum_singlePhi
-from AS_HEAVY import gen_Af_heavy,gen_lossgrad_Af_heavy,heavy_threshold
-from learning import Learner,AS_Learner
 
 
 def initweights_AS_NN(n,d,widths):
@@ -69,13 +66,17 @@ def initweights_SlaterSumNN(n,d,widths_and_m):
 # init empty learner ----------------------------------------------------------------------------------------------------
 
 def gen_AS_NN(n,d,widths,activation):
-	NN_NS=gen_NN_NS(activation)
-	return AS_Learner(gen_Af(n,NN_NS),lossgrad=gen_lossgrad_Af(n,NN_NS),NS=NN_NS)
+	NN_NS=mv.gen_NN_NS(activation)
+	return lrn.AS_Learner(ASt.gen_Af(n,NN_NS),lossgrads=[ASt.gen_lossgrad_Af(n,NN_NS)],NS=NN_NS)
+
+def gen_skip_AS_NN(n,d,widths,activation):
+	skip_NN_NS=mv.gen_skip_NN_NS(activation)
+	return lrn.AS_Learner(ASt.gen_Af(n,skip_NN_NS),lossgrads=[ASt.gen_lossgrad_Af(n,skip_NN_NS)],NS=skip_NN_NS)
 
 def gen_SlaterSumNN(n,d,widths_and_m,activation):
-	NN=gen_NN_wideoutput(activation)
-	Af=gen_SlaterSum(n,NN)
-	return AS_Learner(Af,NS=mv.sum_f(mv.product_f(NN)))
+	NN=mv.gen_NN_wideoutput(activation)
+	Af=ASt.gen_SlaterSum(n,NN)
+	return lrn.AS_Learner(Af,NS=mv.sum_f(mv.product_f(NN)))
 
 
 
@@ -85,8 +86,12 @@ def init_AS_NN(n,d,widths,activation):
 	learner=gen_AS_NN(n,d,widths,activation)
 	return learner.reset(initweights_AS_NN(n,d,widths))
 
+def init_skip_AS_NN(n,d,widths,activation):
+	learner=gen_skip_AS_NN(n,d,widths,activation)
+	return learner.reset(initweights_AS_NN(n,d,widths))
+
 def init_SlaterSumNN(n,d,widths_and_m,activation):
-	learner=gen_SlaterSumNN(n,d,widths_and_m,activation)
+	learner=ASt.gen_SlaterSumNN(n,d,widths_and_m,activation)
 	return learner.reset(initweights_SlaterSumNN(n,d,widths_and_m))
 
 """	
@@ -119,6 +124,7 @@ def init_target(targettype,*args):
 def init_learner(learnertype,*args):
 	return {\
 	'AS_NN':init_AS_NN,\
+	'skip_AS_NN':init_skip_AS_NN,\
 	'SlaterSumNN':init_SlaterSumNN,
 	}[learnertype](*args)
 

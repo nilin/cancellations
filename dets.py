@@ -8,6 +8,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import pdb
+import testing
 
 
 jax.config.update("jax_enable_x64", True)
@@ -70,6 +71,12 @@ if __name__=='__main__':
 	print(DETS(A))
 	print(DETS(A,pivot=True))
 
+
+
+
+
+
+
 	v=rnd.normal(rnd.PRNGKey(1),(100,10))
 	w=rnd.normal(rnd.PRNGKey(2),(100,10))
 	A=v[:,:,None]*v[:,None,:]+w[:,:,None]*w[:,None,:]
@@ -85,3 +92,5 @@ if __name__=='__main__':
 	print(jnp.sum(jnp.linalg.det(A)**2))
 	print(jnp.sum(DETS(A)))
 	print(jnp.sum(DETS(A,pivot=True)))
+
+

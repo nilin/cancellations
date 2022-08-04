@@ -44,14 +44,14 @@ timebound=cfg.hour
 params={
 'targettype':'AS_NN',
 'learnertype':'AS_NN',
-'n':5,
+'n':4,
 'd':1,
 'samples_train':25000,
 'samples_test':250,
 'fnplotfineness':250,
-'targetwidths':[5,10,10,1],
-'learnerwidths':[5,100,1],
-'targetactivation':'tanh',
+'targetwidths':[4,4,100,1],
+'learnerwidths':[4,1000,1],
+'targetactivation':'ptanh',
 #'targetactivation':'DReLU',
 #'learneractivation':'ReLU',
 'weight_decay':.1,
@@ -203,7 +203,7 @@ def run():
 
 
 def main():
-	slate=db.Display1()
+	slate=db.display_1()
 	cfg.trackduration=True
 	run()
 
