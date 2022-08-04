@@ -210,8 +210,10 @@ def prepdisplay():
 	slate.addline()
 	slate.addvarprint('learner loss',formatting=lambda x:'learner loss {:.2f}'.format(x))
 	slate.addbar('learner loss',avg_of=10)
-	slate.addvarprint('trainer loss',formatting=lambda x:'trainer loss {:.2f}'.format(x))
-	slate.addbar('trainer loss',transform=lambda x:-x,style=' ',emptystyle=cfg.BOX,avg_of=10)
+	slate.addspace(2)
+	slate.addtext('advantage:')
+	slate.addbar('learner loss',avg_of=10,style='adversary ',emptystyle=cfg.box)
+	slate.addbar('learner loss',avg_of=10,emptystyle='learner ')
 
 	return slate
 
