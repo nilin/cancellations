@@ -388,7 +388,7 @@ def fnplot_all_in_one(X,statictarget,staticlearner,normalized=True):
 	Y=statictarget(X)
 	sections=CrossSections(X,Y,statictarget,3,fineness=200)	
 
-	fig1=getfnplot_SI(sections,staticlearner,X,Y,normalized)
+	fig1=sections.getplot_SI(staticlearner,normalized)
 
 	del sections
 	return fig1
