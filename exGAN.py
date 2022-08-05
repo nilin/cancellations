@@ -167,31 +167,22 @@ def run():
 
 
 			if sc_fnplot.dispatch():
+				fig=pt.fnplot_all_in_one(X_test,target.as_static(),learner.as_static(),normalized=False)
+				cfg.savefig(*['{}{}{}'.format(path,int(sc_save.elapsed()),'s.pdf') for path in cfg.outpaths],fig=fig)
 
-				_target_=AS_HEAVY.makeblockwise(target.as_static())
-				Y_test=_target_(X_test)
-				sections=pt.CrossSections(X_test,Y_test,_target_,3,fineness=fnplotfineness)	
 				#reg_args=['learnerinitparams','X','Y','X_test','Y_test','sections','learneractivation']
 				#cfg.register(locals()|globals(),*reg_args)
 				#dynamicplotter=pt.DynamicPlotter(locals()|globals(),reg_args,trainer.getlinks('minibatch loss','weights'))
 
-				nlrn=util.closest_multiple(learner.as_static(),X_test[:500],Y_test[:500],normalized=True)
-				fig1=pt.getfnplot(sections,nlrn)
-				cfg.savefig(*['{}{}{}'.format(path,int(sc_save.elapsed()),'s.pdf') for path in cfg.outpaths],fig=fig1)
-				del sections
 
-#
-#			if sc_learnplot.dispatch():
-#				dynamicplotter.process_state(learner)
-#				dynamicplotter.learningplots()
-#				pass
+				
+
 
 
 		except KeyboardInterrupt:
-			db.clear()			
-			learnersteps=int(input('Enter learner steps.\n'))
-			targetsteps=int(input('Enter target steps.\n'))
-			db.clear()			
+			db.clear()
+			print('bye')
+			break
 
 
 

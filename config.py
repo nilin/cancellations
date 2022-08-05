@@ -76,9 +76,10 @@ def logpaths():
 
 
 class State:
-	def __init__(self,static=None,hists=None):
+	def __init__(self,static=None,hists=None,dynamicvals=None):
 		self.static=dict() if static==None else static
 		self.hists=dict() if hists==None else hists
+		self.dynamicvals=[] if dynamicvals==None else dynamicvals
 		self.t0=time.perf_counter()
 
 	def timestamp(self):
@@ -113,6 +114,15 @@ class State:
 		D=load(path)
 		self.static=D['static']
 		self.hists=D['hists']
+
+	def refresh(self):
+		for name,inputvars,fn in self.dynamicvals:
+			try:
+				self.remember(name,fn(*[getval(var) for var in inputvars]))
+			except Exception as e:
+				#self.remember(name,'dynamic quantity {} pending, awaiting values of {}.'.format(name,inputvars))
+				#print('dynamic quantity {} pending, awaiting values of {}.'.format(name,inputvars))
+				pass
 
 #
 class LoadedState:
@@ -185,7 +195,9 @@ def dblog(msg):
 def errlog(msg):
 	write(str(msg)+'\n\n\n','debug/errordump '+sessionID)
 
-def print(msg):
+def print(msg,norepeat=True):
+	if norepeat and len(dbprintbuffer)>0 and msg==dbprintbuffer[-1]:
+		return
 	dbprintbuffer.append(msg)
 
 #----------------------------------------------------------------------------------------------------

@@ -95,7 +95,8 @@ def allmatrixproducts(As,Bs):
 
 
 def scale(f,C):
-	return jax.jit(lambda X:C*f(X))
+	#return jax.jit(lambda X:C*f(X))
+	return lambda X:C*f(X)
 
 
 def normalize(f,X_,echo=False):
@@ -154,10 +155,16 @@ def scalegrad(G,r):
 		return r*G
 
 
+def sumgrads(Gs):
+	Gsum=None
+	for G in Gs:
+		Gsum=addgrads(Gsum,G)
+	return Gsum
+
 def avg_grads(Gs):
 	Gsum=None
 	for G in Gs:
-		Gsum=addgrads(Gsum,S)
+		Gsum=addgrads(Gsum,G)
 	return scalegrad(Gsum,1/len(Gs))
 
 
@@ -220,6 +227,19 @@ def scalarfunction(f):
 	def g(*inputs):
 		return jnp.squeeze(f(*inputs))
 	return g
+
+
+def combinelossgradfns(lossgradfns,nums_inputs,coefficients):
+	#@jax.jit
+	def combinedlossgradfn(params,X,*Ys):
+		losses,grads=zip(*[lossgrad(params,X,*Ys[:numinputs-1]) for lossgrad,numinputs in zip(lossgradfns,nums_inputs)])
+		
+		total_loss=sum([loss*c for loss,c in zip(losses,coefficients)])
+		total_grad=sumgrads([scalegrad(grad,c) for grad,c in zip(grads,coefficients)])
+		return total_loss,total_grad
+
+	return combinedlossgradfn
+
 
 
 

@@ -51,6 +51,7 @@ class AbstractSlate():
 			self.memory.remember(name,cfg.getval(name))
 
 	def refresh(self):
+		self.memory.refresh()
 		self.draw()
 		#print('debug prints: {}'.format(cfg.dbprintbuffer[-1]))
 

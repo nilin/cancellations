@@ -11,6 +11,7 @@ import AS_functions
 import matplotlib.pyplot as plt
 import numpy as np
 import learning
+import AS_HEAVY
 import pdb
 from collections import deque
 
@@ -38,13 +39,16 @@ def linethrough(x,interval):
 
 
 class CrossSections:
-	def __init__(self,X,Y,target,nsections,fineness=500):
+	def __init__(self,X,Y,target,nsections,fineness=200):
 
 		cfg.log('Preparing cross sections for plotting.')
 		x0s=samplepoints(X,Y,nsections)
 		self.interval=jnp.arange(-1,1,2/fineness)
 		self.lines=[linethrough(x0,self.interval) for x0 in x0s]
 		self.ys=[target(line) for line in self.lines]
+		
+		self.X=X
+		self.Y=Y
 
 	def plot(self,axs,*learnedfns):
 		for ax,x,y in zip(axs,self.lines,self.ys):
@@ -53,7 +57,14 @@ class CrossSections:
 				ax.plot(self.interval,learned(x),'r',ls=ls,label='learned')
 			ax.legend()
 		
+	def getplot(self,*learners):
+		fig,axs=plt.subplots(1,3,figsize=(16,4))
+		self.plot(axs,*learners)
+		return fig
 
+	def getplot_SI(self,staticlearner,normalized=True):
+		nlearner=util.closest_multiple(staticlearner,self.X[:500],self.Y[:500],normalized=normalized)
+		return self.getplot(nlearner)
 
 
 class AbstractPlotter(cfg.State):
@@ -89,6 +100,7 @@ def getfnplot(sections,*learners):
 	fig,axs=plt.subplots(1,3,figsize=(16,4))
 	sections.plot(axs,*learners)
 	return fig
+
 
 
 
@@ -359,3 +371,24 @@ class CompPlotter():
 #		ax1.annotate('end',(rweightnorms[-1],jnp.sqrt(rlosses[-1])))
 #		ax1.annotate('start',(tweightnorms[0],jnp.sqrt(tlosses[0])))
 #
+
+
+def singlefnplot_all_in_one(X,statictarget):
+
+	Y=statictarget(X)
+	sections=CrossSections(X,Y,statictarget,3,fineness=200)	
+	fig1=getfnplot(sections)
+
+	del sections
+	return fig1
+
+def fnplot_all_in_one(X,statictarget,staticlearner,normalized=True):
+
+	#statictarget=AS_HEAVY.makeblockwise(statictarget)
+	Y=statictarget(X)
+	sections=CrossSections(X,Y,statictarget,3,fineness=200)	
+
+	fig1=getfnplot_SI(sections,staticlearner,X,Y,normalized)
+
+	del sections
+	return fig1

@@ -62,8 +62,8 @@ def gen_Af_simple(n,f):
 def gen_Af(n,f):
 	return gen_Af_simple(n,f) if n<=cfg.heavy_threshold else gen_Af_heavy(n,f)
 
-def gen_lossgrad_Af(n,f):
-	return mv.gen_lossgrad(gen_Af(n,f)) if n<=cfg.heavy_threshold else AS_HEAVY.gen_lossgrad_Af_heavy(n,f)
+def gen_lossgrad_Af(n,f,lossfn):
+	return mv.gen_lossgrad(gen_Af(n,f)) if n<=cfg.heavy_threshold else AS_HEAVY.gen_lossgrad_Af_heavy(n,f,lossfn)
 
 		
 

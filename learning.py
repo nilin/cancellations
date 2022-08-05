@@ -40,10 +40,10 @@ import multivariate as mv
 
 	
 class Trainer(cfg.State):
-	def __init__(self,learner,X,Y,lossgrad=None,learning_rate=.01,**kwargs):
+	def __init__(self,learner,X,Y,lossgrad=None,learner_lossfn_choice=0,learning_rate=.01,**kwargs):
 
 		self.learner=learner
-		self.lossgrad=learner.lossgrads[0] if lossgrad==None else lossgrad
+		self.lossgrad=learner.lossgrads[learner_lossfn_choice] if lossgrad==None else lossgrad
 
 		self.X,self.Y=X,Y
 		self.samples,self.n,self.d=X.shape
@@ -147,7 +147,7 @@ class NoTargetTrainer(DynamicTrainer):
 class Learner:
 	def __init__(self,f,lossgrads=None,weights=None,deepcopy=True):
 		self.f=f
-		self.lossgrads=[mv.gen_lossgrad(f)] if lossgrads==None else lossgrads
+		self.lossgrads=[] if lossgrads==None else lossgrads
 		if deepcopy:
 			self.reset(weights)
 		else:
@@ -159,7 +159,8 @@ class Learner:
 		return self
 
 	def as_static(self):
-		return util.fixparams(self.f,self.weights)
+		#return util.fixparams(self.f,self.weights)
+		return AS_HEAVY.makeblockwise(util.fixparams(self.f,self.weights))
 
 	def cloneweights(self):
 		return copy.deepcopy(self.weights)

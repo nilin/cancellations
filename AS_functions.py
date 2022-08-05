@@ -40,18 +40,6 @@ def initweights_AS_NN(n,d,widths):
 #=======================================================================================================
 
 
-"""
-#def initweights_SlaterSumNN_singlePhi(n,d,widths,key=cfg.nextkey()):
-#	assert widths[0]==d, 'Slater NN takes d-dimensional inputs.'
-#	assert widths[-1]%n==0, 'Slater NN (single Phi) output size must be a multiple of n.'
-#	return mv.initweights_NN(widths,key=key)
-#
-#def initweights_SlaterSumNN_nPhis(n,d,widths,key=cfg.nextkey()):
-#	assert widths[0]==d, 'Slater NN takes d-dimensional inputs.'
-#	_,*keys=rnd.split(key,n+3)
-#	return [mv.initweights_NN(widths,key=keys[i]) for i in range(n)]
-"""
-
 
 def initweights_SlaterSumNN(n,d,widths_and_m):
 	widths,m=widths_and_m
@@ -65,13 +53,15 @@ def initweights_SlaterSumNN(n,d,widths_and_m):
 
 # init empty learner ----------------------------------------------------------------------------------------------------
 
-def gen_AS_NN(n,d,widths,activation):
+def gen_AS_NN(n,d,widths,activation,lossfns=None):
 	NN_NS=mv.gen_NN_NS(activation)
-	return lrn.AS_Learner(ASt.gen_Af(n,NN_NS),lossgrads=[ASt.gen_lossgrad_Af(n,NN_NS)],NS=NN_NS)
+	if lossfns==None: lossfns=[cfg.getlossfn()]
+	return lrn.AS_Learner(ASt.gen_Af(n,NN_NS),lossgrads=[ASt.gen_lossgrad_Af(n,NN_NS,lossfn) for lossfn in lossfns],NS=NN_NS)
 
-def gen_skip_AS_NN(n,d,widths,activation):
+def gen_skip_AS_NN(n,d,widths,activation,lossfns=None):
 	skip_NN_NS=mv.gen_skip_NN_NS(activation)
-	return lrn.AS_Learner(ASt.gen_Af(n,skip_NN_NS),lossgrads=[ASt.gen_lossgrad_Af(n,skip_NN_NS)],NS=skip_NN_NS)
+	if lossfns==None: lossfns=[cfg.getlossfn()]
+	return lrn.AS_Learner(ASt.gen_Af(n,skip_NN_NS),lossgrads=[ASt.gen_lossgrad_Af(n,skip_NN_NS,lossfn) for lossfn in lossfns],NS=skip_NN_NS)
 
 def gen_SlaterSumNN(n,d,widths_and_m,activation):
 	NN=mv.gen_NN_wideoutput(activation)
@@ -82,29 +72,18 @@ def gen_SlaterSumNN(n,d,widths_and_m,activation):
 
 # init learner ----------------------------------------------------------------------------------------------------
 
-def init_AS_NN(n,d,widths,activation):
-	learner=gen_AS_NN(n,d,widths,activation)
+def init_AS_NN(n,d,widths,activation,**kwargs):
+	learner=gen_AS_NN(n,d,widths,activation,**kwargs)
 	return learner.reset(initweights_AS_NN(n,d,widths))
 
-def init_skip_AS_NN(n,d,widths,activation):
-	learner=gen_skip_AS_NN(n,d,widths,activation)
+def init_skip_AS_NN(n,d,widths,activation,**kwargs):
+	learner=gen_skip_AS_NN(n,d,widths,activation,**kwargs)
 	return learner.reset(initweights_AS_NN(n,d,widths))
 
-def init_SlaterSumNN(n,d,widths_and_m,activation):
-	learner=ASt.gen_SlaterSumNN(n,d,widths_and_m,activation)
+def init_SlaterSumNN(n,d,widths_and_m,activation,**kwargs):
+	learner=ASt.gen_SlaterSumNN(n,d,widths_and_m,activation,**kwargs)
 	return learner.reset(initweights_SlaterSumNN(n,d,widths_and_m))
 
-"""	
-#def init_SlaterSumNN_singlePhi(n,d,widths,activation,key=cfg.nextkey()):
-#	NN=gen_NN(activation)
-#	Af=gen_SlaterSum_singlePhi(n,NN)
-#	return Learner(Af,mv.gen_lossgrad(Af),initweights_SlaterSumNN_singlePhi(n,d,widths,key=key))
-#	
-#def init_SlaterSumNN_nPhis(n,d,widths,activation,key=cfg.nextkey()):
-#	NN=gen_NN(activation)
-#	Af=gen_SlaterSum_nPhis(n,NN)
-#	return Learner(Af,mv.gen_lossgrad(Af),initweights_SlaterSumNN_nPhis(n,d,widths,key=key))
-"""	
 
 #----------------------------------------------------------------------------------------------------
 
@@ -121,20 +100,20 @@ def init_target(targettype,*args):
 
 
 
-def init_learner(learnertype,*args):
+def init_learner(learnertype,*args,**kwargs):
 	return {\
 	'AS_NN':init_AS_NN,\
 	'skip_AS_NN':init_skip_AS_NN,\
 	'SlaterSumNN':init_SlaterSumNN,
-	}[learnertype](*args)
+	}[learnertype](*args,**kwargs)
 
 
 
-def gen_learner(learnertype,*args):
+def gen_learner(learnertype,*args,**kwargs):
 	return {\
 	'AS_NN':gen_AS_NN,\
 	'SlaterSumNN':gen_SlaterSumNN,
-	}[learnertype](*args)
+	}[learnertype](*args,**kwargs)
 
 
 
