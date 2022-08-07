@@ -39,8 +39,10 @@ import multivariate as mv
 
 
 	
-class Trainer(cfg.State):
-	def __init__(self,learner,X,Y,lossgrad=None,learner_lossfn_choice=0,learning_rate=.01,**kwargs):
+class Trainer():
+	def __init__(self,learner,X,Y,lossgrad=None,learner_lossfn_choice=0,learning_rate=.01,memory=None,**kwargs):
+
+		self.memory=cfg.Memory() if memory==None else memory
 
 		self.learner=learner
 		self.lossgrad=learner.lossgrads[learner_lossfn_choice] if lossgrad==None else lossgrad
@@ -54,8 +56,7 @@ class Trainer(cfg.State):
 		self.set_default_batchsizes(**kwargs)
 		self.minibatches=deque([])
 
-		super().__init__()
-		cfg.setstatic('weightshistpointer',self.linkentry('weights'))
+		cfg.dblog(self.memory)
 
 
 	def minibatch_step(self,X_mini,*Y_mini):
@@ -64,9 +65,7 @@ class Trainer(cfg.State):
 		updates,self.state=self.opt.update(grad,self.state,self.learner.weights)
 		self.learner.weights=optax.apply_updates(self.learner.weights,updates)
 
-		cfg.remember('minibatch loss',loss)
-		self.remember('minibatch loss',loss)
-		self.remember('total steps done',len(self.gethist('minibatch loss')[0]))
+		self.memory.remember('minibatch loss',loss)
 		return loss
 
 
@@ -75,8 +74,8 @@ class Trainer(cfg.State):
 		if len(self.minibatches)==0:
 			self.prepnextepoch()
 		(X_mini,Y_mini)=self.minibatches.popleft()
-		cfg.trackcurrent('minibatches left',len(self.minibatches))
 
+		self.memory.addcontext('minibatches left in epoch',len(self.minibatches))
 		return self.minibatch_step(X_mini,Y_mini)	
 
 
@@ -84,27 +83,24 @@ class Trainer(cfg.State):
 		self.X,self.Y=util.randperm(self.X,self.Y)
 		self.minibatches=deque(util.chop(self.X,self.Y,chunksize=self.minibatchsize))
 
-		cfg.log('start new epoch')
-		cfg.remember('minibatchsize',self.minibatchsize)
-		cfg.trackcurrent('minibatches',len(self.minibatches))
+		self.memory.log('start new epoch')
+		self.memory.remember('minibatches in epoch',len(self.minibatches))
 
 
 	def set_default_batchsizes(self,minibatchsize=None,**kwargs):
 		self.minibatchsize=min(self.X.shape[0],AS_HEAVY.memorybatchlimit(self.n),1000) if minibatchsize==None else minibatchsize
-		cfg.log('minibatch size set to '+str(self.minibatchsize))
-
+		self.memory.log('minibatch size set to '+str(self.minibatchsize))
 
 	def get_learned(self):
 		return self.learner.as_static()
 
 	def checkpoint(self):
-		cfg.remember('weights',copy.deepcopy(self.learner.weights))
-		self.remember('weights',copy.deepcopy(self.learner.weights))
-		cfg.log('learner checkpoint')
+		self.memory.remember('weights',copy.deepcopy(self.learner.weights))
+		self.memory.log('learner checkpoint')
 
-	def save(self):
-		self.checkpoint()
-		cfg.autosave()
+#	def save(self):
+#		self.checkpoint()
+#		cfg.autosave()
 
 
 

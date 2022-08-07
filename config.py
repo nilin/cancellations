@@ -20,6 +20,125 @@ import re
 
 
 
+
+
+
+
+
+
+
+
+
+
+#----------------------------------------------------------------------------------------------------
+# replacement for state
+#----------------------------------------------------------------------------------------------------
+
+class History:
+	def __init__(self,membound=None):
+		self.snapshots=deque()
+		self.membound=membound
+
+	def remember(self,val,metadata=None):
+		if metadata==None: metadata=dict()
+		self.snapshots.append((val,metadata|self.default_metadata()))
+		if self.membound!=None and len(self.snapshots)>self.membound: self.snapshots.popleft()
+
+	def gethist(self,*metaparams):
+		valhist=[val for val,metadata in self.snapshots]
+		metaparamshist=list(zip(*[[metadata[mp] for mp in metaparams] for val,metadata in self.snapshots]))
+		return valhist,*metaparamshist
+
+	def getcurrentval(self):
+		return self.snapshots[-1][0] #if len(self.snapshots)>0 else None
+
+	def default_metadata(self):
+		return {'snapshot number':len(self.snapshots)}
+
+	def filter(self,filterby,schedule):
+		filteredhistory=History()
+		schedule=deque(schedule)
+
+		for val,metadata in self.snapshots:
+			t=metadata[filterby]
+			if t>=schedule[0]:
+				filteredhistory.remember(val,metadata)
+				while t>=schedule[0]:
+					schedule.popleft()
+					if len(schedule)==0: break
+				if len(schedule)==0: break
+		return filteredhistory
+
+
+class BasicMemory:
+	def __init__(self):
+		self.hists=dict()
+
+	def remember(self,name,val,metadata):
+		if name not in self.hists:
+			self.hists[name]=History()
+		self.hists[name].remember(val,metadata)
+
+	def log(self,msg):
+		self.remember('log',msg)
+
+	def histref(self,name):
+		return self.hists[name]	
+
+	def gethist(self,name,*metaparams):
+		return self.hists[name].gethist(*metaparams) #if name in self.hists else ([],)+tuple([[] for _ in metaparams])
+
+	def getcurrentval(self,name):
+		return self.hists[name].getcurrentval() #if name in self.hists else None
+
+
+class Timer:
+	def __init__(self):
+		t0=time.perf_counter()
+
+	def time(self):
+		return time.perf_counter()-t0
+
+
+class Memory(BasicMemory,Timer):
+	def __init__(self):
+		BasicMemory.__init__(self)
+		Timer.__init__(self)
+		self.memID=int(rnd.randint(nextkey(),minval=0,maxval=10**9,shape=(1,)))
+		self.context=dict()
+
+	def addcontext(self,name,val):
+		self.context[name]=val
+
+	def getcontext(self):
+		return self.context|{'memory {} time'.format(self.memID):self.time()}
+
+	def remember(self,name,val,moremetadata=None):
+		if moremetadata==None: moremetadata=dict()
+		super().remember(name,val,self.getcontext()|moremetadata)
+
+
+class ActiveMemory(Memory):
+
+	def compute(self,queries,fn,outputname):
+		inputvals=[self.getcurrentval(q) for q in queries]
+		self.remember(outputname,fn(*inputvals))
+
+	def computefromhist(self,queries,fn,outputname):
+		inputvals=[self.gethist(q) for q in queries]
+		self.remember(outputname,fn(*inputvals))
+
+#----------------------------------------------------------------------------------------------------
+
+class Listener:
+	def poke(self,signal,*args,**kwargs):
+		if signal in self.signals:
+			self.refresh(signal)
+
+
+#----------------------------------------------------------------------------------------------------
+
+
 def now():
 	return str(datetime.datetime.now()).split('.')[0].split(' ')
 
@@ -74,78 +193,75 @@ def logpaths():
 	return [path+'log' for path in outpaths]+['logs/'+sessionID]
 
 
-
-class State:
-	def __init__(self,static=None,hists=None,dynamicvals=None):
-		self.static=dict() if static==None else static
-		self.hists=dict() if hists==None else hists
-		self.dynamicvals=[] if dynamicvals==None else dynamicvals
-		self.t0=time.perf_counter()
-
-	def timestamp(self):
-		return time.perf_counter()-self.t0
-
-	def remember(self,name,val,t=None):
-		if t==None:t=self.timestamp()
-		self.initentry(name)
-		self.hists[name]['timestamps'].append(t)
-		self.hists[name]['vals'].append(val)
-
-	def save(self,*paths):
-		save({'static':self.static,'hists':self.hists},*paths)
-
-	def gethist(self,name):
-		return self.hists[name]['timestamps'],self.hists[name]['vals']
-
-	def initentry(self,name):
-		if name not in self.hists:
-			self.hists[name]={'timestamps':[],'vals':[]}
-
-	def linkentry(self,name):
-		self.initentry(name)
-		return self.hists[name]
-
-	def getlinks(self,*names):
-		for name in names:
-			self.initentry(name)
-		return {name:self.hists[name] for name in names}
-
-	def clonefrom(self,path):
-		D=load(path)
-		self.static=D['static']
-		self.hists=D['hists']
-
-	def refresh(self):
-		for name,inputvars,fn in self.dynamicvals:
-			try:
-				self.remember(name,fn(*[getval(var) for var in inputvars]))
-			except Exception as e:
-				#self.remember(name,'dynamic quantity {} pending, awaiting values of {}.'.format(name,inputvars))
-				#print('dynamic quantity {} pending, awaiting values of {}.'.format(name,inputvars))
-				pass
-
+#"""
 #
-class LoadedState:
-	def __init__(self,path):
-		self.clonefrom(path)
-
-
-def retrievestate(path):
-	print('\nloading from \n'+path+'\n')
-	data=load(path)
-	globals()['sessionstate']=State(*[data[k] for k in ['static','hists']])
-
-
+#class State:
+#
+#	def __init__(self,static=None,hists=None,dynamicvals=None):
+#		self.static=dict() if static==None else static
+#		self.hists=dict() if hists==None else hists
+#		self.dynamicvals=[] if dynamicvals==None else dynamicvals
+#		self.t0=time.perf_counter()
+#
+#	def timestamp(self):
+#		return time.perf_counter()-self.t0
+#
+#	def remember(self,name,val,t=None):
+#		if t==None:t=self.timestamp()
+#		self.initentry(name)
+#		self.hists[name]['timestamps'].append(t)
+#		self.hists[name]['vals'].append(val)
+#
+#	def save(self,*paths):
+#		save({'static':self.static,'hists':self.hists},*paths)
+#
+#	def gethist(self,name):
+#		return self.hists[name]['timestamps'],self.hists[name]['vals']
+#
+#	def initentry(self,name):
+#		if name not in self.hists:
+#			self.hists[name]={'timestamps':[],'vals':[]}
+#
+#	def linkentry(self,name):
+#		self.initentry(name)
+#		return self.hists[name]
+#
+#	def getlinks(self,*names):
+#		for name in names:
+#			self.initentry(name)
+#		return {name:self.hists[name] for name in names}
+#
+#	def clonefrom(self,path):
+#		D=load(path)
+#		self.static=D['static']
+#		self.hists=D['hists']
+#
+#	def refresh(self):
+#		for name,inputvars,fn in self.dynamicvals:
+#			try:
+#				self.remember(name,fn(*[getval(var) for var in inputvars]))
+#			except Exception as e:
+#				#self.remember(name,'dynamic quantity {} pending, awaiting values of {}.'.format(name,inputvars))
+#				#print('dynamic quantity {} pending, awaiting values of {}.'.format(name,inputvars))
+#				pass
+#
+##
+#class LoadedState:
+#	def __init__(self,path):
+#		self.clonefrom(path)
+#
+#
+#def retrievestate(path):
+#	print('\nloading from \n'+path+'\n')
+#	data=load(path)
+#	globals()['sessionstate']=State(*[data[k] for k in ['static','hists']])
+#
+#"""
 		
-#
-#
-#def loadstate(path):
-#	state,hists=[get(path)[k] for k in ['state','hists']]
-#	return State(state=state,hists=hists)
 
 	
 def getrecentlog(n):
-	return sessionstate.gethist('log')[1][-n:]
+	return session.gethist('log')[1][-n:]
 
 def get_errlog():
 	try:
@@ -164,11 +280,11 @@ def remember(name,val):
 	sessionstate.remember(name,val)
 	trackcurrent(name,val)
 
-def savestate(*paths):
-	sessionstate.save(*paths)
+#def savestate(*paths):
+	#sessionstate.save(*paths)
 		
-def autosave():
-	savestate(*histpaths())
+#def autosave():
+#	savestate(*histpaths())
 
 def loadvarhist(path,varname):
 	tempstate=loadstate(path)
@@ -183,7 +299,7 @@ def loadvarhist(path,varname):
 
 def log(msg):
 	msg='{} | {}'.format(datetime.timedelta(seconds=int(timestamp())),msg)
-	remember('log',msg)
+	session.log(msg)
 	write(msg+'\n',*logpaths())
 	if trackduration:
 		write(str(int(timestamp())),*[os.sep.join(pathlog.split(os.sep)[:-1])+os.sep+'duration' for pathlog in logpaths()],mode='w')	
@@ -491,7 +607,6 @@ sessionID=nowstr()
 outpaths=set()
 trackduration=False
 
-sessionstate=State()
 dbprintbuffer=['']
 
 biasinitsize=.1
@@ -501,6 +616,25 @@ day=24*hour
 week=7*day
 
 cmdparams,cmdredefs=parse_cmdln_args()
+
+
+
+
+
+
+
+
+
+#sessionstate=State()
+session=Memory()
+
+
+
+
+
+
+
+
 
 # testing
 

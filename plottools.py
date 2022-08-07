@@ -67,7 +67,7 @@ class CrossSections:
 		return self.getplot(nlearner)
 
 
-class AbstractPlotter(cfg.State):
+class AbstractPlotter(): #cfg.State):
 
 	def filtersnapshots(self,schedule):
 		self.hists['weights']['timestamps'],self.hists['weights']['vals']=cfg.filterschedule(schedule,self.hists['weights']['timestamps'],self.hists['weights']['vals'])
@@ -218,14 +218,14 @@ class DynamicPlotter(Plotter):
 		#cfg.dblog('dp')
 		#self.weightshist=self.static['weightshistpointer']		
 
-
-class LoadedPlotter(cfg.LoadedState,Plotter):
-
-	def __init__(self,path):
-		super().__init__(path)
-		self.loadlearnerclone()
-		#self.weightshist=self.static['weightshistpointer']
-
+"""
+#class LoadedPlotter(cfg.LoadedState,Plotter):
+#
+#	def __init__(self,path):
+#		super().__init__(path)
+#		self.loadlearnerclone()
+#		#self.weightshist=self.static['weightshistpointer']
+"""
 
 
 class CompPlotter():

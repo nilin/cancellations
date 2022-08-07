@@ -6,6 +6,7 @@ import jax.numpy as jnp
 import pdb
 import config as cfg
 import time
+from config import session
 
 
 #----------------------------------------------------------------------------------------------------
@@ -18,207 +19,330 @@ dash='\u2015'
 def clear():
 	os.system('cls' if os.name == 'nt' else 'clear')
 
+
+
+
 #----------------------------------------------------------------------------------------------------
-# display tracked values
-#----------------------------------------------------------------------------------------------------
 
 
 
-
-class AbstractSlate():
-
-	def __init__(self,*signals):
-		self.elements=[]
-		self.ln=1
-		cfg.addlistener(self,*signals)
-		self.signals=list(signals)+['errlog']
-		self.trackedvarnames=set()
-		self.memory=cfg.State()
-
-	def trackvars(self,*names):
-		self.trackedvarnames.update(names)
-		cfg.addlistener(self,*names)
-
-	def add(self,display,height=1):
-		self.elements.append((self.ln,display))
-		self.ln=self.ln+height
-
-	def poke(self,signal,*args):
-		if signal in self.signals:
-			self.refresh()
-		if signal in self.trackedvarnames:
-			name=signal
-			self.memory.remember(name,cfg.getval(name))
-
-	def refresh(self):
-		self.memory.refresh()
-		self.draw()
-		#print('debug prints: {}'.format(cfg.dbprintbuffer[-1]))
-
-	def _addbar_(self,fn,**kwargs):
-		self.add(Bar(fn,self,**kwargs))
-
-	@staticmethod
-	def varval(var,transform=lambda x:x,avg_of=1,**kwargs):
-		return lambda memory,*_:np.average(transform(jnp.array(memory.gethist(var)[1])[-avg_of:]))
-
-	def addbar(self,var,**kwargs):
-		fn=AbstractSlate.varval(var,**kwargs)
-		self._addbar_(fn,**kwargs)
-
-	def addline(self,style=dash):
-		self.add(Text(style,self,emptystyle=style))
-
-	def addtext(self,msg,height=1,**kwargs):
-		self.add(Text(msg,self,height=height),height)
-
-	def addvarprint(self,var,formatting=lambda x:x,**kwargs):
-		fn=AbstractSlate.varval(var,**kwargs)
-		self.addtext(lambda *x:str(formatting(fn(*x))))
-		#self.addtext(fn,**kwargs)
-
-	def addspace(self,n=1):
-		self.ln=self.ln+n
-
-	@staticmethod
-	def cols():
-		return os.get_terminal_size()[0]-1
-
-	
-		
-class DisplayElement:
-	def __init__(self,fn,slate,height=1,emptystyle=' ',**kwargs):
-		self.fn=fn
-		self.slate=slate
-		self.kwargs=kwargs
+class Display:
+	def __init__(self,height,width,memory,emptystyle=' ',**kwargs):
 		self.height=height
-		self.Emptystyle=math.ceil(self.slate.cols()/len(emptystyle))*emptystyle
+		self.width=width
+		self.Emptystyle=math.ceil(self.width/len(emptystyle))*emptystyle
+		self.memory=memory
 
-	def getstr_safe(self):
+	def getcroppedlines(self):
 		try:
-			s=self.getstr()
-		except Exception as e:
-			s='pending...{}'.format(str(e))
-		return '\n'.join([l+self.Emptystyle[-(self.slate.cols()-len(l)):] for l in s.splitlines()[-self.height:]])
+			lines=self.getlines()[:self.height]
+		except:
+			lines=['pending']
 
-class Bar(DisplayElement):
+		lines=[line[:self.width] for line in lines]
+		return [line+self.Emptystyle[-(self.width-len(line)):] for line in lines]
+
+	def getcroppenstr(self):
+		return '\n'.join(self.getcroppedlines())
+
+
+class Text(Display):
+	def __init__(self,height,width,memory,query,formatting='{}',**kwargs):
+		super().__init__(height,width,memory,**kwargs)
+		self.query=query
+		self.formatting=formatting
+
+	def getlines(self):
+		return self.formatting.format(memory.getcurrentval(self.query)).splitlines()
+	
+
+class StaticText(Display):
+	def __init__(self,width,text,**kwargs):
+		self.text=text.splitlines()
+		height=len(self.text)
+		super.__init__(height,width,None,**kwargs)
+
+	def getlines(self):
+		return self.text
+
+
+class NumberDisplay(Display):
+	def __init__(self,width,memory,query,transform=None,avg_of=1,**kwargs):
+		super().__init__(1,width,memory,query,**kwargs)
+		self.hist=cfg.History()
+		self.query=query
+		self.transform=(lambda x:x) if transform==None else transform
+		self.avg_of=avg_of
+
+	def getlines(self):
+		out=self.transform(self.memory.getcurrentval(self.query))
+		self.hist.remember(out)
+		#value_shown=jnp.average(jnp.array(self.hist.gethist())[-self.avg_of:])
+		value_shown=self.hist.getcurrentval() #jnp.average(jnp.array(self.hist.gethist())[-self.avg_of:])
+		return [self.formatnumber(value_shown)]
+
+
+
+class Bar(NumberDisplay):
 	def __init__(self,*x,style=cfg.BOX,**y):
-		#if 'emptystyle' not in y:y['emptystyle']='.'
 		super().__init__(*x,**y)
-		self.Style=math.ceil(self.slate.cols()/len(style))*style
+		self.Style=math.ceil(self.width/len(style))*style
 
-	def getstr(self):
-		val=self.fn(self.slate.memory)
-		return barstring(val,self.slate.cols(),Style=self.Style)
+	def formatnumber(self,x):
+		barwidth=math.floor(self.width*min(x,1))
+		return self.Style[:barwidth]+cfg.BOX
+
+
+
+class NumberPrint(NumberDisplay):
+	def __init__(self,*x,msg='{:.3}',**y):
+		super().__init__(*x,**y)
+		self.msg=msg
+
+	def formatnumber(self,x):
+		return self.msg.format(x)
+
+
+
+class StackedDisplay(Display):
 	
-class Text(DisplayElement):
-	def getstr(self):
-		if type(self.fn)==str:
-			return self.fn
-		else:
-			msg=self.fn(self.slate.memory)
-		return '\n'.join(msg) if type(msg)==list else msg
+	def __init__(self,*x,**y):
+		super().__init__(*x,**y)
+		self.displays=[]
 
+	def getlines(self):
+		return [line for display in self.displays for line in display.getlines()]
 
-def barstring(val,fullwidth,Style):
-	barwidth=math.floor(fullwidth*min(val,1))
-	return Style[:barwidth]+cfg.BOX
+	def add(self,display):
+		self.displays.append(display)
 
+	def addbar(self,query,**kwargs):
+		self.add(Bar(self.width,self.memory,query,**kwargs))
 
-def wideline():
-	return (os.get_terminal_size()[0]-1)*dash
+	def addnumberprint(self,query,**kwargs):
+		self.add(NumberPrint(self.width,self.memory,query,**kwargs))
+
+	def addtext(self,height,query,**kwargs):
+		self.add(Text(height,self.width,self.memory,query))
+
+	def addstatictext(self,text,**kwargs):
+		self.add(StaticText(self.width,text,**kwargs))
+
+	def addline(self):
+		self.addstatictext('',emptystyle=dash)
 	
+
+#----------------------------------------------------------------------------------------------------
+
+
+class Display0(StackedDisplay):
+	
+	def __init__(self,height,width):
+		super().__init__(height,width,session)
+
+		self.addline()
+		self.addstatictext('session info')
+		self.addline()
+		self.addtext(15,'sessioninfo')
+
+		self.addline()
+		self.addstatictext('log')
+		self.addline()
+		self.addtext(15,'log')
+
+		self.addline()
+		self.addstatictext('prints (cfg.print(msg))')
+		self.addline()
+		self.addtext(15,'dbprintbuffer')
+
+		
 
 
 
 
 #----------------------------------------------------------------------------------------------------
-#----------------------------------------------------------------------------------------------------
 
 
 
-class Slate(AbstractSlate):
 
-	def __init__(self,*args):
-		super().__init__(*args)
-		clear()
+class Slate():
+	def __init__(self):
+		self.displays=dict()
 
+	def add_display(self,name,display,y,x=0):
+		self.displays[name]=(display,y,x)
+		cfg.addlistener(self,name)
 
 	@staticmethod
-	def gotoline(n):
-		print('\x1b['+str(n)+';0H')
+	def print_at(y,x,msg):
+		print('\x1b[{};{}H{}'.format(y,x,msg))
 
-	def draw(self):
-		for ln,element in self.elements:
-			self.gotoline(ln)
-			print(element.getstr_safe())
+	def draw(self,name):
+		display,y,x=self.displays[name]
+		lines=display.getcroppedlines()
+		for i,line in enumerate(lines):
+			Slate.print_at(y+i,x,line)
 
-
-
-
-# display on a single line (less likely to mess up terminal)
-
-class MinimalSlate(AbstractSlate):
-
-	def __init__(self,*args):
-		super().__init__(*args)
-		print(5*'\n')
-
-	def cols(self):
-		return self.elementwidth()
-
-	def elementwidth(self):
-		return os.get_terminal_size()[0]//max(len(self.elements),1)-3
-
-	def draw(self):
-		print((' {} '.format(cfg.box)).join([element.getstr_safe().replace('\n','|')[:self.elementwidth()] for _,element in self.elements]),end='\r')
+	def poke(self,name):
+		self.draw(name)
 
 
+#
+#
+#
+#class Display0(Slate):
+#
+#	def __init__(self,*args):
+#		super().__init__(memory=session)
+#		self.addtext(['sessioninfo'],height=15)
+#		self.addline()
+#		self.addstatictext('log')
+#		self.addtext(['log'],transform=lambda x:x[0][-10:],height=10)
+#		self.addline()
+#		self.addstatictext('prints (cfg.dbprint(msg))')
+#		#self.addtext(lambda *_:'\n'.join([line for msg in cfg.dbprintbuffer[-10:] for line in str(msg).split('\n')][-10:]),height=10)
+#		self.addline()
+#		self.addspace(2)
+#
+#
+#class Display1(Display0):
+#
+#	def __init__(self,*args):
+#		super().__init__()
+#		self.trackvars('minibatch loss','quick test loss')
+#		self.addtext('training loss of 10, 100 minibatches')
+#		self.addvarprint('minibatch loss',formatting=lambda x:'{:.2f}'.format(x),avg_of=10)
+#		self.addbar('minibatch loss',avg_of=10)
+#		self.addvarprint('minibatch loss',formatting=lambda x:'{:.2f}'.format(x),avg_of=100)
+#		self.addbar('minibatch loss',avg_of=100)
+#		self.addspace(2)
+#
+#		self.addtext(lambda *_:'epoch {}% done'.format(int(100*(1-cfg.getval('minibatches left')/cfg.getval('minibatches')))))
+#		self.addspace(1)
+#		self.addbar(lambda *_:cfg.getval('block')[0]/cfg.getval('block')[1],style='sample blocks done ')
+#
+#
 
-class Display0(Slate):
+#class AbstractSlate(cfg.Listener):
+#
+#	def __init__(self,memory=None):
+#		self.elements=[]
+#		self.ln=1
+#		self.signals=[]
+#		self.trackedvarnames=set()
+#		self.memory=cfg.Memory() if memory==None else memory
+#
+#	def listen(self,*signals):
+#		cfg.addlistener(self,*signals)
+#		self.signals=self.signals+signals
+#
+#	def trackvars(self,*names):
+#		self.trackedvarnames.update(names)
+#		cfg.addlistener(self,*names)
+#
+#	def add(self,display,height=1):
+#		self.elements.append((self.ln,display))
+#		self.ln=self.ln+height
+#
+#	def refresh(self):
+#		self.draw()
+#
+#	# active displays -------------------------------------------------------------
+#
+#	def addbar(self,queries,transform=None,**kwargs):
+#		self.add(Bar(queries,transform,self,**kwargs))
+#
+#	def addtext(self,queries,transform=None,height=1,**kwargs):
+#		self.add(Text(queries,transform,self,height=height),height)
+#
+#
+#
+#	# static displays -------------------------------------------------------------
+#
+#	def addstatictext(self,msg,**kwargs):
+#		self.addtext(None,lambda *_:msg,**kwargs)
+#
+#	def addline(self,style=dash):
+#		self.addstatictext('',emptystyle=style)
+#
+#	def addspace(self,n=1):
+#		self.ln=self.ln+n
+#
+#	@staticmethod
+#	def cols():
+#		return os.get_terminal_size()[0]-1
 
-	def __init__(self,*args):
-		super().__init__('refresh','log','block')
-		self.addtext(lambda *_:cfg.getval('sessioninfo'),height=15)
-		self.addline()
-		self.addtext('log')
-		self.addtext(lambda *_:cfg.getrecentlog(10),height=10)
-		self.addline()
-		self.addtext('prints (cfg.dbprint(msg))')
-		self.addtext(lambda *_:'\n'.join([line for msg in cfg.dbprintbuffer[-10:] for line in str(msg).split('\n')][-10:]),height=10)
-		self.addline()
-		self.addspace(2)
+#class AbstractSlate(cfg.Listener):
+#
+#	def __init__(self,memory=None):
+#		self.elements=[]
+#		self.ln=1
+#		self.signals=[]
+#		self.trackedvarnames=set()
+#		self.memory=cfg.Memory() if memory==None else memory
+#
+#	def listen(self,*signals):
+#		cfg.addlistener(self,*signals)
+#		self.signals=self.signals+signals
+#
+#	def trackvars(self,*names):
+#		self.trackedvarnames.update(names)
+#		cfg.addlistener(self,*names)
+#
+#	def add(self,display,height=1):
+#		self.elements.append((self.ln,display))
+#		self.ln=self.ln+height
+#
+#	def refresh(self):
+#		self.draw()
+#
+#	# active displays -------------------------------------------------------------
+#
+#	def addbar(self,queries,transform=None,**kwargs):
+#		self.add(Bar(queries,transform,self,**kwargs))
+#
+#	def addtext(self,queries,transform=None,height=1,**kwargs):
+#		self.add(Text(queries,transform,self,height=height),height)
+#
+#
+#
+#	# static displays -------------------------------------------------------------
+#
+#	def addstatictext(self,msg,**kwargs):
+#		self.addtext(None,lambda *_:msg,**kwargs)
+#
+#	def addline(self,style=dash):
+#		self.addstatictext('',emptystyle=style)
+#
+#	def addspace(self,n=1):
+#		self.ln=self.ln+n
+#
+#	@staticmethod
+#	def cols():
+#		return os.get_terminal_size()[0]-1
+#
 
-
-class Display1(Display0):
-
-	def __init__(self,*args):
-		super().__init__()
-		self.trackvars('minibatch loss','quick test loss')
-		self.addtext('training loss of 10, 100 minibatches')
-		self.addvarprint('minibatch loss',formatting=lambda x:'{:.2f}'.format(x),avg_of=10)
-		self.addbar('minibatch loss',avg_of=10)
-		self.addvarprint('minibatch loss',formatting=lambda x:'{:.2f}'.format(x),avg_of=100)
-		self.addbar('minibatch loss',avg_of=100)
-		self.addspace(2)
-
-		self.addtext(lambda *_:'epoch {}% done'.format(int(100*(1-cfg.getval('minibatches left')/cfg.getval('minibatches')))))
-		self.addspace(1)
-		self.addbar(lambda *_:cfg.getval('block')[0]/cfg.getval('block')[1],style='sample blocks done ')
-
-
-
-#----------------------------------------------------------------------------------------------------
-#----------------------------------------------------------------------------------------------------
-
-
-
-def mindisplay():
-	slate=MinimalSlate('refresh','log','block')
-	slate.addtext(lambda *_:[s for s in cfg.getrecentlog(1)],height=1)
-	slate.addbar(lambda *_:np.average(np.array(slate.gethist('minibatch loss')[1])[10:]),style='training loss ',emptystyle='.')
-	return slate
-
+#class Slate(AbstractSlate):
+#	def __init__(self,*args,**kwargs):
+#		super().__init__(*args,**kwargs)
+#		clear()
+#
+#
+#	@staticmethod
+#	def gotoline(n):
+#		print('\x1b['+str(n)+';0H')
+#
+#
+#	@staticmethod
+#	def goto(y,x):
+#		print('\x1b['+str(y)+';'+str(x)+'H')
+#
+#
+#	def draw(self):
+#		for ln,element in self.elements:
+#			self.gotoline(ln)
+#			print(element.getstr_safe())
+#
 
 
 
@@ -231,19 +355,16 @@ def mindisplay():
 
 
 
-def prepdash(s):
-
-	s.addtext('x')
-	s.addbar(lambda *_:cfg.getval('x')/100)
-	s.addtext('y')
-	s.addbar(lambda *_:1-cfg.getval('y')/100)
-
 
 def test(n):
+
+
 	for Y in range(n):
-		cfg.trackcurrent('y',Y)
+		session.remember('y',Y)
 		for X in range(n):
-			cfg.trackcurrent('x',X)
+			session.remember('x',X)
+
+
 			cfg.pokelisteners('hello')
 			time.sleep(.001)
 
@@ -252,14 +373,16 @@ if __name__=='__main__':
 
 	print('\nrunning test of dashboard\n')
 
-
-	#s=Slate('hello')
-	s=MinimalSlate('hello')
 	
-	prepdash(s)
-	test(100)	
+	d=StackedDisplay(10,50,session)
+	d.addbar('y',transform=lambda x:x/100)
+	d.addbar('x',transform=lambda x:x/100)
+	d.addnumberprint('x',transform=lambda x:x/100)
 
+	s=Slate()
+	s.add_display('hello',d,10,10)
 
+	test(100)
 
 
 
