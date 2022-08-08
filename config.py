@@ -35,22 +35,23 @@ import re
 #----------------------------------------------------------------------------------------------------
 
 class History:
-	def __init__(self,membound=None):
+	def __init__(self):
 		self.snapshots=deque()
-		self.membound=membound
 
-	def remember(self,val,metadata=None):
+	def remember(self,val,metadata=None,norepeat=False,membound=None):
+		if norepeat and self.getcurrentval()==val: pass
+
 		if metadata==None: metadata=dict()
 		self.snapshots.append((val,metadata|self.default_metadata()))
-		if self.membound!=None and len(self.snapshots)>self.membound: self.snapshots.popleft()
+		if membound!=None and len(self.snapshots)>membound: self.snapshots.popleft()
 
 	def gethist(self,*metaparams):
 		valhist=[val for val,metadata in self.snapshots]
 		metaparamshist=list(zip(*[[metadata[mp] for mp in metaparams] for val,metadata in self.snapshots]))
-		return valhist,*metaparamshist
+		return (valhist,*metaparamshist) if len(metaparams)>0 else valhist
 
 	def getcurrentval(self):
-		return self.snapshots[-1][0] #if len(self.snapshots)>0 else None
+		return self.snapshots[-1][0] if len(self.snapshots)>0 else None
 
 	def default_metadata(self):
 		return {'snapshot number':len(self.snapshots)}
@@ -74,16 +75,19 @@ class BasicMemory:
 	def __init__(self):
 		self.hists=dict()
 
-	def remember(self,name,val,metadata):
+	def remember(self,name,val,metadata,**kwargs):
 		if name not in self.hists:
 			self.hists[name]=History()
-		self.hists[name].remember(val,metadata)
+		self.hists[name].remember(val,metadata,**kwargs)
+
+	def trackcurrent(self,name,val,*x,**y):
+		self.remember(name,val,*x,**y,membound=1)
 
 	def log(self,msg):
 		self.remember('log',msg)
 
-	def histref(self,name):
-		return self.hists[name]	
+	#def histref(self,name):
+	#	return self.hists[name]	
 
 	def gethist(self,name,*metaparams):
 		return self.hists[name].gethist(*metaparams) #if name in self.hists else ([],)+tuple([[] for _ in metaparams])
@@ -93,11 +97,11 @@ class BasicMemory:
 
 
 class Timer:
-	def __init__(self):
-		t0=time.perf_counter()
+	def __init__(self,*x,**y):
+		self.t0=time.perf_counter()
 
 	def time(self):
-		return time.perf_counter()-t0
+		return time.perf_counter()-self.t0
 
 
 class Memory(BasicMemory,Timer):
@@ -106,6 +110,7 @@ class Memory(BasicMemory,Timer):
 		Timer.__init__(self)
 		self.memID=int(rnd.randint(nextkey(),minval=0,maxval=10**9,shape=(1,)))
 		self.context=dict()
+		self.listeners=[]
 
 	def addcontext(self,name,val):
 		self.context[name]=val
@@ -113,9 +118,17 @@ class Memory(BasicMemory,Timer):
 	def getcontext(self):
 		return self.context|{'memory {} time'.format(self.memID):self.time()}
 
-	def remember(self,name,val,moremetadata=None):
+	def remember(self,name,val,moremetadata=None,**kwargs):
 		if moremetadata==None: moremetadata=dict()
-		super().remember(name,val,self.getcontext()|moremetadata)
+		super().remember(name,val,self.getcontext()|moremetadata,**kwargs)
+		self.pokelisteners(name)
+
+	def addlistener(self,listener):
+		self.listeners.append(listener)	
+
+	def pokelisteners(self,*args):
+		for l in self.listeners:
+			l.poke(*args)
 
 
 class ActiveMemory(Memory):
@@ -130,12 +143,6 @@ class ActiveMemory(Memory):
 
 #----------------------------------------------------------------------------------------------------
 
-class Listener:
-	def poke(self,signal,*args,**kwargs):
-		if signal in self.signals:
-			self.refresh(signal)
-
-
 #----------------------------------------------------------------------------------------------------
 
 
@@ -149,186 +156,56 @@ def nowstr():
 	time=''.join([x for pair in zip(time.split(':'),['h','m','s']) for x in pair])
 	return date+'|'+time
 
-def timestamp():
-	return time.perf_counter()
 
 
-#====================================================================================================
-# tracking
-#====================================================================================================
-
-
-
-#----------------------------------------------------------------------------------------------------
-# temporary values
-
-def addlistener(listener,*signals):
-	for signal in signals:
-		if signal not in eventlisteners: eventlisteners[signal]=set()
-		eventlisteners[signal].add(listener)
-		
-def trackcurrent(name,val):
-	trackedvals[name]=(timestamp(),val)
-	pokelisteners(name)
-
-def getval(name):
-	try:
-		return trackedvals[name][1]
-	except:
-		return sessionstate.static[name]
-
-def pokelisteners(signal,*args):
-	if signal in eventlisteners:	
-		for listener in eventlisteners[signal]:
-			listener.poke(signal,*args)
-
-
+#
 #----------------------------------------------------------------------------------------------------
 
 
-def histpaths():
-	return [path+'hist' for path in outpaths]
+def histpath():
+	return outpath+'hist'
 
 def logpaths():
-	return [path+'log' for path in outpaths]+['logs/'+sessionID]
+	return [outpath+'log','logs/'+sessionID]
 
 
-#"""
-#
-#class State:
-#
-#	def __init__(self,static=None,hists=None,dynamicvals=None):
-#		self.static=dict() if static==None else static
-#		self.hists=dict() if hists==None else hists
-#		self.dynamicvals=[] if dynamicvals==None else dynamicvals
-#		self.t0=time.perf_counter()
-#
-#	def timestamp(self):
-#		return time.perf_counter()-self.t0
-#
-#	def remember(self,name,val,t=None):
-#		if t==None:t=self.timestamp()
-#		self.initentry(name)
-#		self.hists[name]['timestamps'].append(t)
-#		self.hists[name]['vals'].append(val)
-#
-#	def save(self,*paths):
-#		save({'static':self.static,'hists':self.hists},*paths)
-#
-#	def gethist(self,name):
-#		return self.hists[name]['timestamps'],self.hists[name]['vals']
-#
-#	def initentry(self,name):
-#		if name not in self.hists:
-#			self.hists[name]={'timestamps':[],'vals':[]}
-#
-#	def linkentry(self,name):
-#		self.initentry(name)
-#		return self.hists[name]
-#
-#	def getlinks(self,*names):
-#		for name in names:
-#			self.initentry(name)
-#		return {name:self.hists[name] for name in names}
-#
-#	def clonefrom(self,path):
-#		D=load(path)
-#		self.static=D['static']
-#		self.hists=D['hists']
-#
-#	def refresh(self):
-#		for name,inputvars,fn in self.dynamicvals:
-#			try:
-#				self.remember(name,fn(*[getval(var) for var in inputvars]))
-#			except Exception as e:
-#				#self.remember(name,'dynamic quantity {} pending, awaiting values of {}.'.format(name,inputvars))
-#				#print('dynamic quantity {} pending, awaiting values of {}.'.format(name,inputvars))
-#				pass
-#
-##
-#class LoadedState:
-#	def __init__(self,path):
-#		self.clonefrom(path)
-#
-#
-#def retrievestate(path):
-#	print('\nloading from \n'+path+'\n')
-#	data=load(path)
-#	globals()['sessionstate']=State(*[data[k] for k in ['static','hists']])
-#
-#"""
-		
-
-	
-def getrecentlog(n):
-	return session.gethist('log')[1][-n:]
-
-def get_errlog():
-	try:
-		return sessionstate.gethist('errlog')[1]
-	except:
-		return []
-
-def setstatic(name,val):
-	sessionstate.static[name]=val
 
 def register(lcls,*names):
 	for name in names:
 		setstatic(name,lcls[name])
 
-def remember(name,val):
-	sessionstate.remember(name,val)
-	trackcurrent(name,val)
-
+#
 #def savestate(*paths):
-	#sessionstate.save(*paths)
-		
-#def autosave():
-#	savestate(*histpaths())
-
-def loadvarhist(path,varname):
-	tempstate=loadstate(path)
-	hist=tempstate.gethist(varname)
-	del tempstate
-	return hist
-
+#	#sessionstate.save(*paths)
+#		
+##def autosave():
+##	savestate(*histpaths())
+#
 
 
 
 #----------------------------------------------------------------------------------------------------
 
 def log(msg):
-	msg='{} | {}'.format(datetime.timedelta(seconds=int(timestamp())),msg)
+	msg='{} | {}'.format(datetime.timedelta(seconds=int(session.time())),msg)
 	session.log(msg)
 	write(msg+'\n',*logpaths())
 	if trackduration:
-		write(str(int(timestamp())),*[os.sep.join(pathlog.split(os.sep)[:-1])+os.sep+'duration' for pathlog in logpaths()],mode='w')	
-	pokelisteners('log')
+		write(str(int(session.time())),*[os.sep.join(pathlog.split(os.sep)[:-1])+os.sep+'duration' for pathlog in logpaths()],mode='w')	
+	#pokelisteners('log')
 
 def dblog(msg):
 	write(str(msg)+'\n','debug/'+sessionID)
 
-def errlog(msg):
-	write(str(msg)+'\n\n\n','debug/errordump '+sessionID)
+def print(msg):
+	session.remember('dbprintbuffer',str(msg),norepeat=True)
 
-def print(msg,norepeat=True):
-	if norepeat and len(dbprintbuffer)>0 and msg==dbprintbuffer[-1]:
-		return
-	dbprintbuffer.append(msg)
 
 #----------------------------------------------------------------------------------------------------
-#====================================================================================================
 
 
-#====================================================================================================
-
-
-class Timeup(Exception): pass
 
 arange=lambda *ab:list(jnp.arange(*ab))
-
-#def defaultsched(timebound):
-#	jnp.array([5]+arange(0,60,10)+arange(60,300,30)+arange(300,600,60)+arange(600,hour,300)+arange(hour,timebound,hour))
 
 def expsched(step1,timebound,percentincrease=.1,skipzero=False):
 	delta=jnp.log(1+percentincrease)
@@ -343,64 +220,70 @@ def stepwiseperiodicsched(stepsizes,transitions):
 
 
 
-class Scheduler:
+class Scheduler(Timer):
 	def __init__(self,schedule):
 		self.schedule=schedule
 		self.rem_sched=deque(copy.deepcopy(schedule))
-		self.t0=time.perf_counter()
+		Timer.__init__(self)
 
-	def elapsed(self):
-		return time.perf_counter()-self.t0
+	def activate(self,t=None):
+		if t==None:t=self.time()
 
-	def dispatch(self,t=None):
-		if t==None:t=self.elapsed()
-		disp=False
-		while t>self.rem_sched[0]:
-			disp=True
-			self.rem_sched.popleft()
-			if len(self.rem_sched)==0:
-				raise Timeup
-		return disp
+		if len(self.rem_sched)==0 or t<self.rem_sched[0]:
+			act=False
+		else:
+			while len(self.rem_sched)>0 and t>=self.rem_sched[0]:
+				self.rem_sched.popleft()
+			act=True
+
+		dblog(t)
+		dblog(self.rem_sched)
+		dblog(act)
+		dblog('\n')
+
+		return act
 
 		
-	def filter(self,times,*valueshists):
-		timeticks=[times[0]]
-		filteredhists=[[hist[0]] for hist in valueshists]
-		try:
-			for t,*values in list(zip(times,*valueshists))[1:]:
-				if self.dispatch(t):
-					timeticks.append(t)
-					for val,hist in zip(values,filteredhists):
-						hist.append(val)
-		except Timeup:
-			pass
-		return (timeticks,*filteredhists)
-		#return (timeticks,)+filteredhists
-
-
-def filterschedule(sched,times,*valueshist):
-	sc=Scheduler(sched)
-	out=sc.filter(times,*valueshist)	
-	del sc
-	return out
-
-
-def filterschedule_w_ordinals(sched,times,*valshist):
-	_valshist=(list(range(len(times))),)+tuple(valshist)
-	return filterschedule(times,*_valshist)
-	
-
-def times_to_ordinals(allts,ticks,*vals):
-	ordn=0
-	ts=deque(allts)
-	ordns=[]
-
-	for tick in ticks:
-		while len(ts)>0 and ts[0]<tick:
-			ts.popleft()
-			ordn=ordn+1
-		ordns.append(ordn)
-	return (ordns,*vals)
+#	def filter(self,times,*valueshists):
+#		timeticks=[times[0]]
+#		filteredhists=[[hist[0]] for hist in valueshists]
+#		try:
+#			for t,*values in list(zip(times,*valueshists))[1:]:
+#				if self.dispatch(t):
+#					timeticks.append(t)
+#					for val,hist in zip(values,filteredhists):
+#						hist.append(val)
+#		except Timeup:
+#			pass
+#		return (timeticks,*filteredhists)
+#
+#
+#		#return (timeticks,)+filteredhists
+#
+#
+#def filterschedule(sched,times,*valueshist):
+#	sc=Scheduler(sched)
+#	out=sc.filter(times,*valueshist)	
+#	del sc
+#	return out
+#
+#
+#def filterschedule_w_ordinals(sched,times,*valshist):
+#	_valshist=(list(range(len(times))),)+tuple(valshist)
+#	return filterschedule(times,*_valshist)
+#	
+#
+#def times_to_ordinals(allts,ticks,*vals):
+#	ordn=0
+#	ts=deque(allts)
+#	ordns=[]
+#
+#	for tick in ticks:
+#		while len(ts)>0 and ts[0]<tick:
+#			ts.popleft()
+#			ordn=ordn+1
+#		ordns.append(ordn)
+#	return (ordns,*vals)
 
 
 
@@ -454,9 +337,6 @@ def savefig(*paths,fig=None):
 			fig.savefig(path)
 	log('Saved figure to {}'.format(paths))
 
-
-def savefig_(pathsuffixes,fig=None):
-	savefig(*[path+pathsuffixes for path in outpaths],fig=fig)
 
 def write(msg,*paths,mode='a'):
 	for path in paths:
@@ -552,36 +432,7 @@ def latest(folder):
 
 
 
-
-
-@jax.jit
-def sqloss(Y1,Y2):
-	Y1,Y2=[jnp.squeeze(_) for _ in (Y1,Y2)]
-	return jnp.average(jnp.square(Y1-Y2))
-
-
-@jax.jit
-def dot(Y1,Y2):
-	Y1,Y2=[jnp.squeeze(_) for _ in (Y1,Y2)]
-	n=Y1.shape[0]
-	return jnp.dot(Y1,Y2)/n
-
-
-@jax.jit
-def SI_loss(Y,Y_target):
-	return 1-dot(Y,Y_target)**2/(dot(Y,Y)*dot(Y_target,Y_target))
-
-@jax.jit
-def log_SI_loss(Y,Y_target):
-	Y,Y_target=[jnp.squeeze(_) for _ in (Y,Y_target)]
-	return jnp.log(dot(Y_target,Y_target))+jnp.log(dot(Y,Y))-2*jnp.log(dot(Y,Y_target))
-
-
 		
-
-
-def setlossfn(lossname):
-	globals()['lossfn']=globals()[lossname]	
 
 
 def getlossfn():
@@ -604,10 +455,7 @@ t0=time.perf_counter()
 trackedvals=dict()
 eventlisteners=dict()
 sessionID=nowstr()
-outpaths=set()
 trackduration=False
-
-dbprintbuffer=['']
 
 biasinitsize=.1
 

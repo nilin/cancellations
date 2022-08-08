@@ -22,6 +22,7 @@ import shutil
 import permutations_simple as ps
 import typing
 import testing
+from config import session
 from jax.lax import collapse
 import pdb
 
@@ -172,8 +173,8 @@ def makeblockwise(f):
 		out=[]
 		for i,(B,) in enumerate(Xs):
 			out.append(f(B))
-			cfg.trackcurrent('block',(i+1,len(Xs)))
-		cfg.trackcurrent('block',(0,1))
+			session.trackcurrent('block',(i+1,len(Xs)))
+		session.trackcurrent('block',(0,1))
 		return jnp.concatenate(out,axis=0)
 	return blockwise_f
 

@@ -14,6 +14,53 @@ import customactivations as ca
 from jax.nn import softplus
 
 
+
+
+
+
+
+
+
+
+
+
+
+@jax.jit
+def sqloss(Y1,Y2):
+	Y1,Y2=[jnp.squeeze(_) for _ in (Y1,Y2)]
+	return jnp.average(jnp.square(Y1-Y2))
+
+
+@jax.jit
+def dot(Y1,Y2):
+	Y1,Y2=[jnp.squeeze(_) for _ in (Y1,Y2)]
+	n=Y1.shape[0]
+	return jnp.dot(Y1,Y2)/n
+
+
+@jax.jit
+def SI_loss(Y,Y_target):
+	return 1-dot(Y,Y_target)**2/(dot(Y,Y)*dot(Y_target,Y_target))
+
+@jax.jit
+def log_SI_loss(Y,Y_target):
+	Y,Y_target=[jnp.squeeze(_) for _ in (Y,Y_target)]
+	return jnp.log(dot(Y_target,Y_target))+jnp.log(dot(Y,Y))-2*jnp.log(dot(Y,Y_target))
+
+
+
+
+
+
+
+def swap(x,y):
+	return (y,x)
+
+
+
+
+
+
 @jax.jit
 def ReLU(x):
 	return jnp.maximum(x,0) 
@@ -33,9 +80,9 @@ def sqlossindividual(Y1,Y2):
 	Y1,Y2=[jnp.squeeze(_) for _ in (Y1,Y2)]
 	return jnp.square(Y1-Y2)
 
-@jax.jit
-def sqloss(Y1,Y2):
-	return jnp.average(sqlossindividual(Y1,Y2))
+#@jax.jit
+#def sqloss(Y1,Y2):
+#	return jnp.average(sqlossindividual(Y1,Y2))
 
 @jax.jit
 def norm(Y):
