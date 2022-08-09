@@ -236,10 +236,11 @@ def run(**kwargs):
 			break
 
 
-	cfg.log('complexity optimization with concurrent normalization, Af/f optimization done')
+	cfg.log('saving')
 	
-	fig1=pt.singlefnplot_all_in_one(X_test,Af.as_static())
-	cfg.savefig('{}{}'.format(cfg.outpath,'Af1.pdf'),fig=fig1)
+#	fig1=pt.singlefnplot_all_in_one(X_test,Af.as_static())
+#	cfg.savefig('{}{}'.format(cfg.outpath,'Af1.pdf'),fig=fig1)
+
 
 	Af_s=Af.as_static()
 	Y=Af_s(X)

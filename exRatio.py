@@ -66,7 +66,7 @@ params1={
 
 params2={
 'targettype':'AS_NN',
-'learnerwidths':[5,500,1],
+'learnerwidths':[5,250,1],
 'weight_decay':.1,
 'iterations2':1000,
 'minibatchsize':100
@@ -101,9 +101,13 @@ if __name__=='__main__':
 
 	cfg.dashboard=db.Dashboard0()
 	data=exRatio1.run(**allparams)
+	db.clear()
 
+	print('preparing round 2a, ReLU learner')
 	cfg.dashboard=db.Dashboard0()
 	exRatio2.run(**(allparams|{'learneractivation':'ReLU'}|data))
+	db.clear()
 	
+	print('preparing round 2b, tanh learner')
 	cfg.dashboard=db.Dashboard0()
 	exRatio2.run(**(allparams|{'learneractivation':'tanh'}|data))
