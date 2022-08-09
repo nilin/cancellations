@@ -86,17 +86,17 @@ def setparams():
 
 def run(**kwargs):
 
-	globals().update(kwargs)
 
-#	if 'activation' not in globals().keys() or 'widths' not in globals().keys():
-#		activation=targetactivation
-#		widths=targetwidths
+	if 'targetactivation' in kwargs and 'activation' not in kwargs:
+		kwargs['activation']=kwargs['targetactivation']
+		kwargs['widths']=kwargs['targetwidths']
 		
+	globals().update(kwargs)
 		
 	
 	
 	dashboard=cfg.dashboard
-	dashboard.draw()
+	#dashboard.draw()
 
 	cfg.trackduration=True
 
@@ -154,6 +154,7 @@ def run(**kwargs):
 	display1=Display1(10,dashboard.width,processed)
 	dashboard.add_display(display1,40)
 	sc1=cfg.Scheduler(cfg.expsched(50,iterations1))
+	sc11=cfg.Scheduler(cfg.expsched(250,iterations1))
 	sc2=cfg.Scheduler(cfg.periodicsched(1000,iterations1))
 	sc3=cfg.Scheduler(cfg.periodicsched(1000,iterations1))
 
@@ -169,6 +170,7 @@ def run(**kwargs):
 
 	for i in range(iterations1+1):
 
+		#processed.trackcurrent('minibatch number',i)
 #		if i%25==0:
 #
 #			lv=list(locals().items())
@@ -184,7 +186,7 @@ def run(**kwargs):
 #				cfg.dblog(sys.getsizeof(val))
 #			
 			
-		dashboard.draw()
+		#dashboard.draw()
 
 
 		try:
@@ -210,6 +212,8 @@ def run(**kwargs):
 				#cfg.print(sys.getsizeof(processed))
 
 				cfg.log('processed')
+
+			if sc11.activate(i):
 				plotexample(processed)
 
 			if sc2.activate(i):
@@ -227,7 +231,6 @@ def run(**kwargs):
 				del Af_s
 
 					
-			processed.trackcurrent('minibatch number',i)
 			
 
 			
@@ -236,7 +239,10 @@ def run(**kwargs):
 			break
 
 
+
 	cfg.log('saving')
+	#dashboard.draw()
+
 	
 #	fig1=pt.singlefnplot_all_in_one(X_test,Af.as_static())
 #	cfg.savefig('{}{}'.format(cfg.outpath,'Af1.pdf'),fig=fig1)

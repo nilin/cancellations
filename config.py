@@ -117,6 +117,7 @@ class Memory(BasicMemory,Timer):
 
 	def addcontext(self,name,val):
 		self.context[name]=val
+		self.trackcurrent(name,val)
 
 	def getcontext(self):
 		return self.context|{'memory {} time'.format(self.memID):self.time()}
@@ -220,7 +221,7 @@ def dbprint(msg):
 
 class Stopwatch:
 	def __init__(self):
-		self.t=time.perf_counter()
+		self.t=time.perf_counter()-10**6
 
 	def tick(self):
 		t0=self.t
@@ -250,7 +251,7 @@ def expsched(step1,timebound,doublingtime=4):
 	transition=step1/df_over_f
 
 	s_=[2**i for i in np.arange(math.floor(np.log(transition)/np.log(2)),np.log(timebound)/np.log(2),1/doublingtime)]
-	s=list(np.arange(0,s_[0],step1))+s_
+	s=list(np.arange(0,s_[0] if len(s_)>0 else timebound,step1))+s_
 	return s+[timebound] if s[-1]<timebound else s
 	
 

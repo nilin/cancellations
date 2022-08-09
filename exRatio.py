@@ -56,27 +56,27 @@ params={
 
 params1={
 'ftype':'AS_NN',
-'widths':[5,50,50,1],
+'targetwidths':[5,50,50,1],
 'weight_decay':.1,
 'samples_rademacher':100,
-'iterations1':1000,
-'priorities':{'rademachercomplexity':1,'normratio':1,'normalization':1},
+'iterations1':500,
+'priorities':{'rademachercomplexity':1,'normratio':.5,'normalization':.5},
 'minibatchsize':100
 }
 
 params2={
 'targettype':'AS_NN',
-'learnerwidths':[5,250,1],
+'learnerwidths':[5,400,1],
 'weight_decay':.1,
 'iterations2':1000,
 'minibatchsize':100
 }
 
-params1['widths'][0]=params['n']
+params1['targetwidths'][0]=params['n']
 params2['learnerwidths'][0]=params['n']
 
 try:
-	params1['activation']={'r':'ReLU','t':'tanh','d':'DReLU','p':'ptanh'}[cfg.selectone({'r','t','d','p'},cfg.cmdparams)]
+	params1['targetactivation']={'r':'ReLU','t':'tanh','d':'DReLU','p':'ptanh'}[cfg.selectone({'r','t','d','p'},cfg.cmdparams)]
 except:
 	print(10*'\n'+'Pass target activation function as parameter.\n'+10*'\n')	
 	raise Exception
@@ -98,16 +98,17 @@ for l in sessioninfo.splitlines():
 
 if __name__=='__main__':
 
-
+	cfg.dbprint('round 1 prepare target')
 	cfg.dashboard=db.Dashboard0()
 	data=exRatio1.run(**allparams)
-	db.clear()
 
-	print('preparing round 2a, ReLU learner')
+	cfg.dbprint('round 2a ReLU learner')
 	cfg.dashboard=db.Dashboard0()
 	exRatio2.run(**(allparams|{'learneractivation':'ReLU'}|data))
-	db.clear()
 	
-	print('preparing round 2b, tanh learner')
+	cfg.dbprint('round 2b tanh learner')
 	cfg.dashboard=db.Dashboard0()
 	exRatio2.run(**(allparams|{'learneractivation':'tanh'}|data))
+
+	db.clear()
+	print('\noutputs in: outputs/exRatio2\n')

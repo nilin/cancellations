@@ -95,8 +95,8 @@ def run(**kwargs):
 	dashboard=cfg.dashboard
 
 
-	cfg.inpath='outputs/{}/target={}/'.format(exname,activation)
-	cfg.outpath='outputs/{}/target={} learner={}/{}/'.format(exname,activation,learneractivation,cfg.sessionID)
+	cfg.inpath='outputs/{}/target={}/'.format(exname,targetactivation)
+	cfg.outpath='outputs/{}/target={} learner={}/{}/'.format(exname,targetactivation,learneractivation,cfg.sessionID)
 	cfg.write(session.getval('sessioninfo'),cfg.outpath+'info.txt',mode='w')
 
 
@@ -128,7 +128,7 @@ def run(**kwargs):
 
 
 	for i in range(iterations2+1):
-		dashboard.draw()
+		#dashboard.draw()
 		try:
 			loss=trainer.step()
 			processed.addcontext('minibatch number',i)
@@ -140,14 +140,14 @@ def run(**kwargs):
 				processed.remember('f norm',jnp.average(learner.get_NS().as_static()(X_test[:100])**2))
 				processed.compute(['f norm','Af norm'],lambda x,y:x/y,'f/Af')
 				processed.remember('test loss',util.SI_loss(learner.as_static()(X_test),Y_test))
-				plotexample(processed)
 
 			if sc3.activate(i):
+				plotexample(processed)
 				plt.close('all')
 				fig=sections.plot_y_vs_f_SI(learner.as_static())
 				cfg.savefig('{}{} minibatches.pdf'.format(cfg.outpath,int(i)),fig=fig)
 					
-			processed.trackcurrent('minibatch number',i)
+			#processed.trackcurrent('minibatch number',i)
 		except KeyboardInterrupt:
 			break
 

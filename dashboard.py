@@ -5,6 +5,7 @@ import numpy as np
 import jax.numpy as jnp
 import pdb
 import config as cfg
+from collections import deque
 import time
 from config import session
 
@@ -27,9 +28,11 @@ def print_at(y,x,msg):
 
 
 
-class Display(cfg.Watched):
+class Display(cfg.Watched,cfg.Stopwatch):
 	def __init__(self,height,width,memory,emptystyle=' ',**kwargs):
-		super().__init__()
+		cfg.Watched.__init__(self)
+		cfg.Stopwatch.__init__(self)
+
 		self.height=height
 		self.width=width
 		self.Emptystyle=math.ceil(self.width/len(emptystyle))*emptystyle
@@ -45,7 +48,7 @@ class Display(cfg.Watched):
 	def getcroppedlines(self):
 		lines=self.getlines()[:self.height]
 
-		#lines=[line.splitlines()[0] for line in lines]
+		lines=[line.splitlines()[0] if len(line)>0 else '' for line in lines]
 		lines=[line[:self.width] for line in lines]
 
 		#pdb.set_trace()
@@ -181,22 +184,42 @@ class Display0(StackedDisplay):
 
 
 
-class Dashboard:
+class AbstractDashboard:
 
 	def __init__(self):
-		self.displays=[]
+		self.displays=dict()
+		self.defaultnames=deque(range(100))
 		clear()
 
-	def add_display(self,display,y,x=0):
+	def add_display(self,display,y,x=0,name=None):
+		if name==None: name=self.defaultnames.popleft()
 		display.addlistener(self)
-		self.displays.append((display,y,x))
+		self.displays[name]=(display,y,x)
 		
-		#display.memory.addlistener(self)
+		display.memory.addlistener(self)
 
 	def poke(self,signal):
-		self.draw(signal)
+
+		for name,(display,y,x) in self.displays.items():
+			if signal==None or signal in display.trackedvars:
+
+				if display.tick()>.01:
+					self.draw(display,y,x)
 
 
+class Dashboard(AbstractDashboard):
+
+	def draw(self,display,y,x):
+		lines=display.getcroppedlines()
+		for i,line in enumerate(lines):
+			print_at(y+i+1,x,line[:display.width])
+
+
+	def draw_all(self):
+		
+		for name,(display,y,x) in self.displays.items():
+			self.draw(display,y,x)
+		
 
 
 
@@ -212,12 +235,12 @@ class Dashboard0(Dashboard):
 		infodisplay=StackedDisplay(25,width,session)
 		infodisplay.addhistdisplay(25,'sessioninfo')
 
-		logdisplay=StackedDisplay(10,width//2,session)
+		logdisplay=StackedDisplay(10,round(width*.4),session)
 		logdisplay.addstatictext('log')
 		logdisplay.addline()
 		logdisplay.addhistdisplay(10,'log')
 
-		dbprintdisplay=StackedDisplay(10,width//2,session)
+		dbprintdisplay=StackedDisplay(10,round(width*.4),session)
 		dbprintdisplay.addstatictext('prints (cfg.dbprint(msg))')
 		dbprintdisplay.addline()
 		dbprintdisplay.addhistdisplay(10,'dbprintbuffer')
@@ -226,15 +249,8 @@ class Dashboard0(Dashboard):
 		self.add_display(logdisplay,25,0)
 		self.add_display(dbprintdisplay,25,width//2)
 
+		self.draw_all()
 
-
-	def draw(self,signal=None):
-		for (display,y,x) in self.displays:
-			if signal==None or signal in display.trackedvars:
-				lines=display.getcroppedlines()
-
-				for i,line in enumerate(lines):
-					print_at(y+i+1,x,line)
 	
 
 
