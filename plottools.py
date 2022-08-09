@@ -39,23 +39,25 @@ def linethrough(x,interval):
 
 
 class CrossSections:
-	def __init__(self,X,Y,target,nsections,fineness=200):
+	def __init__(self,X,Y,target,nsections=3,fineness=200,normalized=True):
 
 		cfg.log('Preparing cross sections for plotting.')
 		x0s=samplepoints(X,Y,nsections)
 		self.interval=jnp.arange(-1,1,2/fineness)
 		self.lines=[linethrough(x0,self.interval) for x0 in x0s]
 		self.ys=[target(line) for line in self.lines]
-		
 		self.X=X
 		self.Y=Y
 
 
-	def plot_y_vs_f(self,f):
+	def plot_y_vs_f(self,f,normalized_target=False):
 		fig,axs=plt.subplots(1,3,figsize=(16,4))
+
+		c=1/util.norm(self.Y) if normalized_target else 1
+
 		for ax,x,y in zip(axs,self.lines,self.ys):
-			ax.plot(self.interval,y,'b',label='target')
-			ax.plot(self.interval,f(x),'r',ls=ls,label='learned')
+			ax.plot(self.interval,c*y,'b',label='target')
+			ax.plot(self.interval,f(x),'r',ls='dashed',label='learned')
 			ax.legend()
 		return fig
 
@@ -65,23 +67,25 @@ class CrossSections:
 			ax.plot(self.interval,y,'b')
 		return fig
 
-	def plot_SI(self,staticlearner,normalized=True):
+	def plot_y_vs_f_SI(self,staticlearner,normalized=True):
 		f=util.closest_multiple(staticlearner,self.X[:250],self.Y[:250],normalized=normalized)
-		return plot_y_vs_f(f)
+		return self.plot_y_vs_f(f,normalized_target=normalized)
 
 
 
-def singlefnplot_all_in_one(X,statictarget):
+def singlefnplot_all_in_one(X,statictarget,Y=None):
 
-	Y=statictarget(X)
+	if Y==None:
+		Y=statictarget(X)
 	sections=CrossSections(X,Y,statictarget,3,fineness=200)	
 	fig=sections.plot_y()
 	del sections
 	return fig
 
-def fnplot_all_in_one(X,statictarget,staticlearner,normalized=True):
+def fnplot_all_in_one(X,statictarget,staticlearner,Y=None,normalized=True):
 
-	Y=statictarget(X)
+	if Y==None:
+		Y=statictarget(X)
 	sections=CrossSections(X,Y,statictarget,3,fineness=200)	
 	fig=sections.plot_SI(staticlearner,normalized)
 	del sections

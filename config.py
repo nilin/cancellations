@@ -95,6 +95,9 @@ class BasicMemory:
 	def getcurrentval(self,name):
 		return self.hists[name].getcurrentval() #if name in self.hists else None
 
+	def getval(self,name):
+		return self.getcurrentval(name)
+
 
 class Timer:
 	def __init__(self,*x,**y):
@@ -141,6 +144,21 @@ class ActiveMemory(Memory):
 		inputvals=[self.gethist(q) for q in queries]
 		self.remember(outputname,fn(*inputvals))
 
+
+
+
+
+class Watched:
+	def __init__(self):
+		self.listeners=[]
+
+	def addlistener(self,L):
+		self.listeners.append(L)
+
+	def pokelisteners(self,*args,**kwargs):
+		for L in listeners:
+			L.poke(*args,**kwargs)
+
 #----------------------------------------------------------------------------------------------------
 
 #----------------------------------------------------------------------------------------------------
@@ -178,8 +196,8 @@ def register(lcls,*names):
 #def savestate(*paths):
 #	#sessionstate.save(*paths)
 #		
-##def autosave():
-##	savestate(*histpaths())
+#def save():
+#	savestate(*histpaths())
 #
 
 
@@ -192,13 +210,26 @@ def log(msg):
 	write(msg+'\n',*logpaths())
 	if trackduration:
 		write(str(int(session.time())),*[os.sep.join(pathlog.split(os.sep)[:-1])+os.sep+'duration' for pathlog in logpaths()],mode='w')	
-	#pokelisteners('log')
 
 def dblog(msg):
 	write(str(msg)+'\n','debug/'+sessionID)
 
-def print(msg):
+def dbprint(msg):
 	session.remember('dbprintbuffer',str(msg),norepeat=True)
+
+
+class Stopwatch:
+	def __init__(self):
+		self.t=time.perf_counter()
+
+	def tick(self):
+		t0=self.t
+		self.t=time.perf_counter()
+		return self.t-t0
+
+	def dbtick(self,msg=''):
+		dbprint('{} {}'.format(msg,self.tick()))
+
 
 
 #----------------------------------------------------------------------------------------------------
@@ -207,13 +238,26 @@ def print(msg):
 
 arange=lambda *ab:list(jnp.arange(*ab))
 
-def expsched(step1,timebound,percentincrease=.1,skipzero=False):
-	delta=jnp.log(1+percentincrease)
-	t1=step1/delta
-	return jnp.concatenate([jnp.arange(step1 if skipzero else 0,t1,step1),jnp.exp(jnp.arange(jnp.log(t1),jnp.log(timebound),delta)),jnp.array([timebound])])
+#def expsched(step1,timebound,doublingtime=1,skipzero=False):
+#	delta=jnp.log(2)/doublingtime
+#	t1=step1/delta
+#	return jnp.concatenate([jnp.arange(step1 if skipzero else 0,t1,step1),jnp.exp(jnp.arange(jnp.log(t1),jnp.log(timebound),delta)),jnp.array([timebound])])
 
-def periodicsched(step,timebound,skipzero=False):
-	return jnp.array(arange(step if skipzero else 0,timebound,step)+[timebound])
+
+def expsched(step1,timebound,doublingtime=4):
+
+	df_over_f=jnp.log(2)/doublingtime
+	transition=step1/df_over_f
+
+	s_=[2**i for i in np.arange(math.floor(np.log(transition)/np.log(2)),np.log(timebound)/np.log(2),1/doublingtime)]
+	s=list(np.arange(0,s_[0],step1))+s_
+	return s+[timebound] if s[-1]<timebound else s
+	
+
+
+def periodicsched(step,timebound):
+	s=list(np.arange(step,timebound,step))
+	return s+[timebound] if len(s)==0 or s[-1]<timebound else s
 
 def stepwiseperiodicsched(stepsizes,transitions):
 	return jnp.concatenate([jnp.arange(transitions[i],transitions[i+1],step) for i,step in enumerate(stepsizes)]+[jnp.array([transitions[-1]])])
@@ -235,11 +279,6 @@ class Scheduler(Timer):
 			while len(self.rem_sched)>0 and t>=self.rem_sched[0]:
 				self.rem_sched.popleft()
 			act=True
-
-		dblog(t)
-		dblog(self.rem_sched)
-		dblog(act)
-		dblog('\n')
 
 		return act
 
@@ -418,13 +457,13 @@ def longestduration(folder):
 				return int(f.read())
 		except:
 			return -1
-	return folder+max([(subfolder,relorder(subfolder)) for subfolder in os.listdir(folder)],key=lambda pair:pair[1])[0]
+	return folder+max([(subfolder,relorder(subfolder)) for subfolder in os.listdir(folder)],key=lambda pair:pair[1])[0]+'/'
 	
 def latest(folder):
 	folders=[f for f in os.listdir(folder) if len(f)==15 and len(re.sub('[^0-9]','',f))==10]
 	def relorder(subfoldername):
 		return int(re.sub('[^0-9]','',subfoldername))
-	return folder+max([(subfolder,relorder(subfolder)) for subfolder in folders],key=lambda pair:pair[1])[0]
+	return folder+max([(subfolder,relorder(subfolder)) for subfolder in folders],key=lambda pair:pair[1])[0]+'/'
 
 
 
@@ -494,5 +533,8 @@ if __name__=='__main__':
 
 	#print(selectone({'r','t'},[1,4,'r',5,'d']))
 
-	print(times_to_ordinals([.1,.2,.3,.4,.5,.6,.7,.8],[.3,.7],['a','b']))
-	print(times_to_ordinals([.1,.2,.3,.4,.5,.6,.7,.8],[.1,.2,.3,.4,.5,.6,.7,.8],[1,2,3,4,5,6,7,8]))
+#	print(times_to_ordinals([.1,.2,.3,.4,.5,.6,.7,.8],[.3,.7],['a','b']))
+#	print(times_to_ordinals([.1,.2,.3,.4,.5,.6,.7,.8],[.1,.2,.3,.4,.5,.6,.7,.8],[1,2,3,4,5,6,7,8]))
+
+	print(expsched(.1,100,3))
+

@@ -56,7 +56,6 @@ class Trainer():
 		self.set_default_batchsizes(**kwargs)
 		self.minibatches=deque([])
 
-		cfg.dblog(self.memory)
 
 
 	def minibatch_step(self,X_mini,*Y_mini):
@@ -122,7 +121,6 @@ class DynamicTrainer(Trainer):
 
 	def prepnextepoch(self):
 		[self.X]=util.randperm(self.X)
-		#cfg.dblog(len(util.chop(self.X,chunksize=self.minibatchsize)))
 		self.minibatches=util.chop(self.X,chunksize=self.minibatchsize)
 		self.minibatches=deque(self.minibatches)
 
