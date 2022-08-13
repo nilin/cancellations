@@ -112,6 +112,19 @@ class StaticText(Display):
 		return self.lines
 
 
+class QueriedText(Display):
+	def __init__(self,height,width,memory,query):
+		super().__init__(height,width,memory)
+		self.query=query
+
+	def getlines(self):
+		try:
+			return self.memory.getval(self.query).splitlines()
+		except:
+			return ['pending']
+		
+
+
 class NumberDisplay(Display):
 	def __init__(self,width,memory,query,transform=None,avg_of=1,**kwargs):
 		super().__init__(1,width,memory,query,**kwargs)
@@ -214,8 +227,9 @@ class Dashboard(AbstractDashboard):
 def get3displays(width):
 		#width=os.get_terminal_size()[0]-1
 
-	infodisplay=StackedDisplay(25,width,session)
-	infodisplay.addhistdisplay(25,'sessioninfo')
+	#infodisplay=StackedDisplay(25,width,session)
+	#infodisplay.addhistdisplay(25,'sessioninfo')
+	infodisplay=QueriedText(25,width,session,'sessioninfo')
 
 	logdisplay=StackedDisplay(10,round(width*.4),session)
 	logdisplay.addstatictext('log')

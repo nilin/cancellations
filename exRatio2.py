@@ -95,7 +95,7 @@ def run(**kwargs):
 
 	cfg.inpath='outputs/{}/target={}/'.format(exname,targetactivation)
 	cfg.outpath='outputs/{}/target={} learner={}/{}/'.format(exname,targetactivation,learneractivation,cfg.sessionID)
-	cfg.write(session.getval('sessioninfostring'),cfg.outpath+'info.txt',mode='w')
+	cfg.write(session.getval('sessioninfo'),cfg.outpath+'info.txt',mode='w')
 
 
 	cfg.lossfn=util.SI_loss

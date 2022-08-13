@@ -129,27 +129,21 @@ def run():
 	ignore={'plotfineness','minibatchsize','initfromfile','d','checkpoint_interval'}
 
 	sessioninfo='{}\nsessionID: {}\n\n{}\n\n{}\n\n{}'.format(explanation,cfg.sessionID,*[cfg.formatvars([(k,allparams[k]) for k in varnames],separator='\n',ignore=ignore) for varnames in varnames_])
-	for l in sessioninfo.splitlines():
-		session.remember('sessioninfo',l)#.splitlines())
-	session.remember('sessioninfostring',sessioninfo)
+	session.remember('sessioninfo',sessioninfo)
 
+	cfg.dashboard.draw_all()
 
 
 	outpath='outputs/{}/target={}/{}/'.format(exname,params1['targetactivation'],cfg.sessionID)
-	cfg.write(session.getval('sessioninfostring'),outpath+'info.txt',mode='w')
-
-	########################################################
+	cfg.write(session.getval('sessioninfo'),outpath+'info.txt',mode='w')
 
 	cfg.dbprint('round 1 prepare target')
-	#cfg.dashboard=db.Dashboard0()
 	data=exRatio1.run(**allparams)
 
 	cfg.dbprint('round 2a ReLU learner')
-	#cfg.dashboard=db.Dashboard0()
 	rmem=exRatio2.run(**(allparams|{'learneractivation':'ReLU'}|data))
 	
 	cfg.dbprint('round 2b tanh learner')
-	#cfg.dashboard=db.Dashboard0()
 	tmem=exRatio2.run(**(allparams|{'learneractivation':'tanh'}|data))
 
 	cfg.outpath=outpath
@@ -163,4 +157,5 @@ def run():
 
 
 if __name__=='__main__':
-	run()
+	import run_in_display
+	run_in_display.RID(run)

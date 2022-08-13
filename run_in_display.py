@@ -3,9 +3,6 @@ import config as cfg
 import numpy as np
 import sys
 
-from exRatio import run
-
-
 
 import curses as cs
 
@@ -33,37 +30,29 @@ class CDashboard(db.AbstractDashboard):
 		window.refresh()
 
 #----------------------------------------------------------------------------------------------------
-def temp(screen):
+def getwrapped(run):
+	def wrapped(screen):
 
-	cs.use_default_colors()
-	h=cs.LINES
-	w=cs.COLS
+		cs.use_default_colors()
+		h=cs.LINES
+		w=cs.COLS
 
-	infodisplay,logdisplay,dbprintdisplay=db.get3displays(w)
-	dashboard=CDashboard(w)
+		infodisplay,logdisplay,dbprintdisplay=db.get3displays(w)
+		dashboard=CDashboard(w)
 
-	dashboard.add_display(infodisplay,0,0)
-	dashboard.add_display(logdisplay,25,0)
-	dashboard.add_display(dbprintdisplay,25,w//2)
+		dashboard.add_display(infodisplay,0,0)
+		dashboard.add_display(logdisplay,25,0)
+		dashboard.add_display(dbprintdisplay,25,w//2)
 
-	dashboard.draw_all()
-	cfg.dashboard=dashboard
+		dashboard.draw_all()
+		cfg.dashboard=dashboard
 
-	run()
-
-cs.wrapper(temp)
-
-	
-
-
-#if __name__=='__main__':
-
-	#import e1,test
-	#e=sys.argv[1]
-	#run_as_cs({'ex':e1,'test':test}[e].run)
+		run()
+	return wrapped
 
 
 
-
-
+def RID(run):
+	wrapped=getwrapped(run)
+	cs.wrapper(wrapped)
 
