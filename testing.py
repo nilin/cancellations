@@ -53,6 +53,10 @@ def verify_antisymmetric(AS,n,d,samples=5,nperms=5):
 	cfg.log('antisymmetry test passed')
 
 
+
+
+
+
 @jax.jit
 def sign(p):
 	n=len(p)

@@ -51,15 +51,17 @@ class CrossSections:
 
 
 	def plot_y_vs_f(self,f,normalized_target=False):
-		fig,axs=plt.subplots(1,3,figsize=(16,4))
 
 		c=1/util.norm(self.Y) if normalized_target else 1
 
-		for ax,x,y in zip(axs,self.lines,self.ys):
+		figs=[]
+		for x,y in zip(self.lines,self.ys):
+			fig,ax=plt.subplots(figsize=(5,4))
 			ax.plot(self.interval,c*y,'b',label='target')
 			ax.plot(self.interval,f(x),'r',ls='dashed',label='learned')
 			ax.legend()
-		return fig
+			figs.append(fig)
+		return figs
 
 	def plot_y(self):
 		fig,axs=plt.subplots(1,3,figsize=(16,4))
@@ -67,9 +69,9 @@ class CrossSections:
 			ax.plot(self.interval,y,'b')
 		return fig
 
-	def plot_y_vs_f_SI(self,staticlearner,normalized=True):
+	def plot_y_vs_f_SI(self,staticlearner,normalized=True,**kwargs):
 		f=util.closest_multiple(staticlearner,self.X[:250],self.Y[:250],normalized=normalized)
-		return self.plot_y_vs_f(f,normalized_target=normalized)
+		return self.plot_y_vs_f(f,normalized_target=normalized,**kwargs)
 
 
 

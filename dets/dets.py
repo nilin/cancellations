@@ -8,14 +8,14 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import pdb
-import testing
+import sys
 
 
 jax.config.update("jax_enable_x64", True)
 
 
 #@jax.jit
-def DETS(A,pivot=False):
+def DETS(A,pivot=True):
 	ndets,n=A.shape[:-1]
 
 	dets=jnp.ones((ndets,))
@@ -41,6 +41,7 @@ def ppivot(A,n):
 	i_s=jnp.argmax(A[:,:,0]**2,axis=1)
 	swaps,signs=swaps_as_perms(jnp.zeros_like(i_s),i_s,n)
 	Ps=(jnp.arange(n)[None,:,None]-swaps[:,None,:])==0
+	Ps=Ps>.5
 	return jax.vmap(jnp.dot)(Ps,A),signs
 
 def swaps_as_perms(i_s,j_s,n):
@@ -60,37 +61,47 @@ def swaps_as_perms(i_s,j_s,n):
 
 
 
+#if __name__=='__main__':
+#
+#	import jax.random as rnd
+#
+#	n=int(sys.argv[1])
+#
+#	A=rnd.normal(rnd.PRNGKey(0),(25,n,n))
+#
+#	custom,native=testdets.compare_antisymmetry(DETS,np.linalg.det,A)
 
-if __name__=='__main__':
-
-	import jax.random as rnd
-
-
-	A=rnd.normal(rnd.PRNGKey(0),(100,10,10))
-	print(jnp.linalg.det(A))
-	print(DETS(A))
-	print(DETS(A,pivot=True))
-
-
-
-
-
+	
+	print(custom)
+	print(native)
 
 
-	v=rnd.normal(rnd.PRNGKey(1),(100,10))
-	w=rnd.normal(rnd.PRNGKey(2),(100,10))
-	A=v[:,:,None]*v[:,None,:]+w[:,:,None]*w[:,None,:]
-
-	print(jnp.sum(jnp.linalg.det(A)**2))
-	print(jnp.sum(DETS(A)))
-	print(jnp.sum(DETS(A,pivot=True)))
-
-
-	v=rnd.normal(rnd.PRNGKey(1),(100,10))
-	A=v[:,:,None]*v[:,None,:]
-
-	print(jnp.sum(jnp.linalg.det(A)**2))
-	print(jnp.sum(DETS(A)))
-	print(jnp.sum(DETS(A,pivot=True)))
-
-
+#
+#	A=rnd.normal(rnd.PRNGKey(0),(100,10,10))
+#	print(jnp.linalg.det(A))
+#	print(DETS(A))
+#	print(DETS(A,pivot=True))
+#
+#
+#
+#
+#
+#
+#
+#	v=rnd.normal(rnd.PRNGKey(1),(100,10))
+#	w=rnd.normal(rnd.PRNGKey(2),(100,10))
+#	A=v[:,:,None]*v[:,None,:]+w[:,:,None]*w[:,None,:]
+#
+#	print(jnp.sum(jnp.linalg.det(A)**2))
+#	print(jnp.sum(DETS(A)))
+#	print(jnp.sum(DETS(A,pivot=True)))
+#
+#
+#	v=rnd.normal(rnd.PRNGKey(1),(100,10))
+#	A=v[:,:,None]*v[:,None,:]
+#
+#	print(jnp.sum(jnp.linalg.det(A)**2))
+#	print(jnp.sum(DETS(A)))
+#	print(jnp.sum(DETS(A,pivot=True)))
+#
+#

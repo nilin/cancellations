@@ -95,22 +95,12 @@ def run(**kwargs):
 		
 	
 	
-	dashboard=cfg.dashboard
-	#dashboard.draw()
-
 	cfg.trackduration=True
 
 	
 	cfg.outpath='outputs/{}/target={}/{}/'.format(exname,activation,cfg.sessionID)
 	cfg.write(session.getval('sessioninfo'),cfg.outpath+'info.txt',mode='w')
 
-
-
-	#----------------------------------------------------------------------------------------------------
-
-#	display0=db.Display0(40,dashboard.width)
-#	dashboard.add_display(display0,0)
-#	dashboard.draw()
 
 
 	#----------------------------------------------------------------------------------------------------
@@ -126,8 +116,8 @@ def run(**kwargs):
 	Af=ASf.init_learner(*initparams,lossfns=[])
 
 
-	fig0=pt.singlefnplot_all_in_one(X_test,Af.as_static())
-	cfg.savefig('{}{}'.format(cfg.outpath,'Af0.pdf'),fig=fig0)
+	#fig0=pt.singlefnplot_all_in_one(X_test,Af.as_static())
+	#cfg.savefig('{}{}'.format(cfg.outpath,'Af0.pdf'),fig=fig0)
 
 
 	#----------------------------------------------------------------------------------------------------
@@ -151,8 +141,8 @@ def run(**kwargs):
 
 
 	processed=cfg.ActiveMemory()
-	display1=Display1(10,dashboard.width,processed)
-	dashboard.add_display(display1,40)
+	display1=Display1(10,cfg.dashboard.width,processed)
+	cfg.dashboard.add_display(display1,40,name='bars')
 	sc1=cfg.Scheduler(cfg.expsched(50,iterations1))
 	sc11=cfg.Scheduler(cfg.expsched(250,iterations1))
 	sc2=cfg.Scheduler(cfg.periodicsched(1000,iterations1))
@@ -163,39 +153,21 @@ def run(**kwargs):
 
 
 
-	fig0=pt.singlefnplot_all_in_one(X_test,Af.as_static())
-	cfg.savefig('{}{}'.format(cfg.outpath,'Af1.pdf'),fig=fig0)
+#	fig0=pt.singlefnplot_all_in_one(X_test,Af.as_static())
+#	cfg.savefig('{}{}'.format(cfg.outpath,'Af1.pdf'),fig=fig0)
 
 
 
 	for i in range(iterations1+1):
 
-		#processed.trackcurrent('minibatch number',i)
-#		if i%25==0:
-#
-#			lv=list(locals().items())
-#			for name,val in lv:
-#				cfg.dblog('')
-#				cfg.dblog(name)
-#				cfg.dblog(sys.getsizeof(val))
-#
-#			gv=list(globals().items())
-#			for name,val in gv:
-#				cfg.dblog('')
-#				cfg.dblog(name)
-#				cfg.dblog(sys.getsizeof(val))
-#			
-			
-		#dashboard.draw()
-
-
+		if cfg.mode=='break':
+			break
+		
 		try:
 			loss=trainer.step()
 			processed.remember('minibatch loss',loss)
 			processed.addcontext('minibatch number',i)
 			processed.remember('weightnorms',jnp.array([util.norm(l) for l in Af.weights[0]]))
-
-		#print(i)
 
 			if sc1.activate(i):
 				Af_s=Af.as_static()
@@ -217,18 +189,22 @@ def run(**kwargs):
 				plotexample(processed)
 
 			if sc2.activate(i):
-				plt.close('all')
-				Af_s=Af.as_static()
-				Y=Af_s(X)
+				pass
 
-				fig1=pt.singlefnplot_all_in_one(X_test,Af_s)#,Y=Y)
-				cfg.savefig('{}{} minibatches.pdf'.format(cfg.outpath,int(i)),fig=fig1)
+#				plt.close('all')
+#				Af_s=Af.as_static()
+#				Y=Af_s(X)
+
+#				fig1=pt.singlefnplot_all_in_one(X_test,Af_s)#,Y=Y)
+#				cfg.savefig('{}{} minibatches.pdf'.format(cfg.outpath,int(i)),fig=fig1)
 
 			if sc3.activate(i):
 				Af_s=Af.as_static()
+				Y=Af_s(X)
 				data={'X':X,'X_test':X_test,'Y':Y,'Y_test':Af_s(X_test),'sections':pt.CrossSections(X,Y,Af_s)}
 				cfg.save(data,cfg.outpath+'XY')	
 				del Af_s
+				cfg.log('saved data')
 
 					
 			
@@ -240,13 +216,9 @@ def run(**kwargs):
 
 
 
+	cfg.dashboard.del_display('bars')
+
 	cfg.log('saving')
-	#dashboard.draw()
-
-	
-#	fig1=pt.singlefnplot_all_in_one(X_test,Af.as_static())
-#	cfg.savefig('{}{}'.format(cfg.outpath,'Af1.pdf'),fig=fig1)
-
 
 	Af_s=Af.as_static()
 	Y=Af_s(X)

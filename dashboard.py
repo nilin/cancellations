@@ -51,8 +51,6 @@ class Display(cfg.Watched,cfg.Stopwatch):
 		lines=[line.splitlines()[0] if len(line)>0 else '' for line in lines]
 		lines=[line[:self.width] for line in lines]
 
-		#pdb.set_trace()
-
 		return [line+self.Emptystyle[-(self.width-len(line)):] for line in lines]
 
 	def getcroppedstr(self):
@@ -117,19 +115,28 @@ class StaticText(Display):
 class NumberDisplay(Display):
 	def __init__(self,width,memory,query,transform=None,avg_of=1,**kwargs):
 		super().__init__(1,width,memory,query,**kwargs)
-		self.hist=cfg.History()
 		self.query=query
 		self.transform=(lambda x:x) if transform==None else transform
-		self.avg_of=avg_of
 		self.trackedvars=[query]
 
-	def getlines(self):
+		if avg_of==1:
+			self.getlines=self.getlines0
+		else:
+			self.hist=cfg.History()
+			self.avg_of=avg_of
+			self.getlines=self.getlines1
+
+	def getlines0(self):
 		out=self.transform(self.memory.getcurrentval(self.query))
-#		self.hist.remember(out)
-#		#value_shown=self.hist.getcurrentval() #jnp.average(jnp.array(self.hist.gethist())[-self.avg_of:])
-#		value_shown=jnp.average(jnp.array(self.hist.gethist())[-self.avg_of:])
-#		return [self.formatnumber(value_shown)]
 		return [self.formatnumber(out)]
+
+	def getlines1(self):
+		out=self.transform(self.memory.getcurrentval(self.query))
+
+		self.hist.remember(out)
+		histvals=self.hist.gethist()
+		histvals=histvals[-min(self.avg_of,len(histvals)):]
+		return [self.formatnumber(sum(histvals)/len(histvals))]
 
 
 
@@ -153,34 +160,6 @@ class NumberPrint(NumberDisplay):
 		return self.msg.format(x)
 
 
-#----------------------------------------------------------------------------------------------------
-
-
-class Display0(StackedDisplay):
-	
-	def __init__(self,height,width):
-		super().__init__(height,width,session)
-
-		#self.addstatictext('session info')
-		#self.addline()
-		self.addstatictext(self.memory.getcurrentval('sessioninfo'))
-		self.addspace(2)
-
-		self.addstatictext('log')
-		self.addline()
-		self.addhistdisplay(10,'log')
-		self.addspace(2)
-
-		self.addstatictext('prints (cfg.dbprint(msg))')
-		self.addline()
-		self.addhistdisplay(10,'dbprintbuffer')
-
-
-
-
-
-#----------------------------------------------------------------------------------------------------
-
 
 
 
@@ -194,34 +173,61 @@ class AbstractDashboard:
 	def add_display(self,display,y,x=0,name=None):
 		if name==None: name=self.defaultnames.popleft()
 		display.addlistener(self)
-		self.displays[name]=(display,y,x)
-		
+		self.displays[name]=self.makeconcretedisplay(display,y,x)
 		display.memory.addlistener(self)
+		return name
+
+	def del_display(self,name):
+		del self.displays[name]
 
 	def poke(self,signal):
-
-		for name,(display,y,x) in self.displays.items():
+		for name,concretedisplay in self.displays.items():
+			display=self.getdisplay(concretedisplay)
 			if signal==None or signal in display.trackedvars:
 
 				if display.tick()>.01:
-					self.draw(display,y,x)
+					self.draw(concretedisplay)
+
+	def draw_all(self):
+		for name,concretedisplay in self.displays.items():
+			self.draw(concretedisplay)
 
 
 class Dashboard(AbstractDashboard):
 
-	def draw(self,display,y,x):
+	def makeconcretedisplay(self,display,y,x):
+		return (display,y,x)
+
+	def getdisplay(self,concretedisplay):
+		return concretedisplay[0]
+
+	def draw(self,concretedisplay):
+		display,y,x=concretedisplay
+
 		lines=display.getcroppedlines()
 		for i,line in enumerate(lines):
 			print_at(y+i+1,x,line[:display.width])
 
 
-	def draw_all(self):
-		
-		for name,(display,y,x) in self.displays.items():
-			self.draw(display,y,x)
 		
 
+def get3displays(width):
+		#width=os.get_terminal_size()[0]-1
 
+	infodisplay=StackedDisplay(25,width,session)
+	infodisplay.addhistdisplay(25,'sessioninfo')
+
+	logdisplay=StackedDisplay(10,round(width*.4),session)
+	logdisplay.addstatictext('log')
+	logdisplay.addline()
+	logdisplay.addhistdisplay(10,'log')
+
+	dbprintdisplay=StackedDisplay(10,round(width*.4),session)
+	dbprintdisplay.addstatictext('prints (cfg.dbprint(msg))')
+	dbprintdisplay.addline()
+	dbprintdisplay.addhistdisplay(10,'dbprintbuffer')
+
+	return infodisplay,logdisplay,dbprintdisplay
 
 class Dashboard0(Dashboard):
 
@@ -229,25 +235,12 @@ class Dashboard0(Dashboard):
 		super().__init__()
 		clear()
 		
-		width=os.get_terminal_size()[0]-1
-		self.width=width
-
-		infodisplay=StackedDisplay(25,width,session)
-		infodisplay.addhistdisplay(25,'sessioninfo')
-
-		logdisplay=StackedDisplay(10,round(width*.4),session)
-		logdisplay.addstatictext('log')
-		logdisplay.addline()
-		logdisplay.addhistdisplay(10,'log')
-
-		dbprintdisplay=StackedDisplay(10,round(width*.4),session)
-		dbprintdisplay.addstatictext('prints (cfg.dbprint(msg))')
-		dbprintdisplay.addline()
-		dbprintdisplay.addhistdisplay(10,'dbprintbuffer')
+		self.width=os.get_terminal_size()[0]-1
+		infodisplay,logdisplay,dbprintdisplay=get3displays(self.width)
 
 		self.add_display(infodisplay,0,0)
 		self.add_display(logdisplay,25,0)
-		self.add_display(dbprintdisplay,25,width//2)
+		self.add_display(dbprintdisplay,25,self.width//2)
 
 		self.draw_all()
 

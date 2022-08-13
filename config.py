@@ -113,7 +113,7 @@ class Memory(BasicMemory,Timer):
 		Timer.__init__(self)
 		self.memID=int(rnd.randint(nextkey(),minval=0,maxval=10**9,shape=(1,)))
 		self.context=dict()
-		self.listeners=[]
+		self.listenernames=[]
 
 	def addcontext(self,name,val):
 		self.context[name]=val
@@ -128,11 +128,13 @@ class Memory(BasicMemory,Timer):
 		self.pokelisteners(name)
 
 	def addlistener(self,listener):
-		self.listeners.append(listener)	
+		lname=int(nextkey()[0])
+		eventlisteners[lname]=listener
+		self.listenernames.append(lname)
 
 	def pokelisteners(self,*args):
-		for l in self.listeners:
-			l.poke(*args)
+		for ln in self.listenernames:
+			eventlisteners[ln].poke(*args)
 
 
 class ActiveMemory(Memory):
@@ -508,7 +510,7 @@ cmdparams,cmdredefs=parse_cmdln_args()
 
 
 
-
+mode='run'
 
 
 
