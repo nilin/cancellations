@@ -116,6 +116,7 @@ class QueriedText(Display):
 	def __init__(self,height,width,memory,query):
 		super().__init__(height,width,memory)
 		self.query=query
+		self.trackedvars=[query]
 
 	def getlines(self):
 		try:
@@ -179,15 +180,18 @@ class NumberPrint(NumberDisplay):
 class AbstractDashboard:
 
 	def __init__(self):
+		clear()
 		self.displays=dict()
 		self.defaultnames=deque(range(100))
-		clear()
 
 	def add_display(self,display,y,x=0,name=None):
 		if name==None: name=self.defaultnames.popleft()
 		display.addlistener(self)
-		self.displays[name]=self.makeconcretedisplay(display,y,x)
+		cd=self.makeconcretedisplay(display,y,x)
+		self.displays[name]=cd
 		display.memory.addlistener(self)
+
+		self.draw(cd)
 		return name
 
 	def del_display(self,name):
@@ -243,11 +247,27 @@ def get3displays(width):
 
 	return infodisplay,logdisplay,dbprintdisplay
 
+def get4displays(width):
+	infodisplay=QueriedText(25,round(width*.4),session,'sessioninfo')
+	statusdisplay=QueriedText(25,round(width*.4),session,'statusinfo')
+
+	logdisplay=StackedDisplay(10,round(width*.4),session)
+	logdisplay.addstatictext('log')
+	logdisplay.addline()
+	logdisplay.addhistdisplay(10,'log')
+
+	dbprintdisplay=StackedDisplay(10,round(width*.4),session)
+	dbprintdisplay.addstatictext('prints (cfg.dbprint(msg))')
+	dbprintdisplay.addline()
+	dbprintdisplay.addhistdisplay(10,'dbprintbuffer')
+
+	return infodisplay,statusdisplay,logdisplay,dbprintdisplay
+
 class Dashboard0(Dashboard):
 
 	def __init__(self):
-		super().__init__()
 		clear()
+		super().__init__()
 		
 		self.width=os.get_terminal_size()[0]-1
 		infodisplay,logdisplay,dbprintdisplay=get3displays(self.width)

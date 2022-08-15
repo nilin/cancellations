@@ -286,46 +286,6 @@ class Scheduler(Timer):
 		return act
 
 		
-#	def filter(self,times,*valueshists):
-#		timeticks=[times[0]]
-#		filteredhists=[[hist[0]] for hist in valueshists]
-#		try:
-#			for t,*values in list(zip(times,*valueshists))[1:]:
-#				if self.dispatch(t):
-#					timeticks.append(t)
-#					for val,hist in zip(values,filteredhists):
-#						hist.append(val)
-#		except Timeup:
-#			pass
-#		return (timeticks,*filteredhists)
-#
-#
-#		#return (timeticks,)+filteredhists
-#
-#
-#def filterschedule(sched,times,*valueshist):
-#	sc=Scheduler(sched)
-#	out=sc.filter(times,*valueshist)	
-#	del sc
-#	return out
-#
-#
-#def filterschedule_w_ordinals(sched,times,*valshist):
-#	_valshist=(list(range(len(times))),)+tuple(valshist)
-#	return filterschedule(times,*_valshist)
-#	
-#
-#def times_to_ordinals(allts,ticks,*vals):
-#	ordn=0
-#	ts=deque(allts)
-#	ordns=[]
-#
-#	for tick in ticks:
-#		while len(ts)>0 and ts[0]<tick:
-#			ts.popleft()
-#			ordn=ordn+1
-#		ordns.append(ordn)
-#	return (ordns,*vals)
 
 
 
@@ -519,8 +479,11 @@ mode='run'
 session=Memory()
 
 
+def donothing(*x,**y):
+	return None
 
-
+poke=donothing
+on_pause=donothing
 
 
 

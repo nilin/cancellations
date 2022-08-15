@@ -140,6 +140,7 @@ def run(**kwargs):
 	trainer=learning.Trainer(Af,X_rademacher,Y_rademacher,lossgrad=lossgrad2,weight_decay=weight_decay,minibatchsize=minibatchsize)
 
 
+
 	processed=cfg.ActiveMemory()
 	display1=Display1(10,cfg.dashboard.width,processed)
 	cfg.dashboard.add_display(display1,40,name='bars')
@@ -157,13 +158,15 @@ def run(**kwargs):
 #	cfg.savefig('{}{}'.format(cfg.outpath,'Af1.pdf'),fig=fig0)
 
 
-
 	for i in range(iterations1+1):
+
+		cfg.poke()
 
 		if cfg.mode=='break':
 			break
 		
 		try:
+
 			loss=trainer.step()
 			processed.remember('minibatch loss',loss)
 			processed.addcontext('minibatch number',i)

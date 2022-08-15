@@ -131,7 +131,7 @@ def run():
 	sessioninfo='{}\nsessionID: {}\n\n{}\n\n{}\n\n{}'.format(explanation,cfg.sessionID,*[cfg.formatvars([(k,allparams[k]) for k in varnames],separator='\n',ignore=ignore) for varnames in varnames_])
 	session.remember('sessioninfo',sessioninfo)
 
-	cfg.dashboard.draw_all()
+	#cfg.dashboard.draw_all()
 
 
 	outpath='outputs/{}/target={}/{}/'.format(exname,params1['targetactivation'],cfg.sessionID)

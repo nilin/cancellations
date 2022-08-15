@@ -122,6 +122,8 @@ def run(**kwargs):
 
 	for i in range(iterations2+1):
 
+		cfg.poke()
+
 		if cfg.mode=='break':
 			break
 		
