@@ -103,9 +103,9 @@ def gen_backflowdets(ac):
 	
 
 
-#==============
-# Example: FN
-#==============
+#===================
+# Example: ferminet
+#===================
 
 def gen_FN(ac='tanh'):
 	return util.recompose(bf.gen_FN_backflow(ac),detsum)

@@ -43,9 +43,9 @@ def initweights_backflowdets(n,d,widths):
 	return bf.initweights_backflow(ds)+[util.initweights((k,))]
 
 
-#=============
-# example: FN
-#=============
+#==================
+# example: ferminet
+#==================
 
 def initweights_FN(n,d,widths):
 	ds0,ds1,k=widths

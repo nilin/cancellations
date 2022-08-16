@@ -73,7 +73,7 @@ def gen_backflow(ac):
 
 ####################
 #
-# Example: FN
+# Example: ferminet
 #
 ####################
 		
