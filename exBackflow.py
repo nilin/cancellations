@@ -62,7 +62,7 @@ cfg.params={
 'minibatchsize':50
 }
 
-instructions='instructions:\n\npython exBackflow.py (b/f) \n\nparameters represent:\nbackflow+dets / ferminet\n'
+instructions='instructions:\n\npython exBackflow.py (b/f) \n\nparameters represent:\nb=backflow+dets / f=ferminet\n'
 
 
 def adjustparams():
