@@ -79,10 +79,12 @@ def gen_lossgrad_Af(n,f,lossfn):
 """
 # F:x->(f1(x),..,fn(x))		s,d |-> s,n
 """
-def Slater(F):								
+def Slater(fs):								
+	Fs=jax.vmap(fs,in_axes=(None,1),out_axes=-1)
+
 	@jax.jit
 	def AF(params,X):
-		FX=jax.vmap(F,in_axes=(None,1),out_axes=-1)(params,X)	# FX:	s,n (basisfunction),n (particle)
+		FX=Fs(params,X)			# FX:	s,n (basisfunction),n (particle)
 		return jnp.linalg.det(FX)
 	return AF
 
@@ -155,7 +157,6 @@ def gen_SlaterSum(n,phi):
 #=======================================================================================================
 ## test
 #=======================================================================================================
-
 
 def test_AS(Ws,bs,X):
 

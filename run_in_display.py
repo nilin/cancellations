@@ -31,8 +31,11 @@ class CDashboard(db.AbstractDashboard):
 
 		window.refresh()
 
-#----------------------------------------------------------------------------------------------------
-def getwrapped(run,on_pause):
+paused=False
+
+instr='\n\nPress l (lowercase L) to generate learning plots.\nPress f to generate functions plot.\nPress q to quit.'
+
+def getwrapped(run,process_input=cfg.donothing):
 
 	def wrapped(screen):
 
@@ -54,18 +57,23 @@ def getwrapped(run,on_pause):
 
 
 
-
 		def setrunning():
+			global paused
+			paused=False
 			cs.flushinp()
-			screen.nodelay(True)
+			#screen.nodelay(True)
 			statuswindow.nodelay(True)
-			session.trackcurrent('statusinfo','running, press p to pause or q to quit')
+			session.trackcurrent('statusinfo','running, press p to pause'+instr)
 
 		def setpaused():
 			cs.flushinp()
-			screen.nodelay(False)
+			global paused
+			paused=True
+			#screen.nodelay(False)
 			statuswindow.nodelay(False)
-			on_pause()
+			session.trackcurrent('statusinfo','paused, press c to continue'+instr)
+			while paused:
+				got_input(statuswindow.getch())
 
 		def poke():
 			got_input(statuswindow.getch())
@@ -73,12 +81,11 @@ def getwrapped(run,on_pause):
 		def got_input(c):
 			if c==112:
 				setpaused()
-				while True:
-					if statuswindow.getch()==99:
-						setrunning()
-						break
+			if c==99:
+				setrunning()
 			if c==113:
 				quit()
+			process_input(c)
 
 		cfg.poke=poke
 		setrunning()
@@ -86,11 +93,7 @@ def getwrapped(run,on_pause):
 	return wrapped
 
 
-def on_pause():
-	session.trackcurrent('statusinfo','paused, press c to continue')
-
-
-def RID(run,on_pause=on_pause):
-	wrapped=getwrapped(run,on_pause)
+def RID(run,*x,**y):
+	wrapped=getwrapped(run,*x,**y)
 	cs.wrapper(wrapped)
 

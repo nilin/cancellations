@@ -95,7 +95,10 @@ def init_target(targettype,*args):
 		_target_=init_learner(targettype,*args)
 		return _target_.as_static(),_target_
 	else:
-		return {'HermiteSlater':examplefunctions.HermiteSlater}[targettype](args[0],'H',1/8)
+		if targettype=='HermiteSlater':
+			return examplefunctions.HermiteSlater(args[0],'H',1/8)
+		if targettype=='GaussianSlater1D':
+			return examplefunctions.GaussianSlater1D(args[0])
 		
 
 

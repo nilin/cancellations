@@ -147,9 +147,9 @@ class NumberDisplay(Display):
 	def getlines1(self):
 		out=self.transform(self.memory.getcurrentval(self.query))
 
-		self.hist.remember(out)
+		self.hist.remember(out,membound=self.avg_of)
 		histvals=self.hist.gethist()
-		histvals=histvals[-min(self.avg_of,len(histvals)):]
+		#histvals=histvals[-min(self.avg_of,len(histvals)):]
 		return [self.formatnumber(sum(histvals)/len(histvals))]
 
 
@@ -202,7 +202,8 @@ class AbstractDashboard:
 			display=self.getdisplay(concretedisplay)
 			if signal==None or signal in display.trackedvars:
 
-				if display.tick()>.01:
+				self.draw(concretedisplay)
+				if display.tick_after(.01):
 					self.draw(concretedisplay)
 
 	def draw_all(self):
@@ -270,9 +271,10 @@ class Dashboard0(Dashboard):
 		super().__init__()
 		
 		self.width=os.get_terminal_size()[0]-1
-		infodisplay,logdisplay,dbprintdisplay=get3displays(self.width)
+		infodisplay,statusdisplay,logdisplay,dbprintdisplay=get4displays(self.width)
 
 		self.add_display(infodisplay,0,0)
+		self.add_display(statusdisplay,0,self.width//2)
 		self.add_display(logdisplay,25,0)
 		self.add_display(dbprintdisplay,25,self.width//2)
 

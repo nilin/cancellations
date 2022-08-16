@@ -164,6 +164,7 @@ class Learner:
 class AS_Learner(Learner):
 	def __init__(self,*args,NS=None,weights=None,**kwargs):
 		super().__init__(*args,weights=weights,**kwargs)
+		self.AS=self.f
 		self.NS=NS
 
 	def get_NS(self):

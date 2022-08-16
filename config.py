@@ -86,9 +86,6 @@ class BasicMemory:
 	def log(self,msg):
 		self.remember('log',msg)
 
-	#def histref(self,name):
-	#	return self.hists[name]	
-
 	def gethist(self,name,*metaparams):
 		return self.hists[name].gethist(*metaparams) #if name in self.hists else ([],)+tuple([[] for _ in metaparams])
 
@@ -122,9 +119,13 @@ class Memory(BasicMemory,Timer):
 	def getcontext(self):
 		return self.context|{'memory {} time'.format(self.memID):self.time()}
 
-	def remember(self,name,val,moremetadata=None,**kwargs):
-		if moremetadata==None: moremetadata=dict()
-		super().remember(name,val,self.getcontext()|moremetadata,**kwargs)
+	def gethistbytime(self,name):
+		timename='memory {} time'.format(self.memID)
+		out=self.gethist(name,timename)
+		return out
+
+	def remember(self,name,val,**context):
+		super().remember(name,val,self.getcontext()|context)
 		self.pokelisteners(name)
 
 	def addlistener(self,listener):
@@ -225,10 +226,20 @@ class Stopwatch:
 	def __init__(self):
 		self.t=time.perf_counter()-10**6
 
+	def elapsed(self):
+		return time.perf_counter()-t0
+
 	def tick(self):
 		t0=self.t
 		self.t=time.perf_counter()
 		return self.t-t0
+
+	def tick_after(self,dt):
+		if self.elapsed()>dt:
+			self.tick()
+			return True
+		else:
+			return False
 
 	def dbtick(self,msg=''):
 		dbprint('{} {}'.format(msg,self.tick()))
@@ -256,6 +267,20 @@ def expsched(step1,timebound,doublingtime=4):
 	s=list(np.arange(0,s_[0] if len(s_)>0 else timebound,step1))+s_
 	return s+[timebound] if s[-1]<timebound else s
 	
+
+def sparsesched(timebound,start=500):
+	sched=[]
+	t=start
+	while t<timebound:
+		sched.append(t)
+		if str(t)[0]=='1':
+			t=t*2.5
+		else:
+			t=t*2
+	sched.append(timebound)
+	return sched
+
+
 
 
 def periodicsched(step,timebound):
