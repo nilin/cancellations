@@ -7,21 +7,9 @@ import numpy as np
 import jax.random as rnd
 import pdb
 import config as cfg
+from numpy.testing import assert_allclose
 
-
-
-def assertequal(y,z,blockdim=0,eps=.001):
-	#cfg.log('asserting equality')
-	loss=util.relloss(y,z)
-	#cfg.log(loss)
-	try:
-		assert(loss<eps)
-		#cfg.log('yes, they agree')
-	except:
-		cfg.log('error x=/=y')
-		cfg.log(jnp.stack([y,z],axis=-blockdim-1))
-		raise ValueError
-
+jax.config.update("jax_enable_x64", True)
 
 
 def naiveAS(f,X):
@@ -41,18 +29,39 @@ def verify_antisymmetrization(Af,f,X):
 	assertequal(Y,Z)
 
 
-def verify_antisymmetric(AS,n,d,samples=5,nperms=5):
-	X=rnd.normal(rnd.PRNGKey(0),(10,n,d))
+def verify_antisymmetric(f,n,d,samples=25,nperms=25,fixparams=None):
 
-	Y=AS(X)
-	for _ in range(10):
-		p=np.random.permutation(n)
+	if fixparams!=None:
+		f=util.fixparams(f,fixparams)
 
-		PX=np.array(X)[:,p,:]
-		assertequal(AS(PX),Y*sign(p))
-	cfg.log('antisymmetry test passed')
+	X=rnd.normal(rnd.PRNGKey(0),(samples,n,d))
+	perms=[np.random.permutation(n) for _ in range(nperms)]
+	signs=[sign(p) for p in perms]
+		
+	Perms=[perm_as_function(p) for p in perms]
+	should_be_equal=[s*f(P(X)) for s,P in zip(signs,Perms)]
+	assert_ALLclose(should_be_equal)
 
 
+def verify_equivariant(F,n,d,samples=25,nperms=25,fixparams=None):
+
+	if fixparams!=None:
+		F=util.fixparams(F,fixparams)
+
+	X=rnd.normal(rnd.PRNGKey(0),(samples,n,d))
+	perms=[np.random.permutation(n) for _ in range(nperms)]
+	invperms=[inv(p) for p in perms]
+
+	Perms=[perm_as_function(p) for p in perms]
+	InvPerms=[perm_as_function(p) for p in invperms]
+
+	should_be_equal=[Q(F(P(X))) for P,Q in zip(Perms,InvPerms)]
+	assert_ALLclose(should_be_equal)
+
+
+def assert_ALLclose(arrays,*args,**kw):
+	Array=jnp.stack(arrays,axis=0)
+	assert_allclose(jnp.min(Array,axis=0),jnp.max(Array,axis=0),*args,**kw)
 
 
 
@@ -66,4 +75,22 @@ def sign(p):
 	inversions=jnp.sum(jnp.triu(pi_gtrthan_pj))
 	return 1-2*(inversions%2)
 	
+def inv(p):
+	(n,)=p.shape
+	q=np.zeros((n,))
+	for i,j in enumerate(p):
+		q[j]=i
+	return q
+
+@jax.jit
+def perm_as_matrix(p):
+	(n,)=p.shape
+	P=(p[:,None]-jnp.arange(n)[None,:])==0
+	return P
+
+def perm_as_function(p):
+	P=perm_as_matrix(p)
+	def perm(X):
+		return util.apply_on_n(P,X)
+	return perm
 

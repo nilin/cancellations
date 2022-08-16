@@ -19,21 +19,52 @@ import pdb
 # NN 
 #=======================================================================================================
 
-
-
-
-def gen_NN_wideoutput(ac):
+def gen_NN_layer(ac):
 	activation=activations[ac]
 
 	@jax.jit
+	def f(Wb,X):
+		W,b=Wb[0],Wb[1]
+		return activation(jnp.inner(X,W)+b[None,:])
+	return f
+		
+
+def gen_NN_wideoutput(ac):
+	L=gen_NN_layer(ac)
+
+	@jax.jit
 	def NN(params,X):
-		Ws,bs=params
-		for W,b in zip(Ws[:-1],bs):
-			X=jnp.inner(X,W)+b[None,:]
-			X=activation(X)
-		return jnp.inner(X,Ws[-1])
+		for Wb in params:
+			X=L(Wb,X)
+		return X
 
 	return NN
+#
+#def gen_NN_wideoutput(ac):
+#	L=gen_NN_layer(ac)
+#
+#	@jax.jit
+#	def NN(params,X):
+#		for Wb in params[:-1]:
+#			X=L(Wb,X)
+#		return jnp.inner(X,params[-1])
+#
+#	return NN
+#
+#
+#def gen_NN_wideoutput(ac):
+#	activation=activations[ac]
+#
+#	@jax.jit
+#	def NN(params,X):
+#		Ws,bs=params
+#		for W,b in zip(Ws[:-1],bs):
+#			X=jnp.inner(X,W)+b[None,:]
+#			X=activation(X)
+#		return jnp.inner(X,Ws[-1])
+#
+#	return NN
+#
 
 
 def gen_NN(activation):
@@ -143,7 +174,6 @@ def gen_lossgrad(f,lossfn=None):
 #----------------------------------------------------------------------------------------------------
 
 
-
 """
 # computes widths[-1] functions
 """
@@ -155,10 +185,24 @@ def initweights_NN(widths):
 	k2,*bkeys=rnd.split(key,100)
 
 	Ws=[rnd.normal(key,(m2,m1))/math.sqrt(m1) for m1,m2,key in zip(widths[:-1],widths[1:],Wkeys)]
-	bs=[rnd.normal(key,(m,))*cfg.biasinitsize for m,key in zip(widths[1:-1],bkeys)]
+	bs=[rnd.normal(key,(m,))*cfg.biasinitsize for m,key in zip(widths[1:],bkeys)]
 
-	return [Ws,bs]
+	return list(zip(Ws,bs))
 
+
+"""
+#def initweights_NN(widths):
+#
+#	key=cfg.nextkey()
+#
+#	k1,*Wkeys=rnd.split(key,100)
+#	k2,*bkeys=rnd.split(key,100)
+#
+#	Ws=[rnd.normal(key,(m2,m1))/math.sqrt(m1) for m1,m2,key in zip(widths[:-1],widths[1:],Wkeys)]
+#	bs=[rnd.normal(key,(m,))*cfg.biasinitsize for m,key in zip(widths[1:-1],bkeys)]
+#
+#	return list(zip(Ws,bs))+[Ws[-1]]
+"""
 
 
 #----------------------------------------------------------------------------------------------------

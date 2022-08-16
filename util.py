@@ -79,9 +79,6 @@ def sqlossindividual(Y1,Y2):
 	Y1,Y2=[jnp.squeeze(_) for _ in (Y1,Y2)]
 	return jnp.square(Y1-Y2)
 
-#@jax.jit
-#def sqloss(Y1,Y2):
-#	return jnp.average(sqlossindividual(Y1,Y2))
 
 @jax.jit
 def norm(Y):
@@ -249,7 +246,7 @@ def keyfromstr(s):
 
 
 def nestedstructure(T,fn):
-	if type(T)==list:
+	if type(T)==list or type(T)==tuple:
 		return [nestedstructure(e,fn) for e in T]
 	else:
 		return fn(T)
@@ -265,8 +262,12 @@ def dimlist(T):
 #	else:
 #		return l.shape
 	
-def printliststructure(l):
+def shapestr(l):
 	return str(dimlist(l))
+
+
+def printshape(l):
+	print(shapestr(l))
 
 
 def scalarfunction(f):
@@ -292,3 +293,33 @@ def combinelossgradfns(lossgradfns,nums_inputs,coefficients):
 #def deltasquared(w):
 #	sqdists=jnp.sum(jnp.square(w[:,None,:]-w[None,:,:]),axis=-1)
 #	return 1/jnp.max(jnp.triu(1/sqdists))
+
+def initweights(shape):
+	return rnd.normal(cfg.nextkey(),shape)/jnp.sqrt(shape[-1])
+
+
+
+
+
+
+def compose(functions):
+
+	def composed(params,X):
+		for f,param in zip(functions,params):
+			X=f(param,X)
+		return X
+
+	return jax.jit(composed)
+
+	
+def recompose(ffff,h):
+
+	def hffff(params,X):
+		Y=ffff(params[:-1],X)
+		return h(params[-1],Y)
+
+	return hffff
+
+
+
+

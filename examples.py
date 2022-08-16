@@ -38,16 +38,17 @@ from config import session
 
 
 
-def adjustparams():
+def adjustparams(**priorityparams):
 
+	cfg.params=priorityparams|cfg.params
 	params=cfg.params
 	explanation=cfg.explanation
 	params.update(cfg.cmdredefs)
 
-	params['learnerwidths'][0]=params['n']*params['d']
+	#params['learnerwidths'][0]=params['n']*params['d']
 
 	info='\n'.join(['{}={}'.format(k,v) for k,v in params.items()])
-	sessioninfo='{}\nsessionID: {}\n{}'.format(explanation,cfg.sessionID,info)
+	sessioninfo='{}\nsessionID: {}\n\n{}'.format(explanation,cfg.sessionID,info)
 	session.remember('sessioninfo',sessioninfo)
 
 	cfg.trackduration=True

@@ -31,13 +31,17 @@ from jax.lax import collapse
 import pdb
 import AS_HEAVY
 import multivariate as mv
-#from dets import DETS
+import backflow as bf
 
 
 
 
 #=======================================================================================================
+#
+# explicit AS
+#
 # basic AS (n=1,..,8)
+#
 #=======================================================================================================
 
 def gen_Af_simple(n,f):
@@ -70,10 +74,48 @@ def gen_lossgrad_Af(n,f,lossfn):
 
 
 
+#=======================================================================================================
+#
+# backflow+det
+#
+#=======================================================================================================
+
+"""
+# dimensions
+# a : k
+# Y : samples,n,kn
+"""
+
+@jax.jit
+def detsum(a,Y):
+	n=Y.shape[-2]
+	
+	out=0
+	for i,c in enumerate(a):
+		out=out+c*jnp.linalg.det(Y[:,:,i*n:(i+1)*n])
+
+	return out
+
+
+
+def gen_backflowdets(ac):
+	return util.recompose(bf.gen_backflow(ac),detsum)
+	
+
+
+#==============
+# Example: FN
+#==============
+
+def gen_FN(ac='tanh'):
+	return util.recompose(bf.gen_FN_backflow(ac),detsum)
+
+
+
 
 
 #=======================================================================================================
-# special case: tensor product -> Slater
+# Slater
 #=======================================================================================================
 
 """
@@ -89,9 +131,6 @@ def Slater(fs):
 	return AF
 
 
-
-
-
 """
 m*n separate functions with distinct weights
 """
@@ -102,55 +141,6 @@ def gen_Slater(n,phi):
 		matrices=jnp.stack([jnp.stack([phi(weights[i],X[:,j,:]) for j in range(n)],axis=-1) for i in range(n)],axis=-1)
 		return jnp.linalg.det(matrices)
 	return Af
-
-
-def gen_SlaterSum(n,phi):
-	return mv.sum_f(gen_Slater(n,phi))	
-
-
-
-
-"""
-#
-#def gen_SlaterSum(n,m,phi):
-#	return jax.jit(mv.addf(*[phi]*m))
-#
-#
-#def gen_SlaterSum_singlePhi(n,phi):
-#
-#	@jax.jit
-#	def Af(weights,X):
-#
-#		s_mn_n=jnp.stack([phi(weights,X[:,j,:]) for j in range(n)],axis=-1)
-#
-#		s,mn,_=s_mn_n.shape; m=mn//n
-#		smnn=jnp.reshape(s_mn_n,(s,m,n,n))
-#
-#		return jnp.sum(jnp.linalg.det(smnn),axis=1)
-#
-#	return Af
-#
-#
-## phi_i(x) of k'th Slater = phi(weights[i],x)[k]
-#
-#def gen_SlaterSum_nPhis(n,phi):
-#
-#	@jax.jit
-#	def Af(weights,X):
-#
-#		nnsm=jnp.array([[phi(weights[i],X[:,j,:]) for j in range(n)] for i in range(n)])
-#		for _ in range(2):
-#			nnsm=jnp.moveaxis(nnsm,0,-1)
-#		return jnp.sum(jnp.linalg.det(nnsm),axis=1)
-#
-#	return Af
-"""
-
-
-
-
-			
-
 
 
 

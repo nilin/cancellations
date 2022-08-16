@@ -50,8 +50,7 @@ cfg.explanation='Example '+cfg.exname
 cfg.params={
 'n':5,
 'd':1,
-'targettype':'HermiteSlater',
-'learnerwidths':[None,250,1],
+'learnerwidths':[5,250,1],
 'weight_decay':.1,
 'lossfn':'SI_loss',
 'samples_train':100000,
