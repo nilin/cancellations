@@ -42,7 +42,7 @@ import examples
 
 
 
-cfg.exname='NN2d'
+cfg.exname='hSlatertarget2d'
 
 cfg.explanation='Example '+cfg.exname
 
@@ -50,14 +50,12 @@ cfg.params={
 'n':5,
 'd':2,
 'learnertype':'AS_NN',
-'learnerwidths':[10,100,100,1],
+'learnerwidths':[10,25,100,1],
 #'learneractivation':'tanh',
-'targettype':'AS_NN',
-'targetwidths':[10,20,20,1],
-'targetactivation':'tanh',
+'targettype':'hermiteSlater',
 'weight_decay':0,
 'lossfn':'SI_loss',
-'samples_train':25000,
+'samples_train':50000,
 'samples_test':1000,
 'iterations':100000,
 'minibatchsize':50
@@ -69,7 +67,7 @@ instructions='instructions:\n\npython exNN2d.py (t/r) \n\nparameters represent:\
 def adjustparams():
 	try:
 		pass
-		learneractivation={'t':'tanh','r':'ReLU'}[cfg.selectone({'t','r'},cfg.cmdparams)]
+		learneractivation={'t':'tanh','r':'ReLU','s':'softplus'}[cfg.selectone({'t','r','s'},cfg.cmdparams)]
 	except:
 		db.clear()
 		print(instructions)
@@ -94,7 +92,7 @@ def run():
 	X=rnd.uniform(cfg.nextkey(),(samples_train,n,d),minval=-1,maxval=1)
 	X_test=rnd.uniform(cfg.nextkey(),(samples_test,n,d),minval=-1,maxval=1)
 
-	target=functions.DynFunc(ftype=targettype,n=n,d=d,widths=targetwidths,activation=targetactivation)
+	target=functions.StaticFunc(ftype=targettype,n=n,d=d)
 	learner=functions.DynFunc(ftype=learnertype,n=n,d=d,widths=learnerwidths,activation=learneractivation)
 
 	cfg.logcurrenttask('preparing training data')
@@ -130,7 +128,6 @@ def run():
 	
 
 class Display2(db.StackedDisplay):
-
 	def __init__(self,height,width,memory):
 		super().__init__(height,width,memory)
 		self.addnumberprint('minibatch loss',msg='training loss {:.3}')
@@ -143,8 +140,8 @@ class Display2(db.StackedDisplay):
 def lplot():
 	examples.processandplot(unprocessed,functions.ParameterizedFunc(learner),X_test,Y_test)
 def fplot():
-	figtitle='target activation {}, learner activation {}'.format(targetactivation,learneractivation)
-	figpath='{}target={} learner={} {} minibatches'.format(cfg.outpath,targetactivation,learneractivation,int(unprocessed.getval('minibatchnumber')))
+	figtitle='learner activation {}'.format(learneractivation)
+	figpath='{}{} {} minibatches'.format(cfg.outpath,learneractivation,int(unprocessed.getval('minibatchnumber')))
 	examples.plotfunctions(sections,learner.eval,figtitle,figpath)
 
 def process_input(c):

@@ -51,6 +51,12 @@ def log_SI_loss(Y,Y_target):
 
 
 
+@jax.jit
+def prod(L):
+	out=1
+	for array in L:
+		out*=array
+	return out
 
 
 def swap(x,y):

@@ -39,32 +39,6 @@ def gen_NN_wideoutput(ac):
 		return X
 
 	return NN
-#
-#def gen_NN_wideoutput(ac):
-#	L=gen_NN_layer(ac)
-#
-#	@jax.jit
-#	def NN(params,X):
-#		for Wb in params[:-1]:
-#			X=L(Wb,X)
-#		return jnp.inner(X,params[-1])
-#
-#	return NN
-#
-#
-#def gen_NN_wideoutput(ac):
-#	activation=activations[ac]
-#
-#	@jax.jit
-#	def NN(params,X):
-#		Ws,bs=params
-#		for W,b in zip(Ws[:-1],bs):
-#			X=jnp.inner(X,W)+b[None,:]
-#			X=activation(X)
-#		return jnp.inner(X,Ws[-1])
-#
-#	return NN
-#
 
 
 def gen_NN(activation):
@@ -103,46 +77,6 @@ def gen_NN_NS(activation):
 
 	return NN_NS
 
-
-
-
-#----------------------------------------------------------------------------------------------------
-# polynomials
-#----------------------------------------------------------------------------------------------------
-
-
-
-def genmonomialfunctions(n):
-
-	@jax.jit
-	def F(x):
-		x=jnp.squeeze(x)
-		xk=jnp.ones_like(x)
-		out=[]
-		for k in range(n+1):
-			out.append(xk)	
-			xk=x*xk
-		return jnp.stack(out,axis=-1)
-	return F
-		
-
-def genericpolynomialfunctions(degree):		#coefficients dimensions: function,degree
-	monos=genmonomialfunctions(degree)
-
-	@jax.jit
-	def P(coefficients,x):
-		return jnp.inner(monos(x),coefficients)
-	return P
-
-def genpolynomialfunctions(coefficients):	#coefficients dimensions: function,degree
-	degree=coefficients.shape[1]-1
-	P_=genericpolynomialfunctions(degree)
-
-	@jax.jit
-	def P(x):
-		return P_(coefficients,x)
-
-	return P
 
 
 
@@ -190,19 +124,6 @@ def initweights_NN(widths):
 	return list(zip(Ws,bs))
 
 
-"""
-#def initweights_NN(widths):
-#
-#	key=cfg.nextkey()
-#
-#	k1,*Wkeys=rnd.split(key,100)
-#	k2,*bkeys=rnd.split(key,100)
-#
-#	Ws=[rnd.normal(key,(m2,m1))/math.sqrt(m1) for m1,m2,key in zip(widths[:-1],widths[1:],Wkeys)]
-#	bs=[rnd.normal(key,(m,))*cfg.biasinitsize for m,key in zip(widths[1:-1],bkeys)]
-#
-#	return list(zip(Ws,bs))+[Ws[-1]]
-"""
 
 
 #----------------------------------------------------------------------------------------------------
@@ -247,7 +168,6 @@ def add_static_f(*fs):
 
 
 		
-
 
 
 

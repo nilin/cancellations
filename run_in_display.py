@@ -49,8 +49,8 @@ def getwrapped(run,process_input=cfg.donothing):
 
 		dashboard.add_display(infodisplay,0,0)
 		dashboard.add_display(statusdisplay,0,w//2,name='status')
-		dashboard.add_display(logdisplay,25,0)
-		dashboard.add_display(dbprintdisplay,25,w//2)
+		dashboard.add_display(logdisplay,20,0)
+		dashboard.add_display(dbprintdisplay,20,w//2)
 
 		statuswindow=dashboard.displays['status'][1]
 		cfg.dashboard=dashboard

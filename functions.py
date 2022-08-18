@@ -68,6 +68,11 @@ def initweights_ferminet(widths):
 #
 #
 
+
+
+
+
+
 class ParameterizedFunc:
 
 
@@ -151,6 +156,15 @@ class DynFunc(ParameterizedFunc):
 		return self.fwithparams(self.weights)(X)
 
 
+class StaticFunc(ParameterizedFunc):
+
+	def __init__(self,**kw):
+		super().__init__(FunctionDescription(**kw))
+
+	def eval(self,X):
+		return util.makeblockwise(self.f)(X)
+	
+
 
 
 class FunctionDescription:
@@ -171,10 +185,11 @@ class FunctionDescription:
 			return ASt.gen_ferminet(self.activation)
 
 
-		if self.ftype=='HermiteSlater':
-			return util.dummyparams(examplefunctions.HermiteSlater(self.n,'H',1/8))
+		#static functions
+		if self.ftype=='hermiteSlater':
+			return examplefunctions.hermiteSlater(self.n,self.d,1/8)
 		if self.ftype=='GaussianSlater1D':
-			return util.dummyparams(examplefunctions.GaussianSlater1D(self.n))
+			return examplefunctions.GaussianSlater1D(self.n)
 		
 
 
@@ -183,18 +198,19 @@ class FunctionDescription:
 		return globals()['initweights_{}'.format(self.ftype)](self.widths)
 
 	def checkwidths(self):
-		n,d,widths=self.n,self.d,self.widths
+
+		n,d=self.n,self.d
 		if self.ftype=='AS_NN':
-			assert widths[0]==n*d and widths[-1]==1, 'widths should be \n[nd...1]\nbut were\n'+str(widths)
+			assert self.widths[0]==n*d and self.widths[-1]==1, 'widths should be \n[nd...1]\nbut were\n'+str(self.widths)
 		if self.ftype=='backflowdets':
-			ds,k=widths
-			assert ds[0]==d and ds[-1]>=k*n, 'widths should be \n[[d...kn+?],k]\nbut were \n'+str(widths)
+			ds,k=self.widths
+			assert ds[0]==d and ds[-1]>=k*n, 'widths should be \n[[d...kn+?],k]\nbut were \n'+str(self.widths)
 		if self.ftype=='backflow_detsandsym':
-			ds,k=widths
-			assert ds[0]==d and ds[-1]>=k*n, 'widths should be \n[[d...kn+?],k]\nbut were \n'+str(widths)
+			ds,k=self.widths
+			assert ds[0]==d and ds[-1]>=k*n, 'widths should be \n[[d...kn+?],k]\nbut were \n'+str(self.widths)
 		if self.ftype=='ferminet':
-			ds0,ds1,k=widths
-			assert ds0[0]==d+1 and ds1[0]==d+ds0[-1] and ds1[-1]==k*n, 'widths should be \n[[d+1...d1],[d+d1...kn],k]\nbut were\n'+str(widths)
+			ds0,ds1,k=self.widths
+			assert ds0[0]==d+1 and ds1[0]==d+ds0[-1] and ds1[-1]==k*n, 'widths should be \n[[d+1...d1],[d+d1...kn],k]\nbut were\n'+str(self.widths)
 
 
 

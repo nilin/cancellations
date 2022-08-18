@@ -133,9 +133,22 @@ def gen_ferminet(ac='tanh'):
 #=======================================================================================================
 
 """
+m*n separate functions with distinct weights
+"""
+def gen_Slater(phi):
+
+	@jax.jit
+	def Af(weights,X):
+		n=len(weights)
+		matrices=jnp.stack([jnp.stack([phi(weights[i],X[:,j,:]) for j in range(n)],axis=-1) for i in range(n)],axis=-1)
+		return jnp.linalg.det(matrices)
+	return Af
+
+
+"""
 # F:x->(f1(x),..,fn(x))		s,d |-> s,n
 """
-def Slater(fs):								
+def vectorSlater(fs):								
 	Fs=jax.vmap(fs,in_axes=(None,1),out_axes=-1)
 
 	@jax.jit
@@ -143,20 +156,6 @@ def Slater(fs):
 		FX=Fs(params,X)			# FX:	s,n (basisfunction),n (particle)
 		return jnp.linalg.det(FX)
 	return AF
-
-
-"""
-m*n separate functions with distinct weights
-"""
-def gen_Slater(n,phi):
-
-	@jax.jit
-	def Af(weights,X):
-		matrices=jnp.stack([jnp.stack([phi(weights[i],X[:,j,:]) for j in range(n)],axis=-1) for i in range(n)],axis=-1)
-		return jnp.linalg.det(matrices)
-	return Af
-
-
 
 #=======================================================================================================
 ## test
