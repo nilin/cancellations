@@ -10,6 +10,7 @@ import jax.random as rnd
 from jax.lax import collapse	
 import config as cfg
 import customactivations as ca
+from config import session
 
 from jax.nn import softplus
 
@@ -70,7 +71,7 @@ def DReLU(x):
 
 
 
-activations={'ReLU':ReLU,'tanh':jnp.tanh,'softplus':softplus,'DReLU':DReLU}|ca.c_acs
+activations={'ReLU':ReLU,'relu':ReLU,'tanh':jnp.tanh,'softplus':softplus,'DReLU':DReLU,"drelu":DReLU}|ca.c_acs
 
 
 
@@ -182,6 +183,22 @@ def chop(*Xs,chunksize):
 
 
 
+def makeblockwise(f):
+
+	def blockwise_f(X):
+		_,n,_=X.shape	
+		Xs=chop(X,chunksize=cfg.memorybatchlimit(n))
+		out=[]
+		for i,(B,) in enumerate(Xs):
+			out.append(f(B))
+			session.trackcurrent('currenttaskcompleteness',(i+1)/len(Xs))
+		return jnp.concatenate(out,axis=0)
+
+	return blockwise_f
+
+
+
+
 
 def addgrads(G1,G2):
 	if G1==None:
@@ -233,6 +250,7 @@ def fixparams(f_,params):
 def noparams(f_):
 	return fixparams(f_,None)
 
+
 def dummyparams(f):
 	@jax.jit
 	def f_(_,x):
@@ -253,6 +271,15 @@ def nestedstructure(T,fn):
 
 def dimlist(T):
 	return nestedstructure(T,lambda A:A.shape)
+
+
+
+def applyalonglast(f,X,last):
+	lshape,rshape=X.shape[:-last],X.shape[-last:]
+	batchsize=np.product(lshape)
+	X_=jnp.reshape(X,(batchsize,)+rshape)
+	Y_=f(X_)
+	return jnp.squeeze(jnp.reshape(Y_,lshape+(-1,)))
 
 
 
@@ -302,7 +329,7 @@ def initweights(shape):
 
 
 
-def compose(functions):
+def compose(*functions):
 
 	def composed(params,X):
 		for f,param in zip(functions,params):

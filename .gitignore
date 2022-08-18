@@ -42,5 +42,4 @@ debug/*
 __pycache__
 outputs
 logs
-debug*
 e_db*

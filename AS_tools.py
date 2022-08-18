@@ -80,6 +80,8 @@ def gen_lossgrad_Af(n,f,lossfn):
 #
 #=======================================================================================================
 
+
+
 """
 # dimensions
 # a : k
@@ -97,17 +99,29 @@ def detsum(a,Y):
 	return out
 
 
-
 def gen_backflowdets(ac):
-	return util.recompose(bf.gen_backflow(ac),detsum)
+	return util.compose(bf.gen_backflow(ac),detsum)
+
+
 	
+@jax.jit
+def EV_to_sym(b,Y):
+	return jnp.inner(jnp.sum(Y,axis=-2),b)
+
+@jax.jit
+def EV_to_antisym(ab,Y):
+	a,b=ab
+	return detsum(a,Y)*EV_to_sym(b,Y)
+
+def gen_backflow_detsandsym(ac):
+	return util.compose(bf.gen_backflow(ac),EV_to_antisym)
 
 
 #===================
 # Example: ferminet
 #===================
 
-def gen_FN(ac='tanh'):
+def gen_ferminet(ac='tanh'):
 	return util.recompose(bf.gen_FN_backflow(ac),detsum)
 
 

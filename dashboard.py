@@ -83,6 +83,9 @@ class StackedDisplay(Display):
 	def addstatictext(self,text,**kwargs):
 		self.add(StaticText(self.width,text,**kwargs))
 
+	def addqueriedtext(self,query,height=1,**kwargs):
+		self.add(QueriedText(height,self.width,self.memory,query,**kwargs))
+
 	def addline(self):
 		self.addstatictext(dash*self.width)
 
@@ -249,15 +252,24 @@ def get3displays(width):
 	return infodisplay,logdisplay,dbprintdisplay
 
 def get4displays(width):
-	infodisplay=QueriedText(25,round(width*.4),session,'sessioninfo')
-	statusdisplay=QueriedText(25,round(width*.4),session,'statusinfo')
 
-	logdisplay=StackedDisplay(10,round(width*.4),session)
+	w1=width//2
+	w2=width-w1
+
+	infodisplay=QueriedText(25,w1,session,'sessioninfo')
+	#statusdisplay=QueriedText(25,round(width*.4),session,'statusinfo')
+	statusdisplay=StackedDisplay(25,w2,session)
+	statusdisplay.addqueriedtext('statusinfo',height=5)
+	statusdisplay.addspace()
+	statusdisplay.addqueriedtext('currenttask')
+	statusdisplay.addbar('currenttaskcompleteness',style=box)
+
+	logdisplay=StackedDisplay(10,w1,session)
 	logdisplay.addstatictext('log')
 	logdisplay.addline()
 	logdisplay.addhistdisplay(10,'log')
 
-	dbprintdisplay=StackedDisplay(10,round(width*.4),session)
+	dbprintdisplay=StackedDisplay(10,w2,session)
 	dbprintdisplay.addstatictext('prints (cfg.dbprint(msg))')
 	dbprintdisplay.addline()
 	dbprintdisplay.addhistdisplay(10,'dbprintbuffer')

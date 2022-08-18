@@ -99,7 +99,7 @@ def gen_FN_backflow(ac='tanh'):
 	F0=gen_FN_preprocess(ac)
 	F1=gen_backflow(ac)
 
-	return util.compose([F0,F1])
+	return util.compose(F0,F1)
 
 """
 # ds0[0]=d+1 (NN acts on (x-y,|x-y|))
@@ -174,7 +174,7 @@ if __name__=='__main__':
 	weights0=initweights_backflow(ds0)
 	weights1=initweights_backflow(ds1)
 	BF0=gen_backflow('ReLU')
-	BFBF=util.compose([BF0,BF0])
+	BFBF=util.compose(BF0,BF0)
 	testing.verify_equivariant(BFBF,n,d,fixparams=[weights0,weights1])	
 
 

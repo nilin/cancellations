@@ -7,15 +7,17 @@ import optax
 import math
 import numpy as np
 import sys
-import AS_functions
 import matplotlib.pyplot as plt
 import numpy as np
 import learning
 import AS_HEAVY
+import copy
 import pdb
+from config import session
 from collections import deque
 
-
+import warnings
+warnings.filterwarnings('ignore')
 
 
 def samplepoints(X,Y,nsamples):
@@ -26,8 +28,6 @@ def samplepoints(X,Y,nsamples):
 	return X[I]
 	
 
-
-
 def linethrough(x,interval):
 	corner=np.zeros_like(x)
 	corner[0][0]=1
@@ -35,43 +35,135 @@ def linethrough(x,interval):
 	X=interval[:,None,None]*corner[None,:,:]+x_rest[None,:,:]
 	return X
 
+def slicethrough(x,I):
+	S,T=np.meshgrid(I,I)
+	X=np.array(x)[None,None,:,:]+np.zeros_like(S)[:,:,None,None]
+	X[:,:,0,0]=S
+	X[:,:,0,1]=T
+	return X
+
+def slicesthrough(x,I):
+
+	S,T=np.meshgrid(I,I)
+
+	X=np.array(x)[None,None,:,:]+np.zeros_like(S)[:,:,None,None]
+	X1=copy.deepcopy(X)
+	X2=copy.deepcopy(X)
+	X3=copy.deepcopy(X)
+
+	for X_,i,j in [(X1,0,1),(X2,0,2),(X3,1,2)]:
+		X_[:,:,0,i]=S
+		X_[:,:,0,j]=T
+
+	return X1,X2,X3
 
 
 
-class CrossSections:
-	def __init__(self,X,Y,target,nsections=3,fineness=200,normalized=True):
 
-		cfg.log('Preparing cross sections for plotting.')
-		x0s=samplepoints(X,Y,nsections)
+def genCrossSections(X,Y,target):
+	cfg.log('Preparing cross sections for plotting.')
+	n=X.shape[-1]
+	x0s=samplepoints(X,Y,{1:3,2:3,3:1}[n])
+	CrossSection=globals()['CrossSection{}D'.format(n)]
+	return [CrossSection(X,Y,target,x0) for x0 in x0s]
+
+class CrossSection:
+	def __init__(self,X,Y,fineness):
 		self.interval=jnp.arange(-1,1,2/fineness)
-		self.lines=[linethrough(x0,self.interval) for x0 in x0s]
-		self.ys=[target(line) for line in self.lines]
 		self.X=X
 		self.Y=Y
+	def plot_y_vs_f_SI(self,staticlearner,normalized=True,**kwargs):
+		f=util.closest_multiple(staticlearner,self.X[:250],self.Y[:250],normalized=normalized)
+		return self.plot_y_vs_f(f,normalized_target=normalized,**kwargs)
 
+class CrossSection1D(CrossSection):
+	def __init__(self,X,Y,target,x0):
+		super().__init__(X,Y,100)
+		self.line=linethrough(x0,self.interval)
+		self.y=target(self.line)
 
 	def plot_y_vs_f(self,f,normalized_target=False):
 
 		c=1/util.norm(self.Y) if normalized_target else 1
 
-		figs=[]
-		for x,y in zip(self.lines,self.ys):
-			fig,ax=plt.subplots(figsize=(5,4))
-			ax.plot(self.interval,c*y,'b',label='target')
-			ax.plot(self.interval,f(x),'r',ls='dashed',label='learned')
-			ax.legend()
-			figs.append(fig)
-		return figs
-
-	def plot_y(self):
-		fig,axs=plt.subplots(1,3,figsize=(16,4))
-		for ax,x,y in zip(axs,self.lines,self.ys):
-			ax.plot(self.interval,y,'b')
+		fig,ax=plt.subplots()
+		ax.plot(self.interval,c*self.y,'b',label='target')
+		ax.plot(self.interval,f(self.line),'r',ls='dashed',label='learned')
+		ax.legend()
 		return fig
 
-	def plot_y_vs_f_SI(self,staticlearner,normalized=True,**kwargs):
-		f=util.closest_multiple(staticlearner,self.X[:250],self.Y[:250],normalized=normalized)
-		return self.plot_y_vs_f(f,normalized_target=normalized,**kwargs)
+
+class CrossSection2D(CrossSection):
+	def __init__(self,X,Y,target,x0):
+		super().__init__(X,Y,50)
+		self.slice=slicethrough(x0,self.interval)
+		self.y=util.applyalonglast(target,self.slice,2)
+
+
+	def plot_y_vs_f(self,f,normalized_target=False):
+		cfg.logcurrenttask('drawing functions plots')
+
+		I=self.interval
+		c=1/util.norm(self.Y) if normalized_target else 1
+
+		fig,(ax0,ax1,ax2)=plt.subplots(1,3,figsize=(17,5))
+		y0=c*self.y
+		y1=util.applyalonglast(f,self.slice,2)
+
+		#M=jnp.max(jnp.abs(y0))+jnp.max(jnp.abs(y1))
+		M=jnp.max(jnp.abs(y0))
+
+		ax0.set_title('target')
+		ax1.set_title('learner')
+		ax2.set_title('both')
+
+		im0=ax0.pcolormesh(I,I,y0,cmap='seismic',vmin=-M,vmax=M)
+		im1=ax1.pcolormesh(I,I,y1,cmap='seismic',vmin=-M,vmax=M)
+		im0.set_edgecolor('face')
+		im1.set_edgecolor('face')
+
+		#ax2.pcolormesh(I,I,y1-y0,cmap='seismic',vmin=-M,vmax=M)
+		ax2.contour(I,I,y0,colors='b',linewidths=.5)
+		ax2.contour(I,I,y1,colors='r',linewidths=.5)
+		ax2.contour(I,I,y0,levels=[0],colors='b',linewidths=3)
+		ax2.contour(I,I,y1,levels=[0],colors='r',linewidths=3)
+
+		#fig.colorbar(im)
+		#fig.colorbar(im1)
+		#fig.colorbar(im2)
+		cfg.clearcurrenttask()
+		return fig
+
+
+class CrossSection3D(CrossSection):
+	def __init__(self,X,Y,target,x0):
+		super().__init__(X,Y,50)
+		self.slices=slicesthrough(x0,self.interval)
+		self.ys=[util.applyalonglast(target,sl,2) for sl in self.slices]
+
+	def plot_y_vs_f(self,f,normalized_target=False):
+		cfg.logcurrenttask('drawing plots')
+
+		I=self.interval
+		c=1/util.norm(self.Y) if normalized_target else 1
+
+		fig,axsrows=plt.subplots(len(self.slices),3,figsize=(17,17))
+		for sl,y,(ax0,ax1,ax2) in zip(self.slices,self.ys,axsrows):
+			y0=c*y
+			y1=util.applyalonglast(f,sl,2)
+			M=jnp.max(jnp.abs(y0))
+			#ax.pcolormesh(I,I,y0)
+			im=ax0.pcolormesh(I,I,y1-y0,cmap='seismic',vmin=-M,vmax=M)
+			ax0.contour(I,I,y0,colors='b',linewidths=.5)
+			ax0.contour(I,I,y1,colors='r',linewidths=.5)
+			ax0.contour(I,I,y0,levels=[0],colors='b',linewidths=3)
+			ax0.contour(I,I,y1,levels=[0],colors='r',linewidths=3)
+
+			im1=ax1.pcolormesh(I,I,y0,cmap='seismic',vmin=-M,vmax=M)
+			im2=ax2.pcolormesh(I,I,y1,cmap='seismic',vmin=-M,vmax=M)
+
+		cfg.clearcurrenttask()
+		return fig
 
 
 

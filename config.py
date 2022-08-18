@@ -224,10 +224,10 @@ def dbprint(msg):
 
 class Stopwatch:
 	def __init__(self):
-		self.t=time.perf_counter()-10**6
+		self.t=time.perf_counter()
 
 	def elapsed(self):
-		return time.perf_counter()-t0
+		return time.perf_counter()-self.t
 
 	def tick(self):
 		t0=self.t
@@ -250,37 +250,38 @@ class Stopwatch:
 
 
 
-arange=lambda *ab:list(jnp.arange(*ab))
 
-#def expsched(step1,timebound,doublingtime=1,skipzero=False):
-#	delta=jnp.log(2)/doublingtime
-#	t1=step1/delta
-#	return jnp.concatenate([jnp.arange(step1 if skipzero else 0,t1,step1),jnp.exp(jnp.arange(jnp.log(t1),jnp.log(timebound),delta)),jnp.array([timebound])])
-
-
-def expsched(step1,timebound,doublingtime=4):
-
-	df_over_f=jnp.log(2)/doublingtime
-	transition=step1/df_over_f
-
-	s_=[2**i for i in np.arange(math.floor(np.log(transition)/np.log(2)),np.log(timebound)/np.log(2),1/doublingtime)]
-	s=list(np.arange(0,s_[0] if len(s_)>0 else timebound,step1))+s_
-	return s+[timebound] if s[-1]<timebound else s
-	
-
-def sparsesched(timebound,start=500):
-	sched=[]
+# start must be 10,25,50,100,250,500,1000,...
+def sparsesched(timebound,start=500,skipzero=True):
+	sched=[0]
 	t=start
 	while t<timebound:
 		sched.append(t)
-		if str(t)[0]=='1':
-			t=t*2.5
-		else:
-			t=t*2
+		t=intuitive_exp_increment(t)
 	sched.append(timebound)
-	return sched
+	return sched[1:] if skipzero else sched
+
+# start must be 10,25,50,100,250,500,1000,...
+def nonsparsesched(timebound,start=10,skipzero=False):
+	sched=[]
+	t=0
+	dt=start
+	while t<timebound:
+		sched.append(t)
+		t+=dt
+		if t>=10*dt:
+			dt=intuitive_exp_increment(dt)
+			
+	sched.append(timebound)
+	return sched[1:] if skipzero else sched
 
 
+# t must be 10,25,50,100,250,500,1000,...
+def intuitive_exp_increment(t):
+	if str(t)[0]=='1':
+		return int(t*2.5) if t>=10 else t*2.5
+	else:
+		return int(t*2)
 
 
 def periodicsched(step,timebound):
@@ -312,6 +313,35 @@ class Scheduler(Timer):
 
 		
 
+#====================================================================================================
+
+class Clockedworker(Stopwatch):
+
+	def __init__(self):
+		super().__init__()
+		self.totalrest=0
+		self.totalwork=0
+		self.working=False
+
+	def clock_in(self):
+		assert not self.working
+		self.totalrest+=self.tick()
+		self.working=True
+
+	def clock_out(self):
+		assert self.working
+		self.totalwork+=self.tick()
+		self.working=False
+
+	def workfraction(self):
+		return self.totalwork/self.elapsed()
+	
+	def do_if_rested(self,workfraction,*fs):
+		if self.workfraction()<workfraction:
+			self.clock_in()
+			for f in fs:
+				f()
+			self.clock_out()		
 
 
 #====================================================================================================
@@ -459,6 +489,16 @@ def latest(folder):
 
 
 
+def memorybatchlimit(n):
+	s=1
+	memlim=50000
+	while(s*math.factorial(n)<memlim):
+		s=s*2
+
+	if n>heavy_threshold:
+		assert s==1, 'AS_HEAVY assumes single samples'
+
+	return s
 		
 
 
@@ -510,7 +550,13 @@ def donothing(*x,**y):
 poke=donothing
 on_pause=donothing
 
+def logcurrenttask(msg):
+	session.trackcurrent('currenttask',msg)
+	log(msg)
 
+def clearcurrenttask():
+	session.trackcurrent('currenttask',' ')
+	session.trackcurrent('currenttaskcompleteness',0)
 
 
 
@@ -527,5 +573,7 @@ if __name__=='__main__':
 #	print(times_to_ordinals([.1,.2,.3,.4,.5,.6,.7,.8],[.3,.7],['a','b']))
 #	print(times_to_ordinals([.1,.2,.3,.4,.5,.6,.7,.8],[.1,.2,.3,.4,.5,.6,.7,.8],[1,2,3,4,5,6,7,8]))
 
-	print(expsched(.1,100,3))
+	#print(expsched(.1,100,3))
 
+
+	print(nonsparsesched(1000,10))

@@ -11,7 +11,6 @@ import jax
 import jax.numpy as jnp
 import jax.random as rnd
 import numpy as np
-import AS_functions
 import learning
 import plottools as pt
 import mcmc
@@ -32,7 +31,7 @@ import AS_tools
 import AS_HEAVY
 import copy
 import examplefunctions
-import AS_functions as ASf
+import functions
 from config import session
 
 
@@ -56,33 +55,37 @@ def adjustparams(**priorityparams):
 	cfg.write(session.getval('sessioninfo'),cfg.outpath+'info.txt',mode='w')
 
 
+def processandplot(unprocessed,pfunc,X,Y,process_snapshot_fn=None,plotexample_fn=None):
 
+	if process_snapshot_fn==None: process_snapshot_fn=process_snapshot
+	if plotexample_fn==None: plotexample_fn=plotexample
 
+	cfg.logcurrenttask('preparing learning plots')
 
-def process_snapshot(processed,AS,NS,weights,X,Y,i):
-	processed.addcontext('minibatchnumber',i)
-
-	AS=util.fixparams(AS,weights)
-	NS=util.fixparams(NS,weights)
-
-	processed.remember('learner weightnorms',jnp.array([util.norm(l) for l in weights[0]]))
-	processed.remember('Af norm',jnp.average(AS(X[:100])**2))
-	processed.remember('f norm',jnp.average(NS(X[:100])**2))
-	processed.compute(['f norm','Af norm'],lambda x,y:x/y,'f/Af')
-	processed.remember('test loss',util.SI_loss(AS(X),Y))
-
-	del AS,NS
-
-
-def processandplot(unprocessed,AS,NS,X,Y,*args,**kw):
 	processed=cfg.ActiveMemory()
 
 	for weights,i in zip(*unprocessed.gethist('weights','minibatchnumber')):
-		process_snapshot(processed,AS,NS,weights,X,Y,i)		
 
-	plotexample(unprocessed,processed,*args,**kw)
+		cfg.dblog(weights)
+		process_snapshot(processed,functions.DynFunc(pfunc,weights),X,Y,i)		
+
+	plotexample(unprocessed,processed)
 	cfg.save(processed,cfg.outpath+'data')
+
+	cfg.clearcurrenttask()
 	return processed
+
+
+
+
+
+def process_snapshot(processed,dynfunc,X,Y,i):
+	processed.addcontext('minibatchnumber',i)
+
+	f,weights=dynfunc.eval,dynfunc.weights
+	processed.remember('learner weightnorms',jnp.array([util.norm(l) for l in weights[0]]))
+	processed.remember('Af norm',jnp.average(f(X[:100])**2))
+	processed.remember('test loss',util.SI_loss(f(X),Y))
 
 
 
@@ -107,18 +110,6 @@ def plotexample(unprocessed,processed,info=''):
 
 	cfg.savefig('{}{}'.format(cfg.outpath,'losses.pdf'),fig=fig)
 
-
-	fig,ax=plt.subplots()
-	ax.set_title('norm ratio (sign problem) for learner '+info)
-
-	ax.plot(*util.swap(*processed.gethist('f/Af','minibatchnumber')),'bo-',label='||f||/||Af||')
-	ax.legend()
-	ax.set_yscale('log')
-	ax.grid(True,which='major',ls='-',axis='y')
-	ax.grid(True,which='minor',ls=':',axis='y')
-	cfg.savefig('{}{}'.format(cfg.outpath,'ratio.pdf'),fig=fig)
-
-
 	fig,ax=plt.subplots()
 	ax.set_title('weight norms for learner '+info)
 
@@ -129,7 +120,6 @@ def plotexample(unprocessed,processed,info=''):
 	ax.set_ylim(bottom=0)
 	cfg.savefig('{}{}'.format(cfg.outpath,'weights.pdf'),fig=fig)
 
-
 	fig,ax=plt.subplots()
 	ax.set_title('performance '+info)
 	I,t=unprocessed.gethistbytime('minibatchnumber')
@@ -139,9 +129,32 @@ def plotexample(unprocessed,processed,info=''):
 	cfg.savefig('{}{}'.format(cfg.outpath,'performance.pdf'),fig=fig)
 
 
+
 def plotfunctions(sections,f,figtitle,path):
 	plt.close('all')
-	figs=sections.plot_y_vs_f_SI(f)
+	figs=[section.plot_y_vs_f_SI(f) for section in sections]
 	for fignum,fig in enumerate(figs):
 		fig.suptitle(figtitle)
 		cfg.savefig('{} {}.pdf'.format(path,fignum),fig=fig)
+
+
+
+
+def runexample(run,process_input):
+	db.clear()
+	if 'nodisplay' in cfg.cmdparams:
+		run()
+	elif 'logdisplay' in cfg.cmdparams:
+		class LogDisplay:
+			def poke(self,*args):
+				if args==('log',):
+					print(session.getcurrentval('log'))
+		logdisp=LogDisplay()
+		session.addlistener(logdisp)
+		run()
+	elif 'display0' in cfg.cmdparams:
+		cfg.dashboard=db.Dashboard0()
+		run()
+	else:
+		import run_in_display
+		run_in_display.RID(run,process_input)

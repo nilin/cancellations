@@ -31,8 +31,6 @@ from collections import deque
 import multivariate as mv
 
 
-
-
 #----------------------------------------------------------------------------------------------------
 # training object
 #----------------------------------------------------------------------------------------------------
@@ -40,12 +38,12 @@ import multivariate as mv
 
 	
 class Trainer():
-	def __init__(self,learner,X,Y,lossgrad=None,learner_lossfn_choice=0,learning_rate=.01,memory=None,**kwargs):
+	def __init__(self,learner,X,Y,lossfn=None,learning_rate=.01,memory=None,**kwargs):
 
 		self.memory=cfg.Memory() if memory==None else memory
 
 		self.learner=learner
-		self.lossgrad=learner.lossgrads[learner_lossfn_choice] if lossgrad==None else lossgrad
+		self.lossgrad=learner.get_lossgrad(cfg.lossfn if lossfn==None else lossfn)
 
 		self.X,self.Y=X,Y
 		self.samples,self.n,self.d=X.shape
@@ -138,50 +136,72 @@ class NoTargetTrainer(DynamicTrainer):
 
 #----------------------------------------------------------------------------------------------------
 
-class Learner:
-	def __init__(self,f,lossgrads=None,weights=None,deepcopy=True):
-		self.f=f
-		self.lossgrads=[] if lossgrads==None else lossgrads
-		if deepcopy:
-			self.reset(weights)
-		else:
-			self.weights=weights
+#class DynFunc:
+#	def __init__(self,weights=None):
+#		self.fdescr=fdescr
+#		self.f=fdescr.gen_f()
+#		self.reset(weights)
+#
+#	def reset(self,weights):
+#		self.weights=copy.deepcopy(weights)
+#		return self
+#
+#	def eval(self,X):
+#		fs=util.fixparams(f,self.weights)
+#		Y=util.makeblockwise(fs)(X)	
+#		del fs
+#		return Y
+#
+#	def get_lossgrad(self,lossfn=None):
+#		return mv.gen_lossgrad(self.f,lossfn=lossfn)
+#
 
 
-	def reset(self,weights):
-		self.weights=copy.deepcopy(weights)
-		return self
 
-	def as_static(self):
-		#return util.fixparams(self.f,self.weights)
-		return AS_HEAVY.makeblockwise(util.fixparams(self.f,self.weights))
-
-	def cloneweights(self):
-		return copy.deepcopy(self.weights)
-
-
-
-class AS_Learner(Learner):
-	def __init__(self,*args,NS=None,weights=None,**kwargs):
-		super().__init__(*args,weights=weights,**kwargs)
-		self.AS=self.f
-		self.NS=NS
-
-	def get_NS(self):
-		return NS_Learner(self.NS,weights=self.weights)
-
-
-class NS_Learner(Learner):
-	def get_AS(self):
-		return AS_Learner(AS_tools.gen_Af(self.f),lossgrads=[AS_tools.gen_lossgrad_Af(self.f)],NS=self.f,weights=self.weights)
-
-
-def static_NS(learner):
-	if type(learner) in {NS_Learner,Learner}:
-		return learner.as_static()
-	if type(learner)==AS_Learner:
-		return learner.get_NS().as_static()
-	
+#class Learner:
+#	def __init__(self,f,lossgrads=None,weights=None,deepcopy=True):
+#		self.f=f
+#		self.lossgrads=[] if lossgrads==None else lossgrads
+#		if deepcopy:
+#			self.reset(weights)
+#		else:
+#			self.weights=weights
+#
+#
+#	def reset(self,weights):
+#		self.weights=copy.deepcopy(weights)
+#		return self
+#
+#	def as_static(self):
+#		#return util.fixparams(self.f,self.weights)
+#		return AS_HEAVY.makeblockwise(util.fixparams(self.f,self.weights))
+#
+#	def cloneweights(self):
+#		return copy.deepcopy(self.weights)
+#
+#
+#
+#class AS_Learner(Learner):
+#	def __init__(self,*args,NS=None,weights=None,**kwargs):
+#		super().__init__(*args,weights=weights,**kwargs)
+#		self.AS=self.f
+#		self.NS=NS
+#
+#	def get_NS(self):
+#		return NS_Learner(self.NS,weights=self.weights)
+#
+#
+#class NS_Learner(Learner):
+#	def get_AS(self):
+#		return AS_Learner(AS_tools.gen_Af(self.f),lossgrads=[AS_tools.gen_lossgrad_Af(self.f)],NS=self.f,weights=self.weights)
+#
+#
+#def static_NS(learner):
+#	if type(learner) in {NS_Learner,Learner}:
+#		return learner.as_static()
+#	if type(learner)==AS_Learner:
+#		return learner.get_NS().as_static()
+#	
 
 
 #----------------------------------------------------------------------------------------------------
