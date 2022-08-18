@@ -128,6 +128,9 @@ class Memory(BasicMemory,Timer):
 		super().remember(name,val,self.getcontext()|context)
 		self.pokelisteners(name)
 
+
+		poke()
+
 	def addlistener(self,listener):
 		lname=int(nextkey()[0])
 		eventlisteners[lname]=listener

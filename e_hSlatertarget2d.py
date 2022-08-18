@@ -50,7 +50,7 @@ cfg.params={
 'n':5,
 'd':2,
 'learnertype':'AS_NN',
-'learnerwidths':[10,25,100,1],
+'learnerwidths':[10,100,100,1],
 #'learneractivation':'tanh',
 'targettype':'hermiteSlater',
 'weight_decay':0,
