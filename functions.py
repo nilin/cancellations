@@ -188,8 +188,8 @@ class FunctionDescription:
 		#static functions
 		if self.ftype=='hermiteSlater':
 			return examplefunctions.hermiteSlater(self.n,self.d,1/8)
-		if self.ftype=='GaussianSlater1D':
-			return examplefunctions.GaussianSlater1D(self.n)
+		if self.ftype=='gaussianSlater':
+			return examplefunctions.gaussianSlater(self.n,self.d)
 		
 
 

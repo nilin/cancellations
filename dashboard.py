@@ -200,13 +200,13 @@ class AbstractDashboard:
 	def del_display(self,name):
 		del self.displays[name]
 
-	def poke(self,signal):
+	def poke(self,signal,*args):
 		for name,concretedisplay in self.displays.items():
 			display=self.getdisplay(concretedisplay)
 			if signal==None or signal in display.trackedvars:
 
-				self.draw(concretedisplay)
-				if display.tick_after(.01):
+				#self.draw(concretedisplay)
+				if display.tick_after(.01) or 'updatedisplay' in args:
 					self.draw(concretedisplay)
 
 	def draw_all(self):
@@ -262,7 +262,7 @@ def get4displays(width):
 	statusdisplay.addqueriedtext('statusinfo',height=5)
 	statusdisplay.addspace()
 	statusdisplay.addqueriedtext('currenttask')
-	statusdisplay.addbar('currenttaskcompleteness',style=box)
+	statusdisplay.addbar('currenttaskcompleteness',style=dash)
 
 	logdisplay=StackedDisplay(15,w1,session)
 	logdisplay.addstatictext('log')

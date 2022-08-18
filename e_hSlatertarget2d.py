@@ -61,13 +61,13 @@ cfg.params={
 'minibatchsize':50
 }
 
-instructions='instructions:\n\npython exNN2d.py (t/r) \n\nparameters represent:\nt=tanh learner, r=relu learner\n'
+instructions='instructions:\n\npython exNN2d.py (t/s) \n\nparameters represent:\nt=tanh learner, s=softplus learner\n'
 
 
 def adjustparams():
 	try:
+		learneractivation={'t':'tanh','s':'softplus'}[cfg.selectone({'t','s'},cfg.cmdparams)]
 		pass
-		learneractivation={'t':'tanh','r':'ReLU','s':'softplus'}[cfg.selectone({'t','r','s'},cfg.cmdparams)]
 	except:
 		db.clear()
 		print(instructions)
@@ -84,7 +84,7 @@ def run():
 
 	unprocessed=cfg.ActiveMemory()
 	try:
-		cfg.dashboard.add_display(Display2(10,cfg.dashboard.width,unprocessed),40,name='bars')
+		cfg.dashboard.add_display(examples.Display2(10,cfg.dashboard.width,unprocessed),40,name='bars')
 	except:
 		pass
 
@@ -102,7 +102,7 @@ def run():
 
 	trainer=learning.Trainer(learner,X,Y,weight_decay=weight_decay,minibatchsize=minibatchsize,lossfn=util.SI_loss) #,lossgrad=mv.gen_lossgrad(AS,lossfn=util.SI_loss))
 
-	sc1=cfg.Scheduler(cfg.nonsparsesched(iterations,start=10))
+	sc1=cfg.Scheduler(cfg.nonsparsesched(iterations,start=100))
 	sc2=cfg.Scheduler(cfg.sparsesched(iterations,start=1000))
 	lazyplot=cfg.Clockedworker()
 
@@ -122,26 +122,15 @@ def run():
 			unprocessed.remember('weights',learner.weights)
 
 		if sc2.activate(i):
-			lazyplot.do_if_rested(.2,lplot,fplot)
+			lazyplot.do_if_rested(.2,fplot,lplot)
 
 
-	
-
-class Display2(db.StackedDisplay):
-	def __init__(self,height,width,memory):
-		super().__init__(height,width,memory)
-		self.addnumberprint('minibatch loss',msg='training loss {:.3}')
-		self.addbar('minibatch loss',style='.')
-		self.addbar('minibatch loss',style=db.BOX,avg_of=100)
-		self.addspace()
-		self.addline()
-		self.addnumberprint('minibatchnumber',msg='minibatch number {:.0f}/'+str(iterations))
 
 def lplot():
 	examples.processandplot(unprocessed,functions.ParameterizedFunc(learner),X_test,Y_test)
 def fplot():
-	figtitle='learner activation {}'.format(learneractivation)
-	figpath='{}{} {} minibatches'.format(cfg.outpath,learneractivation,int(unprocessed.getval('minibatchnumber')))
+	figtitle='target {}, learner {}'.format(targettype,learnertype)
+	figpath='{}target={} learner={} {} minibatches'.format(cfg.outpath,targettype,learnertype,int(unprocessed.getval('minibatchnumber')))
 	examples.plotfunctions(sections,learner.eval,figtitle,figpath)
 
 def process_input(c):
@@ -152,5 +141,4 @@ def process_input(c):
 
 if __name__=='__main__':
 	adjustparams()
-
 	examples.runexample(run,process_input)

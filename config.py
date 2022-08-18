@@ -124,9 +124,9 @@ class Memory(BasicMemory,Timer):
 		out=self.gethist(name,timename)
 		return out
 
-	def remember(self,name,val,**context):
+	def remember(self,name,val,*listenerargs,**context):
 		super().remember(name,val,self.getcontext()|context)
-		self.pokelisteners(name)
+		self.pokelisteners(name,*listenerargs)
 
 
 		poke()
@@ -136,9 +136,9 @@ class Memory(BasicMemory,Timer):
 		eventlisteners[lname]=listener
 		self.listenernames.append(lname)
 
-	def pokelisteners(self,*args):
+	def pokelisteners(self,*args,**kw):
 		for ln in self.listenernames:
-			eventlisteners[ln].poke(*args)
+			eventlisteners[ln].poke(*args,**kw)
 
 
 class ActiveMemory(Memory):
@@ -494,7 +494,8 @@ def latest(folder):
 
 def memorybatchlimit(n):
 	s=1
-	memlim=50000
+	#memlim=50000
+	memlim=10000
 	while(s*math.factorial(n)<memlim):
 		s=s*2
 
@@ -550,6 +551,10 @@ session=Memory()
 def donothing(*x,**y):
 	return None
 
+def conditional(f,do):
+	if do:
+		f()
+
 poke=donothing
 on_pause=donothing
 
@@ -557,9 +562,14 @@ def logcurrenttask(msg):
 	session.trackcurrent('currenttask',msg)
 	log(msg)
 
+def trackcurrenttask(msg,completeness,*args):
+	session.trackcurrent('currenttask',msg)
+	session.trackcurrent('currenttaskcompleteness',completeness,*args)
+	
+
 def clearcurrenttask():
 	session.trackcurrent('currenttask',' ')
-	session.trackcurrent('currenttaskcompleteness',0)
+	session.trackcurrent('currenttaskcompleteness',0,'updatedisplay')
 
 
 

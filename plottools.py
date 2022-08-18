@@ -101,7 +101,6 @@ class CrossSection2D(CrossSection):
 
 
 	def plot_y_vs_f(self,f,normalized_target=False):
-		cfg.logcurrenttask('drawing functions plots')
 
 		I=self.interval
 		c=1/util.norm(self.Y) if normalized_target else 1
@@ -111,7 +110,9 @@ class CrossSection2D(CrossSection):
 		y1=util.applyalonglast(f,self.slice,2)
 
 		#M=jnp.max(jnp.abs(y0))+jnp.max(jnp.abs(y1))
-		M=jnp.max(jnp.abs(y0))
+		#M=jnp.max(jnp.abs(c*self.Y))
+		M=1 if normalized_target else util.norm(self.Y)
+		M*=4
 
 		ax0.set_title('target')
 		ax1.set_title('learner')
@@ -131,7 +132,6 @@ class CrossSection2D(CrossSection):
 		#fig.colorbar(im)
 		#fig.colorbar(im1)
 		#fig.colorbar(im2)
-		cfg.clearcurrenttask()
 		return fig
 
 

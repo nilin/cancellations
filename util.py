@@ -189,7 +189,10 @@ def chop(*Xs,chunksize):
 
 
 
-def makeblockwise(f):
+def makeblockwise(f,*args):
+
+	loud = 'loud' in args
+
 
 	def blockwise_f(X):
 		_,n,_=X.shape	
@@ -197,7 +200,8 @@ def makeblockwise(f):
 		out=[]
 		for i,(B,) in enumerate(Xs):
 			out.append(f(B))
-			session.trackcurrent('currenttaskcompleteness',(i+1)/len(Xs))
+			if loud:
+				cfg.trackcurrenttask('blockwise eval',(i+1)/len(Xs))
 		return jnp.concatenate(out,axis=0)
 
 	return blockwise_f

@@ -92,7 +92,7 @@ def run():
 
 	unprocessed=cfg.ActiveMemory()
 	try:
-		cfg.dashboard.add_display(Display2(10,cfg.dashboard.width,unprocessed),40,name='bars')
+		cfg.dashboard.add_display(examples.Display2(10,cfg.dashboard.width,unprocessed),40,name='bars')
 	except:
 		pass
 
@@ -135,71 +135,12 @@ def run():
 
 
 
-def process_snapshot(processed,dynfunc,X,Y,i):
-	processed.addcontext('minibatchnumber',i)
-
-	f,weights=dynfunc.eval,dynfunc.weights
-	#processed.remember('learner weightnorms',jnp.array([util.norm(l) for l in weights[0]]))
-	processed.remember('Af norm',jnp.average(f(X[:100])**2))
-	processed.remember('test loss',util.SI_loss(f(X),Y))
-
-
-
-def plotexample(unprocessed,processed,info=''):
-
-	plt.close('all')
-
-	fig,(ax0,ax1)=plt.subplots(2)
-	fig.suptitle('test loss for learner '+info)
-
-	ax0.plot(*util.swap(*processed.gethist('test loss','minibatchnumber')),'r-',label='test loss')
-	ax0.legend()
-	ax0.set_ylim(bottom=0,top=1)
-	ax0.grid(True,which='major',ls='-',axis='y')
-	ax0.grid(True,which='minor',ls=':',axis='y')
-
-	ax1.plot(*util.swap(*processed.gethist('test loss','minibatchnumber')),'r-',label='test loss')
-	ax1.legend()
-	ax1.set_yscale('log')
-	ax1.grid(True,which='major',ls='-',axis='y')
-	ax1.grid(True,which='minor',ls=':',axis='y')
-
-	cfg.savefig('{}{}'.format(cfg.outpath,'losses.pdf'),fig=fig)
-
-#	fig,ax=plt.subplots()
-#	.
-#	.
-#	.
-
-	fig,ax=plt.subplots()
-	ax.set_title('performance '+info)
-	I,t=unprocessed.gethistbytime('minibatchnumber')
-	ax.plot(t,I)
-	ax.set_xlabel('time')
-	ax.set_ylabel('minibatch')
-	cfg.savefig('{}{}'.format(cfg.outpath,'performance.pdf'),fig=fig)
-
-
-examples.process_snapshot=process_snapshot
-examples.plotexample=plotexample
-	
-
-class Display2(db.StackedDisplay):
-
-	def __init__(self,height,width,memory):
-		super().__init__(height,width,memory)
-		self.addnumberprint('minibatch loss',msg='training loss {:.3}')
-		self.addbar('minibatch loss',style='.')
-		self.addbar('minibatch loss',style=db.BOX,avg_of=100)
-		self.addspace()
-		self.addline()
-		self.addnumberprint('minibatchnumber',msg='minibatch number {:.0f}/'+str(iterations))
 
 def lplot():
 	examples.processandplot(unprocessed,functions.ParameterizedFunc(learner),X_test,Y_test)
 def fplot():
-	figtitle='learner type {}'.format(learnertype)
-	figpath='{}{} {} minibatches'.format(cfg.outpath,learneractivation,int(unprocessed.getval('minibatchnumber')))
+	figtitle='target {}, learner {}'.format(targettype,learnertype)
+	figpath='{}target={} learner={} {} minibatches'.format(cfg.outpath,targettype,learnertype,int(unprocessed.getval('minibatchnumber')))
 	examples.plotfunctions(sections,learner.eval,figtitle,figpath)
 
 def process_input(c):

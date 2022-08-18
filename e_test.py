@@ -42,25 +42,25 @@ import examples
 
 
 
-cfg.exname='NN2d'
+cfg.exname='test'
 
 cfg.explanation='Example '+cfg.exname
 
 cfg.params={
 'n':5,
 'd':2,
-'learnertype':'AS_NN',
-'learnerwidths':[10,100,100,1],
-#'learneractivation':'tanh',
-'targettype':'AS_NN',
-'targetwidths':[10,20,20,1],
-'targetactivation':'tanh',
+'learnertype':'backflow_detsandsym',
+'learnerwidths':[[2,10,100],10],
+#'learnertype':'AS_NN',
+#'learnerwidths':[10,250,1],
+'learneractivation':'tanh',
+'targettype':'gaussianSlater',
 'weight_decay':0,
 'lossfn':'SI_loss',
-'samples_train':25000,
-'samples_test':1000,
+'samples_train':50000,
+'samples_test':500,
 'iterations':100000,
-'minibatchsize':50
+'minibatchsize':100
 }
 
 instructions='instructions:\n\npython exNN2d.py (t/r) \n\nparameters represent:\nt=tanh learner, r=relu learner\n'
@@ -68,13 +68,14 @@ instructions='instructions:\n\npython exNN2d.py (t/r) \n\nparameters represent:\
 
 def adjustparams():
 	try:
+		#learneractivation={'t':'tanh','r':'ReLU','s':'softplus'}[cfg.selectone({'t','r','s'},cfg.cmdparams)]
 		pass
-		learneractivation={'t':'tanh','r':'ReLU'}[cfg.selectone({'t','r'},cfg.cmdparams)]
 	except:
 		db.clear()
 		print(instructions)
 		quit()
-	examples.adjustparams(learneractivation=learneractivation)
+	#examples.adjustparams(learneractivation=learneractivation)
+	examples.adjustparams()
 
 
 
@@ -94,7 +95,7 @@ def run():
 	X=rnd.uniform(cfg.nextkey(),(samples_train,n,d),minval=-1,maxval=1)
 	X_test=rnd.uniform(cfg.nextkey(),(samples_test,n,d),minval=-1,maxval=1)
 
-	target=functions.DynFunc(ftype=targettype,n=n,d=d,widths=targetwidths,activation=targetactivation)
+	target=functions.StaticFunc(ftype=targettype,n=n,d=d)
 	learner=functions.DynFunc(ftype=learnertype,n=n,d=d,widths=learnerwidths,activation=learneractivation)
 
 	cfg.logcurrenttask('preparing training data')
@@ -127,44 +128,13 @@ def run():
 			lazyplot.do_if_rested(.2,fplot,lplot)
 
 
-
-
-
-
-
-
-
-
-def process_snapshot(processed,dynfunc,X,Y,i):
-	examples.process_snapshot(processed,dynfunc,X,Y,i)
-	processed.remember('learner weightnorms',jnp.array([util.norm(l) for l in dynfunc.weights[0]]))
-
-def plotexample(unprocessed,processed,info=''):
-	examples.plotexample(unprocessed,processed,info)
-
-	fig,ax=plt.subplots()
-	ax.set_title('weight norms for learner '+info)
-
-	weightnorms,minibatches=processed.gethist('learner weightnorms','minibatchnumber')
-	for l,layer in enumerate(zip(*weightnorms)):
-		ax.plot(minibatches,layer,label='layer {} weight norm'.format(l+1))
-	ax.legend()
-	ax.set_ylim(bottom=0)
-	cfg.savefig('{}{}'.format(cfg.outpath,'weights.pdf'),fig=fig)
-
-
-
-
-
-
 	
 
-
 def lplot():
-	examples.processandplot(unprocessed,functions.ParameterizedFunc(learner),X_test,Y_test,process_snapshot_fn=process_snapshot,plotexample_fn=plotexample)
+	examples.processandplot(unprocessed,functions.ParameterizedFunc(learner),X_test,Y_test)
 def fplot():
-	figtitle='target activation {}, learner activation {}'.format(targetactivation,learneractivation)
-	figpath='{}target={} learner={} {} minibatches'.format(cfg.outpath,targetactivation,learneractivation,int(unprocessed.getval('minibatchnumber')))
+	figtitle='target {}, learner {}'.format(targettype,learnertype)
+	figpath='{}target={} learner={} {} minibatches'.format(cfg.outpath,targettype,learnertype,int(unprocessed.getval('minibatchnumber')))
 	examples.plotfunctions(sections,learner.eval,figtitle,figpath)
 
 def process_input(c):
