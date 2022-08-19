@@ -78,7 +78,7 @@ def adjustparams():
 		print(instructions)
 		quit()
 	#examples.adjustparams(learneractivation=learneractivation)
-	examples.adjustparams()
+	examples.adjustparams(targettype=targettype,learneractivation=cfg.fromcmdparams(t='tanh',lr='leakyrelu'))
 
 
 
