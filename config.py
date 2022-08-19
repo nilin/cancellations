@@ -219,7 +219,7 @@ def log(msg):
 		write(str(int(session.time())),*[os.sep.join(pathlog.split(os.sep)[:-1])+os.sep+'duration' for pathlog in logpaths()],mode='w')	
 
 def dblog(msg):
-	write(str(msg)+'\n','debug/'+sessionID)
+	write(str(msg)+'\n','dblog/'+sessionID)
 
 def dbprint(msg):
 	session.remember('dbprintbuffer',str(msg),norepeat=True)
@@ -536,7 +536,8 @@ week=7*day
 
 cmdparams,cmdredefs=parse_cmdln_args()
 
-
+def fromcmdparams(**kw):
+	return kw[selectone(set(kw.keys()),cmdparams)]
 
 
 mode='run'

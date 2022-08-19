@@ -55,14 +55,14 @@ class Trainer():
 		self.set_default_batchsizes(**kwargs)
 		self.minibatches=deque([])
 
-
+		self.compilegrad()
+		
 
 	def minibatch_step(self,X_mini,*Y_mini):
 	
 		loss,grad=self.lossgrad(self.learner.weights,X_mini,*Y_mini)
 		updates,self.state=self.opt.update(grad,self.state,self.learner.weights)
 		self.learner.weights=optax.apply_updates(self.learner.weights,updates)
-
 		self.memory.remember('minibatch loss',loss)
 		return loss
 
@@ -96,9 +96,14 @@ class Trainer():
 		self.memory.remember('weights',copy.deepcopy(self.learner.weights))
 		self.memory.log('learner checkpoint')
 
-#	def save(self):
-#		self.checkpoint()
-#		cfg.autosave()
+
+	def compilegrad(self):
+		self.memory.log('compiling learning gradient')	
+		X_dummy=jnp.zeros_like(self.X[:self.minibatchsize])
+		Y_dummy=jnp.zeros_like(self.Y[:self.minibatchsize])
+		_0,_1=self.lossgrad(self.learner.weights,X_dummy,Y_dummy)
+		
+
 
 
 

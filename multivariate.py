@@ -86,21 +86,52 @@ def gen_NN_NS(activation):
 
 
 
-def gen_lossgrad(f,lossfn=None):
+def gen_lossgrad_batchfirst(f,lossfn):
 
-	if lossfn==None: lossfn=cfg.getlossfn()
-
-
-	@jax.jit
 	def collectiveloss(params,X,*Y):
-		fX=f(params,X)
-		return lossfn(fX,*Y)
+		return lossfn(f(params,X),*Y)
+
+	l_grad=jax.value_and_grad(collectiveloss)
 
 	@jax.jit	
 	def lossgrad(params,X,*Y):
-		return jax.value_and_grad(collectiveloss)(params,X,*Y)
+		return l_grad(params,X,*Y)
 
 	return lossgrad
+
+#
+#def gen_lossgrad_batchlast(f,lossfn):
+#
+#	def singlesampleloss(params,x,*ys):
+#		X=jnp.expand_dims(x,axis=0)
+#		Ys=[jnp.expand_dims(y,axis=0) for y in ys]
+#		return lossfn(f(params,X),*Ys)
+#
+#	singlesample_l_grad=jax.value_and_grad(singlesampleloss)
+#	#parallel_l_grad=[jax.vmap(singlesample_l_grad,in_axes=(None,0)+ntargets*(0,),out_axes=(0,0)) for ntargets in range(2)]
+#	parallel_l_grad=[jax.vmap(singlesample_l_grad,in_axes=(None,0)+ntargets*(0,)) for ntargets in range(2)]
+#
+#	@jax.jit	
+#	def lossgrad(params,X,*Y):
+#		losses,grads=parallel_l_grad[len(Y)](params,X,*Y)
+#		loss,grad=jnp.average(losses),util.applyonleaves(grads,lambda A:jnp.average(A,axis=0))
+#		#util.printshape(loss)
+#		#util.printshape(grad)
+#		return loss,grad
+#
+#	return lossgrad
+#
+
+
+def gen_lossgrad(f,lossfn=None,batchmode='first'):
+	if lossfn==None: lossfn=cfg.getlossfn()
+
+	if batchmode=='first':
+		return gen_lossgrad_batchfirst(f,lossfn)
+	if batchmode=='last':
+		return gen_lossgrad_batchlast(f,lossfn)
+	
+		
 	
 
 #----------------------------------------------------------------------------------------------------

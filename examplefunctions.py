@@ -29,7 +29,8 @@ def polynomial(coefficients,X):
 def polynomial_product(ps,X):
 	return util.prod([polynomial(p,X[:,i]) for i,p in enumerate(ps)])
 
-Slater_poly_products=AS_tools.gen_Slater(polynomial_product)
+def get_Slater_poly_products(n):
+	return AS_tools.gen_Slater(n,polynomial_product)
 
 	
 #----------------------------------------------------------------------------------------------------
@@ -77,7 +78,7 @@ def hermiteSlater(n,d,envelopevariance):
 
 	envelope=lambda x:jnp.exp(-jnp.sum(jnp.square(x),axis=(-2,-1))/(2*envelopevariance))
 	p_nd=hermite_nd_params(n,d)
-
+	Slater_poly_products=get_Slater_poly_products(n)
 
 	@jax.jit
 	def AF_(X):
@@ -116,7 +117,7 @@ def gaussianSlater(n,d):
 	means1d,r=packpoints(k)
 	means=[means1d[t] for t in tups]	
 
-	return util.fixparams(AS_tools.gen_Slater(isoGaussian(std=r)),means)
+	return util.fixparams(AS_tools.gen_Slater(n,isoGaussian(std=r)),means)
 
 
 #----------------------------------------------------------------------------------------------------

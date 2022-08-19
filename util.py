@@ -34,7 +34,8 @@ def sqloss(Y1,Y2):
 
 @jax.jit
 def dot(Y1,Y2):
-	Y1,Y2=[jnp.squeeze(_) for _ in (Y1,Y2)]
+	#Y1,Y2=[jnp.squeeze(_) for _ in (Y1,Y2)]
+	Y1,Y2=[jnp.atleast_1d(jnp.squeeze(_)) for _ in (Y1,Y2)]
 	n=Y1.shape[0]
 	return jnp.dot(Y1,Y2)/n
 
@@ -75,9 +76,12 @@ def ReLU(x):
 def DReLU(x):
 	return jnp.minimum(jnp.maximum(x,-1),1)
 
+@jax.jit
+def leaky_ReLU(x):
+	return jnp.maximum(x,.01*x)
 
 
-activations={'ReLU':ReLU,'relu':ReLU,'tanh':jnp.tanh,'softplus':softplus,'DReLU':DReLU,"drelu":DReLU}|ca.c_acs
+activations={'ReLU':ReLU,'relu':ReLU,'tanh':jnp.tanh,'softplus':softplus,'DReLU':DReLU,"drelu":DReLU,"leakyrelu":leaky_ReLU}|ca.c_acs
 
 
 
@@ -273,11 +277,14 @@ def keyfromstr(s):
 
 
 
-def nestedstructure(T,fn):
+def applyonleaves(T,fn):
 	if type(T)==list or type(T)==tuple:
 		return [nestedstructure(e,fn) for e in T]
 	else:
 		return fn(T)
+
+nestedstructure=applyonleaves
+
 
 def dimlist(T):
 	return nestedstructure(T,lambda A:A.shape)

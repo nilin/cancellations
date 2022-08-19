@@ -88,41 +88,47 @@ def gen_lossgrad_Af(n,f,lossfn):
 # Y : samples,n,kn
 """
 
-@jax.jit
-def detsum(a,Y):
-	n=Y.shape[-2]
-	
-	out=0
-	for i,c in enumerate(a):
-		out=out+c*jnp.linalg.det(Y[:,:,i*n:(i+1)*n])
+def get_detsum(n):
 
-	return out
-
-
-def gen_backflowdets(ac):
-	return util.compose(bf.gen_backflow(ac),detsum)
+	@jax.jit
+	def detsum(a,Y):
+		out=0
+		for i,c in enumerate(a):
+			out=out+c*jnp.linalg.det(Y[:,:,i*n:(i+1)*n])
+		return out
+	return detsum
 
 
+def gen_backflowdets(n,ac):
+	return util.compose(bf.gen_backflow(ac),get_detsum(n))
+
+
+#=======================================================================================================
 	
 @jax.jit
 def EV_to_sym(b,Y):
 	return jnp.inner(jnp.sum(Y,axis=-2),b)
 
-@jax.jit
-def EV_to_antisym(ab,Y):
-	a,b=ab
-	return detsum(a,Y)*EV_to_sym(b,Y)
+def get_EV_to_antisym(n):
+	detsum=get_detsum(n)
 
-def gen_backflow_detsandsym(ac):
-	return util.compose(bf.gen_backflow(ac),EV_to_antisym)
+	@jax.jit
+	def EV_to_antisym(ab,Y):
+		a,b=ab
+		return detsum(a,Y)*EV_to_sym(b,Y)
+	return EV_to_antisym
 
+def gen_backflow_detsandsym(n,ac):
+	return util.compose(bf.gen_backflow(ac),get_EV_to_antisym(n))
+
+#=======================================================================================================
 
 #===================
 # Example: ferminet
 #===================
 
-def gen_ferminet(ac='tanh'):
-	return util.recompose(bf.gen_FN_backflow(ac),detsum)
+def gen_ferminet(n,ac='tanh'):
+	return util.recompose(bf.gen_FN_backflow(ac),get_detsum(n))
 
 
 
@@ -135,27 +141,26 @@ def gen_ferminet(ac='tanh'):
 """
 m*n separate functions with distinct weights
 """
-def gen_Slater(phi):
+def gen_Slater(n,phi):
 
 	@jax.jit
 	def Af(weights,X):
-		n=len(weights)
 		matrices=jnp.stack([jnp.stack([phi(weights[i],X[:,j,:]) for j in range(n)],axis=-1) for i in range(n)],axis=-1)
 		return jnp.linalg.det(matrices)
 	return Af
 
 
-"""
-# F:x->(f1(x),..,fn(x))		s,d |-> s,n
-"""
-def vectorSlater(fs):								
-	Fs=jax.vmap(fs,in_axes=(None,1),out_axes=-1)
-
-	@jax.jit
-	def AF(params,X):
-		FX=Fs(params,X)			# FX:	s,n (basisfunction),n (particle)
-		return jnp.linalg.det(FX)
-	return AF
+#"""
+## F:x->(f1(x),..,fn(x))		s,d |-> s,n
+#"""
+#def vectorSlater(fs):								
+#	Fs=jax.vmap(fs,in_axes=(None,1),out_axes=-1)
+#
+#	@jax.jit
+#	def AF(params,X):
+#		FX=Fs(params,X)			# FX:	s,n (basisfunction),n (particle)
+#		return jnp.linalg.det(FX)
+#	return AF
 
 #=======================================================================================================
 ## test

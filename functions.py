@@ -101,6 +101,12 @@ class ParameterizedFunc:
 		self.fdescr=pf.fdescr
 		self.restore()
 
+#	def prep_f(self,params):
+#		cfg.logcurrenttask('prep_f')
+#		X_dummy=jnp.zeros((100,self.fdescr.n,self.fdescr.d))
+#		_=self.f(params,X_dummy)
+#		cfg.clearcurrenttask()
+
 	##########################################################
 
 
@@ -141,6 +147,8 @@ class DynFunc(ParameterizedFunc):
 			assert(len(args)==0)
 			self.initnew(**kw)
 
+		#self.prep_f(self.weights)
+
 	def initnew(self,**kw):
 		super().__init__(FunctionDescription(**kw))
 		self.weights=self.fdescr.initweights()
@@ -174,22 +182,24 @@ class FunctionDescription:
 			setattr(self,k,v)
 
 	def gen_f(self):
+		n=self.n
+
 		if self.ftype=='AS_NN':
 			NN_NS=mv.gen_NN_NS(self.activation)
-			return ASt.gen_Af(self.n,NN_NS)
+			return ASt.gen_Af(n,NN_NS)
 		if self.ftype=='backflowdets':
-			return ASt.gen_backflowdets(self.activation)
+			return ASt.gen_backflowdets(n,self.activation)
 		if self.ftype=='backflow_detsandsym':
-			return ASt.gen_backflow_detsandsym(self.activation)
+			return ASt.gen_backflow_detsandsym(n,self.activation)
 		if self.ftype=='ferminet':
-			return ASt.gen_ferminet(self.activation)
+			return ASt.gen_ferminet(n,self.activation)
 
 
 		#static functions
 		if self.ftype=='hermiteSlater':
-			return examplefunctions.hermiteSlater(self.n,self.d,1/8)
+			return examplefunctions.hermiteSlater(n,self.d,1/8)
 		if self.ftype=='gaussianSlater':
-			return examplefunctions.gaussianSlater(self.n,self.d)
+			return examplefunctions.gaussianSlater(n,self.d)
 		
 
 

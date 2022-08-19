@@ -205,9 +205,9 @@ class AbstractDashboard:
 			display=self.getdisplay(concretedisplay)
 			if signal==None or signal in display.trackedvars:
 
-				#self.draw(concretedisplay)
-				if display.tick_after(.01) or 'updatedisplay' in args:
-					self.draw(concretedisplay)
+				self.draw(concretedisplay)
+				#if display.tick_after(.01) or 'updatedisplay' in args:
+				#	self.draw(concretedisplay)
 
 	def draw_all(self):
 		for name,concretedisplay in self.displays.items():

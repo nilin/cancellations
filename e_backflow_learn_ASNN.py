@@ -42,7 +42,7 @@ import examples
 
 
 
-cfg.exname='backflow2d'
+cfg.exname='backflow_learn_ASNN'
 
 cfg.explanation='Example '+cfg.exname
 
@@ -54,7 +54,7 @@ cfg.params={
 'learnerwidths_b':[[2,5,25],5],
 'learnerwidths_p':[[2,5,100],5],
 'learnerwidths_f':[[3,8,8],[10,10,10],2],
-'learneractivation':'tanh',
+#'learneractivation':'tanh',
 'targettype':'AS_NN',
 'targetwidths':[10,20,20,1],
 'targetactivation':'tanh',
@@ -66,12 +66,17 @@ cfg.params={
 'minibatchsize':50
 }
 
-instructions='instructions:\n\npython exBackflow2d.py (b/f/p) \n\nparameters represent:\nb=backflow+dets / f=ferminet / p=backflow_detsandsym (product of sym and det)\n'
+#instructions='instructions:\n\npython e_backflow_learn_ASNN.py (b/f/p) \n\n\
+#parameters represent:\nb=backflow+dets / f=ferminet / p=backflow_detsandsym (product of sym and det)\n'
+
+instructions='instructions:\n\npython e_backflow_learn_ASNN.py (t/lr) \n\n\
+parameters represent:\ntanh/leaky relu\n'
 
 
 def adjustparams():
 	try:
-		selection=cfg.selectone({'b','f','p'},cfg.cmdparams)
+		selection='p' #cfg.selectone({'b','f','p'},cfg.cmdparams)
+		#selection=cfg.selectone({'b','f','p'},cfg.cmdparams)
 		learnertype={'b':'backflowdets','f':'ferminet','p':'backflow_detsandsym'}[selection]
 		learnerwidths=cfg.params['learnerwidths_'+selection]
 	except:
@@ -79,7 +84,7 @@ def adjustparams():
 		print(instructions)
 		quit()
 
-	examples.adjustparams(learnertype=learnertype,learnerwidths=learnerwidths)
+	examples.adjustparams(learnertype=learnertype,learnerwidths=learnerwidths,learneractivation=cfg.fromcmdparams(t='tanh',lr='leakyrelu'))
 
 
 
@@ -130,7 +135,8 @@ def run():
 			unprocessed.remember('weights',learner.weights)
 
 		if sc2.activate(i):
-			lazyplot.do_if_rested(.2,fplot,lplot)
+			fplot()
+			lazyplot.do_if_rested(.2,lplot)
 
 
 

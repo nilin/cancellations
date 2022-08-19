@@ -105,11 +105,11 @@ def plotexample(unprocessed,processed,info=''):
 
 
 def plotfunctions(sections,f,figtitle,path):
-	#cfg.logcurrenttask('generating function plots')
+	cfg.logcurrenttask('generating function plots')
 	plt.close('all')
-	figs=[section.plot_y_vs_f_SI(f) for section in sections]
-	for fignum,fig in enumerate(figs):
-		cfg.trackcurrenttask('generating functions plots',(fignum+1)/len(figs))
+	for fignum,section in enumerate(sections):
+		fig=section.plot_y_vs_f_SI(f)
+		cfg.trackcurrenttask('generating functions plots',(fignum+1)/len(sections))
 		fig.suptitle(figtitle)
 		cfg.savefig('{} {}.pdf'.format(path,fignum),fig=fig)
 	cfg.clearcurrenttask()

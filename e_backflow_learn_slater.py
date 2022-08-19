@@ -42,7 +42,7 @@ import examples
 
 
 
-cfg.exname='test'
+cfg.exname='backflow_learn_slater'
 
 cfg.explanation='Example '+cfg.exname
 
@@ -54,7 +54,7 @@ cfg.params={
 #'learnertype':'AS_NN',
 #'learnerwidths':[10,250,1],
 'learneractivation':'tanh',
-'targettype':'gaussianSlater',
+#'targettype':'gaussianSlater',
 'weight_decay':0,
 'lossfn':'SI_loss',
 'samples_train':50000,
@@ -63,12 +63,15 @@ cfg.params={
 'minibatchsize':100
 }
 
-instructions='instructions:\n\npython exNN2d.py (t/r) \n\nparameters represent:\nt=tanh learner, r=relu learner\n'
+instructions='instructions:\n\n\
+python e_backflow_learn_slater.py (h/g) \n\n\
+parameters represent:\n\
+h=hermite/g=gaussian slater target\n'
 
 
 def adjustparams():
 	try:
-		#learneractivation={'t':'tanh','r':'ReLU','s':'softplus'}[cfg.selectone({'t','r','s'},cfg.cmdparams)]
+		targettype={'h':'hermite','g':'gaussian'}[cfg.selectone({'h','g'},cfg.cmdparams)]+'Slater'
 		pass
 	except:
 		db.clear()
@@ -112,6 +115,12 @@ def run():
 	cfg.logcurrenttask('preparing slices for plotting')
 	sections=pt.genCrossSections(X,Y,target.eval)
 
+
+	#cfg.logcurrenttask('compiling learning gradient')
+	#trainer.compilegrad()
+	#cfg.clearcurrenttask()
+
+
 	cfg.logcurrenttask('begin training')
 	for i in range(iterations+1):
 
@@ -125,7 +134,8 @@ def run():
 			unprocessed.remember('weights',learner.weights)
 
 		if sc2.activate(i):
-			lazyplot.do_if_rested(.2,fplot,lplot)
+			fplot()
+			lazyplot.do_if_rested(.2,lplot)
 
 
 	

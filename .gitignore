@@ -14,7 +14,6 @@ sum2*
 sum3*
 scratchwork
 inputs/*
-output*
 local*
 prev*
 D/*
@@ -36,10 +35,11 @@ prev/*
 local/*
 temp*
 data/*
+dblog*
 plots/*
 logs/*
 debug/*
 __pycache__
-outputs
+outputs/*
 logs
 e_db*

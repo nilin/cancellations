@@ -42,7 +42,7 @@ import examples
 
 
 
-cfg.exname='hSlatertarget2d'
+cfg.exname='ASNN_learn_slater'
 
 cfg.explanation='Example '+cfg.exname
 
@@ -52,7 +52,7 @@ cfg.params={
 'learnertype':'AS_NN',
 'learnerwidths':[10,100,100,1],
 #'learneractivation':'tanh',
-'targettype':'hermiteSlater',
+#'targettype':'hermiteSlater',
 'weight_decay':0,
 'lossfn':'SI_loss',
 'samples_train':50000,
@@ -61,18 +61,20 @@ cfg.params={
 'minibatchsize':50
 }
 
-instructions='instructions:\n\npython exNN2d.py (t/s) \n\nparameters represent:\nt=tanh learner, s=softplus learner\n'
+instructions='instructions:\n\n\
+python e_ASNN_learn_slater.py (t/r/lr/s) (h/g) \n\n\
+parameters represent:\n\
+tanh/relu/leaky relu/softplus learner\n\
+hermite/gaussian slater target\n'
 
 
 def adjustparams():
 	try:
-		learneractivation={'t':'tanh','s':'softplus'}[cfg.selectone({'t','s'},cfg.cmdparams)]
-		pass
+		examples.adjustparams(learneractivation=cfg.fromcmdparams(t='tanh',s='softplus',r='relu',lr='leakyrelu'),targettype=cfg.fromcmdparams(h='hermite',g='gaussian')+'Slater')
 	except:
 		db.clear()
 		print(instructions)
 		quit()
-	examples.adjustparams(learneractivation=learneractivation)
 
 
 
@@ -122,15 +124,16 @@ def run():
 			unprocessed.remember('weights',learner.weights)
 
 		if sc2.activate(i):
-			lazyplot.do_if_rested(.2,fplot,lplot)
+			fplot()
+			lazyplot.do_if_rested(.2,lplot)
 
 
 
 def lplot():
 	examples.processandplot(unprocessed,functions.ParameterizedFunc(learner),X_test,Y_test)
 def fplot():
-	figtitle='target {}, learner {}'.format(targettype,learnertype)
-	figpath='{}target={} learner={} {} minibatches'.format(cfg.outpath,targettype,learnertype,int(unprocessed.getval('minibatchnumber')))
+	figtitle='target {}, learner {}-{}'.format(targettype,learneractivation,learnertype)
+	figpath='{}target={} learner={}-{} {} minibatches'.format(cfg.outpath,targettype,learneractivation,learnertype,int(unprocessed.getval('minibatchnumber')))
 	examples.plotfunctions(sections,learner.eval,figtitle,figpath)
 
 def process_input(c):

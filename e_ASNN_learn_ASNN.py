@@ -42,7 +42,7 @@ import examples
 
 
 
-cfg.exname='NN2d'
+cfg.exname='ASNN_learn_ASNN'
 
 cfg.explanation='Example '+cfg.exname
 
@@ -63,13 +63,16 @@ cfg.params={
 'minibatchsize':50
 }
 
-instructions='instructions:\n\npython exNN2d.py (t/r) \n\nparameters represent:\nt=tanh learner, r=relu learner\n'
+instructions='instructions:\n\n\
+python e_ASNN_learn_ASNN.py (t/r/lr/s) \n\n\
+parameters represent:\n\
+tanh/relu/leaky relu/softplus learner\n'
 
 
 def adjustparams():
 	try:
+		learneractivation={'t':'tanh','s':'softplus','r':'relu','lr':'leakyrelu'}[cfg.selectone({'t','s','r','lr'},cfg.cmdparams)]
 		pass
-		learneractivation={'t':'tanh','r':'ReLU'}[cfg.selectone({'t','r'},cfg.cmdparams)]
 	except:
 		db.clear()
 		print(instructions)
@@ -124,7 +127,8 @@ def run():
 			unprocessed.remember('weights',learner.weights)
 
 		if sc2.activate(i):
-			lazyplot.do_if_rested(.2,fplot,lplot)
+			fplot()
+			lazyplot.do_if_rested(.2,lplot)
 
 
 
