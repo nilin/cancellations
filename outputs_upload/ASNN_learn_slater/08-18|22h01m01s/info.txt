@@ -1,0 +1,15 @@
+Example ASNN_learn_slater
+sessionID: 08-18|22h01m01s
+
+learneractivation=tanh
+targettype=hermiteSlater
+n=5
+d=2
+learnertype=AS_NN
+learnerwidths=[10, 100, 100, 1]
+weight_decay=0
+lossfn=SI_loss
+samples_train=50000
+samples_test=1000
+iterations=100000
+minibatchsize=50

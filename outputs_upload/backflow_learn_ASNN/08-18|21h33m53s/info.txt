@@ -1,0 +1,20 @@
+Example backflow_learn_ASNN
+sessionID: 08-18|21h33m53s
+
+learnertype=backflow_detsandsym
+learnerwidths=[[2, 5, 100], 5]
+n=5
+d=2
+learnerwidths_b=[[2, 5, 25], 5]
+learnerwidths_p=[[2, 5, 100], 5]
+learnerwidths_f=[[3, 8, 8], [10, 10, 10], 2]
+learneractivation=tanh
+targettype=AS_NN
+targetwidths=[10, 20, 20, 1]
+targetactivation=tanh
+weight_decay=0
+lossfn=SI_loss
+samples_train=25000
+samples_test=1000
+iterations=100000
+minibatchsize=50
