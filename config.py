@@ -536,9 +536,10 @@ week=7*day
 
 cmdparams,cmdredefs=parse_cmdln_args()
 
-def fromcmdparams(**kw):
+def getfromcmdparams(**kw):
 	return kw[selectone(set(kw.keys()),cmdparams)]
 
+fromcmdparams=getfromcmdparams
 
 mode='run'
 

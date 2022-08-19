@@ -64,96 +64,21 @@ cfg.params={
 }
 
 instructions='instructions:\n\n\
-python e_backflow_learn_slater.py (h/g) \n\n\
+python e_backflow_learn_slater.py (h/g) (t/lr) \n\n\
 parameters represent:\n\
-h=hermite/g=gaussian slater target\n'
+h=hermite/g=gaussian slater target\n\
+tanh/leaky relu learner\n'
 
 
-def adjustparams():
-	try:
-		targettype={'h':'hermite','g':'gaussian'}[cfg.selectone({'h','g'},cfg.cmdparams)]+'Slater'
-		pass
-	except:
-		db.clear()
-		print(instructions)
-		quit()
-	#examples.adjustparams(learneractivation=learneractivation)
-	examples.adjustparams(targettype=targettype,learneractivation=cfg.fromcmdparams(t='tanh',lr='leakyrelu'))
+try:
+	examples.adjustparams(targettype=cfg.getfromcmdparams(h='hermite',g='gaussian')+'Slater',learneractivation=cfg.getfromcmdparams(t='tanh',lr='leakyrelu'))
+	pass
+except:
+	db.clear()
+	print(instructions)
+	quit()
+globals().update(cfg.params)
 
-
-
-def run():
-	globals().update(cfg.params)
-
-	global learner,target,unprocessed,X,X_test,Y,Y_test,sections
-
-
-	unprocessed=cfg.ActiveMemory()
-	try:
-		cfg.dashboard.add_display(examples.Display2(10,cfg.dashboard.width,unprocessed),40,name='bars')
-	except:
-		pass
-
-	
-	X=rnd.uniform(cfg.nextkey(),(samples_train,n,d),minval=-1,maxval=1)
-	X_test=rnd.uniform(cfg.nextkey(),(samples_test,n,d),minval=-1,maxval=1)
-
-	target=functions.StaticFunc(ftype=targettype,n=n,d=d)
-	learner=functions.DynFunc(ftype=learnertype,n=n,d=d,widths=learnerwidths,activation=learneractivation)
-
-	cfg.logcurrenttask('preparing training data')
-	Y=target.eval(X)
-	cfg.logcurrenttask('preparing test data')
-	Y_test=target.eval(X_test)
-
-	trainer=learning.Trainer(learner,X,Y,weight_decay=weight_decay,minibatchsize=minibatchsize,lossfn=util.SI_loss) #,lossgrad=mv.gen_lossgrad(AS,lossfn=util.SI_loss))
-
-	sc1=cfg.Scheduler(cfg.nonsparsesched(iterations,start=100))
-	sc2=cfg.Scheduler(cfg.sparsesched(iterations,start=1000))
-	lazyplot=cfg.Clockedworker()
-
-	cfg.logcurrenttask('preparing slices for plotting')
-	sections=pt.genCrossSections(X,Y,target.eval)
-
-
-	#cfg.logcurrenttask('compiling learning gradient')
-	#trainer.compilegrad()
-	#cfg.clearcurrenttask()
-
-
-	cfg.logcurrenttask('begin training')
-	for i in range(iterations+1):
-
-		cfg.poke()
-		loss=trainer.step()
-
-		unprocessed.addcontext('minibatchnumber',i)
-		unprocessed.remember('minibatch loss',loss)
-
-		if sc1.activate(i):
-			unprocessed.remember('weights',learner.weights)
-
-		if sc2.activate(i):
-			fplot()
-			lazyplot.do_if_rested(.2,lplot)
-
-
-	
-
-def lplot():
-	examples.processandplot(unprocessed,functions.ParameterizedFunc(learner),X_test,Y_test)
-def fplot():
-	figtitle='target {}, learner {}'.format(targettype,learnertype)
-	figpath='{}target={} learner={} {} minibatches'.format(cfg.outpath,targettype,learnertype,int(unprocessed.getval('minibatchnumber')))
-	examples.plotfunctions(sections,learner.eval,figtitle,figpath)
-
-def process_input(c):
-	if c==108: lplot()
-	if c==102: fplot()
-
-
-
-if __name__=='__main__':
-	adjustparams()
-
-	examples.runexample(run,process_input)
+target=functions.StaticFunc(ftype=targettype,n=n,d=d)
+learner=functions.DynFunc(ftype=learnertype,n=n,d=d,widths=learnerwidths,activation=learneractivation)
+examples.runexample(target,learner)

@@ -36,39 +36,85 @@ from config import session
 
 
 
+def getrunfn(target,learner):
 
-def processandplot(unprocessed,pfunc,X,Y,process_snapshot_fn=None,plotexample_fn=None):
+	def runfn():
+		globals().update(cfg.params)
 
-	if process_snapshot_fn==None: process_snapshot_fn=process_snapshot
-	if plotexample_fn==None: plotexample_fn=plotexample
-
-	processed=cfg.ActiveMemory()
-
-	weightslist,i_s=unprocessed.gethist('weights','minibatchnumber')
-	for imgnum,(weights,i) in enumerate(zip(weightslist,i_s)):
-
-		cfg.trackcurrenttask('processing snapshots for learning plot',(imgnum+1)/len(weightslist))
-		process_snapshot(processed,functions.DynFunc(pfunc,weights),X,Y,i)		
-
-	plotexample(unprocessed,processed)
-	cfg.save(processed,cfg.outpath+'data')
-
-	cfg.clearcurrenttask()
-	return processed
+		global unprocessed,X,X_test,Y,Y_test,sections,_learner_
+		_learner_=learner
+		#global learner,target,unprocessed,X,X_test,Y,Y_test,sections
 
 
+		unprocessed=cfg.ActiveMemory()
+		try:
+			cfg.dashboard.add_display(Display2(10,cfg.dashboard.width,unprocessed),40,name='bars')
+		except:
+			pass
+
+		X=rnd.uniform(cfg.nextkey(),(samples_train,n,d),minval=-1,maxval=1)
+		X_test=rnd.uniform(cfg.nextkey(),(samples_test,n,d),minval=-1,maxval=1)
+
+		cfg.logcurrenttask('preparing training data')
+		Y=target.eval(X)
+		cfg.logcurrenttask('preparing test data')
+		Y_test=target.eval(X_test)
+
+		trainer=learning.Trainer(learner,X,Y,weight_decay=weight_decay,minibatchsize=minibatchsize,lossfn=util.SI_loss) #,lossgrad=mv.gen_lossgrad(AS,lossfn=util.SI_loss))
+
+		sc1=cfg.Scheduler(cfg.nonsparsesched(iterations,start=100))
+		sc2=cfg.Scheduler(cfg.sparsesched(iterations,start=1000))
+		lazyplot=cfg.Clockedworker()
+
+		cfg.logcurrenttask('preparing slices for plotting')
+		sections=pt.genCrossSections(X,Y,target.eval)
+
+		cfg.logcurrenttask('begin training')
+		for i in range(iterations+1):
+
+			cfg.poke()
+			loss=trainer.step()
+
+			unprocessed.addcontext('minibatchnumber',i)
+			unprocessed.remember('minibatch loss',loss)
+
+			if sc1.activate(i):
+				unprocessed.remember('weights',learner.weights)
+
+			if sc2.activate(i):
+				fplot()
+				lazyplot.do_if_rested(.2,lplot)
+
+	return runfn
 
 
-def process_snapshot(processed,dynfunc,X,Y,i):
+
+def lplot():
+	processandplot(unprocessed,functions.ParameterizedFunc(_learner_),X_test,Y_test)
+def fplot():
+	figtitle='target {}, learner {}-{}'.format(targettype,learneractivation,learnertype)
+	figpath='{}target={} learner={}-{} {} minibatches'.format(cfg.outpath,targettype,learneractivation,learnertype,int(unprocessed.getval('minibatchnumber')))
+	plotfunctions(sections,_learner_.eval,figtitle,figpath)
+
+def process_input(c):
+	if c==108: lplot()
+	if c==102: fplot()
+
+
+
+
+# learning plots
+####################################################################################################
+
+
+def process_snapshot_0(processed,dynfunc,X,Y,i):
 	processed.addcontext('minibatchnumber',i)
 
 	f,weights=dynfunc.eval,dynfunc.weights
 	processed.remember('Af norm',jnp.average(f(X[:100])**2))
 	processed.remember('test loss',util.SI_loss(f(X),Y))
 
-
-
-def plotexample(unprocessed,processed,info=''):
+def plotexample_0(unprocessed,processed,info=''):
 	plt.close('all')
 
 
@@ -99,10 +145,33 @@ def plotexample(unprocessed,processed,info=''):
 	cfg.savefig('{}{}'.format(cfg.outpath,'performance.pdf'),fig=fig)
 
 
+process_snapshot=process_snapshot_0
+plotexample=plotexample_0
 
 
 
+# function plots
+####################################################################################################
 
+
+def processandplot(unprocessed,pfunc,X,Y,process_snapshot_fn=None,plotexample_fn=None):
+
+	if process_snapshot_fn==None: process_snapshot_fn=process_snapshot
+	if plotexample_fn==None: plotexample_fn=plotexample
+
+	processed=cfg.ActiveMemory()
+
+	weightslist,i_s=unprocessed.gethist('weights','minibatchnumber')
+	for imgnum,(weights,i) in enumerate(zip(weightslist,i_s)):
+
+		cfg.trackcurrenttask('processing snapshots for learning plot',(imgnum+1)/len(weightslist))
+		process_snapshot(processed,functions.DynFunc(pfunc,weights),X,Y,i)		
+
+	plotexample(unprocessed,processed)
+	cfg.save(processed,cfg.outpath+'data')
+
+	cfg.clearcurrenttask()
+	return processed
 
 def plotfunctions(sections,f,figtitle,path):
 	cfg.logcurrenttask('generating function plots')
@@ -115,6 +184,10 @@ def plotfunctions(sections,f,figtitle,path):
 	cfg.clearcurrenttask()
 
 
+
+
+# prep
+####################################################################################################
 
 
 def adjustparams(**priorityparams):
@@ -149,7 +222,10 @@ class Display2(db.StackedDisplay):
 
 
 
-def runexample(run,process_input):
+def runexample(target,learner):
+
+	runfn=getrunfn(target,learner)
+
 	db.clear()
 	if 'nodisplay' in cfg.cmdparams:
 		run()
@@ -166,4 +242,4 @@ def runexample(run,process_input):
 		run()
 	else:
 		import run_in_display
-		run_in_display.RID(run,process_input)
+		run_in_display.RID(runfn,process_input)

@@ -132,6 +132,9 @@ class ParameterizedFunc:
 		self.f=self.fdescr.gen_f()
 		return self
 
+	def get_type(self):
+		return self.fdescr.ftype
+
 
 
 class DynFunc(ParameterizedFunc):
