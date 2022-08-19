@@ -1,0 +1,15 @@
+Example backflow_learn_slater
+sessionID: 08-18|22h33m10s
+
+targettype=hermiteSlater
+learneractivation=tanh
+n=5
+d=2
+learnertype=backflow_detsandsym
+learnerwidths=[[2, 10, 100], 10]
+weight_decay=0
+lossfn=SI_loss
+samples_train=50000
+samples_test=500
+iterations=100000
+minibatchsize=100
