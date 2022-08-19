@@ -1,5 +1,5 @@
 Example ASNN_learn_slater
-sessionID: 08-18|22h01m01s
+sessionID: 08-19|02h36m02s
 
 learneractivation=tanh
 targettype=hermiteSlater
