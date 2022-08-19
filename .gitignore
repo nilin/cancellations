@@ -43,3 +43,4 @@ __pycache__
 outputs/*
 logs
 e_db*
+nonfunc*
