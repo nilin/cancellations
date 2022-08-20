@@ -41,9 +41,12 @@ def getrunfn0(target,learner):
 	def runfn():
 		globals().update(cfg.params)
 
-		global unprocessed,X,X_test,Y,Y_test,sections,_learner_
-		_learner_=learner
-		#global learner,target,unprocessed,X,X_test,Y,Y_test,sections
+		global unprocessed,X,X_test,Y,Y_test,sections,_learner_,_target_
+		_target_,_learner_=target,learner
+		
+		sessioninfo='{}\nsessionID: {}\n\n{}'.format(cfg.explanation,cfg.sessionID,info('\n'))
+		session.remember('sessioninfo',sessioninfo)
+		cfg.write(session.getval('sessioninfo'),cfg.outpath+'info.txt',mode='w')
 
 
 		unprocessed=cfg.ActiveMemory()
@@ -92,9 +95,12 @@ def getrunfn0(target,learner):
 def lplot():
 	processandplot(unprocessed,_learner_,X_test,Y_test)
 def fplot():
-	figtitle='target {}, learner {}-{}'.format(targettype,learneractivation,learnertype)
-	figpath='{}target={} learner={}-{} {} minibatches'.format(cfg.outpath,targettype,learneractivation,learnertype,int(unprocessed.getval('minibatchnumber')))
+	figtitle=info()
+	figpath='{}{} minibatches'.format(cfg.outpath,int(unprocessed.getval('minibatchnumber')))
 	plotfunctions(sections,_learner_.eval,figtitle,figpath)
+
+def info(separator=' | '):
+	return 'target={}{}learner={}'.format(_target_.typename(),separator,_learner_.typename())
 
 def process_input(c):
 	if c==108: lplot()
@@ -107,19 +113,17 @@ def process_input(c):
 ####################################################################################################
 
 
-def process_snapshot_0(processed,dynfunc,X,Y,i):
+def process_snapshot_0(processed,f,X,Y,i):
 	processed.addcontext('minibatchnumber',i)
-
-	f,weights=dynfunc.eval,dynfunc.weights
 	processed.remember('Af norm',jnp.average(f(X[:100])**2))
 	processed.remember('test loss',util.SI_loss(f(X),Y))
 
-def plotexample_0(unprocessed,processed,info=''):
+def plotexample_0(unprocessed,processed):
 	plt.close('all')
 
 
 	fig,(ax0,ax1)=plt.subplots(2)
-	fig.suptitle('test loss for learner '+info)
+	fig.suptitle('test loss '+info())
 
 	ax0.plot(*util.swap(*processed.gethist('test loss','minibatchnumber')),'r-',label='test loss')
 	ax0.legend()
@@ -137,7 +141,7 @@ def plotexample_0(unprocessed,processed,info=''):
 
 
 	fig,ax=plt.subplots()
-	ax.set_title('performance '+info)
+	ax.set_title('performance '+info())
 	I,t=unprocessed.gethistbytime('minibatchnumber')
 	ax.plot(t,I)
 	ax.set_xlabel('time')
@@ -148,21 +152,9 @@ def plotexample_0(unprocessed,processed,info=''):
 process_snapshot=process_snapshot_0
 plotexample=plotexample_0
 
-
-
-# function plots
-####################################################################################################
-
-class ClonedFunc(functions.Func):
-	def __init__(self,pf,weights):
-		self.fdescr=pf.fdescr
-		self.f=pf.f
-		self.weights=weights
-
-
-
 def processandplot(unprocessed,pfunc,X,Y,process_snapshot_fn=None,plotexample_fn=None):
 
+	pfunc=pfunc.getemptyclone()
 	if process_snapshot_fn==None: process_snapshot_fn=process_snapshot
 	if plotexample_fn==None: plotexample_fn=plotexample
 
@@ -172,13 +164,19 @@ def processandplot(unprocessed,pfunc,X,Y,process_snapshot_fn=None,plotexample_fn
 	for imgnum,(weights,i) in enumerate(zip(weightslist,i_s)):
 
 		cfg.trackcurrenttask('processing snapshots for learning plot',(imgnum+1)/len(weightslist))
-		process_snapshot(processed,ClonedFunc(pfunc,weights),X,Y,i)		
+		process_snapshot(processed,pfunc.fwithparams(weights),X,Y,i)		
 
 	plotexample(unprocessed,processed)
 	cfg.save(processed,cfg.outpath+'data')
 
 	cfg.clearcurrenttask()
 	return processed
+
+
+
+# function plots
+####################################################################################################
+
 
 def plotfunctions(sections,f,figtitle,path):
 	cfg.logcurrenttask('generating function plots')
@@ -206,13 +204,9 @@ def adjustparams(**priorityparams):
 
 	#params['learnerwidths'][0]=params['n']*params['d']
 
-	info='\n'.join(['{}={}'.format(k,v) for k,v in params.items()])
-	sessioninfo='{}\nsessionID: {}\n\n{}'.format(explanation,cfg.sessionID,info)
-	session.remember('sessioninfo',sessioninfo)
 
 	cfg.trackduration=True
 	cfg.outpath='outputs/{}/{}/'.format(cfg.exname,cfg.sessionID)
-	cfg.write(session.getval('sessioninfo'),cfg.outpath+'info.txt',mode='w')
 
 
 
@@ -263,4 +257,8 @@ def runexample(runfn):
 
 
 def runexample0(target,learner):
+
+	if 'debug' in cfg.cmdparams:
+		import debug
+
 	runexample(getrunfn0(target,learner))

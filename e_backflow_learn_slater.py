@@ -11,7 +11,7 @@ import dashboard as db
 from config import session,getfromargs
 import examples
 import jax
-from functions import FunctionDescription as FD
+from functions import getfunc,ComposedFunction
 
 jax.config.update("jax_enable_x64", True)
 
@@ -27,10 +27,11 @@ cfg.explanation='Example '+cfg.exname
 cfg.params={
 'n':5,
 'd':2,
-'learnertype':'backflow1',
+'learnertype':'Backflow1',
 'learnerwidths':[['d_sp',100],5],
 'spwidths':['d',100,100],
-'targettype':'hermiteSlater',
+#'targettype':'hermiteSlater',
+'targettype':'gaussianSlater',
 'weight_decay':0,
 'lossfn':'SI_loss',
 'samples_train':25000,
@@ -45,14 +46,15 @@ parameters represent:\ntanh/leaky relu\n'
 
 try:
 	examples.adjustparams(learneractivation=getfromargs(t='tanh',lr='leakyrelu'))
-except:
+except Exception as e:
 	db.clear()
 	print(instructions)
+	print(str(e))
 	quit()
 globals().update(cfg.params)
 
 
 
-target=functions.get_func(ftype=targettype,n=n,d=d)
-learner=functions.get_composed_func(FD('singleparticleNN',d=d,widths=spwidths,activation=learneractivation),FD(learnertype,n=n,d=100,widths=learnerwidths,activation=learneractivation))
+target=getfunc(ftype=targettype,n=n,d=d)
+learner=functions.ComposedFunction(getfunc('SingleparticleNN',d=d,widths=spwidths,activation=learneractivation),getfunc(learnertype,n=n,d=100,widths=learnerwidths,activation=learneractivation))
 examples.runexample0(target,learner)

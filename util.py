@@ -163,7 +163,6 @@ def normalize(f,X_,echo=False):
 
 
 def normalize_by_weights(learner,X_):
-
 	f=learner.as_static()	
 	scalesquared=sqloss(f(X_),0)
 	C=1/math.sqrt(scalesquared)

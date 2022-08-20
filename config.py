@@ -580,6 +580,10 @@ def print(*args,**kw):
 	session.remember('dbprintbuffer',str(*args,**kw),norepeat=True)
 
 
+
+def indent(s):
+	return '\n    '.join(s.splitlines())
+
 # testing
 
 if __name__=='__main__':

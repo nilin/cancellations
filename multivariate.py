@@ -14,6 +14,7 @@ import config as cfg
 from util import activations
 import pdb
 
+from inspect import signature
 
 #=======================================================================================================
 # NN 
@@ -161,52 +162,27 @@ def initweights_NN(widths):
 # operations on functions
 #----------------------------------------------------------------------------------------------------
 
+def multiply(*fs):
+	if max([takesparams(f) for f in fs]):
+		def F(paramsbundle,X):
+			out=1
+			for f,params in zip(fs,paramsbundle):
+				out*=pad(f)(params,X)
+			return out
+	else:
+		def F(X):
+			out=1
+			for f in fs: out*=f(X)
+			return out
+	return F
 
-def sum_f(f):
+
+def takesparams(f):
+	return len(signature(f).parameters)==2	
+
+def pad(f):
+	return f if takesparams(f) else util.dummyparams(f)
 	
-	@jax.jit
-	def sf(paramsbundle,X):
-		out=0
-		for params in paramsbundle:
-			out=out+f(params,X)
-		return out
-
-	return sf
-
-
-def product_f(f):
-	
-	@jax.jit
-	def pr(paramsbundle,X):
-		out=0
-		for i,params in enumerate(paramsbundle):
-			out=out*f(params,X[:,i,:])
-		return out
-
-	return pr
-
-
-
-def add_static_f(*fs):
-
-	@jax.jit
-	def sumf(X):
-		out=0
-		for f in fs:
-			out=out+f(X)
-		return out
-	return sumf
-
-
-		
-
-
-
-
-
-
-
-
 
 
 

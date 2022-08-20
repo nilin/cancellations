@@ -1,6 +1,5 @@
 import jax
 import config as cfg
-import importlib
 import sys
 
 def _print_(*args,**kw):
@@ -12,5 +11,6 @@ cfg.print=_print_
 cfg.displaymode='logdisplay'
 
 
-
-importlib.import_module(sys.argv[1])
+if __name__=='__main__':
+	import importlib
+	importlib.import_module(sys.argv[1])

@@ -26,11 +26,9 @@ def polynomial(coefficients,X):
 	n=len(coefficients)-1
 	return jnp.inner(monomials(X,n),coefficients)
 		
-def polynomial_product(ps,X):
-	return util.prod([polynomial(p,X[:,i]) for i,p in enumerate(ps)])
+def polynomial_products(ps,X):
+	return jnp.stack([util.prod([polynomial(pij,X[:,j]) for j,pij in enumerate(pi)]) for pi in ps],axis=-1)
 
-def get_Slater_poly_products(n):
-	return AS_tools.gen_Slater(n,polynomial_product)
 
 	
 #----------------------------------------------------------------------------------------------------
@@ -72,19 +70,23 @@ H_coefficients_list=[jnp.array(p) for p in H_coefficients(25)]
 
 def hermite_nd_params(n,d):		
 	return [[H_coefficients_list[p] for p in phi] for phi in gen_n_dtuples(n,d)]	
-	
 
-def hermiteSlater(n,d,envelopevariance):
+def hermitegaussproducts(n,d,envelopevariance=1):
+	hermiteprods=util.fixparams(polynomial_products,hermite_nd_params(n,d))	
+	envelope=lambda x:jnp.exp(-jnp.sum(jnp.square(x),axis=(-1))/(2*envelopevariance))
+	return jax.jit(lambda X:envelope(X)[:,None]*hermiteprods(X))
 
-	envelope=lambda x:jnp.exp(-jnp.sum(jnp.square(x),axis=(-2,-1))/(2*envelopevariance))
-	p_nd=hermite_nd_params(n,d)
-	Slater_poly_products=get_Slater_poly_products(n)
-
-	@jax.jit
-	def AF_(X):
-		return envelope(X)*Slater_poly_products(p_nd,X)
-
-	return AF_
+#def hermiteSlater(n,d,envelopevariance):
+#
+#	envelope=lambda x:jnp.exp(-jnp.sum(jnp.square(x),axis=(-2,-1))/(2*envelopevariance))
+#	p_nd=hermite_nd_params(n,d)
+#	Slater_poly_products=get_Slater_poly_products(n)
+#
+#	@jax.jit
+#	def AF_(X):
+#		return envelope(X)*Slater_poly_products(p_nd,X)
+#
+#	return AF_
 
 
 
@@ -99,7 +101,7 @@ def isoGaussian(var=None,std=None):
 
 	@jax.jit
 	def f(mean,X):
-		S=jnp.sum((X-mean[None,:])**2,axis=-1)
+		S=jnp.sum((X[:,None,:]-mean[None,:,:])**2,axis=-1)
 		return jnp.exp(-S/(2*var))
 
 	return f
@@ -109,15 +111,23 @@ def packpoints(k):
 	centers=np.arange(-1+r,1,2*r)
 	return centers,r
 
-def gaussianSlater(n,d):
-
+def parallelgaussians(n,d):
 	tups=gen_n_dtuples(n,d)
 	k=max([max(t) for t in tups])+1
 
 	means1d,r=packpoints(k)
-	means=[means1d[t] for t in tups]	
+	means=jnp.array([means1d[t] for t in tups])
+	return util.fixparams(isoGaussian(std=r),means)
 
-	return util.fixparams(AS_tools.gen_Slater(n,isoGaussian(std=r)),means)
+#def gaussianSlater(n,d):
+#
+#	tups=gen_n_dtuples(n,d)
+#	k=max([max(t) for t in tups])+1
+#
+#	means1d,r=packpoints(k)
+#	means=[means1d[t] for t in tups]	
+#
+#	return util.fixparams(AS_tools.gen_Slater(n,isoGaussian(std=r)),means)
 
 
 #----------------------------------------------------------------------------------------------------
@@ -179,66 +189,3 @@ if __name__=='__main__':
 
 
 
-
-"""
-#def genericpolynomialfunctions(degree):		#coefficients dimensions: function,degree
-#	monos=genmonomialfunctions(degree)
-#
-#	@jax.jit
-#	def P(coefficients,x):
-#		return jnp.inner(monos(x),coefficients)
-#	return P
-#
-# def genmonomialfunctions(n):
-# 	@jax.jit
-# 	def F(x):
-# 		x=jnp.squeeze(x)
-# 		xk=jnp.ones_like(x)
-# 		out=[]
-# 		for k in range(n+1):
-# 			out.append(xk)	
-# 			xk=x*xk
-# 		return jnp.stack(out,axis=-1)
-# 	return F
-# 
-# def polynomial(coefficients,X):
-# 	n=len(coefficients)-1
-# 	jnp.inner(monomials(X,n),coefficients)
-# 
-# 
-# def genpolynomialfunctions(coefficients):	#coefficients dimensions: function,degree
-# 	degree=coefficients.shape[1]-1
-# 	P_=genericpolynomialfunctions(degree)
-# 
-# 	@jax.jit
-# 	def P(x):
-# 		return P_(coefficients,x)
-# 
-# 	return P
-#
-#def hermitecoefficients(n,convention):
-#	return He_coefficients(n) if convention=='He' else H_coefficients(n)
-#
-#def hermitecoefficientblock(n,convention):
-#	return jnp.array([p+[0]*(n+1-len(p)) for p in hermitecoefficients(n,convention)])
-#
-#def genhermitefunctions(n,convention):
-#	coefficients=hermitecoefficientblock(n,convention)
-#	return mv.genpolynomialfunctions(coefficients)	
-#
-#def staticSlater(F):
-#	return util.noparams(AS_tools.Slater(util.dummyparams(F)))
-#
-#
-#def HermiteSlater(n,convention,envelopevariance):
-#
-#	envelope_singlesample=lambda x:jnp.exp(-jnp.sum(jnp.square(x))/(2*envelopevariance))
-#	envelope=jax.vmap(envelope_singlesample)
-#	AF=staticSlater(genhermitefunctions(n-1,convention))
-#
-#	@jax.jit
-#	def AF_(X):
-#		return envelope(X)*AF(X)
-#
-#	return AF_
-"""
