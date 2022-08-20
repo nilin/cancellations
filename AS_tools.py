@@ -82,26 +82,14 @@ def gen_lossgrad_Af(n,f,lossfn):
 
 
 
-"""
-# dimensions
-# a : k
-# Y : samples,n,kn
-"""
+@jax.jit
+def detsum(A,Y):
+	snkn=jnp.inner(Y,A)
+	sknn=jnp.swapaxes(snkn,-3,-2)
+	return jnp.sum(jnp.linalg.det(sknn),axis=-1)
 
-def get_detsum(n):
-
-	@jax.jit
-	def detsum(a,Y):
-		out=0
-		for i,c in enumerate(a):
-			out=out+c*jnp.linalg.det(Y[:,:,i*n:(i+1)*n])
-		return out
-	return detsum
-
-
-def gen_backflowdets(n,ac):
-	return util.compose(bf.gen_backflow(ac),get_detsum(n))
-
+def gen_backflow0(activation):
+	return util.compose(bf.gen_backflow(activation),detsum)
 
 #=======================================================================================================
 	
@@ -109,27 +97,30 @@ def gen_backflowdets(n,ac):
 def EV_to_sym(b,Y):
 	return jnp.inner(jnp.sum(Y,axis=-2),b)
 
-def get_EV_to_antisym(n):
-	detsum=get_detsum(n)
 
-	@jax.jit
-	def EV_to_antisym(ab,Y):
-		a,b=ab
-		return detsum(a,Y)*EV_to_sym(b,Y)
-	return EV_to_antisym
+@jax.jit
+def EV_to_antisym(Ab,Y):
+	A,b=Ab
+	return detsum(A,Y)*EV_to_sym(b,Y)
 
-def gen_backflow_detsandsym(n,ac):
-	return util.compose(bf.gen_backflow(ac),get_EV_to_antisym(n))
+
+def gen_backflow1(activation):
+	return util.compose(bf.gen_backflow(activation),EV_to_antisym)
+
+
+
+
+
 
 #=======================================================================================================
 
 #===================
 # Example: ferminet
 #===================
-
-def gen_ferminet(n,ac='tanh'):
-	return util.recompose(bf.gen_FN_backflow(ac),get_detsum(n))
-
+#
+#def gen_ferminet(n,ac='tanh'):
+#	return util.recompose(bf.gen_FN_backflow(ac),get_detsum(n))
+#
 
 
 

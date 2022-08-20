@@ -24,7 +24,7 @@ def samplepoints(X,Y,nsamples):
 	p=Y**2
 	p=p/jnp.sum(p)
 	#I=jnp.random.choice(,range(len(p)),nsamples,p=p)
-	I=rnd.choice(cfg.nextkey(),jnp.arange(len(p)),(nsamples,),p=p)
+	I=rnd.choice(cfg.nextkey(1),jnp.arange(len(p)),(nsamples,),p=p)
 	return X[I]
 	
 

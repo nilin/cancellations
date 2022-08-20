@@ -221,8 +221,6 @@ def log(msg):
 def dblog(msg):
 	write(str(msg)+'\n','dblog/'+sessionID)
 
-def dbprint(msg):
-	session.remember('dbprintbuffer',str(msg),norepeat=True)
 
 
 class Stopwatch:
@@ -366,10 +364,10 @@ class Keychain:
 		if len(self.keys)==1: self.refresh(self.keys[-1])
 		return self.keys.popleft()
 
-keychain=Keychain()
+keychains=[Keychain(s) for s in range(10)]
 
-def nextkey():
-	return keychain.nextkey()
+def nextkey(c=0):
+	return keychains[c].nextkey()
 
 
 
@@ -467,6 +465,8 @@ def selectone(options,l):
 	assert(len(choice)==1)
 	return choice[0]
 
+def selectonefromargs(*options):
+	return selectone(set(options),parse_cmdln_args()[0])
 
 #====================================================================================================
 
@@ -536,10 +536,11 @@ week=7*day
 
 cmdparams,cmdredefs=parse_cmdln_args()
 
-def getfromcmdparams(**kw):
+def getfromargs(**kw):
 	return kw[selectone(set(kw.keys()),cmdparams)]
 
-fromcmdparams=getfromcmdparams
+fromcmdparams=getfromargs
+getfromcmdparams=getfromargs
 
 mode='run'
 
@@ -573,6 +574,10 @@ def clearcurrenttask():
 	session.trackcurrent('currenttask',' ')
 	session.trackcurrent('currenttaskcompleteness',0,'updatedisplay')
 
+
+
+def print(*args,**kw):
+	session.remember('dbprintbuffer',str(*args,**kw),norepeat=True)
 
 
 # testing

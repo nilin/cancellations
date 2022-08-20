@@ -59,59 +59,12 @@ def gen_backflow(ac):
 		return Y
 	return jax.jit(F)
 
-"""
-#def gen_backflow(phis):
-#	layers=[gen_EV_layer(phi) for phi in phis]
-#
-#	def F(params,Y):
-#		for layer,Wl in zip(layers,params):
-#			Y=layer(Wl,Y,Y)	
-#		return Y
-#	return F
-"""
 
 
-####################
-#
-# Example: ferminet
-#
-####################
-		
 
-def gen_FN_preprocess(ac='tanh'):
+def gen_singleparticleNN(activation):
+	return jax.vmap(mv.gen_NN_wideoutput(activation),in_axes=(None,-2),out_axes=-2)
 
-	NN=mv.gen_NN_wideoutput(ac)	
-
-	def phi(two_particle_weights,x,y):
-		stream2=jnp.concatenate([x-y,dnorm(x-y)],axis=-1)
-		return NN(two_particle_weights,stream2)
-		
-	F2p=gen_EV_layer(phi)
-
-	def F(two_particle_weights,X):
-		return jnp.concatenate([X,F2p(two_particle_weights,X,X)],axis=-1)
-
-	return jax.jit(F)
-
-
-def gen_FN_backflow(ac='tanh'):
-
-	F0=gen_FN_preprocess(ac)
-	F1=gen_backflow(ac)
-
-	return util.compose(F0,F1)
-
-"""
-# ds0[0]=d+1 (NN acts on (x-y,|x-y|))
-"""
-def initweights_FN_backflow(widths):
-
-	ds0,ds1=widths
-
-	params0=mv.initweights_NN(ds0)
-	params1=initweights_backflow(ds1)
-
-	return [params0,params1]
 
 
 ####################################################################################################
@@ -127,25 +80,79 @@ def initweights_backflow(ds):
 
 
 
+
+
+
 """
-#def initweights_NN_backflow(ds):
-#	key=cfg.nextkey()
-#	k1,*Wkeys=rnd.split(key,100)
-#	k2,*bkeys=rnd.split(key,100)
-#	Ws=[rnd.normal(key,(d2,2*d1))/math.sqrt(2*d1) for d1,d2,key in zip(ds[:-1],ds[1:],Wkeys)]
-#	bs=[rnd.normal(key,(d2,))*cfg.biasinitsize for d2,key in zip(ds[1:],bkeys)]
-#	return list(zip(Ws,bs))	
+#def norm(X,*args,**kw):
+#	return jnp.sqrt(jnp.sum(X**2,*args,**kw))
+#
+#def dnorm(X):
+#	return jnp.expand_dims(norm(X,axis=-1),axis=-1)
+"""
+
+
+####################################################################################################
+
+
+
+
+"""
+####################
+#
+# Example: ferminet
+#
+####################
+# 		
+# 
+# def gen_FN_preprocess(ac='tanh'):
+# 
+# 	NN=mv.gen_NN_wideoutput(ac)	
+# 
+# 	def phi(two_particle_weights,x,y):
+# 		stream2=jnp.concatenate([x-y,dnorm(x-y)],axis=-1)
+# 		return NN(two_particle_weights,stream2)
+# 		
+# 	F2p=gen_EV_layer(phi)
+# 
+# 	def F(two_particle_weights,X):
+# 		return jnp.concatenate([X,F2p(two_particle_weights,X,X)],axis=-1)
+# 
+# 	return jax.jit(F)
+# 
+# 
+# def gen_FN_backflow(ac='tanh'):
+# 
+# 	F0=gen_FN_preprocess(ac)
+# 	F1=gen_backflow(ac)
+# 
+# 	return util.compose(F0,F1)
+# 
+# 
+# 
+# 
+# 
+# # ds0[0]=d+1 (NN acts on (x-y,|x-y|))
+# def initweights_FN_backflow(widths):
+# 
+# 	ds0,ds1=widths
+# 
+# 	params0=mv.initweights_NN(ds0)
+# 	params1=initweights_backflow(ds1)
+# 
+# 	return [params0,params1]
+# 
 """
 
 
 
 
 
-def norm(X,*args,**kw):
-	return jnp.sqrt(jnp.sum(X**2,*args,**kw))
 
-def dnorm(X):
-	return jnp.expand_dims(norm(X,axis=-1),axis=-1)
+
+
+
+
 
 ####################################################################################################
 # test

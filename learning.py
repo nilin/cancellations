@@ -86,7 +86,7 @@ class Trainer():
 
 
 	def set_default_batchsizes(self,minibatchsize=None,**kwargs):
-		self.minibatchsize=min(self.X.shape[0],AS_HEAVY.memorybatchlimit(self.n),1000) if minibatchsize==None else minibatchsize
+		self.minibatchsize=min(self.X.shape[0],cfg.memorybatchlimit(self.n),1000) if minibatchsize==None else minibatchsize
 		self.memory.log('minibatch size set to '+str(self.minibatchsize))
 
 	def get_learned(self):

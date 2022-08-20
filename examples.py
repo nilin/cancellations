@@ -36,7 +36,7 @@ from config import session
 
 
 
-def getrunfn(target,learner):
+def getrunfn0(target,learner):
 
 	def runfn():
 		globals().update(cfg.params)
@@ -90,7 +90,7 @@ def getrunfn(target,learner):
 
 
 def lplot():
-	processandplot(unprocessed,functions.ParameterizedFunc(_learner_),X_test,Y_test)
+	processandplot(unprocessed,_learner_,X_test,Y_test)
 def fplot():
 	figtitle='target {}, learner {}-{}'.format(targettype,learneractivation,learnertype)
 	figpath='{}target={} learner={}-{} {} minibatches'.format(cfg.outpath,targettype,learneractivation,learnertype,int(unprocessed.getval('minibatchnumber')))
@@ -153,6 +153,13 @@ plotexample=plotexample_0
 # function plots
 ####################################################################################################
 
+class ClonedFunc(functions.Func):
+	def __init__(self,pf,weights):
+		self.fdescr=pf.fdescr
+		self.f=pf.f
+		self.weights=weights
+
+
 
 def processandplot(unprocessed,pfunc,X,Y,process_snapshot_fn=None,plotexample_fn=None):
 
@@ -165,7 +172,7 @@ def processandplot(unprocessed,pfunc,X,Y,process_snapshot_fn=None,plotexample_fn
 	for imgnum,(weights,i) in enumerate(zip(weightslist,i_s)):
 
 		cfg.trackcurrenttask('processing snapshots for learning plot',(imgnum+1)/len(weightslist))
-		process_snapshot(processed,functions.DynFunc(pfunc,weights),X,Y,i)		
+		process_snapshot(processed,ClonedFunc(pfunc,weights),X,Y,i)		
 
 	plotexample(unprocessed,processed)
 	cfg.save(processed,cfg.outpath+'data')
@@ -221,25 +228,39 @@ class Display2(db.StackedDisplay):
 		self.addnumberprint('minibatchnumber',msg='minibatch number {:.0f}')
 
 
+def pickdisplay():
+	try:
+		return cfg.displaymode
+	except:
+		try:
+			return cfg.selectonefromargs('nodisplay','logdisplay','display0')
+		except:
+			return 'fulldisplay'
+	
 
-def runexample(target,learner):
-
-	runfn=getrunfn(target,learner)
+def runexample(runfn):
+	displaymode=pickdisplay()
 
 	db.clear()
-	if 'nodisplay' in cfg.cmdparams:
-		run()
-	elif 'logdisplay' in cfg.cmdparams:
-		class LogDisplay:
-			def poke(self,*args):
-				if args==('log',):
-					print(session.getcurrentval('log'))
-		logdisp=LogDisplay()
-		session.addlistener(logdisp)
-		run()
-	elif 'display0' in cfg.cmdparams:
-		cfg.dashboard=db.Dashboard0()
-		run()
-	else:
+	if displaymode=='fulldisplay':
 		import run_in_display
 		run_in_display.RID(runfn,process_input)
+	else:
+		if displaymode=='logdisplay':
+			class LogDisplay:
+				def poke(self,*args):
+					if args==('log',):
+						print(session.getcurrentval('log'))
+			logdisp=LogDisplay()
+			session.addlistener(logdisp)
+		elif displaymode=='display0':
+			cfg.dashboard=db.Dashboard0()
+		elif displaymode=='nodisplay':
+			pass
+		else:
+			raise ValueError
+		runfn()
+
+
+def runexample0(target,learner):
+	runexample(getrunfn0(target,learner))

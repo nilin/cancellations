@@ -245,7 +245,7 @@ def get3displays(width):
 	logdisplay.addhistdisplay(10,'log')
 
 	dbprintdisplay=StackedDisplay(10,round(width*.4),session)
-	dbprintdisplay.addstatictext('prints (cfg.dbprint(msg))')
+	dbprintdisplay.addstatictext('prints (cfg.print(msg))')
 	dbprintdisplay.addline()
 	dbprintdisplay.addhistdisplay(10,'dbprintbuffer')
 
@@ -271,7 +271,7 @@ def get4displays(width):
 	logdisplay.addline()
 
 	dbprintdisplay=StackedDisplay(15,w2,session)
-	dbprintdisplay.addstatictext('prints (cfg.dbprint(msg))')
+	dbprintdisplay.addstatictext('prints (cfg.print(msg))')
 	dbprintdisplay.addline()
 	dbprintdisplay.addhistdisplay(10,'dbprintbuffer')
 

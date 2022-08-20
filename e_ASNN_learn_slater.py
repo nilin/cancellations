@@ -6,36 +6,14 @@
 
 
 import config as cfg
-import sys
-import jax
-import jax.numpy as jnp
-import jax.random as rnd
-import numpy as np
-import learning
-import plottools as pt
-import mcmc
-import matplotlib.pyplot as plt
-import numpy as np
-import util
-from util import ReLU,DReLU,activations
-from jax.numpy import tanh
-import pdb
-import time
-import multivariate as mv
-import math
-import dashboard as db
-import time
-from pynput import keyboard
-import testing
-import AS_tools
-import AS_HEAVY
-import copy
-import examplefunctions
 import functions
-from config import session
+import dashboard as db
+from config import session,getfromargs
 import examples
+import jax
+from functions import FunctionDescription as FD
 
-#jax.config.update("jax_enable_x64", True)
+jax.config.update("jax_enable_x64", True)
 
 
 
@@ -50,32 +28,30 @@ cfg.params={
 'n':5,
 'd':2,
 'learnertype':'AS_NN',
-'learnerwidths':[10,100,100,1],
-#'learneractivation':'tanh',
-#'targettype':'hermiteSlater',
+'learnerwidths':['d_sp',100,1],
+'spwidths':['d',100,100],
+'targettype':'hermiteSlater',
 'weight_decay':0,
 'lossfn':'SI_loss',
-'samples_train':50000,
+'samples_train':25000,
 'samples_test':1000,
 'iterations':100000,
-'minibatchsize':50
+'minibatchsize':64
 }
 
-instructions='instructions:\n\n\
-python e_ASNN_learn_slater.py (t/r/lr/s) (h/g) \n\n\
-parameters represent:\n\
-tanh/relu/leaky relu/softplus learner\n\
-hermite/gaussian slater target\n'
+instructions='instructions:\n\npython e_{}.py (t/lr) \n\n\
+parameters represent:\ntanh/leaky relu\n'.format(cfg.exname)
 
 
 try:
-	examples.adjustparams(learneractivation=cfg.fromcmdparams(t='tanh',s='softplus',r='relu',lr='leakyrelu'),targettype=cfg.fromcmdparams(h='hermite',g='gaussian')+'Slater')
+	examples.adjustparams(learneractivation=getfromargs(t='tanh',lr='leakyrelu'))
 except:
 	db.clear()
 	print(instructions)
 	quit()
-
 globals().update(cfg.params)
-target=functions.StaticFunc(ftype=targettype,n=n,d=d)
-learner=functions.DynFunc(ftype=learnertype,n=n,d=d,widths=learnerwidths,activation=learneractivation)
-examples.runexample(target,learner)
+
+
+target=functions.get_func(ftype=targettype,n=n,d=d)
+learner=functions.get_composed_func(FD('singleparticleNN',d=d,widths=spwidths,activation=learneractivation),FD(learnertype,n=n,d=100,widths=learnerwidths,activation=learneractivation))
+examples.runexample0(target,learner)
