@@ -101,10 +101,10 @@ class ComposedFunction(FunctionDescription):
 		return [e.initweights() for e in self.elements]
 
 	def typename(self):
-		return '-'.join([e.typename() for e in self.elements])
+		return '-'.join([e.typename() for e in self.elements])+' composition'
 
 	def info(self):
-		return '\n\n'.join([cfg.indent(e.info()) for e in self.elements])
+		return '\n'+'\n\n'.join([cfg.indent(e.getinfo()) for e in self.elements])
 
 
 
