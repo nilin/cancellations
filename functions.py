@@ -56,7 +56,10 @@ class ParameterizedFunc:
 		return type(self).__name__
 
 	def info(self):
-		return self.typename()+'\n'+'\n'.join([str(k,'=',v) for k,v in self.kw.items()])
+		return '\n'.join(['{}={}'.format(k,v) for k,v in self.kw.items()])
+
+	def getinfo(self):
+		return '{}\n{}'.format(self.typename(),self.info())
 
 	def getclone(self):
 		return copy.deepcopy(self)
@@ -143,6 +146,9 @@ class Slater(FunctionDescription):
 
 	def initweights(self):
 		return self.basisfunctions.initweights()
+
+	def info(self):
+		return cfg.indent(self.basisfunctions.getinfo())
 		
 
 class Wrappedfunction(FunctionDescription):
@@ -155,6 +161,12 @@ class Wrappedfunction(FunctionDescription):
 
 	def initweights(self):
 		return None
+
+	def typename(self):
+		return self.globalgen_f
+
+	def info(self):
+		return str(self.kw)
 
 
 

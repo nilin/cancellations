@@ -44,7 +44,7 @@ def getrunfn0(target,learner):
 		global unprocessed,X,X_test,Y,Y_test,sections,_learner_,_target_
 		_target_,_learner_=target,learner
 		
-		sessioninfo='{}\nsessionID: {}\n\n{}'.format(cfg.explanation,cfg.sessionID,info('\n'))
+		sessioninfo='{}\nsessionID: {}\n\n{}'.format(cfg.explanation,cfg.sessionID,INFO())
 		session.remember('sessioninfo',sessioninfo)
 		cfg.write(session.getval('sessioninfo'),cfg.outpath+'info.txt',mode='w')
 
@@ -87,7 +87,6 @@ def getrunfn0(target,learner):
 			if sc2.activate(i):
 				fplot()
 				lazyplot.do_if_rested(.2,lplot)
-
 	return runfn
 
 
@@ -101,6 +100,12 @@ def fplot():
 
 def info(separator=' | '):
 	return 'target={}{}learner={}'.format(_target_.typename(),separator,_learner_.typename())
+
+def INFO(separator='\n\n'):
+	lb='\n'+50*'-'+'\n'
+	targetinfo='target{}{}'.format(lb,_target_.getinfo())
+	learnerinfo='learner{}{}'.format(lb,_learner_.getinfo())
+	return targetinfo+'\n\n'+learnerinfo
 
 def process_input(c):
 	if c==108: lplot()
@@ -202,9 +207,6 @@ def adjustparams(**priorityparams):
 	explanation=cfg.explanation
 	params.update(cfg.cmdredefs)
 
-	#params['learnerwidths'][0]=params['n']*params['d']
-
-
 	cfg.trackduration=True
 	cfg.outpath='outputs/{}/{}/'.format(cfg.exname,cfg.sessionID)
 
@@ -233,6 +235,9 @@ def pickdisplay():
 	
 
 def runexample(runfn):
+	if 'debug' in cfg.cmdparams:
+		import debug
+
 	displaymode=pickdisplay()
 
 	db.clear()
@@ -249,16 +254,8 @@ def runexample(runfn):
 			session.addlistener(logdisp)
 		elif displaymode=='display0':
 			cfg.dashboard=db.Dashboard0()
-		elif displaymode=='nodisplay':
-			pass
-		else:
-			raise ValueError
 		runfn()
 
 
 def runexample0(target,learner):
-
-	if 'debug' in cfg.cmdparams:
-		import debug
-
 	runexample(getrunfn0(target,learner))

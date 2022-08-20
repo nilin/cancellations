@@ -256,9 +256,9 @@ def get4displays(width):
 	w1=width//2
 	w2=width-w1
 
-	infodisplay=QueriedText(20,w1,session,'sessioninfo')
+	infodisplay=QueriedText(25,w1,session,'sessioninfo')
 	#statusdisplay=QueriedText(25,round(width*.4),session,'statusinfo')
-	statusdisplay=StackedDisplay(20,w2,session)
+	statusdisplay=StackedDisplay(25,w2,session)
 	statusdisplay.addqueriedtext('statusinfo',height=5)
 	statusdisplay.addspace()
 	statusdisplay.addqueriedtext('currenttask')

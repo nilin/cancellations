@@ -582,7 +582,7 @@ def print(*args,**kw):
 
 
 def indent(s):
-	return '\n    '.join(s.splitlines())
+	return '\n'.join(['    '+l for l in s.splitlines()])
 
 # testing
 
