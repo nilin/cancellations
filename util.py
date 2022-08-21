@@ -11,6 +11,7 @@ from jax.lax import collapse
 import config as cfg
 import customactivations as ca
 from config import session
+from collections import deque
 
 from jax.nn import softplus
 
@@ -245,6 +246,18 @@ def avg_grads(Gs):
 def distinguishable(x,y,p_val=.10,**kwargs): # alternative='greater' to stop when no longer decreasing
 	u,p=st.mannwhitneyu(x,y,**kwargs)
 	return p<p_val
+
+
+def substringslast(_strings_):
+	strings=deque([s for s in _strings_])
+	out=[]
+	while len(strings)>0:
+		a=strings.pop()
+		if all([a not in b for b in strings if a!=b]):
+			out.append(a)
+		else:
+			strings.appendleft(a)
+	return out
 
 
 

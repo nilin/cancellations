@@ -71,28 +71,12 @@ def gen_singleparticleNN(activation):
 # initialization
 ####################################################################################################
 
-def initweights_backflow(ds):
-
+def initweights_Backflow(widths,*args,**kw):
+	ds=widths
 	Ws=[util.initweights((d2,2*d1)) for d1,d2 in zip(ds[:-1],ds[1:])]
 	bs=[rnd.normal(cfg.nextkey(),(d2,))*cfg.biasinitsize for d2 in ds[1:]]
 
 	return list(zip(Ws,bs))	
-
-
-
-
-
-
-"""
-#def norm(X,*args,**kw):
-#	return jnp.sqrt(jnp.sum(X**2,*args,**kw))
-#
-#def dnorm(X):
-#	return jnp.expand_dims(norm(X,axis=-1),axis=-1)
-"""
-
-
-####################################################################################################
 
 
 

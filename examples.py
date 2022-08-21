@@ -207,8 +207,6 @@ def adjustparams(**priorityparams):
 	explanation=cfg.explanation
 	params.update(cfg.cmdredefs)
 
-	cfg.trackduration=True
-	cfg.outpath='outputs/{}/{}/'.format(cfg.exname,cfg.sessionID)
 
 
 
@@ -235,6 +233,7 @@ def pickdisplay():
 	
 
 def runexample(runfn):
+	cfg.trackduration=True
 	if 'debug' in cfg.cmdparams:
 		import debug
 

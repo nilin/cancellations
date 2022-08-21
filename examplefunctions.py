@@ -6,6 +6,7 @@ import util
 import AS_tools
 import pdb
 import itertools
+import functions
 
 
 
@@ -71,23 +72,10 @@ H_coefficients_list=[jnp.array(p) for p in H_coefficients(25)]
 def hermite_nd_params(n,d):		
 	return [[H_coefficients_list[p] for p in phi] for phi in gen_n_dtuples(n,d)]	
 
-def hermitegaussproducts(n,d,envelopevariance=1):
+def gen_hermitegaussproducts(n,d,envelopevariance=1):
 	hermiteprods=util.fixparams(polynomial_products,hermite_nd_params(n,d))	
 	envelope=lambda x:jnp.exp(-jnp.sum(jnp.square(x),axis=(-1))/(2*envelopevariance))
 	return jax.jit(lambda X:envelope(X)[:,None]*hermiteprods(X))
-
-#def hermiteSlater(n,d,envelopevariance):
-#
-#	envelope=lambda x:jnp.exp(-jnp.sum(jnp.square(x),axis=(-2,-1))/(2*envelopevariance))
-#	p_nd=hermite_nd_params(n,d)
-#	Slater_poly_products=get_Slater_poly_products(n)
-#
-#	@jax.jit
-#	def AF_(X):
-#		return envelope(X)*Slater_poly_products(p_nd,X)
-#
-#	return AF_
-
 
 
 #----------------------------------------------------------------------------------------------------
@@ -111,23 +99,13 @@ def packpoints(k):
 	centers=np.arange(-1+r,1,2*r)
 	return centers,r
 
-def parallelgaussians(n,d):
+def gen_parallelgaussians(n,d):
 	tups=gen_n_dtuples(n,d)
 	k=max([max(t) for t in tups])+1
 
 	means1d,r=packpoints(k)
 	means=jnp.array([means1d[t] for t in tups])
 	return util.fixparams(isoGaussian(std=r),means)
-
-#def gaussianSlater(n,d):
-#
-#	tups=gen_n_dtuples(n,d)
-#	k=max([max(t) for t in tups])+1
-#
-#	means1d,r=packpoints(k)
-#	means=[means1d[t] for t in tups]	
-#
-#	return util.fixparams(AS_tools.gen_Slater(n,isoGaussian(std=r)),means)
 
 
 #----------------------------------------------------------------------------------------------------
@@ -156,18 +134,23 @@ def n_dtuples_maxdegree(n,d):
 # test
 #----------------------------------------------------------------------------------------------------
 
-#def test():
+
+
+
+
+
+#def hermiteSlater(n,d,std=1):
+#	return functions.Slater('hermitegaussproducts',n=n,d=d,mode='gen')
 #
-#	import jax.random as rnd
-#	import config as cfg
-#
-#	X=rnd.uniform(cfg.nextkey(),(1,5,1),minval=-1,maxval=1)
-#	f,fs=GaussianSlater1D(5)	
-#
-#	print(X)
-#	for f in fs:
-#		print([f(X[:,i,:]) for i in range(5)])
-#	print(f(X))
+#def gaussianSlater(n,d):
+#	return functions.Slater('parallelgaussians',n=n,d=d,mode='gen')
+
+
+
+
+
+
+
 
 
 if __name__=='__main__':

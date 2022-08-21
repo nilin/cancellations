@@ -143,7 +143,7 @@ def gen_lossgrad(f,lossfn=None,batchmode='first'):
 """
 # computes widths[-1] functions
 """
-def initweights_NN(widths):
+def initweights_NN(widths,*args,**kw):
 
 	key=cfg.nextkey()
 

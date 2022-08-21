@@ -14,17 +14,18 @@ import AS_tools as ASt
 import AS_HEAVY
 import multivariate as mv
 import jax.random as rnd
-import examplefunctions
 import learning as lrn
 import pdb
 import backflow as bf
 import copy
 from inspect import signature
 import importlib
+from collections import deque
 
-
-
-
+from backflow import gen_backflow,initweights_Backflow
+from AS_tools import detsum,initweights_detsum
+import examplefunctions
+from examplefunctions import gen_parallelgaussians,gen_hermitegaussproducts
 
 
 class ParameterizedFunc:
@@ -56,7 +57,7 @@ class ParameterizedFunc:
 		return type(self).__name__
 
 	def info(self):
-		return '\n'.join(['{}={}'.format(k,v) for k,v in self.kw.items()])
+		return ', '.join(['{}={}'.format(k,v) for k,v in self.kw.items()])
 
 	def getinfo(self):
 		return '{}\n{}'.format(self.typename(),self.info())
@@ -80,7 +81,12 @@ class FunctionDescription(ParameterizedFunc):
 		return self.fwithparams(self.weights)(X)
 	
 	def initweights(self):
-		return globals()['initweights_{}'.format(type(self).__name__)](**self.kw)
+		initname='initweights_{}'.format(del_ac(self.typename()))
+		print(initname)
+		if initname in globals():
+			return globals()[initname](**self.kw)
+		else:
+			return None
 
 	def rinse(self):
 		self.weights=None
@@ -92,6 +98,7 @@ class FunctionDescription(ParameterizedFunc):
 
 class ComposedFunction(FunctionDescription):
 	def __init__(self,*elements):
+		elements=[e for E in elements for e in (E.elements if isinstance(E,ComposedFunction) else [E])]
 		super().__init__(elements=[cast(e) for e in elements])
 
 	def gen_f(self):
@@ -108,33 +115,30 @@ class ComposedFunction(FunctionDescription):
 
 
 
+
+#=======================================================================================================
+
 class NNfunction(FunctionDescription):
 	def typename(self):
 		return self.activation+type(self).__name__
-
-
 
 
 class ASNN(NNfunction):
 	def gen_f(self):
 		NN_NS=mv.gen_NN_NS(self.activation)
 		return ASt.gen_Af(self.n,NN_NS)
-	
-class Backflow0(NNfunction):
-	def gen_f(self):	
-		return ASt.gen_backflow0(activation=self.activation)
-
-class Backflow1(NNfunction):
-	def gen_f(self):	
-		return ASt.gen_backflow1(activation=self.activation)
 
 class SingleparticleNN(NNfunction):
 	def gen_f(self):
 		return bf.gen_singleparticleNN(activation=self.activation)
 
+class Backflow(NNfunction):
+	def gen_f(self):	
+		return bf.gen_backflow(self.activation)
 
-
-#=======================================================================================================
+class BackflowAS(ComposedFunction,NNfunction):
+	def __init__(self,n,widths,k,activation,**kw):
+		super().__init__(Backflow(activation=activation,widths=widths,**kw),Wrappedfunction('detsum',n=n,outdim=widths[-1],k=k))
 
 class Slater(FunctionDescription):
 	def __init__(self,basisfunctions,**kw):
@@ -152,31 +156,18 @@ class Slater(FunctionDescription):
 		
 
 class Wrappedfunction(FunctionDescription):
-	def __init__(self,gf,**kw):
-		self.globalgen_f=gf
+	def __init__(self,fname,mode=None,**kw):
+		self.fname=fname
+		self.mode=mode
 		super().__init__(**kw)
 
 	def gen_f(self):
-		return globals()[self.globalgen_f](**self.kw)
-
-	def initweights(self):
-		return None
+		if self.mode=='gen':
+			return globals()['gen_'+self.fname](**self.kw)
+		else: return globals()[self.fname]
 
 	def typename(self):
-		return self.globalgen_f
-
-	def info(self):
-		return str(self.kw)
-
-
-
-from examplefunctions import hermitegaussproducts,parallelgaussians
-
-def hermiteSlater(n,d,std=1/8):
-	return Slater('hermitegaussproducts',n=n,d=d)
-
-def gaussianSlater(n,d):
-	return Slater('parallelgaussians',n=n,d=d)
+		return self.fname
 
 
 
@@ -190,17 +181,6 @@ def initweights_ASNN(n,d,widths,**kw):
 	widths[0]=n*d
 	return mv.initweights_NN(widths)
 
-
-
-def initweights_Backflow0(n,d,widths,**kw):
-	ds,k=widths
-	ds[0]=d
-	return [bf.initweights_backflow(ds),util.initweights((k,n,ds[-1]))]
-
-def initweights_Backflow1(n,d,widths,**kw):
-	ds,k=widths
-	ds[0]=d
-	return [bf.initweights_backflow(ds),[util.initweights((k,n,ds[-1])),util.initweights((ds[-1],))]]
 """
 #==================
 # example: ferminet
@@ -212,19 +192,25 @@ def initweights_Backflow1(n,d,widths,**kw):
 #
 """
 
-def initweights_SingleparticleNN(d,widths,**kw):
-	widths[0]=d
-	return mv.initweights_NN(widths)
+#def initweights_SingleparticleNN(widths,**kw):
+#	return mv.initweights_NN(widths)
 
-
+initweights_SingleparticleNN=mv.initweights_NN
 
 #=======================================================================================================
 
 
 
 def cast(f,**kw):
+	if type(f)==tuple:
+		f0,kw0=f
+		return cast(f0,**kw0)
 	return f if isinstance(f,ParameterizedFunc) else Wrappedfunction(f,**kw)
 
 def getfunc(ftype,**kw):
 	return globals()[ftype](**kw)
 
+def del_ac(s):
+	for a in util.substringslast(util.activations):
+		s=s.replace(a,'')
+	return s

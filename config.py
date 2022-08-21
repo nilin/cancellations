@@ -195,9 +195,8 @@ def logpaths():
 
 
 
-def register(lcls,*names):
-	for name in names:
-		setstatic(name,lcls[name])
+def register(_dict_,names):
+	params.update({k:_dict_[k] for k in names})
 
 #
 #def savestate(*paths):
@@ -549,6 +548,9 @@ mode='run'
 
 #sessionstate=State()
 session=Memory()
+params=dict()
+
+
 
 
 def donothing(*x,**y):
