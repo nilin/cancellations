@@ -71,66 +71,13 @@ def gen_singleparticleNN(activation):
 # initialization
 ####################################################################################################
 
+
 def initweights_Backflow(widths,*args,**kw):
 	ds=widths
 	Ws=[util.initweights((d2,2*d1)) for d1,d2 in zip(ds[:-1],ds[1:])]
 	bs=[rnd.normal(cfg.nextkey(),(d2,))*cfg.biasinitsize for d2 in ds[1:]]
 
 	return list(zip(Ws,bs))	
-
-
-
-
-"""
-####################
-#
-# Example: ferminet
-#
-####################
-# 		
-# 
-# def gen_FN_preprocess(ac='tanh'):
-# 
-# 	NN=mv.gen_NN_wideoutput(ac)	
-# 
-# 	def phi(two_particle_weights,x,y):
-# 		stream2=jnp.concatenate([x-y,dnorm(x-y)],axis=-1)
-# 		return NN(two_particle_weights,stream2)
-# 		
-# 	F2p=gen_EV_layer(phi)
-# 
-# 	def F(two_particle_weights,X):
-# 		return jnp.concatenate([X,F2p(two_particle_weights,X,X)],axis=-1)
-# 
-# 	return jax.jit(F)
-# 
-# 
-# def gen_FN_backflow(ac='tanh'):
-# 
-# 	F0=gen_FN_preprocess(ac)
-# 	F1=gen_backflow(ac)
-# 
-# 	return util.compose(F0,F1)
-# 
-# 
-# 
-# 
-# 
-# # ds0[0]=d+1 (NN acts on (x-y,|x-y|))
-# def initweights_FN_backflow(widths):
-# 
-# 	ds0,ds1=widths
-# 
-# 	params0=mv.initweights_NN(ds0)
-# 	params1=initweights_backflow(ds1)
-# 
-# 	return [params0,params1]
-# 
-"""
-
-
-
-
 
 
 
@@ -147,58 +94,3 @@ if __name__=='__main__':
 	import testing
 
 	n,d,k=5,3,2
-
-
-
-	##### test1 #####
-
-	ds=[d,d,d,k*n]
-	weights=initweights_backflow(ds)
-	BF=gen_backflow('ReLU')
-	testing.verify_equivariant(BF,n,d,fixparams=weights)	
-
-
-	##### test composition #####
-
-	ds0=[d,d,10]
-	ds1=[10,10,1]
-	weights0=initweights_backflow(ds0)
-	weights1=initweights_backflow(ds1)
-	BF0=gen_backflow('ReLU')
-	BFBF=util.compose(BF0,BF0)
-	testing.verify_equivariant(BFBF,n,d,fixparams=[weights0,weights1])	
-
-
-
-	##### test3 #####
-
-	ds0=[d+1,d+1,d+1]
-	ds1=[2*d+1,2*d+1,k*n]
-
-	weights=initweights_FN_backflow([ds0,ds1])
-	FBF=gen_FN_backflow()
-	FBF=util.fixparams(FBF,weights)
-	testing.verify_equivariant(FBF,n,d)	
-
-
-
-
-
-	##### test2 #####
-
-	ds0=[d+1,d+1,d+1]
-
-	X=rnd.normal(cfg.nextkey(),(100,n,d))
-
-	weights=mv.initweights_NN(ds0)
-	F0=gen_FN_preprocess()
-
-
-
-	##### test2 #####
-
-	ds0=[d+1,d+1,d+1]
-
-	weights=mv.initweights_NN(ds0)
-	F0=gen_FN_preprocess()
-	testing.verify_equivariant(F0,n,d,fixparams=weights)	

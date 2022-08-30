@@ -48,26 +48,6 @@ def gen_NN(activation):
 
 
 
-def gen_skip_NN_NS(ac):
-	activation=activations[ac]
-
-	@jax.jit
-	def NN(params,X):
-		Ws,bs=params
-
-		X=util.collapselast(X,2)
-		X=jnp.inner(X,Ws[0])+bs[0][None,:]
-		X=activation(X)
-		for W,b in zip(Ws[1:-1],bs[1:]):
-			skip=X
-			X=jnp.inner(X,W)+b[None,:]
-			X=activation(X)+X
-		return jnp.squeeze(jnp.inner(X,Ws[-1]))
-
-	return NN
-
-
-
 def gen_NN_NS(activation):
 	NN=gen_NN(activation)
 
@@ -87,7 +67,8 @@ def gen_NN_NS(activation):
 
 
 
-def gen_lossgrad_batchfirst(f,lossfn):
+def gen_lossgrad(f,lossfn=None):
+	if lossfn==None: lossfn=cfg.getlossfn()
 
 	def collectiveloss(params,X,*Y):
 		return lossfn(f(params,X),*Y)
@@ -100,39 +81,7 @@ def gen_lossgrad_batchfirst(f,lossfn):
 
 	return lossgrad
 
-#
-#def gen_lossgrad_batchlast(f,lossfn):
-#
-#	def singlesampleloss(params,x,*ys):
-#		X=jnp.expand_dims(x,axis=0)
-#		Ys=[jnp.expand_dims(y,axis=0) for y in ys]
-#		return lossfn(f(params,X),*Ys)
-#
-#	singlesample_l_grad=jax.value_and_grad(singlesampleloss)
-#	#parallel_l_grad=[jax.vmap(singlesample_l_grad,in_axes=(None,0)+ntargets*(0,),out_axes=(0,0)) for ntargets in range(2)]
-#	parallel_l_grad=[jax.vmap(singlesample_l_grad,in_axes=(None,0)+ntargets*(0,)) for ntargets in range(2)]
-#
-#	@jax.jit	
-#	def lossgrad(params,X,*Y):
-#		losses,grads=parallel_l_grad[len(Y)](params,X,*Y)
-#		loss,grad=jnp.average(losses),util.applyonleaves(grads,lambda A:jnp.average(A,axis=0))
-#		#util.printshape(loss)
-#		#util.printshape(grad)
-#		return loss,grad
-#
-#	return lossgrad
-#
 
-
-def gen_lossgrad(f,lossfn=None,batchmode='first'):
-	if lossfn==None: lossfn=cfg.getlossfn()
-
-	if batchmode=='first':
-		return gen_lossgrad_batchfirst(f,lossfn)
-	if batchmode=='last':
-		return gen_lossgrad_batchlast(f,lossfn)
-	
-		
 	
 
 #----------------------------------------------------------------------------------------------------
@@ -140,22 +89,12 @@ def gen_lossgrad(f,lossfn=None,batchmode='first'):
 #----------------------------------------------------------------------------------------------------
 
 
-"""
-# computes widths[-1] functions
-"""
 def initweights_NN(widths,*args,**kw):
-
-	key=cfg.nextkey()
-
-	k1,*Wkeys=rnd.split(key,100)
-	k2,*bkeys=rnd.split(key,100)
-
-	Ws=[rnd.normal(key,(m2,m1))/math.sqrt(m1) for m1,m2,key in zip(widths[:-1],widths[1:],Wkeys)]
-	bs=[rnd.normal(key,(m,))*cfg.biasinitsize for m,key in zip(widths[1:],bkeys)]
+	ds=widths
+	Ws=[util.initweights((d2,d1)) for d1,d2 in zip(ds[:-1],ds[1:])]
+	bs=[rnd.normal(cfg.nextkey(),(d2,))*cfg.biasinitsize for d2 in ds[1:]]
 
 	return list(zip(Ws,bs))
-
-
 
 
 #----------------------------------------------------------------------------------------------------

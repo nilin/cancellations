@@ -21,6 +21,7 @@ import copy
 from inspect import signature
 import importlib
 from collections import deque
+from dashboard import dash
 
 from backflow import gen_backflow,initweights_Backflow
 from AS_tools import detsum,initweights_detsum
@@ -43,11 +44,6 @@ class ParameterizedFunc:
 		fs=util.fixparams(self.f,params)
 		return util.makeblockwise(fs)
 
-	# for pickling
-	def compress(self):
-		self.f=None
-		return self
-
 	def restore(self):
 		if 'f' not in vars(self) or self.f==None:
 			self.f=self._gen_f_()
@@ -56,14 +52,19 @@ class ParameterizedFunc:
 	def typename(self):
 		return type(self).__name__
 
+	def richtypename(self):
+		return self.typename()
+
 	def info(self):
 		return ', '.join(['{}={}'.format(k,v) for k,v in self.kw.items()])
 
 	def getinfo(self):
-		return '{}\n{}'.format(self.typename(),self.info())
+		return '{}\n{}'.format(self.richtypename(),self.info())
 
-	def getclone(self):
-		return copy.deepcopy(self)
+	def compress(self):
+		c=copy.deepcopy(self)
+		c.f=None
+		return c
 
 	def _gen_f_(self):
 		return mv.pad(self.gen_f())
@@ -81,8 +82,8 @@ class FunctionDescription(ParameterizedFunc):
 		return self.fwithparams(self.weights)(X)
 	
 	def initweights(self):
-		initname='initweights_{}'.format(del_ac(self.typename()))
-		print(initname)
+		initname='initweights_{}'.format(self.typename())
+		#print(initname)
 		if initname in globals():
 			return globals()[initname](**self.kw)
 		else:
@@ -93,12 +94,13 @@ class FunctionDescription(ParameterizedFunc):
 		return self
 
 	def getemptyclone(self):
-		return self.getclone().rinse()
+		c=copy.deepcopy(self)
+		return c.rinse()
 
 
 class ComposedFunction(FunctionDescription):
 	def __init__(self,*elements):
-		elements=[e for E in elements for e in (E.elements if isinstance(E,ComposedFunction) else [E])]
+		elements=[e.compress() for E in elements for e in (E.elements if isinstance(E,ComposedFunction) else [E])]
 		super().__init__(elements=[cast(e) for e in elements])
 
 	def gen_f(self):
@@ -108,10 +110,17 @@ class ComposedFunction(FunctionDescription):
 		return [e.initweights() for e in self.elements]
 
 	def typename(self):
-		return '-'.join([e.typename() for e in self.elements])+' composition'
+		return ' -> '.join([e.richtypename() for e in self.elements])+' composition'
 
 	def info(self):
 		return '\n'+'\n\n'.join([cfg.indent(e.getinfo()) for e in self.elements])
+
+#	def compress(self):
+#		c=super().compress()
+#		c.elements=[e.compress() for e in self.elements]
+#		pdb.set_trace()
+#		return c
+#		
 
 
 
@@ -119,8 +128,8 @@ class ComposedFunction(FunctionDescription):
 #=======================================================================================================
 
 class NNfunction(FunctionDescription):
-	def typename(self):
-		return self.activation+type(self).__name__
+	def richtypename(self):
+		return self.activation+'-'+self.typename()
 
 
 class ASNN(NNfunction):
@@ -151,8 +160,11 @@ class Slater(FunctionDescription):
 	def initweights(self):
 		return self.basisfunctions.initweights()
 
+	def richtypename(self):
+		return self.basisfunctions.richtypename()+dash+self.typename()
+
 	def info(self):
-		return cfg.indent(self.basisfunctions.getinfo())
+		return cfg.indent(self.basisfunctions.info())
 		
 
 class Wrappedfunction(FunctionDescription):
@@ -181,20 +193,6 @@ def initweights_ASNN(n,d,widths,**kw):
 	widths[0]=n*d
 	return mv.initweights_NN(widths)
 
-"""
-#==================
-# example: ferminet
-#==================
-#
-#def initweights_ferminet(widths,**kw):
-#	ds0,ds1,k=widths
-#	return bf.initweights_FN_backflow([ds0,ds1])+[util.initweights((k,))]
-#
-"""
-
-#def initweights_SingleparticleNN(widths,**kw):
-#	return mv.initweights_NN(widths)
-
 initweights_SingleparticleNN=mv.initweights_NN
 
 #=======================================================================================================
@@ -210,7 +208,3 @@ def cast(f,**kw):
 def getfunc(ftype,**kw):
 	return globals()[ftype](**kw)
 
-def del_ac(s):
-	for a in util.substringslast(util.activations):
-		s=s.replace(a,'')
-	return s

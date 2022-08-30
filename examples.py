@@ -30,7 +30,7 @@ import testing
 import AS_tools
 import AS_HEAVY
 import copy
-import examplefunctions
+#import examplefunctions
 import functions
 from config import session
 
@@ -50,6 +50,7 @@ def getrunfn0(target,learner):
 
 
 		unprocessed=cfg.ActiveMemory()
+
 		try:
 			cfg.dashboard.add_display(Display2(10,cfg.dashboard.width,unprocessed),40,name='bars')
 		except:
@@ -72,6 +73,9 @@ def getrunfn0(target,learner):
 		cfg.logcurrenttask('preparing slices for plotting')
 		sections=pt.genCrossSections(X,Y,target.eval)
 
+		setupdata={k:globals()[k] for k in ['X_test','Y_test']}|{'target':target.compress(),'learner':learner.compress()}
+		cfg.save(setupdata,cfg.outpath+'data/setup')
+
 		cfg.logcurrenttask('begin training')
 		for i in range(iterations+1):
 
@@ -83,6 +87,8 @@ def getrunfn0(target,learner):
 
 			if sc1.activate(i):
 				unprocessed.remember('weights',learner.weights)
+				cfg.save(unprocessed,cfg.outpath+'data/unprocessed')
+				
 
 			if sc2.activate(i):
 				fplot()
@@ -99,13 +105,13 @@ def fplot():
 	plotfunctions(sections,_learner_.eval,figtitle,figpath)
 
 def info(separator=' | '):
-	return 'target={}{}learner={}'.format(_target_.typename(),separator,_learner_.typename())
+	return 'target: {}{}learner: {}'.format(_target_.richtypename(),separator,_learner_.richtypename())
 
 def INFO(separator='\n\n'):
-	lb='\n'+50*'-'+'\n'
-	targetinfo='target{}{}'.format(lb,_target_.getinfo())
-	learnerinfo='learner{}{}'.format(lb,_learner_.getinfo())
-	return targetinfo+'\n\n'+learnerinfo
+	lb='\n'+50*db.dash+'\n'
+	targetinfo='target\n{}'.format(_target_.getinfo())
+	learnerinfo='learner\n{}'.format(_learner_.getinfo())
+	return lb+targetinfo+lb+learnerinfo+lb
 
 def process_input(c):
 	if c==108: lplot()
@@ -172,10 +178,69 @@ def processandplot(unprocessed,pfunc,X,Y,process_snapshot_fn=None,plotexample_fn
 		process_snapshot(processed,pfunc.fwithparams(weights),X,Y,i)		
 
 	plotexample(unprocessed,processed)
-	cfg.save(processed,cfg.outpath+'data')
+	#cfg.save(processed,cfg.outpath+'data/processed')
 
 	cfg.clearcurrenttask()
 	return processed
+
+
+
+
+# comparison plots
+####################################################################################################
+
+#
+#def processandplot(unprocessed1,unprocessed2,pfunc,X,Y,process_snapshot_fn=None,plotexample_fn=None):
+#
+#	pfunc=pfunc.getemptyclone()
+#	if process_snapshot_fn==None: process_snapshot_fn=process_snapshot
+#
+#	processed1=cfg.ActiveMemory()
+#	processed2=cfg.ActiveMemory()
+#
+#	weightslist,i_s=unprocessed.gethist('weights','minibatchnumber')
+#	for imgnum,(weights,i) in enumerate(zip(weightslist,i_s)):
+#
+#		cfg.trackcurrenttask('processing snapshots for learning plot',(imgnum+1)/len(weightslist))
+#		process_snapshot(processed,pfunc.fwithparams(weights),X,Y,i)		
+#
+#	plotexample(unprocessed,processed)
+#	cfg.save(processed,cfg.outpath+'data')
+#
+#	cfg.clearcurrenttask()
+#	return processed
+#
+#
+#def plotexample_0(unprocessed,processed):
+#	plt.close('all')
+#
+#
+#	fig,(ax0,ax1)=plt.subplots(2)
+#	fig.suptitle('test loss '+info())
+#
+#	ax0.plot(*util.swap(*processed.gethist('test loss','minibatchnumber')),'r-',label='test loss')
+#	ax0.legend()
+#	ax0.set_ylim(bottom=0,top=1)
+#	ax0.grid(True,which='major',ls='-',axis='y')
+#	ax0.grid(True,which='minor',ls=':',axis='y')
+#
+#	ax1.plot(*util.swap(*processed.gethist('test loss','minibatchnumber')),'r-',label='test loss')
+#	ax1.legend()
+#	ax1.set_yscale('log')
+#	ax1.grid(True,which='major',ls='-',axis='y')
+#	ax1.grid(True,which='minor',ls=':',axis='y')
+#	cfg.savefig('{}{}'.format(cfg.outpath,'losses.pdf'),fig=fig)
+#
+#
+#
+#	fig,ax=plt.subplots()
+#	ax.set_title('performance '+info())
+#	I,t=unprocessed.gethistbytime('minibatchnumber')
+#	ax.plot(t,I)
+#	ax.set_xlabel('time')
+#	ax.set_ylabel('minibatch')
+#	cfg.savefig('{}{}'.format(cfg.outpath,'performance.pdf'),fig=fig)
+
 
 
 
@@ -246,7 +311,7 @@ def runexample(runfn):
 	else:
 		if displaymode=='logdisplay':
 			class LogDisplay:
-				def poke(self,*args):
+				def poke(self,*args,**kw):
 					if args==('log',):
 						print(session.getcurrentval('log'))
 			logdisp=LogDisplay()

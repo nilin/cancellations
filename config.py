@@ -128,8 +128,7 @@ class Memory(BasicMemory,Timer):
 		super().remember(name,val,self.getcontext()|context)
 		self.pokelisteners(name,*listenerargs)
 
-
-		poke()
+		poke(name,val)
 
 	def addlistener(self,listener):
 		lname=int(nextkey()[0])
@@ -213,6 +212,7 @@ def register(_dict_,names):
 def log(msg):
 	msg='{} | {}'.format(datetime.timedelta(seconds=int(session.time())),msg)
 	session.log(msg)
+	poke('log',msg)
 	write(msg+'\n',*logpaths())
 	if trackduration:
 		write(str(int(session.time())),*[os.sep.join(pathlog.split(os.sep)[:-1])+os.sep+'duration' for pathlog in logpaths()],mode='w')	
@@ -564,7 +564,7 @@ poke=donothing
 on_pause=donothing
 
 def logcurrenttask(msg):
-	session.trackcurrent('currenttask',msg)
+	trackcurrenttask(msg,0)
 	log(msg)
 
 def trackcurrenttask(msg,completeness,*args):
@@ -586,7 +586,15 @@ def print(*args,**kw):
 def indent(s):
 	return '\n'.join(['    '+l for l in s.splitlines()])
 
+
+
+
+
+
+####################################################################################################
+
 # testing
+
 
 if __name__=='__main__':
 
@@ -603,3 +611,5 @@ if __name__=='__main__':
 
 
 	print(nonsparsesched(1000,10))
+
+	#livekeyboard()

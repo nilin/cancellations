@@ -75,7 +75,7 @@ def getwrapped(run,process_input=cfg.donothing):
 			while paused:
 				got_input(statuswindow.getch())
 
-		def poke():
+		def poke(*args,**kw):
 			got_input(statuswindow.getch())
 
 		def got_input(c):
@@ -91,6 +91,23 @@ def getwrapped(run,process_input=cfg.donothing):
 		setrunning()
 		run()
 	return wrapped
+
+
+def livekeyboard():
+	import curses as cs
+	def f(screen):
+		cs.use_default_colors()
+		h=cs.LINES
+		w=cs.COLS
+		s=''
+		while True:
+			c=screen.getch()
+			s=s+str(c)
+			screen.addstr(10,10,s)
+			if c==127:
+				quit()
+
+	cs.wrapper(f)
 
 
 def RID(run,*x,**y):

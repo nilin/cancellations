@@ -203,7 +203,8 @@ def makeblockwise(f,*args):
 		Xs=chop(X,chunksize=cfg.memorybatchlimit(n))
 		out=[]
 		for i,(B,) in enumerate(Xs):
-			out.append(f(B))
+			#out.append(f(B))
+			out.append(jnp.squeeze(f(B)))
 			if loud:
 				cfg.trackcurrenttask('blockwise eval',(i+1)/len(Xs))
 		return jnp.concatenate(out,axis=0)
@@ -291,9 +292,15 @@ def keyfromstr(s):
 
 def applyonleaves(T,fn):
 	if type(T)==list or type(T)==tuple:
-		return [nestedstructure(e,fn) for e in T]
+		return [applyonleaves(e,fn) for e in T]
 	else:
 		return fn(T)
+
+def recurseonleaves(T,fn):
+	if type(T)==list or type(T)==tuple:
+		return fn([recurseonleaves(t,fn) for t in T])
+	else:
+		return fn([T])
 
 nestedstructure=applyonleaves
 
@@ -323,7 +330,7 @@ def shapestr(l):
 
 
 def printshape(l):
-	print(shapestr(l))
+	cfg.print(shapestr(l))
 
 
 def scalarfunction(f):
@@ -351,7 +358,7 @@ def combinelossgradfns(lossgradfns,nums_inputs,coefficients):
 #	return 1/jnp.max(jnp.triu(1/sqdists))
 
 def initweights(shape):
-	return rnd.normal(cfg.nextkey(),shape)/jnp.sqrt(shape[-1])
+	return rnd.normal(cfg.nextkey(),shape)*jnp.sqrt(2/shape[-1])
 
 
 

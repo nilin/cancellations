@@ -200,7 +200,7 @@ class AbstractDashboard:
 	def del_display(self,name):
 		del self.displays[name]
 
-	def poke(self,signal,*args):
+	def poke(self,signal,*args,**kw):
 		for name,concretedisplay in self.displays.items():
 			display=self.getdisplay(concretedisplay)
 			if signal==None or signal in display.trackedvars:
@@ -232,24 +232,6 @@ class Dashboard(AbstractDashboard):
 
 		
 
-def get3displays(width):
-		#width=os.get_terminal_size()[0]-1
-
-	#infodisplay=StackedDisplay(25,width,session)
-	#infodisplay.addhistdisplay(25,'sessioninfo')
-	infodisplay=QueriedText(25,width,session,'sessioninfo')
-
-	logdisplay=StackedDisplay(10,round(width*.4),session)
-	logdisplay.addstatictext('log')
-	logdisplay.addline()
-	logdisplay.addhistdisplay(10,'log')
-
-	dbprintdisplay=StackedDisplay(10,round(width*.4),session)
-	dbprintdisplay.addstatictext('prints (cfg.print(msg))')
-	dbprintdisplay.addline()
-	dbprintdisplay.addhistdisplay(10,'dbprintbuffer')
-
-	return infodisplay,logdisplay,dbprintdisplay
 
 def get4displays(width):
 

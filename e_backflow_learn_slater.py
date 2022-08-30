@@ -48,7 +48,9 @@ n=5
 d=2
 spwidths=[2,100,100]
 bfwidths=[100,100]
+
 learner=ComposedFunction(SingleparticleNN(widths=spwidths,activation=learneractivation),functions.BackflowAS(n=n,widths=bfwidths,k=5,activation=learneractivation))
+
 #target=functions.Slater('hermitegaussproducts',n=n,d=d,mode='gen')
 target=functions.Slater('parallelgaussians',n=n,d=d,mode='gen')
 
