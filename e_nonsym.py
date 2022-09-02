@@ -20,7 +20,7 @@ jax.config.update("jax_enable_x64", True)
 
 
 
-cfg.exname='example'
+cfg.exname='nonsym'
 cfg.explanation=''
 cfg.outpath='outputs/{}/{}/'.format(cfg.exname,cfg.sessionID)
 
@@ -67,6 +67,11 @@ functions.DetSum('detsum',n=n,d=d_,ndets=k)
 )
 
 cfg.log('learner prepared')
+####################################################################################################
+cfg.log('modify target, learner')
+target=functions.switchtype(target)
+learner=functions.switchtype(learner)
+cfg.log('modified target, learner')
 ####################################################################################################
 
 

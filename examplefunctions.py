@@ -27,10 +27,11 @@ def polynomial(coefficients,X):
 	n=len(coefficients)-1
 	return jnp.inner(monomials(X,n),coefficients)
 		
+#def polynomial_product(pi,X):
+#	return util.prod([polynomial(pij,X[:,j]) for j,pij in enumerate(pi)])
+
 def polynomial_products(ps,X):
 	return jnp.stack([util.prod([polynomial(pij,X[:,j]) for j,pij in enumerate(pi)]) for pi in ps],axis=-1)
-
-
 	
 #----------------------------------------------------------------------------------------------------
 # Hermite polynomials
@@ -77,6 +78,10 @@ def gen_hermitegaussproducts(n,d,envelopevariance=1):
 	envelope=lambda x:jnp.exp(-jnp.sum(jnp.square(x),axis=(-1))/(2*envelopevariance))
 	return jax.jit(lambda X:envelope(X)[:,None]*hermiteprods(X))
 
+#def gen_hermitegaussproducts_separate(n,d,envelopevariance=1):
+#	hermiteprods=[util.fixparams(polynomial_product,pi) for pi in hermite_nd_params(n,d)]
+#	envelope=lambda x:jnp.exp(-jnp.sum(jnp.square(x),axis=(-1))/(2*envelopevariance))
+#	return [jax.jit(lambda X:envelope(X)*prod(X)) for prod in hermiteprods]
 
 #----------------------------------------------------------------------------------------------------
 # Gaussians

@@ -92,6 +92,15 @@ def gen_backflow0(activation):
 	return util.compose(bf.gen_backflow(activation),detsum)
 
 
+#=======================================================================================================
+def diagprods(A):
+	return jnp.product(jnp.diagonal(A,axis1=-2,axis2=-1),axis=-1)
+
+def prodsum(A,Y):
+	snkn=jnp.inner(Y,A)
+	sknn=jnp.swapaxes(snkn,-3,-2)
+	return jnp.sum(diagprods(sknn),axis=-1)
+
 
 #=======================================================================================================
 
@@ -106,8 +115,8 @@ def gen_backflow0(activation):
 
 
 
-def initweights_detsum(n,d,ndets):
-	return util.initweights((ndets,n,d))
+#def initweights_detsum(n,d,ndets):
+#	return util.initweights((ndets,n,d))
 
 
 #=======================================================================================================

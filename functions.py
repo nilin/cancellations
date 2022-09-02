@@ -22,9 +22,9 @@ from inspect import signature
 import importlib
 from collections import deque
 from dashboard import dash
-
+import backflow
 from backflow import gen_backflow,initweights_Backflow
-from AS_tools import detsum,initweights_detsum
+from AS_tools import detsum #,initweights_detsum
 from jax.numpy import tanh
 from util import drelu
 import examplefunctions
@@ -74,7 +74,6 @@ class ParameterizedFunc:
 			return mv.pad(self.gen_f())
 
 
-	# def get_f(self):
 
 
 class FunctionDescription(ParameterizedFunc):
@@ -88,7 +87,6 @@ class FunctionDescription(ParameterizedFunc):
 	
 	def initweights(self):
 		initname='initweights_{}'.format(self.typename())
-		#print(initname)
 		if initname in globals():
 			return globals()[initname](**self.kw)
 		else:
@@ -120,65 +118,40 @@ class ComposedFunction(FunctionDescription):
 	def info(self):
 		return '\n'+'\n\n'.join([cfg.indent(e.getinfo()) for e in self.elements])
 
-#	def compress(self):
-#		c=super().compress()
-#		c.elements=[e.compress() for e in self.elements]
-#		pdb.set_trace()
-#		return c
-#		
+	def compress(self):
+		c=super().compress()
+		new_c_elements=[e.compress() for e in c.elements]
+		c.elements=new_c_elements
+		return c
 
-
-
-
-#=======================================================================================================
 
 class NNfunction(FunctionDescription):
 	def richtypename(self):
 		return self.activation+'-'+self.typename()
 
+#=======================================================================================================
 
-class ASNN(NNfunction):
-	def gen_f(self):
-		NN_NS=mv.gen_NN_NS(self.activation)
-		return ASt.gen_Af(self.n,NN_NS)
+class Equivariant(FunctionDescription):
+	pass
 
-class SingleparticleNN(NNfunction):
+class SingleparticleNN(NNfunction,Equivariant):
 	def gen_f(self):
 		return bf.gen_singleparticleNN(activation=self.activation)
+	def initweights(self):
+		return mv.initweights_NN(self.widths)
 
-class Backflow(NNfunction):
+
+class Backflow(NNfunction,Equivariant):
 	def gen_f(self):	
 		return bf.gen_backflow(self.activation)
-
-class BackflowAS(ComposedFunction,NNfunction):
-	def __init__(self,n,widths,k,activation,**kw):
-		super().__init__(\
-			Backflow(activation=activation,widths=widths,**kw),\
-			Wrappedfunction('detsum',n=n,outdim=widths[-1],k=k))
-
-class Slater(FunctionDescription):
-	def __init__(self,basisfunctions,**kw):
-		super().__init__(basisfunctions=cast(basisfunctions,**kw).compress())
-
-	def gen_f(self):
-		parallel=jax.vmap(self.basisfunctions._gen_f_(),in_axes=(None,-2),out_axes=-2)
-		return jax.jit(lambda params,X: jnp.linalg.det(parallel(params,X)))
-
-	def initweights(self):
-		return self.basisfunctions.initweights()
-
-	def richtypename(self):
-		return self.basisfunctions.richtypename()+dash+self.typename()
-
-	def info(self):
-		return cfg.indent(self.basisfunctions.info())
+	initweights=backflow.initweights_Backflow
 
 
 import transformer
 from transformer import initweights_SimpleSAB
 from jax.nn import softmax
 
-class SimpleSAB(FunctionDescription):
+class SimpleSAB(Equivariant):
 	def gen_f(self):
 		d=self.d
 		omega=lambda X:softmax(X/jnp.sqrt(d),axis=-1)
@@ -186,6 +159,91 @@ class SimpleSAB(FunctionDescription):
 
 
 #=======================================================================================================
+
+class Switchable:
+	def switch(self,mode,newclass):
+		Tf=newclass(initweights=False,**self.kw)
+		if mode=='tied': Tf.weights=self.weights
+		elif mode=='copy': Tf.weights=copy.deepcopy(self.weights)
+		elif mode=='empty': Tf.weights=None
+		else: raise ValueError
+		return Tf
+
+class Nonsym(FunctionDescription,Switchable):
+	def antisym():
+		return globals()[self.antisymtype]
+	def getantisym(self,mode):
+		return self.switch(mode,self.antisym())
+	switchtype=getantisym
+
+class NN(NNfunction,Nonsym):
+	antisymtype='ASNN'
+	def gen_f(self): return mv.gen_NN_NS(self.activation)
+	def initweights(self):
+		self.widths[0]=self.n*self.d
+		return mv.initweights_NN(self.widths)
+
+class ProdSum(Nonsym):
+	antisymtype='DetSum'
+	def gen_f(self): return AS_tools.prodsum
+	def initweights(self): return util.initweights((self.ndets,self.n,self.d))
+
+class ProdState(Nonsym):
+	antisymtype='Slater'
+	def gen_f(self):
+		parallel=jax.vmap(self.basisfunctions._gen_f_(),in_axes=(None,-2),out_axes=-2)
+		return jax.jit(lambda params,X: ASt.diagprods(parallel(params,X)))
+
+	def initweights(self):
+		return self.basisfunctions.initweights()
+
+	def richtypename(self): return self.basisfunctions.richtypename()+dash+self.typename()
+	def info(self): return cfg.indent(self.basisfunctions.info())
+
+#=======================================================================================================
+
+class Antisymmetric(FunctionDescription,Switchable):
+	def getnonsym(self,mode):
+		return self.switch(mode,self.nonsym)
+	switchtype=getnonsym
+
+	def initweights(self):
+		return self.nonsym.initweights(self)
+
+class ASNN(NNfunction,Antisymmetric):
+	nonsym=NN
+	def gen_f(self):
+		NN_NS=mv.gen_NN_NS(self.activation)
+		return ASt.gen_Af(self.n,NN_NS)
+
+class DetSum(Antisymmetric):
+	nonsym=ProdSum
+	def gen_f(self): return AS_tools.detsum
+
+class Slater(Antisymmetric):
+	nonsym=ProdState
+	def __init__(self,basisfunctions,**kw):
+		super().__init__(basisfunctions=cast(basisfunctions,**kw).compress())
+
+	def gen_f(self):
+		parallel=jax.vmap(self.basisfunctions._gen_f_(),in_axes=(None,-2),out_axes=-2)
+		return jax.jit(lambda params,X: jnp.linalg.det(parallel(params,X)))
+
+	def richtypename(self): return self.basisfunctions.richtypename()+dash+self.typename()
+	def info(self): return cfg.indent(self.basisfunctions.info())
+
+
+
+#class BackflowAS(ComposedFunction,NNfunction):
+#	def __init__(self,n,widths,k,activation,**kw):
+#		super().__init__(\
+#			Backflow(activation=activation,widths=widths,**kw),\
+#			Wrappedfunction('detsum',n=n,ndets=widths[-1],k=k))
+
+#=======================================================================================================
+
+
+
 
 class Wrappedfunction(FunctionDescription):
 	def __init__(self,fname,mode=None,**kw):
@@ -203,14 +261,38 @@ class Wrappedfunction(FunctionDescription):
 
 
 #=======================================================================================================
-# init NN
-#=======================================================================================================
 
-def initweights_ASNN(n,d,widths,**kw):
-	widths[0]=n*d
-	return mv.initweights_NN(widths)
+def switchtype(f:FunctionDescription):
+	if isinstance(f,ComposedFunction):
+		g=copy.deepcopy(f)
+		newelements=[switchtype(e) if isinstance(e,Switchable) else e for e in g.elements]
+		g.elements=newelements
+		return g
+	elif isinstance(f,Switchable):
+		return f.switchtype('copy')
+	else: raise ValueError
 
-initweights_SingleparticleNN=mv.initweights_NN
+
+#def antisymmetrize(f:FunctionDescription):
+#	if isinstance(f,ComposedFunction):
+#		Af=copy.deepcopy(f)
+#		newelements=[antisymmetrize(e) if isinstance(e,Nonsym) else e for e in Af.elements]
+#		Af.elements=newelements
+#		return Af
+#	elif isinstance(f,Nonsym):
+#		return f.getantisym('copy')
+#	else: raise ValueError
+#		
+#def nonsymmetrize(Af:FunctionDescription):
+#	if isinstance(Af,ComposedFunction):
+#		f=copy.deepcopy(Af)
+#		newelements=[nonsymmetrize(e) if isinstance(e,Antisymmetric) else e for e in f.elements]
+#		f.elements=newelements
+#		return f
+#	elif isinstance(Af,Antisymmetric):
+#		return Af.getnonsym('copy')
+#	else: raise ValueError
+
 
 #=======================================================================================================
 

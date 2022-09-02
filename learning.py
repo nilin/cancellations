@@ -44,7 +44,8 @@ class Trainer():
 		self.memory=cfg.session if memory==None else memory
 
 		self.learner=learner
-		self.lossgrad=learner.get_lossgrad(cfg.lossfn if lossfn==None else lossfn)
+		#self.lossgrad=learner.get_lossgrad(cfg.lossfn if lossfn==None else lossfn)
+		self.lossgrad=learner.get_lossgrad(lossfn)
 
 		self.X,self.Y=X,Y
 		self.samples,self.n,self.d=X.shape
@@ -89,8 +90,8 @@ class Trainer():
 		self.minibatchsize=min(self.X.shape[0],cfg.memorybatchlimit(self.n),1000) if minibatchsize==None else minibatchsize
 		self.memory.log('minibatch size set to '+str(self.minibatchsize))
 
-	def get_learned(self):
-		return self.learner.as_static()
+#	def get_learned(self):
+#		return self.learner.as_static()
 
 	def checkpoint(self):
 		self.memory.remember('weights',copy.deepcopy(self.learner.weights))
@@ -139,6 +140,19 @@ class NoTargetTrainer(DynamicTrainer):
 		(X_mini,)=self.next_X_minibatch()
 		return self.minibatch_step(X_mini)	
 
+
+
+class Dummylearner:
+	def __init__(self,directloss,weights=None):
+		self.weights=weights
+		self.directloss=directloss
+
+	def get_lossgrad(*args,**kw):
+		return jax.value_and_grad(self.directloss)
+
+class DirectlossTrainer(NoTargetTrainer):
+	def __init__(self,directloss,X,**kw):
+		super().__init__(Dummylearner(directloss),X,**kw)
 
 #----------------------------------------------------------------------------------------------------
 
