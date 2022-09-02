@@ -216,6 +216,9 @@ initweights_SingleparticleNN=mv.initweights_NN
 
 
 
+flatten=jax.jit(lambda y:jnp.tanh(10*y))
+
+
 def cast(f,**kw):
 	if type(f)==tuple:
 		f0,kw0=f

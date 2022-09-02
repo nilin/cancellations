@@ -39,9 +39,9 @@ d=2
 
 ####################################################################################################
 
-target=ComposedFunction(functions.Slater('hermitegaussproducts',n=n,d=d,mode='gen'),'tanh')
+#target=ComposedFunction(functions.Slater('hermitegaussproducts',n=n,d=d,mode='gen'),'tanh')
 #target=ComposedFunction(functions.Slater('parallelgaussians',n=n,d=d,mode='gen'),'tanh')
-#target=ComposedFunction(functions.ASNN(n=n,d=d,widths=['nd',10,10,1],activation='tanh'),'tanh')
+target=ComposedFunction(functions.ASNN(n=n,d=d,widths=['nd',10,10,1],activation='tanh'),'tanh')
 
 cfg.log('target prepared')
 
@@ -58,7 +58,7 @@ learneractivation='tanh'
 #	SingleparticleNN(widths=[d,100,100,d_],activation='tanh'),\
 #	functions.ASNN(n=n,d=d_,widths=['nd',100,1],activation=learneractivation))
 
-d_=10; k=10; d_=10
+d_=25; k=25;
 learner=ComposedFunction(\
 SingleparticleNN(widths=[2,100,d_],activation=learneractivation),\
 #functions.Backflow(activation=learneractivation,widths=[d_,d_]),\
