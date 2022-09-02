@@ -224,17 +224,16 @@ def runexample(runfn):
 	cfg.trackduration=True
 	if 'debug' in cfg.cmdparams:
 		import debug
-
-	displaymode=pickdisplay()
+		displaymode='logdisplay'
+	else:
+		displaymode=pickdisplay()
 
 	db.clear()
 	if displaymode=='fulldisplay':
 		import run_in_display
 		run_in_display.RID(runfn,process_input)
 	else:
-		if displaymode=='logdisplay':
-			pass
-		elif displaymode=='display0':
+		if displaymode=='display0':
 			cfg.dashboard=db.Dashboard0()
 		runfn()
 
