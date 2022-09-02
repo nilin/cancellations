@@ -73,13 +73,14 @@ def gen_lossgrad(f,lossfn=None):
 	def collectiveloss(params,X,*Y):
 		return lossfn(f(params,X),*Y)
 
-	l_grad=jax.value_and_grad(collectiveloss)
-
-	@jax.jit	
-	def lossgrad(params,X,*Y):
-		return l_grad(params,X,*Y)
-
-	return lossgrad
+	return jax.value_and_grad(collectiveloss)
+#	l_grad=jax.value_and_grad(collectiveloss)
+#
+#	@jax.jit	
+#	def lossgrad(params,X,*Y):
+#		return l_grad(params,X,*Y)
+#
+#	return lossgrad
 
 
 	
