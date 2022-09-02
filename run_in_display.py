@@ -11,9 +11,10 @@ import curses as cs
 
 class CDashboard(db.AbstractDashboard):
 
-	def __init__(self,w):
+	def __init__(self,w,h):
 		super().__init__()
 		self.width=w
+		self.height=h
 
 	def makeconcretedisplay(self,display,y,x):
 		window=cs.newwin(display.height,display.width,y,x)	
@@ -31,86 +32,49 @@ class CDashboard(db.AbstractDashboard):
 
 		window.refresh()
 
-paused=False
+#paused=False
 
 instr='\n\nPress l (lowercase L) to generate learning plots.\nPress f to generate functions plot.\nPress q to quit.'
+session.trackcurrent('statusinfo',instr)
 
-def getwrapped(run,process_input=cfg.donothing):
+def getwrapped(runfn,process_input=cfg.donothing):
 
 	def wrapped(screen):
-
 
 		cs.use_default_colors()
 		h=cs.LINES
 		w=cs.COLS
 
-		infodisplay,statusdisplay,logdisplay,dbprintdisplay=db.get4displays(w)
-		dashboard=CDashboard(w)
+		screen.clear()
 
+		dashboard=CDashboard(w,h)
+
+		infodisplay,statusdisplay,logdisplay=db.get3displays(w,h)
 		dashboard.add_display(infodisplay,0,0)
 		dashboard.add_display(statusdisplay,0,w//2,name='status')
-		dashboard.add_display(logdisplay,25,0)
-		dashboard.add_display(dbprintdisplay,25,w//2)
+		dashboard.add_display(logdisplay,h//3,w//2)
 
 		statuswindow=dashboard.displays['status'][1]
 		cfg.dashboard=dashboard
-
-
-
-		def setrunning():
-			global paused
-			paused=False
-			cs.flushinp()
-			#screen.nodelay(True)
-			statuswindow.nodelay(True)
-			session.trackcurrent('statusinfo','running, press p to pause'+instr)
-
-		def setpaused():
-			cs.flushinp()
-			global paused
-			paused=True
-			#screen.nodelay(False)
-			statuswindow.nodelay(False)
-			session.trackcurrent('statusinfo','paused, press c to continue'+instr)
-			while paused:
-				got_input(statuswindow.getch())
 
 		def poke(*args,**kw):
 			got_input(statuswindow.getch())
 
 		def got_input(c):
-			if c==112:
-				setpaused()
-			if c==99:
-				setrunning()
-			if c==113:
-				quit()
-			process_input(c)
+			if c==113: quit()
+			else: process_input(c)
 
 		cfg.poke=poke
-		setrunning()
-		run()
+		
+		cs.flushinp()
+		statuswindow.nodelay(True)
+
+		runfn()
 	return wrapped
 
 
-def livekeyboard():
-	import curses as cs
-	def f(screen):
-		cs.use_default_colors()
-		h=cs.LINES
-		w=cs.COLS
-		s=''
-		while True:
-			c=screen.getch()
-			s=s+str(c)
-			screen.addstr(10,10,s)
-			if c==127:
-				quit()
 
-	cs.wrapper(f)
-
-
-def RID(run,*x,**y):
-	wrapped=getwrapped(run,*x,**y)
+def RID(runfn,*x,**y):
+	wrapped=getwrapped(runfn,*x,**y)
 	cs.wrapper(wrapped)
 

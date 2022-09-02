@@ -95,7 +95,7 @@ class CrossSection1D(CrossSection):
 
 class CrossSection2D(CrossSection):
 	def __init__(self,X,Y,target,x0):
-		super().__init__(X,Y,50)
+		super().__init__(X,Y,cfg.plotfineness)
 		self.slice=slicethrough(x0,self.interval)
 		self.y=util.applyalonglast(target,self.slice,2)
 

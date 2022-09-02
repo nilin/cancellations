@@ -106,8 +106,8 @@ def gen_backflow0(activation):
 
 
 
-def initweights_detsum(n,outdim,k):
-	return util.initweights((k,n,outdim))
+def initweights_detsum(n,d,ndets):
+	return util.initweights((ndets,n,d))
 
 
 #=======================================================================================================

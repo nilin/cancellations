@@ -25,6 +25,8 @@ from dashboard import dash
 
 from backflow import gen_backflow,initweights_Backflow
 from AS_tools import detsum,initweights_detsum
+from jax.numpy import tanh
+from util import drelu
 import examplefunctions
 from examplefunctions import gen_parallelgaussians,gen_hermitegaussproducts
 
@@ -45,8 +47,7 @@ class ParameterizedFunc:
 		return util.makeblockwise(fs)
 
 	def restore(self):
-		if 'f' not in vars(self) or self.f==None:
-			self.f=self._gen_f_()
+		self.f=self._gen_f_()
 		return self
 
 	def typename(self):
@@ -67,16 +68,20 @@ class ParameterizedFunc:
 		return c
 
 	def _gen_f_(self):
-		return mv.pad(self.gen_f())
+		if 'f' in vars(self) and self.f!=None:
+			return self.f
+		else:
+			return mv.pad(self.gen_f())
+
 
 	# def get_f(self):
 
 
 class FunctionDescription(ParameterizedFunc):
 
-	def __init__(self,**kw):
+	def __init__(self,initweights=True,**kw):
 		super().__init__(**kw)
-		self.weights=self.initweights()
+		self.weights=self.initweights() if initweights else None
 
 	def eval(self,X):
 		return self.fwithparams(self.weights)(X)
@@ -100,8 +105,8 @@ class FunctionDescription(ParameterizedFunc):
 
 class ComposedFunction(FunctionDescription):
 	def __init__(self,*elements):
-		elements=[e.compress() for E in elements for e in (E.elements if isinstance(E,ComposedFunction) else [E])]
-		super().__init__(elements=[cast(e) for e in elements])
+		elements=[e for E in elements for e in (E.elements if isinstance(E,ComposedFunction) else [E])]
+		super().__init__(elements=[cast(e).compress() for e in elements])
 
 	def gen_f(self):
 		return util.compose(*[e._gen_f_() for e in self.elements])
@@ -147,11 +152,13 @@ class Backflow(NNfunction):
 
 class BackflowAS(ComposedFunction,NNfunction):
 	def __init__(self,n,widths,k,activation,**kw):
-		super().__init__(Backflow(activation=activation,widths=widths,**kw),Wrappedfunction('detsum',n=n,outdim=widths[-1],k=k))
+		super().__init__(\
+			Backflow(activation=activation,widths=widths,**kw),\
+			Wrappedfunction('detsum',n=n,outdim=widths[-1],k=k))
 
 class Slater(FunctionDescription):
 	def __init__(self,basisfunctions,**kw):
-		super().__init__(basisfunctions=cast(basisfunctions,**kw))
+		super().__init__(basisfunctions=cast(basisfunctions,**kw).compress())
 
 	def gen_f(self):
 		parallel=jax.vmap(self.basisfunctions._gen_f_(),in_axes=(None,-2),out_axes=-2)
@@ -165,7 +172,20 @@ class Slater(FunctionDescription):
 
 	def info(self):
 		return cfg.indent(self.basisfunctions.info())
-		
+
+
+import transformer
+from transformer import initweights_SimpleSAB
+from jax.nn import softmax
+
+class SimpleSAB(FunctionDescription):
+	def gen_f(self):
+		d=self.d
+		omega=lambda X:softmax(X/jnp.sqrt(d),axis=-1)
+		return transformer.gen_simple_SAB(omega=omega)
+
+
+#=======================================================================================================
 
 class Wrappedfunction(FunctionDescription):
 	def __init__(self,fname,mode=None,**kw):
@@ -180,9 +200,6 @@ class Wrappedfunction(FunctionDescription):
 
 	def typename(self):
 		return self.fname
-
-
-
 
 
 #=======================================================================================================
@@ -205,6 +222,4 @@ def cast(f,**kw):
 		return cast(f0,**kw0)
 	return f if isinstance(f,ParameterizedFunc) else Wrappedfunction(f,**kw)
 
-def getfunc(ftype,**kw):
-	return globals()[ftype](**kw)
 

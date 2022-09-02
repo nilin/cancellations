@@ -1,13 +1,8 @@
 import numpy as np
 import math
-import pickle
-import time
-import copy
-import jax
 import jax.numpy as jnp
-import pdb
+import jax
 import jax.random as rnd
-from jax.lax import collapse	
 import config as cfg
 import customactivations as ca
 from config import session
@@ -76,6 +71,8 @@ def ReLU(x):
 @jax.jit
 def DReLU(x):
 	return jnp.minimum(jnp.maximum(x,-1),1)
+
+drelu=DReLU
 
 @jax.jit
 def leaky_ReLU(x):

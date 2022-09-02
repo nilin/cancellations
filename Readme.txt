@@ -3,12 +3,29 @@
 
 ████████████████████████████████████████████████████████████████████████████████████████████████████
 
-Examples
 
-████████████████████████████████████████████████████████████████████████████████████████████████████
+Instructions:
 
-python e_NN2d.py r
-python e_NN2d.py t
+To fit an antisymmetric function:
 
-python e_backflow2d.py b
-python e_backflow2d.py f
+>python example.py
+
+
+
+
+
+
+Modify example.py by commenting/uncommenting the lines defining target/learner. Once again run
+
+>python example.py
+
+
+
+
+
+
+To select data from past runs and generate a plot which compares their learning behavior, run
+
+>compplot.py
+
+and follow the instructions

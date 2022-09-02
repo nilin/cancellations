@@ -3,12 +3,10 @@ import math
 import pickle
 import time
 import copy
-import jax
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import os
 import datetime
-import pdb
 import jax.random as rnd
 import sys
 import copy
@@ -212,7 +210,7 @@ def register(_dict_,names):
 def log(msg):
 	msg='{} | {}'.format(datetime.timedelta(seconds=int(session.time())),msg)
 	session.log(msg)
-	poke('log',msg)
+	#poke('log',msg)
 	write(msg+'\n',*logpaths())
 	if trackduration:
 		write(str(int(session.time())),*[os.sep.join(pathlog.split(os.sep)[:-1])+os.sep+'duration' for pathlog in logpaths()],mode='w')	
@@ -541,16 +539,15 @@ def getfromargs(**kw):
 fromcmdparams=getfromargs
 getfromcmdparams=getfromargs
 
-mode='run'
-
-
 
 
 #sessionstate=State()
 session=Memory()
 params=dict()
 
-
+def poke(*args,**kw):
+	if 'log' in args:
+		print(args[1])
 
 
 def donothing(*x,**y):
@@ -560,8 +557,8 @@ def conditional(f,do):
 	if do:
 		f()
 
-poke=donothing
-on_pause=donothing
+
+
 
 def logcurrenttask(msg):
 	trackcurrenttask(msg,0)
@@ -578,17 +575,31 @@ def clearcurrenttask():
 
 
 
-def print(*args,**kw):
-	session.remember('dbprintbuffer',str(*args,**kw),norepeat=True)
+def printonpoke(msgfn):
+	def newpoke(*args,**kw):
+		print(msgfn(*args,**kw))
+	global poke
+	poke=newpoke
 
-
+def print_task_on_poke():
+	def msgfn(*args,**kw):
+		return '{}: {:.0%}'.format(session.getcurrentval('currenttask'),\
+			session.getcurrentval('currenttaskcompleteness'))
+	printonpoke(msgfn)
 
 def indent(s):
 	return '\n'.join(['    '+l for l in s.splitlines()])
 
+def provide(**kw):
+	for name,val in kw.items():
+		if name not in globals():
+			globals()[name]=val	
+
+def addparams(**kw):
+	params.update(kw)
 
 
-
+plotfineness=50
 
 
 ####################################################################################################

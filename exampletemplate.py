@@ -5,34 +5,16 @@
 #
 
 
-import config as cfg
-import sys
-import jax
 import jax.numpy as jnp
 import jax.random as rnd
-import numpy as np
 import learning
 import plottools as pt
-import mcmc
 import matplotlib.pyplot as plt
-import numpy as np
 import util
-from util import ReLU,DReLU,activations
-from jax.numpy import tanh
-import pdb
-import time
-import multivariate as mv
-import math
 import dashboard as db
-import time
-from pynput import keyboard
-import testing
-import AS_tools
-import AS_HEAVY
-import copy
-#import examplefunctions
-import functions
+import config as cfg
 from config import session
+
 
 
 
@@ -52,7 +34,7 @@ def getrunfn0(target,learner):
 		unprocessed=cfg.ActiveMemory()
 
 		try:
-			cfg.dashboard.add_display(Display2(10,cfg.dashboard.width,unprocessed),40,name='bars')
+			cfg.dashboard.add_display(Display2(10,cfg.dashboard.width,unprocessed),2*cfg.dashboard.height//3,name='bars')
 		except:
 			pass
 
@@ -66,8 +48,6 @@ def getrunfn0(target,learner):
 
 		trainer=learning.Trainer(learner,X,Y,weight_decay=weight_decay,minibatchsize=minibatchsize,lossfn=util.SI_loss) #,lossgrad=mv.gen_lossgrad(AS,lossfn=util.SI_loss))
 
-		sc1=cfg.Scheduler(cfg.nonsparsesched(iterations,start=100))
-		sc2=cfg.Scheduler(cfg.sparsesched(iterations,start=1000))
 		lazyplot=cfg.Clockedworker()
 
 		cfg.logcurrenttask('preparing slices for plotting')
@@ -75,6 +55,9 @@ def getrunfn0(target,learner):
 
 		setupdata={k:globals()[k] for k in ['X_test','Y_test']}|{'target':target.compress(),'learner':learner.compress()}
 		cfg.save(setupdata,cfg.outpath+'data/setup')
+
+		cfg.regsched=cfg.Scheduler(cfg.nonsparsesched(iterations,start=100))
+		cfg.provide(plotsched=cfg.Scheduler(cfg.sparsesched(iterations,start=1000)))
 
 		cfg.logcurrenttask('begin training')
 		for i in range(iterations+1):
@@ -85,12 +68,11 @@ def getrunfn0(target,learner):
 			unprocessed.addcontext('minibatchnumber',i)
 			unprocessed.remember('minibatch loss',loss)
 
-			if sc1.activate(i):
+			if cfg.regsched.activate(i):
 				unprocessed.remember('weights',learner.weights)
 				cfg.save(unprocessed,cfg.outpath+'data/unprocessed')
-				
 
-			if sc2.activate(i):
+			if cfg.plotsched.activate(i):
 				fplot()
 				lazyplot.do_if_rested(.2,lplot)
 	return runfn
@@ -105,13 +87,13 @@ def fplot():
 	plotfunctions(sections,_learner_.eval,figtitle,figpath)
 
 def info(separator=' | '):
-	return 'target: {}{}learner: {}'.format(_target_.richtypename(),separator,_learner_.richtypename())
+	return 'n={}, target: {}{}learner: {}'.format(n,_target_.richtypename(),separator,_learner_.richtypename())
 
 def INFO(separator='\n\n'):
 	lb='\n'+50*db.dash+'\n'
-	targetinfo='target\n{}'.format(_target_.getinfo())
-	learnerinfo='learner\n{}'.format(_learner_.getinfo())
-	return lb+targetinfo+lb+learnerinfo+lb
+	targetinfo='target\n\n{}'.format(cfg.indent(_target_.getinfo()))
+	learnerinfo='learner\n\n{}'.format(cfg.indent(_learner_.getinfo()))
+	return lb+'n={}'.format(n)+lb+targetinfo+'\n'*4+learnerinfo+lb
 
 def process_input(c):
 	if c==108: lplot()
@@ -186,62 +168,6 @@ def processandplot(unprocessed,pfunc,X,Y,process_snapshot_fn=None,plotexample_fn
 
 
 
-# comparison plots
-####################################################################################################
-
-#
-#def processandplot(unprocessed1,unprocessed2,pfunc,X,Y,process_snapshot_fn=None,plotexample_fn=None):
-#
-#	pfunc=pfunc.getemptyclone()
-#	if process_snapshot_fn==None: process_snapshot_fn=process_snapshot
-#
-#	processed1=cfg.ActiveMemory()
-#	processed2=cfg.ActiveMemory()
-#
-#	weightslist,i_s=unprocessed.gethist('weights','minibatchnumber')
-#	for imgnum,(weights,i) in enumerate(zip(weightslist,i_s)):
-#
-#		cfg.trackcurrenttask('processing snapshots for learning plot',(imgnum+1)/len(weightslist))
-#		process_snapshot(processed,pfunc.fwithparams(weights),X,Y,i)		
-#
-#	plotexample(unprocessed,processed)
-#	cfg.save(processed,cfg.outpath+'data')
-#
-#	cfg.clearcurrenttask()
-#	return processed
-#
-#
-#def plotexample_0(unprocessed,processed):
-#	plt.close('all')
-#
-#
-#	fig,(ax0,ax1)=plt.subplots(2)
-#	fig.suptitle('test loss '+info())
-#
-#	ax0.plot(*util.swap(*processed.gethist('test loss','minibatchnumber')),'r-',label='test loss')
-#	ax0.legend()
-#	ax0.set_ylim(bottom=0,top=1)
-#	ax0.grid(True,which='major',ls='-',axis='y')
-#	ax0.grid(True,which='minor',ls=':',axis='y')
-#
-#	ax1.plot(*util.swap(*processed.gethist('test loss','minibatchnumber')),'r-',label='test loss')
-#	ax1.legend()
-#	ax1.set_yscale('log')
-#	ax1.grid(True,which='major',ls='-',axis='y')
-#	ax1.grid(True,which='minor',ls=':',axis='y')
-#	cfg.savefig('{}{}'.format(cfg.outpath,'losses.pdf'),fig=fig)
-#
-#
-#
-#	fig,ax=plt.subplots()
-#	ax.set_title('performance '+info())
-#	I,t=unprocessed.gethistbytime('minibatchnumber')
-#	ax.plot(t,I)
-#	ax.set_xlabel('time')
-#	ax.set_ylabel('minibatch')
-#	cfg.savefig('{}{}'.format(cfg.outpath,'performance.pdf'),fig=fig)
-
-
 
 
 # function plots
@@ -289,12 +215,9 @@ class Display2(db.StackedDisplay):
 
 def pickdisplay():
 	try:
-		return cfg.displaymode
+		return cfg.selectonefromargs('nodisplay','logdisplay','display0')
 	except:
-		try:
-			return cfg.selectonefromargs('nodisplay','logdisplay','display0')
-		except:
-			return 'fulldisplay'
+		return 'fulldisplay'
 	
 
 def runexample(runfn):
@@ -310,12 +233,7 @@ def runexample(runfn):
 		run_in_display.RID(runfn,process_input)
 	else:
 		if displaymode=='logdisplay':
-			class LogDisplay:
-				def poke(self,*args,**kw):
-					if args==('log',):
-						print(session.getcurrentval('log'))
-			logdisp=LogDisplay()
-			session.addlistener(logdisp)
+			pass
 		elif displaymode=='display0':
 			cfg.dashboard=db.Dashboard0()
 		runfn()
@@ -323,3 +241,5 @@ def runexample(runfn):
 
 def runexample0(target,learner):
 	runexample(getrunfn0(target,learner))
+
+

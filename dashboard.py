@@ -233,31 +233,27 @@ class Dashboard(AbstractDashboard):
 		
 
 
-def get4displays(width):
+def get3displays(width,height):
 
 	w1=width//2
 	w2=width-w1
+	h1=height//3
 
-	infodisplay=QueriedText(25,w1,session,'sessioninfo')
-	#statusdisplay=QueriedText(25,round(width*.4),session,'statusinfo')
-	statusdisplay=StackedDisplay(25,w2,session)
+	infodisplay=QueriedText(h1*2,w1,session,'sessioninfo')
+
+	statusdisplay=StackedDisplay(h1,w2,session)
 	statusdisplay.addqueriedtext('statusinfo',height=5)
 	statusdisplay.addspace()
 	statusdisplay.addqueriedtext('currenttask')
 	statusdisplay.addbar('currenttaskcompleteness',style=dash)
 
-	logdisplay=StackedDisplay(15,w1,session)
+	logdisplay=StackedDisplay(h1,w1,session)
 	logdisplay.addstatictext('log')
 	logdisplay.addline()
-	logdisplay.addhistdisplay(10,'log')
+	logdisplay.addhistdisplay(h1-2,'log')
 	logdisplay.addline()
 
-	dbprintdisplay=StackedDisplay(15,w2,session)
-	dbprintdisplay.addstatictext('prints (cfg.print(msg))')
-	dbprintdisplay.addline()
-	dbprintdisplay.addhistdisplay(10,'dbprintbuffer')
-
-	return infodisplay,statusdisplay,logdisplay,dbprintdisplay
+	return infodisplay,statusdisplay,logdisplay
 
 class Dashboard0(Dashboard):
 
@@ -266,12 +262,12 @@ class Dashboard0(Dashboard):
 		super().__init__()
 		
 		self.width=os.get_terminal_size()[0]-1
-		infodisplay,statusdisplay,logdisplay,dbprintdisplay=get4displays(self.width)
+		self.height=os.get_terminal_size()[1]-1
+		infodisplay,statusdisplay,logdisplay,dbprintdisplay=get3displays(self.width,self.height)
 
 		self.add_display(infodisplay,0,0)
 		self.add_display(statusdisplay,0,self.width//2)
 		self.add_display(logdisplay,25,0)
-		self.add_display(dbprintdisplay,25,self.width//2)
 
 		self.draw_all()
 
