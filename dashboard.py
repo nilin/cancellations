@@ -255,23 +255,6 @@ def get3displays(width,height):
 
 	return infodisplay,statusdisplay,logdisplay
 
-class Dashboard0(Dashboard):
-
-	def __init__(self):
-		clear()
-		super().__init__()
-		
-		self.width=os.get_terminal_size()[0]-1
-		self.height=os.get_terminal_size()[1]-1
-		infodisplay,statusdisplay,logdisplay,dbprintdisplay=get3displays(self.width,self.height)
-
-		self.add_display(infodisplay,0,0)
-		self.add_display(statusdisplay,0,self.width//2)
-		self.add_display(logdisplay,25,0)
-
-		self.draw_all()
-
-	
 
 
 

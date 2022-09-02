@@ -215,7 +215,7 @@ class Display2(db.StackedDisplay):
 
 def pickdisplay():
 	try:
-		return cfg.selectonefromargs('nodisplay','logdisplay','display0')
+		return cfg.selectonefromargs('nodisplay','logdisplay')
 	except:
 		return 'fulldisplay'
 	
@@ -233,8 +233,6 @@ def runexample(runfn):
 		import run_in_display
 		run_in_display.RID(runfn,process_input)
 	else:
-		if displaymode=='display0':
-			cfg.dashboard=db.Dashboard0()
 		runfn()
 
 
