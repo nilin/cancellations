@@ -14,6 +14,7 @@ import util
 import dashboard as db
 import config as cfg
 from config import session
+import testing
 
 
 
@@ -45,6 +46,11 @@ def getrunfn0(target,learner):
 		Y=target.eval(X)
 		cfg.logcurrenttask('preparing test data')
 		Y_test=target.eval(X_test)
+
+		cfg.logcurrenttask('verifying antisymmetry of target')
+		testing.verify_antisymmetric(target.eval,X[:100])
+		cfg.logcurrenttask('verifying antisymmetry of learner')
+		testing.verify_antisymmetric(learner.eval,X[:100])
 
 		trainer=learning.Trainer(learner,X,Y,weight_decay=weight_decay,minibatchsize=minibatchsize,lossfn=util.SI_loss) #,lossgrad=mv.gen_lossgrad(AS,lossfn=util.SI_loss))
 

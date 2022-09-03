@@ -29,17 +29,15 @@ def verify_antisymmetrization(Af,f,X):
 	assertequal(Y,Z)
 
 
-def verify_antisymmetric(f,n,d,samples=25,nperms=25,fixparams=None):
+def verify_antisymmetric(f,X,nperms=10):
 
-	if fixparams!=None:
-		f=util.fixparams(f,fixparams)
-
-	X=rnd.normal(rnd.PRNGKey(0),(samples,n,d))
+	n=X.shape[-2]
 	perms=[np.random.permutation(n) for _ in range(nperms)]
 	signs=[sign(p) for p in perms]
 		
 	Perms=[perm_as_function(p) for p in perms]
 	should_be_equal=[s*f(P(X)) for s,P in zip(signs,Perms)]
+
 	assert_ALLclose(should_be_equal)
 
 

@@ -63,7 +63,7 @@ learner=ComposedFunction(\
 SingleparticleNN(widths=[d,100,d_],activation=learneractivation),\
 #functions.Backflow(activation=learneractivation,widths=[d_,d_]),\
 #functions.Wrappedfunction('detsum',n=n,d=d_,ndets=k)\
-functions.DetSum('detsum',n=n,d=d_,ndets=k)
+functions.DetSum(n=n,d=d_,ndets=k)
 )
 
 cfg.log('learner prepared')

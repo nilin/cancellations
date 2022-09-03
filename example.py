@@ -58,12 +58,12 @@ learneractivation='tanh'
 #	SingleparticleNN(widths=[d,100,100,d_],activation='tanh'),\
 #	functions.ASNN(n=n,d=d_,widths=['nd',100,1],activation=learneractivation))
 
-d_=25; k=25;
+d_=25; ndets=25;
 learner=ComposedFunction(\
 SingleparticleNN(widths=[d,100,d_],activation=learneractivation),\
 #functions.Backflow(activation=learneractivation,widths=[d_,d_]),\
 #functions.Wrappedfunction('detsum',n=n,d=d_,ndets=k)\
-functions.DetSum('detsum',n=n,d=d_,ndets=k)
+functions.DetSum(n=n,d=d_,ndets=ndets)
 )
 
 cfg.log('learner prepared')
