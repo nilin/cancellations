@@ -50,7 +50,7 @@ def getrunfn0(target,learner):
 
 		AS=testantisymmetry(target,learner,X)
 		cfg.currentkeychain=3
-		#if AS: target.weights=adjustnorms(target,X)
+		if AS: target.weights=adjustnorms(target,X)
 
 
 		cfg.logcurrenttask('preparing training data')
