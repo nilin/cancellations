@@ -250,7 +250,7 @@ def get3displays(width,height):
 	logdisplay=StackedDisplay(h1,w1,session)
 	logdisplay.addstatictext('log')
 	logdisplay.addline()
-	logdisplay.addhistdisplay(h1-2,'log')
+	logdisplay.addhistdisplay(h1-4,'log')
 	logdisplay.addline()
 
 	return infodisplay,statusdisplay,logdisplay

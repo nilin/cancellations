@@ -31,7 +31,7 @@ import examplefunctions
 from examplefunctions import gen_parallelgaussians,gen_hermitegaussproducts
 
 
-class ParameterizedFunc:
+class FunctionDescription:
 
 	def __init__(self,**kw):
 		self.kw=kw
@@ -73,20 +73,16 @@ class ParameterizedFunc:
 		else:
 			return mv.pad(self.gen_f())
 
+	# parameters
 
-
-
-class FunctionDescription(ParameterizedFunc):
-
-	def __init__(self,initweights=True,**kw):
-		super().__init__(**kw)
-		self.weights=self.initweights(**kw) if initweights else None
+	def initweights(self):
+		self.weights=self._initweights_(**self.kw)
 
 	def eval(self,X):
 		return self.fwithparams(self.weights)(X)
 
 	@staticmethod	
-	def initweights(**kw):
+	def _initweights_(**kw):
 		return None
 
 	def rinse(self):
@@ -98,6 +94,10 @@ class FunctionDescription(ParameterizedFunc):
 		return c.rinse()
 
 
+def initweights(*functions):
+	for f in functions: f.initweights()
+
+
 class ComposedFunction(FunctionDescription):
 	def __init__(self,*elements):
 		elements=[e for E in elements for e in (E.elements if isinstance(E,ComposedFunction) else [E])]
@@ -107,8 +107,8 @@ class ComposedFunction(FunctionDescription):
 		return util.compose(*[e._gen_f_() for e in self.elements])
 
 	@staticmethod
-	def initweights(elements):
-		return [e.initweights(**e.kw) for e in elements]
+	def _initweights_(elements):
+		return [e._initweights_(**e.kw) for e in elements]
 
 	def typename(self):
 		return ' -> '.join([e.richtypename() for e in self.elements])+' composition'
@@ -137,7 +137,7 @@ class SingleparticleNN(NNfunction,Equivariant):
 		return bf.gen_singleparticleNN(activation=self.activation)
 
 	@staticmethod
-	def initweights(widths,**kw):
+	def _initweights_(widths,**kw):
 		return mv.initweights_NN(widths)
 
 
@@ -146,7 +146,7 @@ class Backflow(NNfunction,Equivariant):
 		return bf.gen_backflow(self.activation)
 
 	@staticmethod
-	def initweights(widths,**kw):
+	def _initweights_(widths,**kw):
 		return bf.initweights_Backflow(widths)
 
 
@@ -164,13 +164,9 @@ class SimpleSAB(Equivariant):
 #=======================================================================================================
 
 class Switchable:
-	def switch(self,mode,newclass):
-		kw={self.translation(k):v for k,v in self.kw.items()}
-		Tf=newclass(initweights=False,**self.kw)
-		if mode=='tied': Tf.weights=self.weights
-		elif mode=='copy': Tf.weights=copy.deepcopy(self.weights)
-		elif mode=='empty': Tf.weights=None
-		else: raise ValueError
+	def switch(self,newclass):
+		kw={newclass.translation(k):v for k,v in self.kw.items()}
+		Tf=newclass(**kw)
 		return Tf
 	@staticmethod
 	def translation(k): return k
@@ -178,8 +174,8 @@ class Switchable:
 class Nonsym(FunctionDescription,Switchable):
 	def antisym():
 		return globals()[self.antisymtype]
-	def getantisym(self,mode):
-		return self.switch(mode,self.antisym())
+	def getantisym(self):
+		return self.switch(self.antisym())
 	switchtype=getantisym
 
 class NN(NNfunction,Nonsym):
@@ -187,7 +183,7 @@ class NN(NNfunction,Nonsym):
 	def gen_f(self): return mv.gen_NN_NS(self.activation)
 
 	@staticmethod
-	def initweights(n,d,widths,**kw):
+	def _initweights_(n,d,widths,**kw):
 		widths[0]=n*d
 		return mv.initweights_NN(widths)
 
@@ -195,7 +191,7 @@ class ProdSum(Nonsym):
 	antisymtype='DetSum'
 	def gen_f(self): return AS_tools.prodsum
 	@staticmethod
-	def initweights(k,n,d,**kw): return util.initweights((k,n,d))
+	def _initweights_(k,n,d,**kw): return util.initweights((k,n,d))
 	@staticmethod
 	def translation(name):return 'k' if name=='ndets' else name
 
@@ -206,8 +202,8 @@ class ProdState(Nonsym):
 		return jax.jit(lambda params,X: ASt.diagprods(parallel(params,X)))
 
 	@staticmethod
-	def initweights(**kw):
-		return self.basisfunctions.initweights(**kw)
+	def _initweights_(**kw):
+		return self.basisfunctions._initweights_(**kw)
 
 	def richtypename(self): return self.basisfunctions.richtypename()+dash+self.typename()
 	def info(self): return cfg.indent(self.basisfunctions.info())
@@ -215,13 +211,13 @@ class ProdState(Nonsym):
 #=======================================================================================================
 
 class Antisymmetric(FunctionDescription,Switchable):
-	def getnonsym(self,mode):
-		return self.switch(mode,self.nonsym)
+	def getnonsym(self):
+		return self.switch(self.nonsym)
 	switchtype=getnonsym
 
 	@classmethod
-	def initweights(cls,**kw):
-		return cls.nonsym.initweights(**{cls.nonsym.translation(k):v for k,v in kw.items()})
+	def _initweights_(cls,**kw):
+		return cls.nonsym._initweights_(**{cls.nonsym.translation(k):v for k,v in kw.items()})
 
 class ASNN(NNfunction,Antisymmetric):
 	nonsym=NN
@@ -278,13 +274,11 @@ class Wrappedfunction(FunctionDescription):
 #=======================================================================================================
 
 def switchtype(f:FunctionDescription):
-	if isinstance(f,ComposedFunction):
-		g=copy.deepcopy(f)
-		newelements=[switchtype(e) if isinstance(e,Switchable) else e for e in g.elements]
-		g.elements=newelements
-		return g
+	if type(f)==ComposedFunction:
+		elements=[switchtype(e) if isinstance(e,Switchable) else e for e in f.elements]
+		return ComposedFunction(*elements)
 	elif isinstance(f,Switchable):
-		return f.switchtype('copy')
+		return f.switchtype()
 	else: raise ValueError
 
 
@@ -320,6 +314,6 @@ def cast(f,**kw):
 	if type(f)==tuple:
 		f0,kw0=f
 		return cast(f0,**kw0)
-	return f if isinstance(f,ParameterizedFunc) else Wrappedfunction(f,**kw)
+	return f if isinstance(f,FunctionDescription) else Wrappedfunction(f,**kw)
 
 

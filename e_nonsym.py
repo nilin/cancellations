@@ -43,6 +43,8 @@ d=2
 #target=ComposedFunction(functions.Slater('parallelgaussians',n=n,d=d,mode='gen'),'tanh')
 target=ComposedFunction(functions.ASNN(n=n,d=d,widths=['nd',10,10,1],activation='tanh'),'tanh')
 
+#target=ComposedFunction(functions.NN(n=n,d=d,widths=['nd',10,10,1],activation='tanh'),'tanh')
+
 cfg.log('target prepared')
 
 
@@ -65,6 +67,14 @@ SingleparticleNN(widths=[d,100,d_],activation=learneractivation),\
 #functions.Wrappedfunction('detsum',n=n,d=d_,ndets=k)\
 functions.DetSum(n=n,d=d_,ndets=k)
 )
+
+#learner=ComposedFunction(\
+#SingleparticleNN(widths=[d,100,d_],activation=learneractivation),\
+##functions.Backflow(activation=learneractivation,widths=[d_,d_]),\
+##functions.Wrappedfunction('detsum',n=n,d=d_,ndets=k)\
+##functions.DetSum(n=n,d=d_,ndets=k)
+#functions.ProdSum(n=n,d=d_,k=k)
+#)
 
 cfg.log('learner prepared')
 ####################################################################################################

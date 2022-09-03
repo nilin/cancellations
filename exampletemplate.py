@@ -7,6 +7,7 @@
 
 import jax.numpy as jnp
 import jax.random as rnd
+import jax
 import learning
 import plottools as pt
 import matplotlib.pyplot as plt
@@ -15,7 +16,7 @@ import dashboard as db
 import config as cfg
 from config import session
 import testing
-
+import functions
 
 
 
@@ -39,18 +40,21 @@ def getrunfn0(target,learner):
 		except:
 			pass
 
+		functions.initweights(target,learner)
+
+
 		X=rnd.uniform(cfg.nextkey(),(samples_train,n,d),minval=-1,maxval=1)
 		X_test=rnd.uniform(cfg.nextkey(),(samples_test,n,d),minval=-1,maxval=1)
+
+		AS=testantisymmetry(target,learner,X)
+		if AS: target.weights=adjustnorms(target,X)
+
 
 		cfg.logcurrenttask('preparing training data')
 		Y=target.eval(X)
 		cfg.logcurrenttask('preparing test data')
 		Y_test=target.eval(X_test)
 
-		cfg.logcurrenttask('verifying antisymmetry of target')
-		testing.verify_antisymmetric(target.eval,X[:100])
-		cfg.logcurrenttask('verifying antisymmetry of learner')
-		testing.verify_antisymmetric(learner.eval,X[:100])
 
 		trainer=learning.Trainer(learner,X,Y,weight_decay=weight_decay,minibatchsize=minibatchsize,lossfn=util.SI_loss) #,lossgrad=mv.gen_lossgrad(AS,lossfn=util.SI_loss))
 
@@ -82,6 +86,40 @@ def getrunfn0(target,learner):
 				fplot()
 				lazyplot.do_if_rested(.2,lplot)
 	return runfn
+
+
+def testantisymmetry(target,learner,X):
+	try:
+		cfg.logcurrenttask('verifying antisymmetry of target')
+		testing.verify_antisymmetric(target.eval,X[:100])
+		cfg.logcurrenttask('verifying antisymmetry of learner')
+		testing.verify_antisymmetric(learner.eval,X[:100])
+		return True
+	except:
+		cfg.log('Warning: not antisymmetric')
+		return False
+
+
+def adjustnorms(Afdescr,X,iterations=100):
+	Af=Afdescr.f
+	f=functions.switchtype(Afdescr).f
+	weights=Afdescr.weights
+
+	normratio=jax.jit(lambda weights,X:util.norm(f(weights,X))/util.norm(Af(weights,X)))
+	cfg.log('|f|/|Af|={:.3} before'.format(normratio(weights,X)))
+
+	@jax.jit
+	def directloss(params,X):
+		return util.ReLU(-jnp.log(util.norm(Af(params,X))))+jnp.log(util.norm(f(params,X)))
+
+	trainer=learning.DirectlossTrainer(directloss,weights,X)
+	for i in range(iterations):
+		cfg.trackcurrenttask('adjusting target norm',i/iterations)
+		trainer.step()
+
+	weights=trainer.learner.weights
+	cfg.log('|f|/|Af|={:.3} after'.format(normratio(weights,X)))
+	return weights
 
 
 

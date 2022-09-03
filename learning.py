@@ -56,7 +56,7 @@ class Trainer():
 		self.set_default_batchsizes(**kwargs)
 		self.minibatches=deque([])
 
-		self.compilegrad()
+		#self.compilegrad()
 		
 
 	def minibatch_step(self,X_mini,*Y_mini):
@@ -117,7 +117,6 @@ class DynamicTrainer(Trainer):
 	def next_X_minibatch(self):
 		if len(self.minibatches)==0:
 			self.prepnextepoch()
-		cfg.trackcurrent('minibatches left',len(self.minibatches))
 		return self.minibatches.popleft()
 
 	def step(self,f_target):
@@ -126,12 +125,10 @@ class DynamicTrainer(Trainer):
 
 	def prepnextepoch(self):
 		[self.X]=util.randperm(self.X)
-		self.minibatches=util.chop(self.X,chunksize=self.minibatchsize)
-		self.minibatches=deque(self.minibatches)
+		self.minibatches=deque(util.chop(self.X,chunksize=self.minibatchsize))
 
-		cfg.log('start new epoch')
-		cfg.remember('minibatchsize',self.minibatchsize)
-		cfg.trackcurrent('minibatches',len(self.minibatches))
+		self.memory.log('start new epoch')
+		self.memory.remember('minibatches in epoch',len(self.minibatches))
 
 
 class NoTargetTrainer(DynamicTrainer):
@@ -143,90 +140,18 @@ class NoTargetTrainer(DynamicTrainer):
 
 
 class Dummylearner:
-	def __init__(self,directloss,weights=None):
+	def __init__(self,directloss,weights):
 		self.weights=weights
 		self.directloss=directloss
 
-	def get_lossgrad(*args,**kw):
+	def get_lossgrad(self,*args,**kw):
 		return jax.value_and_grad(self.directloss)
 
 class DirectlossTrainer(NoTargetTrainer):
-	def __init__(self,directloss,X,**kw):
-		super().__init__(Dummylearner(directloss),X,**kw)
-
-#----------------------------------------------------------------------------------------------------
-
-#class DynFunc:
-#	def __init__(self,weights=None):
-#		self.fdescr=fdescr
-#		self.f=fdescr.gen_f()
-#		self.reset(weights)
-#
-#	def reset(self,weights):
-#		self.weights=copy.deepcopy(weights)
-#		return self
-#
-#	def eval(self,X):
-#		fs=util.fixparams(f,self.weights)
-#		Y=util.makeblockwise(fs)(X)	
-#		del fs
-#		return Y
-#
-#	def get_lossgrad(self,lossfn=None):
-#		return mv.gen_lossgrad(self.f,lossfn=lossfn)
-#
+	def __init__(self,directloss,weights,X,**kw):
+		super().__init__(Dummylearner(directloss,weights),X,**kw)
 
 
-
-#class Learner:
-#	def __init__(self,f,lossgrads=None,weights=None,deepcopy=True):
-#		self.f=f
-#		self.lossgrads=[] if lossgrads==None else lossgrads
-#		if deepcopy:
-#			self.reset(weights)
-#		else:
-#			self.weights=weights
-#
-#
-#	def reset(self,weights):
-#		self.weights=copy.deepcopy(weights)
-#		return self
-#
-#	def as_static(self):
-#		#return util.fixparams(self.f,self.weights)
-#		return AS_HEAVY.makeblockwise(util.fixparams(self.f,self.weights))
-#
-#	def cloneweights(self):
-#		return copy.deepcopy(self.weights)
-#
-#
-#
-#class AS_Learner(Learner):
-#	def __init__(self,*args,NS=None,weights=None,**kwargs):
-#		super().__init__(*args,weights=weights,**kwargs)
-#		self.AS=self.f
-#		self.NS=NS
-#
-#	def get_NS(self):
-#		return NS_Learner(self.NS,weights=self.weights)
-#
-#
-#class NS_Learner(Learner):
-#	def get_AS(self):
-#		return AS_Learner(AS_tools.gen_Af(self.f),lossgrads=[AS_tools.gen_lossgrad_Af(self.f)],NS=self.f,weights=self.weights)
-#
-#
-#def static_NS(learner):
-#	if type(learner) in {NS_Learner,Learner}:
-#		return learner.as_static()
-#	if type(learner)==AS_Learner:
-#		return learner.get_NS().as_static()
-#	
-
-
-#----------------------------------------------------------------------------------------------------
-# setup
-#----------------------------------------------------------------------------------------------------
 
 
 
