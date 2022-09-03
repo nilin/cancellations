@@ -24,7 +24,7 @@ def samplepoints(X,Y,nsamples):
 	p=Y**2
 	p=p/jnp.sum(p)
 	#I=jnp.random.choice(,range(len(p)),nsamples,p=p)
-	I=rnd.choice(cfg.nextkey(1),jnp.arange(len(p)),(nsamples,),p=p)
+	I=rnd.choice(cfg.nextkey(),jnp.arange(len(p)),(nsamples,),p=p)
 	return X[I]
 	
 
@@ -118,16 +118,27 @@ class CrossSection2D(CrossSection):
 		ax1.set_title('learner')
 		ax2.set_title('both')
 
-		im0=ax0.pcolormesh(I,I,y0,cmap='seismic',vmin=-M,vmax=M)
-		im1=ax1.pcolormesh(I,I,y1,cmap='seismic',vmin=-M,vmax=M)
-		im0.set_edgecolor('face')
-		im1.set_edgecolor('face')
+		mt=ax0.pcolormesh(I,I,y0,cmap='seismic',vmin=-M,vmax=M)
+		cl=ax0.contour(I,I,y1,levels=[0],colors='k',linewidths=1)
+		plt.clabel(cl,inline=True,fmt=lambda x:'learner')
+
+		ml=ax1.pcolormesh(I,I,y1,cmap='seismic',vmin=-M,vmax=M)
+		ct=ax1.contour(I,I,y0,levels=[0],colors='k',linewidths=1)
+		plt.clabel(ct,inline=True,fmt=lambda x:'target')
+
+		for m in [mt,ml]: m.set_edgecolor('face')
 
 		#ax2.pcolormesh(I,I,y1-y0,cmap='seismic',vmin=-M,vmax=M)
-		ax2.contour(I,I,y0,colors='b',linewidths=.5)
-		ax2.contour(I,I,y1,colors='r',linewidths=.5)
-		ax2.contour(I,I,y0,levels=[0],colors='b',linewidths=3)
-		ax2.contour(I,I,y1,levels=[0],colors='r',linewidths=3)
+		#ax2.contour(I,I,y0,colors='b',linewidths=.5)
+		#ax2.contour(I,I,y1,colors='r',linewidths=.5)
+		c0=ax2.contour(I,I,y0,levels=[0],colors='b',linewidths=2)
+		c1=ax2.contour(I,I,y1,levels=[0],colors='r',linewidths=2)
+		plt.clabel(c0,inline=True,fmt=lambda x:'target')
+		#plt.clabel(c1,inline=True,fmt=lambda x:'learner')
+
+#		c0.collections[0].set_label('target')
+#		c1.collections[0].set_label('learner')
+#		ax2.legend()
 
 		#fig.colorbar(im)
 		#fig.colorbar(im1)

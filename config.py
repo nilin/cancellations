@@ -361,12 +361,13 @@ class Keychain:
 		if len(self.keys)==1: self.refresh(self.keys[-1])
 		return self.keys.popleft()
 
-keychains=[Keychain(s) for s in range(10)]
+keychains={s:Keychain(s) for s in range(10)}|{'weights':Keychain(10)}
 
-def nextkey(c=0):
+def nextkey(c=None):
+	if c==None: c=currentkeychain
 	return keychains[c].nextkey()
 
-
+currentkeychain=0
 
 
 #====================================================================================================

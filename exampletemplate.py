@@ -40,14 +40,17 @@ def getrunfn0(target,learner):
 		except:
 			pass
 
+		cfg.currentkeychain=1
 		functions.initweights(target,learner)
 
 
+		cfg.currentkeychain=2
 		X=rnd.uniform(cfg.nextkey(),(samples_train,n,d),minval=-1,maxval=1)
 		X_test=rnd.uniform(cfg.nextkey(),(samples_test,n,d),minval=-1,maxval=1)
 
 		AS=testantisymmetry(target,learner,X)
-		if AS: target.weights=adjustnorms(target,X)
+		cfg.currentkeychain=3
+		#if AS: target.weights=adjustnorms(target,X)
 
 
 		cfg.logcurrenttask('preparing training data')
@@ -61,6 +64,7 @@ def getrunfn0(target,learner):
 		lazyplot=cfg.Clockedworker()
 
 		cfg.logcurrenttask('preparing slices for plotting')
+		cfg.currentkeychain=4
 		sections=pt.genCrossSections(X,Y,target.eval)
 
 		setupdata={k:globals()[k] for k in ['X_test','Y_test']}|{'target':target.compress(),'learner':learner.compress()}
