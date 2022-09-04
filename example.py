@@ -21,10 +21,10 @@ jax.config.update("jax_enable_x64", True)
 
 
 
-
+db.clear()
 
 cfg.exname='example'
-cfg.explanation=''
+cfg.explanation='To load and run with previously generated target function (including weights), run\n>>python {}.py loadtarget'.format(cfg.exname)
 cfg.outpath='outputs/{}/{}/'.format(cfg.exname,cfg.sessionID)
 
 cfg.log('imports done')
@@ -42,16 +42,16 @@ if 'loadtarget' in cfg.cmdparams:
     target=cfg.load(path)['target']
     target.restore()
 else:
-    #target=ComposedFunction(functions.Slater('hermitegaussproducts',n=n,d=d,mode='gen'),'tanh')
+    target=ComposedFunction(functions.Slater('hermitegaussproducts',n=n,d=d,mode='gen'),functions.Outputscaling())
     #target=ComposedFunction(functions.Slater('parallelgaussians',n=n,d=d,mode='gen'),'tanh')
-    target=ComposedFunction(functions.ASNN(n=n,d=d,widths=['nd',10,10,1],activation='tanh'),'tanh')
-
+    #target=ComposedFunction(functions.ASNN(n=n,d=d,widths=['nd',10,10,1],activation='tanh'),'tanh')
+    #target=functions.ASNN(n=n,d=d,widths=['nd',10,10,1],activation='tanh')
 
     exampletemplate.adjustnorms(target,X=cfg.genX(10000))
+    target=target.compose('tanh')
     cfg.log('target initialized')
 
 ####################################################################################################
-learneractivation='tanh'
 #learneractivation='leakyrelu'
 
 #learner=functions.Slater(SingleparticleNN(widths=[d,10,10,n],activation=learneractivation))
@@ -63,9 +63,10 @@ learneractivation='tanh'
 
 d_=25; ndets=25;
 learner=ComposedFunction(\
-SingleparticleNN(widths=[d,100,d_],activation=learneractivation),\
-functions.Backflow(activation=learneractivation,widths=[d_,d_]),\
-functions.DetSum(n=n,d=d_,ndets=ndets)
+SingleparticleNN(widths=[d,100,d_],activation='tanh'),\
+#functions.Backflow(activation=learneractivation,widths=[d_,d_]),\
+functions.DetSum(n=n,d=d_,ndets=ndets),\
+functions.OddNN(widths=[1,25,1],activation='leakyrelu')
 )
 cfg.log('learner initialized')
 ####################################################################################################

@@ -28,7 +28,7 @@ def getrunfn0(target,learner):
 		global unprocessed,X,X_test,Y,Y_test,sections,_learner_,_target_
 		_target_,_learner_=target,learner
 		
-		sessioninfo='{}\nsessionID: {}\n\n{}'.format(cfg.explanation,cfg.sessionID,INFO())
+		sessioninfo='{}.py\n{}\n\n\nsessionID: {}\n{}'.format(cfg.exname,cfg.explanation,cfg.sessionID,INFO())
 		session.remember('sessioninfo',sessioninfo)
 		cfg.write(session.getval('sessioninfo'),cfg.outpath+'info.txt',mode='w')
 
@@ -105,8 +105,11 @@ def adjustnorms(Afdescr,X,iterations=100):
 	cfg.log('|f|/|Af|={:.3} before'.format(normratio(weights,X)))
 
 	@jax.jit
-	def directloss(params,X):
-		return util.ReLU(-jnp.log(util.norm(Af(params,X))))+jnp.log(util.norm(f(params,X)))
+	def directloss(params,Y):
+		Af_norm=util.norm(Af(params,Y))
+		at_small_Af=-jnp.log(Af_norm)
+		at_large_Af=jnp.log(util.norm(f(params,Y)))
+		return at_small_Af*(Af_norm<=1)+at_large_Af*(Af_norm>1)
 
 	trainer=learning.DirectlossTrainer(directloss,weights,X)
 	for i in range(iterations):

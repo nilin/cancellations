@@ -106,10 +106,10 @@ class CrossSection2D(CrossSection):
 		c=1/util.norm(self.Y) if normalized_target else 1
 
 		fig,(ax0,ax1,ax2)=plt.subplots(1,3,figsize=(17,5))
-		y0=c*self.y
-		y1=util.applyalonglast(f,self.slice,2)
+		yt=c*self.y
+		yl=util.applyalonglast(f,self.slice,2)
 
-		#M=jnp.max(jnp.abs(y0))+jnp.max(jnp.abs(y1))
+		#M=jnp.max(jnp.abs(yt))+jnp.max(jnp.abs(yl))
 		#M=jnp.max(jnp.abs(c*self.Y))
 		M=1 if normalized_target else util.norm(self.Y)
 		M*=4
@@ -118,21 +118,23 @@ class CrossSection2D(CrossSection):
 		ax1.set_title('learner')
 		ax2.set_title('both')
 
-		mt=ax0.pcolormesh(I,I,y0,cmap='seismic',vmin=-M,vmax=M)
-		cl=ax0.contour(I,I,y1,levels=[0],colors='k',linewidths=1)
+		mt=ax0.pcolormesh(I,I,yt,cmap='seismic',vmin=-M,vmax=M)
+		ct=ax0.contour(I,I,yt,levels=[0],colors='k',linewidths=1)
+		cl=ax0.contour(I,I,yl,levels=[0],colors='k',linewidths=.1,alpha=.5)
 		plt.clabel(cl,inline=True,fmt=lambda x:'learner')
 
-		ml=ax1.pcolormesh(I,I,y1,cmap='seismic',vmin=-M,vmax=M)
-		ct=ax1.contour(I,I,y0,levels=[0],colors='k',linewidths=1)
+		ml=ax1.pcolormesh(I,I,yl,cmap='seismic',vmin=-M,vmax=M)
+		cl=ax1.contour(I,I,yl,levels=[0],colors='k',linewidths=1)
+		ct=ax1.contour(I,I,yt,levels=[0],colors='k',linewidths=.1,alpha=.5)
 		plt.clabel(ct,inline=True,fmt=lambda x:'target')
 
 		for m in [mt,ml]: m.set_edgecolor('face')
 
-		#ax2.pcolormesh(I,I,y1-y0,cmap='seismic',vmin=-M,vmax=M)
-		#ax2.contour(I,I,y0,colors='b',linewidths=.5)
-		#ax2.contour(I,I,y1,colors='r',linewidths=.5)
-		c0=ax2.contour(I,I,y0,levels=[0],colors='b',linewidths=2)
-		c1=ax2.contour(I,I,y1,levels=[0],colors='r',linewidths=2)
+		#ax2.pcolormesh(I,I,yl-yt,cmap='seismic',vmin=-M,vmax=M)
+		#ax2.contour(I,I,yt,colors='b',linewidths=.5)
+		#ax2.contour(I,I,yl,colors='r',linewidths=.5)
+		c0=ax2.contour(I,I,yt,levels=[0],colors='b',linewidths=2)
+		c1=ax2.contour(I,I,yl,levels=[0],colors='r',linewidths=2)
 		plt.clabel(c0,inline=True,fmt=lambda x:'target')
 		#plt.clabel(c1,inline=True,fmt=lambda x:'learner')
 
@@ -160,18 +162,18 @@ class CrossSection3D(CrossSection):
 
 		fig,axsrows=plt.subplots(len(self.slices),3,figsize=(17,17))
 		for sl,y,(ax0,ax1,ax2) in zip(self.slices,self.ys,axsrows):
-			y0=c*y
-			y1=util.applyalonglast(f,sl,2)
-			M=jnp.max(jnp.abs(y0))
-			#ax.pcolormesh(I,I,y0)
-			im=ax0.pcolormesh(I,I,y1-y0,cmap='seismic',vmin=-M,vmax=M)
-			ax0.contour(I,I,y0,colors='b',linewidths=.5)
-			ax0.contour(I,I,y1,colors='r',linewidths=.5)
-			ax0.contour(I,I,y0,levels=[0],colors='b',linewidths=3)
-			ax0.contour(I,I,y1,levels=[0],colors='r',linewidths=3)
+			yt=c*y
+			yl=util.applyalonglast(f,sl,2)
+			M=jnp.max(jnp.abs(yt))
+			#ax.pcolormesh(I,I,yt)
+			im=ax0.pcolormesh(I,I,yl-yt,cmap='seismic',vmin=-M,vmax=M)
+			ax0.contour(I,I,yt,colors='b',linewidths=.5)
+			ax0.contour(I,I,yl,colors='r',linewidths=.5)
+			ax0.contour(I,I,yt,levels=[0],colors='b',linewidths=3)
+			ax0.contour(I,I,yl,levels=[0],colors='r',linewidths=3)
 
-			im1=ax1.pcolormesh(I,I,y0,cmap='seismic',vmin=-M,vmax=M)
-			im2=ax2.pcolormesh(I,I,y1,cmap='seismic',vmin=-M,vmax=M)
+			im1=ax1.pcolormesh(I,I,yt,cmap='seismic',vmin=-M,vmax=M)
+			im2=ax2.pcolormesh(I,I,yl,cmap='seismic',vmin=-M,vmax=M)
 
 		cfg.clearcurrenttask()
 		return fig
