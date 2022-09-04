@@ -43,12 +43,13 @@ if 'loadtarget' in cfg.cmdparams:
     target=cfg.load(path)['target']
     target.restore()
 else:
-    #target=ComposedFunction(functions.Slater('hermitegaussproducts',n=n,d=d,mode='gen'),functions.Outputscaling())
-    #target=ComposedFunction(functions.Slater('parallelgaussians',n=n,d=d,mode='gen'),'tanh')
-    target=functions.ASNN(n=n,d=d,widths=['nd',10,10,1],activation='tanh')
+    target=ComposedFunction(functions.Slater('hermitegaussproducts',n=n,d=d,mode='gen'),functions.Outputscaling())
+    #target=ComposedFunction(functions.Slater('parallelgaussians',n=n,d=d,mode='gen'),functions.Outputscaling())
+    #target=functions.ASNN(n=n,d=d,widths=['nd',10,10,1],activation='tanh')
 
-    exampletemplate.adjustnorms(target,X=cfg.genX(10000))
-    target=target.compose('tanh')
+    cfg.log('adjusting target weights')
+    exampletemplate.adjustnorms(target,X=cfg.genX(10000),iterations=250,learning_rate=.1)
+    target=target.compose(functions.Flatten(sharpness=1))
     cfg.log('target initialized')
 
 ####################################################################################################
@@ -61,12 +62,12 @@ else:
 #	SingleparticleNN(widths=[d,100,100,d_],activation='tanh'),\
 #	functions.ASNN(n=n,d=d_,widths=['nd',100,1],activation=learneractivation))
 
-d_=25; ndets=25;
+d_=100; ndets=10;
 learner=ComposedFunction(\
 SingleparticleNN(widths=[d,100,d_],activation='tanh'),\
-functions.Backflow(activation='tanh',widths=[d_,d_]),\
+functions.Backflow(widths=[d_,d_],activation='tanh'),\
 functions.DetSum(n=n,d=d_,ndets=ndets),\
-functions.OddNN(widths=[1,25,1],activation='leakyrelu')
+functions.OddNN(widths=[1,100,1],activation='leakyrelu')
 )
 cfg.log('learner initialized')
 ####################################################################################################

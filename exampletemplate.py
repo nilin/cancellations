@@ -97,28 +97,37 @@ def testantisymmetry(target,learner,X):
 		return False
 
 
-def adjustnorms(Afdescr,X,iterations=100):
+def adjustnorms(Afdescr,X,iterations=500,**learningparams):
 	Af=Afdescr.f
 	f=functions.switchtype(Afdescr).f
 	weights=Afdescr.weights
 
 	normratio=jax.jit(lambda weights,X:util.norm(f(weights,X))/util.norm(Af(weights,X)))
-	cfg.log('|f|/|Af|={:.3} before'.format(normratio(weights,X)))
+	cfg.log('before adjustment:')
+	cfg.log('|f|/|Af|={:.3}'.format(normratio(weights,X)))
+	cfg.log('|Af|={:.3}'.format(util.norm(Af(weights,X))))
 
 	@jax.jit
 	def directloss(params,Y):
 		Af_norm=util.norm(Af(params,Y))
-		at_small_Af=-jnp.log(Af_norm)
-		at_large_Af=jnp.log(util.norm(f(params,Y)))
-		return at_small_Af*(Af_norm<=1)+at_large_Af*(Af_norm>1)
+		f_norm=util.norm(f(params,Y))
+		normloss=jnp.log(Af_norm)**2
+		ratioloss=jnp.log(f_norm/Af_norm)
+		return normloss+ratioloss
+		#at_small_Af=-jnp.log(Af_norm)
+		#at_large_Af=jnp.log(util.norm(f(params,Y)))
+		#loss=at_small_Af*(Af_norm<=1)+at_large_Af*(Af_norm>1)
+		#return loss**2
 
-	trainer=learning.DirectlossTrainer(directloss,weights,X)
+	trainer=learning.DirectlossTrainer(directloss,weights,X,**learningparams)
 	for i in range(iterations):
 		cfg.trackcurrenttask('adjusting target norm',i/iterations)
 		trainer.step()
 
 	weights=trainer.learner.weights
-	cfg.log('|f|/|Af|={:.3} after'.format(normratio(weights,X)))
+	cfg.log('after adjustment:')
+	cfg.log('|f|/|Af|={:.3}'.format(normratio(weights,X)))
+	cfg.log('|Af|={:.3}'.format(util.norm(Af(weights,X))))
 	return weights
 
 

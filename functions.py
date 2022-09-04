@@ -278,6 +278,10 @@ class Outputscaling(Scalarfunction,Oddfunction):
 	def _initweights_():
 		return 1.0
 
+class Flatten(Scalarfunction,Oddfunction):
+	def gen_f(self):
+		return jax.jit(lambda _,Y:jnp.tanh(self.sharpness*Y))
+
 #=======================================================================================================
 
 class Wrappedfunction(FunctionDescription):

@@ -105,6 +105,7 @@ def _pickfolders_(stdscr,msg=''):
 		stdscr.refresh()
 
 		c=stdscr.getch()
+		if c==113: quit()
 		if c==259: ls-=1
 		if c==258: ls+=1
 		ls=max(0,min(len(folders)-1,ls))
