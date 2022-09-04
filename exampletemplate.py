@@ -27,8 +27,9 @@ def getrunfn0(target,learner):
 
 		global unprocessed,X,X_test,Y,Y_test,sections,_learner_,_target_
 		_target_,_learner_=target,learner
-		
-		sessioninfo='{}.py\n{}\n\n\nsessionID: {}\n{}'.format(cfg.exname,cfg.explanation,cfg.sessionID,INFO())
+
+		if not hasattr(cfg,'explanation'): cfg.explanation=cfg.exname+'.py'
+		sessioninfo='{}\n\n\nsessionID: {}\n{}'.format(cfg.explanation,cfg.sessionID,INFO())
 		session.remember('sessioninfo',sessioninfo)
 		cfg.write(session.getval('sessioninfo'),cfg.outpath+'info.txt',mode='w')
 

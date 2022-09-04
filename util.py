@@ -4,10 +4,10 @@ import jax.numpy as jnp
 import jax
 import jax.random as rnd
 import config as cfg
-import customactivations as ca
 from config import session
 from collections import deque
 
+from jax.numpy import tanh
 from jax.nn import softplus
 
 
@@ -78,8 +78,17 @@ drelu=DReLU
 def leaky_ReLU(x):
 	return jnp.maximum(x,.01*x)
 
+ac_aliases={\
+	'ReLU':['r','relu'],
+	'tanh':['t'],
+	'leaky_ReLU':['lr','leakyrelu'],
+	'DReLU':['dr','drelu'],
+	'softplus':['sp']
+	}
 
-activations={'ReLU':ReLU,'relu':ReLU,'tanh':jnp.tanh,'softplus':softplus,'DReLU':DReLU,"drelu":DReLU,"leakyrelu":leaky_ReLU}|ca.c_acs
+acnames={alias:acname for acname,aliases in ac_aliases.items() for alias in aliases+[acname]}
+
+activations={alias:globals()[acname] for alias,acname in acnames.items()}
 
 
 

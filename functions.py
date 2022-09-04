@@ -132,6 +132,7 @@ class ComposedFunction(FunctionDescription):
 		return c
 
 
+#=======================================================================================================
 class NNfunction(FunctionDescription):
 	def richtypename(self):
 		return self.activation+'-'+self.typename()
