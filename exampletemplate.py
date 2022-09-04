@@ -33,6 +33,8 @@ def getrunfn0(target,learner):
 		cfg.write(session.getval('sessioninfo'),cfg.outpath+'info.txt',mode='w')
 
 
+
+
 		unprocessed=cfg.ActiveMemory()
 
 		try:
@@ -40,35 +42,25 @@ def getrunfn0(target,learner):
 		except:
 			pass
 
-		cfg.currentkeychain=1
-		functions.initweights(target,learner)
 
 
 		cfg.currentkeychain=2
-		X=rnd.uniform(cfg.nextkey(),(samples_train,n,d),minval=-1,maxval=1)
-		X_test=rnd.uniform(cfg.nextkey(),(samples_test,n,d),minval=-1,maxval=1)
-
-		AS=testantisymmetry(target,learner,X)
-		cfg.currentkeychain=3
-		if AS: target.weights=adjustnorms(target,X)
-
+		X=cfg.genX(samples_train)
+		X_test=cfg.genX(samples_test)
 
 		cfg.logcurrenttask('preparing training data')
 		Y=target.eval(X)
 		cfg.logcurrenttask('preparing test data')
 		Y_test=target.eval(X_test)
 
+		setupdata={k:globals()[k] for k in ['X_test','Y_test']}|{'target':target.compress(),'learner':learner.compress()}
+		cfg.save(setupdata,cfg.outpath+'data/setup')
 
 		trainer=learning.Trainer(learner,X,Y,weight_decay=weight_decay,minibatchsize=minibatchsize,lossfn=util.SI_loss) #,lossgrad=mv.gen_lossgrad(AS,lossfn=util.SI_loss))
-
 		lazyplot=cfg.Clockedworker()
-
 		cfg.logcurrenttask('preparing slices for plotting')
 		cfg.currentkeychain=4
 		sections=pt.genCrossSections(X,Y,target.eval)
-
-		setupdata={k:globals()[k] for k in ['X_test','Y_test']}|{'target':target.compress(),'learner':learner.compress()}
-		cfg.save(setupdata,cfg.outpath+'data/setup')
 
 		cfg.regsched=cfg.Scheduler(cfg.nonsparsesched(iterations,start=100))
 		cfg.provide(plotsched=cfg.Scheduler(cfg.sparsesched(iterations,start=1000)))
@@ -124,7 +116,6 @@ def adjustnorms(Afdescr,X,iterations=100):
 	weights=trainer.learner.weights
 	cfg.log('|f|/|Af|={:.3} after'.format(normratio(weights,X)))
 	return weights
-
 
 
 def lplot():

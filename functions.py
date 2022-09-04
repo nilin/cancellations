@@ -99,9 +99,10 @@ def initweights(*functions):
 
 
 class ComposedFunction(FunctionDescription):
-	def __init__(self,*elements):
+	def __init__(self,*elements,initweights=True):
 		elements=[e for E in elements for e in (E.elements if isinstance(E,ComposedFunction) else [E])]
 		super().__init__(elements=[cast(e).compress() for e in elements])
+		if initweights: self.initweights()
 
 	def gen_f(self):
 		return util.compose(*[e._gen_f_() for e in self.elements])

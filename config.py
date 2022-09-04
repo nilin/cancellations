@@ -149,7 +149,13 @@ class ActiveMemory(Memory):
 		self.remember(outputname,fn(*inputvals))
 
 
-
+class Session(Memory):
+	def log(self,msg):
+		msg='{} | {}'.format(datetime.timedelta(seconds=int(session.time())),msg)
+		write(msg+'\n',*logpaths())
+		if trackduration:
+			write(str(int(session.time())),*[os.sep.join(pathlog.split(os.sep)[:-1])+os.sep+'duration' for pathlog in logpaths()],mode='w')	
+		super().log(msg)
 
 
 class Watched:
@@ -208,12 +214,8 @@ def register(_dict_,names):
 #----------------------------------------------------------------------------------------------------
 
 def log(msg):
-	msg='{} | {}'.format(datetime.timedelta(seconds=int(session.time())),msg)
 	session.log(msg)
 	#poke('log',msg)
-	write(msg+'\n',*logpaths())
-	if trackduration:
-		write(str(int(session.time())),*[os.sep.join(pathlog.split(os.sep)[:-1])+os.sep+'duration' for pathlog in logpaths()],mode='w')	
 
 def dblog(msg):
 	write(str(msg)+'\n','dblog/'+sessionID)
@@ -511,7 +513,8 @@ def getlossfn():
 #setlossfn('SI_loss')
 #setlossfn('log_SI_loss')
 
-
+def genX(samples):
+	return X_distr(nextkey(),samples)
 
 
 #lossfn=sqloss
@@ -543,7 +546,7 @@ getfromcmdparams=getfromargs
 
 
 #sessionstate=State()
-session=Memory()
+session=Session()
 params=dict()
 
 def poke(*args,**kw):

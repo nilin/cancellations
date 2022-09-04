@@ -2,7 +2,7 @@ import os
 import re
 import curses as cs
 import pdb
-
+from dashboard import dash
 
 
 
@@ -12,16 +12,15 @@ down='\u2193'
 left='\u2190'
 right='\u2192'
 
-def pickfolder(stdscr,msg=''):
+def _pickfolder_(stdscr,msg='select folder',condition=None):
 
-	#staticinfopad=cs.newpad(100,100)
-	infopad=cs.newpad(500,500)
-	searchstringpad=cs.newpad(500,500)
-	matchpad=cs.newpad(500,500)
-	#staticinfopad.addstr(0,0,msg)
+	explainpad=cs.newpad(500,500)
+	listpad=cs.newpad(500,500)
+	matchinfopad=cs.newpad(500,500)
 
 	s=''
 	paths=[d+'/' for d,_,files in os.walk('outputs') if 'and' not in d and 'data' not in d and '|' in d]
+	if condition!=None: paths=list(filter(condition,paths))
 	ls=0
 
 	while True:
@@ -30,22 +29,18 @@ def pickfolder(stdscr,msg=''):
 		p=re.compile(ps)
 
 		out=list(filter(p.search,paths))
-		out.sort(reverse=True,key=lambda s:s.split('|')[-1])
+		out.sort(reverse=True,key=lambda s:s[-15:])
 
 		ls=max(0,min(len(out)-1,ls))
 
-		searchstringpad.erase()
-#		try:
-#			searchstringpad.addstr(0,0,'Please type subtring to search, e.g. {}'.format(out[len(out)//2][-8:-4]))
-#		except:
-#			searchstringpad.addstr(0,0,'Please type subtring to search')
-		searchstringpad.addstr(0,0,'move with arrow keys:\n{}: up\n{}: down\n{}: fast up\n{}: fast down'.format(up,down,left,right)+\
+		explainpad.erase()
+		explainpad.addstr(0,0,dash*len(msg)+'\n'+msg+'\n'+dash*len(msg)+'\n\n'+\
+			'move with arrow keys:\n{}: up\n{}: down\n{}: fast up\n{}: fast down'.format(up,down,left,right)+\
 			'\n\nor type to filter by substring (BACKSPACE to undo)')
-		searchstringpad.addstr(10,0,'SEARCH FOR SUBSTRING: '+s)
+		explainpad.addstr(10,0,'SEARCH FOR SUBSTRING: '+s)
 
-		searchstringpad.refresh(0,0,1,1,h1-1,w1-1)
-		#staticinfopad.refresh(0,0,1,w3,h-1,w-1)
-		displayoptions(out,ls,matchpad,infopad)
+		explainpad.refresh(0,0,1,1,h1-1,w1-1)
+		displayoptions(out,ls,listpad,matchinfopad)
 		stdscr.refresh()
 
 		c=stdscr.getch()
@@ -55,21 +50,22 @@ def pickfolder(stdscr,msg=''):
 		elif c==258: ls+=1
 		elif c==260: ls-=5
 		elif c==261: ls+=5
+		elif c==113: quit()
 		else: s=s+chr(c)
 
-def displayoptions(matches,selection,matchpad,infopad):
-	infopad.erase()
-	matchpad.erase()
+def displayoptions(matches,selection,listpad,matchinfopad):
+	matchinfopad.erase()
+	listpad.erase()
 	for i,match in enumerate(matches):
-		matchpad.addstr(i,2,'{}: {}        -{}'.format(str(i+1).rjust(3),match,runinfo(match)))
+		listpad.addstr(i,2,'{}: {}        -{}'.format(str(i+1).rjust(3),match,runinfo(match)))
 	try:
-		infopad.addstr(0,0,runinfo(matches[selection]))
-		infopad.addstr(2,0,getinfo(matches[selection]))
+		matchinfopad.addstr(0,0,runinfo(matches[selection]))
+		matchinfopad.addstr(2,0,getinfo(matches[selection]))
 	except:
-		infopad.addstr(0,0,'no folder selected or no info.txt')
-	matchpad.addch(selection,0,'>')
-	matchpad.refresh(max(0,selection-h//2),0,1,w1,h-1,w2-1)
-	infopad.refresh(0,0,1,w3,h-1,w-1)
+		matchinfopad.addstr(0,0,'no folder selected or no info.txt')
+	listpad.addch(selection,0,'>')
+	listpad.refresh(max(0,selection-h//2),0,1,w1,h-1,w2-1)
+	matchinfopad.refresh(0,0,1,w3,h-1,w-1)
 
 
 def runinfo(folder):
@@ -88,9 +84,9 @@ def getinfo(path):
 	return infostr
 
 
-def menu(stdscr,msg=''):
-	matchpad=cs.newpad(500,500)
-	infopad=cs.newpad(500,500)
+def _pickfolders_(stdscr,msg=''):
+	listpad=cs.newpad(500,500)
+	matchinfopad=cs.newpad(500,500)
 
 	instrpad=cs.newpad(500,500)
 	msgpad=cs.newpad(500,500)
@@ -105,7 +101,7 @@ def menu(stdscr,msg=''):
 	while True:
 		instrpad.refresh(0,0,1,1,h1-1,w1-1)
 		msgpad.refresh(0,0,h1,1,h-1,w1-1)
-		displayoptions(folders,ls,matchpad,infopad)
+		displayoptions(folders,ls,listpad,matchinfopad)
 		stdscr.refresh()
 
 		c=stdscr.getch()
@@ -115,7 +111,7 @@ def menu(stdscr,msg=''):
 
 		if c==10: return folders
 		if c==127 and len(folders)!=0: del folders[ls]
-		if chr(c)=='a': folders.append(pickfolder(stdscr,msg))
+		if chr(c)=='a': folders.append(_pickfolder_(stdscr,msg))
 
 
 
@@ -135,17 +131,17 @@ def commonanc(*fs):
 	
 
 
-def pickfolders():
+def pickfolders(multiple=True,**kw):
 
 	def wrapped(stdscr):
 		cs.use_default_colors()
 		global h,w,w1,w2,w3,h1,h2
 		h=cs.LINES
 		w=cs.COLS
-		w1=w//4; w3=(3*w)//4; w2=w3-5
+		w1=w//4; w3=(2*w)//3; w2=w3-5
 		h1=h//3; h2=(2*h)//3
 
-		return menu(stdscr)
+		return _pickfolders_(stdscr,**kw) if multiple else _pickfolder_(stdscr,**kw)
 		#return pickfolder(stdscr)
 
 	return cs.wrapper(wrapped)
