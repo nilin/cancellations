@@ -26,6 +26,7 @@ def print_at(y,x,msg):
 
 
 widthbound=400
+line=dash*widthbound
 
 #----------------------------------------------------------------------------------------------------
 
@@ -58,7 +59,8 @@ class LogDisplay(Display):
 	def __init__(self,height):
 		self.height=height
 	def _getlines_(self):
-		return session.gethist('recentlog')[-self.height:]
+		lines=session.gethist('recentlog')[-(self.height-2):]
+		return [line]+lines+[line]
 
 
 #----------------------------------------------------------------------------------------------------
@@ -141,8 +143,8 @@ class Bar(NumberDisplay):
 		super().__init__(query,Style=Style,Emptystyle=Emptystyle,**kw)
 
 	def formatnumber(self,x):
-		barwidth=math.floor(self.getwidth()*max(min(x,1),0))
-		return self.Style[:barwidth]+self.Emptystyle[barwidth:self.getwidth()]
+		barwidth=math.ceil(self.getwidth()*max(min(x,1),0))
+		return self.Style[:barwidth]+self.Emptystyle[barwidth:self.getwidth()+1]
 
 class NumberPrint(NumberDisplay):
 	def __init__(self,query,msg='{:.3}',**kw):

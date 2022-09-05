@@ -73,8 +73,8 @@ def prep():
 
     d_=100; ndets=10;
     learner=ComposedFunction(\
-    SingleparticleNN(widths=[d,100,d_],activation='tanh'),\
-    functions.Backflow(widths=[d_,d_],activation='tanh'),\
+    SingleparticleNN(widths=[d,100,d_],activation='leakyrelu'),\
+    #functions.Backflow(widths=[d_,d_],activation='tanh'),\
     functions.DetSum(n=n,d=d_,ndets=ndets),\
     functions.OddNN(widths=[1,100,1],activation='leakyrelu')
     )

@@ -303,7 +303,7 @@ def addlearningdisplay(learningmemory):
 		learningdisplay=db.StackedDisplay(memory=learningmemory,width=w)
 		learningdisplay.add(db.NumberPrint('minibatch loss',msg='training loss {:.3}'))
 		learningdisplay.add(db.Bar('minibatch loss',style='.',emptystyle=' '))
-		learningdisplay.add(db.Bar('minibatch loss',style=db.BOX,avg_of=100))
+		learningdisplay.add(db.Bar('minibatch loss',style=db.BOX,avg_of=25))
 		learningdisplay.addspace()
 		learningdisplay.add(db.NumberPrint('minibatchnumber',msg='minibatch number {:.0f}'))
 		cfg.dashboard.add(learningdisplay,(0,w-1),(h-10,h-1),name='learning',draw=False)

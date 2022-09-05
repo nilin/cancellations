@@ -83,7 +83,7 @@ class BasicMemory:
 
 	def log(self,msg):
 		#self.remember('log',msg,{'timeprint':tp})
-		self.remember('recentlog',msg,membound=100)
+		self.remember('recentlog',msg,membound=25)
 
 	def gethist(self,name,*metaparams):
 		return self.hists[name].gethist(*metaparams) #if name in self.hists else ([],)+tuple([[] for _ in metaparams])
@@ -608,8 +608,13 @@ dash='\u2015'
 
 def wraptext(msg,style=dash):
 	width=max([len(l) for l in msg.splitlines()])
-	return '{}\n{}\n{}'.format(dash*width,msg,dash*width)
+	line=dash*width
+	return '{}\n{}\n{}'.format(line,msg,line)
 
+def wraplines(lines,style=dash):
+	width=max([len(l) for l in lines])
+	line=dash*width
+	return [line]+lines+[line]
 
 ####################################################################################################
 
