@@ -57,7 +57,7 @@ def prep():
         #target=functions.ASNN(n=n,d=d,widths=['nd',10,10,1],activation='tanh')
 
         cfg.log('adjusting target weights')
-        exampletemplate.adjustnorms(target,X=cfg.genX(10000),iterations=250,learning_rate=.1)
+        exampletemplate.adjustnorms(target,X=cfg.genX(10000),iterations=1000,learning_rate=1.0)
         target=target.compose(functions.Flatten(sharpness=1))
         cfg.log('target initialized')
 
