@@ -79,7 +79,7 @@ def getrunfn0(target,learner):
 				fplot()
 				lazyplot.do_if_rested(.2,lplot)
 
-			if i%25==0:
+			if i%50==0:
 				cfg.checkforinput()
 	return runfn
 
