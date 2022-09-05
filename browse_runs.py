@@ -35,23 +35,26 @@ def _pickfolder_(stdscr,msg='select folder',condition=None):
 
 		explainpad.erase()
 		explainpad.addstr(0,0,dash*len(msg)+'\n'+msg+'\n'+dash*len(msg)+'\n\n'+\
-			'move with arrow keys:\n{}: up\n{}: down\n{}: fast up\n{}: fast down'.format(up,down,left,right)+\
-			'\n\nor type to filter by substring (BACKSPACE to undo)')
-		explainpad.addstr(10,0,'SEARCH FOR SUBSTRING: '+s)
+			'move with arrow keys:\n{}: up\n{}: down\n{}: fast up\n{}: fast down'.format(up,down,left,right))
+		#+'\n\nor type to filter by substring (BACKSPACE to undo)')
+		#explainpad.addstr(10,0,'SEARCH FOR SUBSTRING: '+s)
 
 		explainpad.refresh(0,0,1,1,h1-1,w1-1)
 		displayoptions(out,ls,listpad,matchinfopad)
 		stdscr.refresh()
 
 		c=stdscr.getch()
-		if c==10: return out[ls]
+		if c==10: 
+			stdscr.clear()
+			stdscr.refresh()
+			return out[ls]
 		elif c==127: s=s[:-1]
 		elif c==259: ls-=1
 		elif c==258: ls+=1
 		elif c==260: ls-=5
 		elif c==261: ls+=5
 		elif c==113: quit()
-		else: s=s+chr(c)
+		#else: s=s+chr(c)
 
 def displayoptions(matches,selection,listpad,matchinfopad):
 	matchinfopad.erase()

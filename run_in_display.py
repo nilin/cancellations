@@ -63,6 +63,10 @@ def getwrapped(runfn,process_input=cfg.donothing):
 		w=cs.COLS
 		cfg.dashboard=CDashboard(w,h)
 
+		blank=cs.newpad(500,500)
+		blank.refresh(0,0,0,0,h-1,w-1)
+		screen.refresh()
+
 		#dummywin=cs.newwin(0,0,0,0)
 		#dummywin.nodelay(True)
 

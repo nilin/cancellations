@@ -20,68 +20,87 @@ import functions
 
 
 
-def getrunfn0(target,learner):
-
-	def runfn():
-		globals().update(cfg.params)
-
-		global unprocessed,X,X_test,Y,Y_test,sections,_learner_,_target_
-		_target_,_learner_=target,learner
-
-		#if not hasattr(cfg,'explanation'): cfg.explanation=cfg.exname+'.py'
-		sessioninfo='sessionID: {}\n{}'.format(cfg.sessionID,INFO())
-		cfg.write(sessioninfo,cfg.outpath+'info.txt',mode='w')
 
 
 
-		unprocessed=cfg.ActiveMemory()
-		prepdashboard(sessioninfo,unprocessed,instructions=cfg.explanation)
+def runexample(prep):
+	cfg.trackduration=True
+
+	def prep_and_run():
+		target,learner=prep()
+		runfn(target,learner)
+
+	if 'debug' in cfg.cmdparams:
+		import debug
+		db.clear()
+		prep_and_run()
+
+	else:
+		import run_in_display
+		run_in_display.RID(prep_and_run,process_input)
 
 
-		cfg.currentkeychain=2
-		X=cfg.genX(samples_train)
-		X_test=cfg.genX(samples_test)
+def runfn(target,learner):
+	globals().update(cfg.params)
 
-		cfg.logcurrenttask('preparing training data')
-		Y=target.eval(X)
-		cfg.logcurrenttask('preparing test data')
-		Y_test=target.eval(X_test)
+	global unprocessed,X,X_test,Y,Y_test,sections,_learner_,_target_
+	_target_,_learner_=target,learner
 
-		setupdata={k:globals()[k] for k in ['X_test','Y_test']}|{'target':target.compress(),'learner':learner.compress()}
-		cfg.save(setupdata,cfg.outpath+'data/setup')
+	#if not hasattr(cfg,'explanation'): cfg.explanation=cfg.exname+'.py'
 
-		trainer=learning.Trainer(learner,X,Y,\
-			weight_decay=weight_decay,minibatchsize=minibatchsize,lossfn=util.SI_loss) #,lossgrad=mv.gen_lossgrad(AS,lossfn=util.SI_loss))
-		lazyplot=cfg.Clockedworker()
-		cfg.logcurrenttask('preparing slices for plotting')
-		cfg.currentkeychain=4
-		sections=pt.genCrossSections(X,Y,target.eval)
+	cfg.sessioninfo='sessionID: {}\n{}'.format(cfg.sessionID,INFO())
+	cfg.write(cfg.sessioninfo,cfg.outpath+'info.txt',mode='w')
+	addinfodisplay(cfg.sessioninfo)
 
-		cfg.regsched=cfg.Scheduler(cfg.nonsparsesched(iterations,start=100))
-		cfg.provide(plotsched=cfg.Scheduler(cfg.sparsesched(iterations,start=1000)))
+	
+	cfg.currentkeychain=2
+	X=cfg.genX(samples_train)
+	X_test=cfg.genX(samples_test)
+
+	cfg.logcurrenttask('preparing training data')
+	Y=target.eval(X)
+	cfg.logcurrenttask('preparing test data')
+	Y_test=target.eval(X_test)
+
+	setupdata={k:globals()[k] for k in ['X_test','Y_test']}|{'target':target.compress(),'learner':learner.compress()}
+	cfg.save(setupdata,cfg.outpath+'data/setup')
+
+	trainer=learning.Trainer(learner,X,Y,\
+		weight_decay=weight_decay,minibatchsize=minibatchsize,lossfn=util.SI_loss) #,lossgrad=mv.gen_lossgrad(AS,lossfn=util.SI_loss))
+	lazyplot=cfg.Clockedworker()
+	cfg.logcurrenttask('preparing slices for plotting')
+	cfg.currentkeychain=4
+	sections=pt.genCrossSections(X,Y,target.eval)
+
+	cfg.regsched=cfg.Scheduler(cfg.nonsparsesched(iterations,start=100))
+	cfg.provide(plotsched=cfg.Scheduler(cfg.sparsesched(iterations,start=1000)))
+
+	cfg.logcurrenttask('begin training')
 
 
+	unprocessed=cfg.ActiveMemory()
+	addlearningdisplay(unprocessed)
+	#prepdashboard(sessioninfo,unprocessed,instructions=cfg.explanation)
+	for i in range(iterations+1):
+		try: cfg.dashboard.draw('learning')
+		except: pass
 
-		cfg.logcurrenttask('begin training')
-		for i in range(iterations+1):
-			cfg.dashboard.draw('learning')
 
+		loss=trainer.step()
+		unprocessed.addcontext('minibatchnumber',i)
+		unprocessed.remember('minibatch loss',loss)
 
-			loss=trainer.step()
-			unprocessed.addcontext('minibatchnumber',i)
-			unprocessed.remember('minibatch loss',loss)
+		if cfg.regsched.activate(i):
+			unprocessed.remember('weights',learner.weights)
+			cfg.save(unprocessed,cfg.outpath+'data/unprocessed')
 
-			if cfg.regsched.activate(i):
-				unprocessed.remember('weights',learner.weights)
-				cfg.save(unprocessed,cfg.outpath+'data/unprocessed')
+		if cfg.plotsched.activate(i):
+			fplot()
+			lazyplot.do_if_rested(.2,lplot)
 
-			if cfg.plotsched.activate(i):
-				fplot()
-				lazyplot.do_if_rested(.2,lplot)
+		if i%50==0:
+			cfg.checkforinput()
 
-			if i%50==0:
-				cfg.checkforinput()
-	return runfn
 
 
 # backend
@@ -246,62 +265,80 @@ def fplot():
 	plotfunctions(sections,_learner_.eval,figtitle,figpath)
 
 
-def prepdashboard(sessioninfo,learningmemory,instructions):
+def prepdashboard(instructions):
+
+	try:	
+		instructions+='\n\nPress l (lowercase L) to generate learning plots.\nPress f to generate functions plot.\nPress q to quit.'
+
+		DB=cfg.dashboard
+		w=DB.width; h=DB.height
+		x1=w//2-10; x2=w//2+10
+		halfw=x1
+
+		# column
+		instructiondisplay=db.StaticText(instructions)
+		statusdisplay=db.StackedDisplay(memory=session,width=halfw)
+		logdisplay=db.LogDisplay(height=20)
+		column=db.StackedDisplay()
+		column.stack(instructiondisplay,statusdisplay,logdisplay)
+
+		statusdisplay.add(db.ValDisplay('currenttask',msg='{}'))
+		statusdisplay.add(db.Bar('currenttaskcompleteness'))
+
+		col=DB.add(column,(0,x1),(0,h-11))
+
+		session.addlistener(col,'recentlog')
+		session.addlistener(col,'currenttaskcompleteness')
 	
-	instructions+='\n\nPress l (lowercase L) to generate learning plots.\nPress f to generate functions plot.\nPress q to quit.'
-
-	DB=cfg.dashboard
-	w=DB.width; h=DB.height
-	x1=w//2-10; x2=w//2+10
-	halfw=x1
-
-	# column
-	instructiondisplay=db.StaticText(instructions)
-	statusdisplay=db.StackedDisplay(memory=session,width=halfw)
-	logdisplay=db.LogDisplay(height=20)
-	column=db.StackedDisplay()
-	column.stack(instructiondisplay,statusdisplay,logdisplay)
-
-	statusdisplay.add(db.ValDisplay('currenttask',msg='{}'))
-	statusdisplay.add(db.Bar('currenttaskcompleteness'))
-
-	# column
-	infodisplay=db.StaticText(sessioninfo)
-	
-
-	# below
-	learningdisplay=db.StackedDisplay(memory=learningmemory,width=w)
-	learningdisplay.add(db.NumberPrint('minibatch loss',msg='training loss {:.3}'))
-	learningdisplay.add(db.Bar('minibatch loss',style='.',emptystyle=' '))
-	learningdisplay.add(db.Bar('minibatch loss',style=db.BOX,avg_of=100))
-	learningdisplay.addspace()
-	learningdisplay.add(db.NumberPrint('minibatchnumber',msg='minibatch number {:.0f}'))
+	except: cfg.log('dashboard skipped')
 
 
-	col=DB.add(column,(0,x1),(0,h-11))
-	DB.add(infodisplay,(x2,w-1),(0,h-1))
-	DB.add(learningdisplay,(0,w-1),(h-10,h-1),name='learning',draw=False)
+def addlearningdisplay(learningmemory):
+	try:
+		DB=cfg.dashboard
+		w=DB.width; h=DB.height
+		x1=w//2-10; x2=w//2+10
+		halfw=x1
 
-	session.addlistener(col,'recentlog')
-	session.addlistener(col,'currenttaskcompleteness')
+		learningdisplay=db.StackedDisplay(memory=learningmemory,width=w)
+		learningdisplay.add(db.NumberPrint('minibatch loss',msg='training loss {:.3}'))
+		learningdisplay.add(db.Bar('minibatch loss',style='.',emptystyle=' '))
+		learningdisplay.add(db.Bar('minibatch loss',style=db.BOX,avg_of=100))
+		learningdisplay.addspace()
+		learningdisplay.add(db.NumberPrint('minibatchnumber',msg='minibatch number {:.0f}'))
+		cfg.dashboard.add(learningdisplay,(0,w-1),(h-10,h-1),name='learning',draw=False)
+	except: pass
+
+
+def addinfodisplay(sessioninfo):
+	try:
+		DB=cfg.dashboard
+		w=DB.width; h=DB.height
+		x1=w//2-10; x2=w//2+10
+		halfw=x1
+
+		infodisplay=db.StaticText(sessioninfo)
+		cfg.dashboard.add(infodisplay,(x2,w-1),(0,h-1))
+	except: pass
+
 
 
 ####################################################################################################
 
-def runexample(runfn):
-	cfg.trackduration=True
+#def runexample(runfn):
+#	cfg.trackduration=True
+#
+#	if 'debug' in cfg.cmdparams:
+#		import debug
+#		db.clear()
+#		runfn()
+#
+#	else:
+#		import run_in_display
+#		run_in_display.RID(runfn,process_input)
 
-	if 'debug' in cfg.cmdparams:
-		import debug
-		db.clear()
-		runfn()
 
-	else:
-		import run_in_display
-		run_in_display.RID(runfn,process_input)
-
-
-def runexample0(target,learner):
-	runexample(getrunfn0(target,learner))
+#def runexample0(target,learner):
+#	runexample(getrunfn0(target,learner))
 
 
