@@ -52,8 +52,8 @@ def prep():
     else:
         exampletemplate.prepdashboard(cfg.instructions)
 
-        target=ComposedFunction(functions.Slater('hermitegaussproducts',n=n,d=d,mode='gen'),functions.Outputscaling())
-        #target=ComposedFunction(functions.Slater('parallelgaussians',n=n,d=d,mode='gen'),functions.Outputscaling())
+        #target=ComposedFunction(functions.Slater('hermitegaussproducts',n=n,d=d,mode='gen'),functions.Outputscaling())
+        target=ComposedFunction(functions.Slater('parallelgaussians',n=n,d=d,mode='gen'),functions.Outputscaling())
         #target=functions.ASNN(n=n,d=d,widths=['nd',10,10,1],activation='tanh')
 
         cfg.log('adjusting target weights')
@@ -74,7 +74,7 @@ def prep():
     d_=100; ndets=10;
     learner=ComposedFunction(\
     SingleparticleNN(widths=[d,100,d_],activation='leakyrelu'),\
-    #functions.Backflow(widths=[d_,d_],activation='tanh'),\
+    functions.Backflow(widths=[d_,d_],activation='leakyrelu'),\
     functions.DetSum(n=n,d=d_,ndets=ndets),\
     functions.OddNN(widths=[1,100,1],activation='leakyrelu')
     )

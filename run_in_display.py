@@ -16,7 +16,7 @@ class CDisplay:
 		self.display=display
 		self.xlim=xlim
 		self.ylim=ylim
-		self.pad=cs.newpad(500,500)	
+		self.pad=cs.newpad(400,400)	
 		display.concretization=self
 
 
@@ -63,7 +63,7 @@ def getwrapped(runfn,process_input=cfg.donothing):
 		w=cs.COLS
 		cfg.dashboard=CDashboard(w,h)
 
-		blank=cs.newpad(500,500)
+		blank=cs.newpad(400,400)
 		blank.refresh(0,0,0,0,h-1,w-1)
 		screen.refresh()
 

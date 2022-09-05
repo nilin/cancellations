@@ -25,7 +25,7 @@ def print_at(y,x,msg):
 	print('\x1b[{};{}H{}'.format(y,x,msg))
 
 
-widthbound=400
+widthbound=250
 line=dash*widthbound
 
 #----------------------------------------------------------------------------------------------------
