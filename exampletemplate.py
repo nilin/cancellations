@@ -28,21 +28,14 @@ def getrunfn0(target,learner):
 		global unprocessed,X,X_test,Y,Y_test,sections,_learner_,_target_
 		_target_,_learner_=target,learner
 
-		if not hasattr(cfg,'explanation'): cfg.explanation=cfg.exname+'.py'
-		sessioninfo='{}\n\n\nsessionID: {}\n{}'.format(cfg.explanation,cfg.sessionID,INFO())
-		session.remember('sessioninfo',sessioninfo)
-		cfg.write(session.getval('sessioninfo'),cfg.outpath+'info.txt',mode='w')
-
+		#if not hasattr(cfg,'explanation'): cfg.explanation=cfg.exname+'.py'
+		sessioninfo='sessionID: {}\n{}'.format(cfg.sessionID,INFO())
+		cfg.write(sessioninfo,cfg.outpath+'info.txt',mode='w')
 
 
 
 		unprocessed=cfg.ActiveMemory()
-
-		try:
-			cfg.dashboard.add_display(Display2(10,cfg.dashboard.width,unprocessed),2*cfg.dashboard.height//3,name='bars')
-		except:
-			pass
-
+		prepdashboard(sessioninfo,unprocessed,instructions=cfg.explanation)
 
 
 		cfg.currentkeychain=2
@@ -57,7 +50,8 @@ def getrunfn0(target,learner):
 		setupdata={k:globals()[k] for k in ['X_test','Y_test']}|{'target':target.compress(),'learner':learner.compress()}
 		cfg.save(setupdata,cfg.outpath+'data/setup')
 
-		trainer=learning.Trainer(learner,X,Y,weight_decay=weight_decay,minibatchsize=minibatchsize,lossfn=util.SI_loss) #,lossgrad=mv.gen_lossgrad(AS,lossfn=util.SI_loss))
+		trainer=learning.Trainer(learner,X,Y,\
+			weight_decay=weight_decay,minibatchsize=minibatchsize,lossfn=util.SI_loss) #,lossgrad=mv.gen_lossgrad(AS,lossfn=util.SI_loss))
 		lazyplot=cfg.Clockedworker()
 		cfg.logcurrenttask('preparing slices for plotting')
 		cfg.currentkeychain=4
@@ -66,12 +60,14 @@ def getrunfn0(target,learner):
 		cfg.regsched=cfg.Scheduler(cfg.nonsparsesched(iterations,start=100))
 		cfg.provide(plotsched=cfg.Scheduler(cfg.sparsesched(iterations,start=1000)))
 
+
+
 		cfg.logcurrenttask('begin training')
 		for i in range(iterations+1):
+			cfg.dashboard.draw('learning')
 
-			cfg.poke()
+
 			loss=trainer.step()
-
 			unprocessed.addcontext('minibatchnumber',i)
 			unprocessed.remember('minibatch loss',loss)
 
@@ -82,8 +78,14 @@ def getrunfn0(target,learner):
 			if cfg.plotsched.activate(i):
 				fplot()
 				lazyplot.do_if_rested(.2,lplot)
+
+			if i%25==0:
+				cfg.checkforinput()
 	return runfn
 
+
+# backend
+####################################################################################################
 
 def testantisymmetry(target,learner,X):
 	try:
@@ -114,10 +116,6 @@ def adjustnorms(Afdescr,X,iterations=500,**learningparams):
 		normloss=jnp.log(Af_norm)**2
 		ratioloss=jnp.log(f_norm/Af_norm)
 		return normloss+ratioloss
-		#at_small_Af=-jnp.log(Af_norm)
-		#at_large_Af=jnp.log(util.norm(f(params,Y)))
-		#loss=at_small_Af*(Af_norm<=1)+at_large_Af*(Af_norm>1)
-		#return loss**2
 
 	trainer=learning.DirectlossTrainer(directloss,weights,X,**learningparams)
 	for i in range(iterations):
@@ -131,32 +129,30 @@ def adjustnorms(Afdescr,X,iterations=500,**learningparams):
 	return weights
 
 
-def lplot():
-	processandplot(unprocessed,_learner_,X_test,Y_test)
-def fplot():
-	figtitle=info()
-	figpath='{}{} minibatches'.format(cfg.outpath,int(unprocessed.getval('minibatchnumber')))
-	plotfunctions(sections,_learner_.eval,figtitle,figpath)
+# info
+####################################################################################################
+
 
 def info(separator=' | '):
 	return 'n={}, target: {}{}learner: {}'.format(n,_target_.richtypename(),separator,_learner_.richtypename())
 
-def INFO(separator='\n\n'):
-	lb='\n'+50*db.dash+'\n'
+def INFO(separator='\n\n',width=100):
 	targetinfo='target\n\n{}'.format(cfg.indent(_target_.getinfo()))
 	learnerinfo='learner\n\n{}'.format(cfg.indent(_learner_.getinfo()))
-	return lb+'n={}'.format(n)+lb+targetinfo+'\n'*4+learnerinfo+lb
-
-def process_input(c):
-	if c==108: lplot()
-	if c==102: fplot()
+	#return lb+'n={}'.format(n)+lb+targetinfo+'\n'*4+learnerinfo+lb
+	return cfg.wraptext(targetinfo+'\n'*4+learnerinfo)
 
 
 
 
-# learning plots
+
+
+
+
+# plots
 ####################################################################################################
 
+# learning plots
 
 def process_snapshot_0(processed,f,X,Y,i):
 	processed.addcontext('minibatchnumber',i)
@@ -219,12 +215,7 @@ def processandplot(unprocessed,pfunc,X,Y,process_snapshot_fn=None,plotexample_fn
 
 
 
-
-
-
 # function plots
-####################################################################################################
-
 
 def plotfunctions(sections,f,figtitle,path):
 	cfg.logcurrenttask('generating function plots')
@@ -239,53 +230,75 @@ def plotfunctions(sections,f,figtitle,path):
 
 
 
-# prep
+# dashboard
 ####################################################################################################
 
+def process_input(c):
+	if c==108: lplot()
+	if c==102: fplot()
 
-def adjustparams(**priorityparams):
+def lplot():
+	processandplot(unprocessed,_learner_,X_test,Y_test)
 
-	cfg.params=priorityparams|cfg.params
-	params=cfg.params
-	explanation=cfg.explanation
-	params.update(cfg.cmdredefs)
-
-
-
-
-class Display2(db.StackedDisplay):
-
-	def __init__(self,height,width,memory):
-		super().__init__(height,width,memory)
-		self.addnumberprint('minibatch loss',msg='training loss {:.3}')
-		self.addbar('minibatch loss',style='.')
-		self.addbar('minibatch loss',style=db.BOX,avg_of=100)
-		self.addspace()
-		self.addline()
-		self.addnumberprint('minibatchnumber',msg='minibatch number {:.0f}')
+def fplot():
+	figtitle=info()
+	figpath='{}{} minibatches'.format(cfg.outpath,int(unprocessed.getval('minibatchnumber')))
+	plotfunctions(sections,_learner_.eval,figtitle,figpath)
 
 
-def pickdisplay():
-	try:
-		return cfg.selectonefromargs('nodisplay','logdisplay')
-	except:
-		return 'fulldisplay'
+def prepdashboard(sessioninfo,learningmemory,instructions):
 	
+	instructions+='\n\nPress l (lowercase L) to generate learning plots.\nPress f to generate functions plot.\nPress q to quit.'
+
+	DB=cfg.dashboard
+	w=DB.width; h=DB.height
+	x1=w//2-10; x2=w//2+10
+	halfw=x1
+
+	# column
+	instructiondisplay=db.StaticText(instructions)
+	statusdisplay=db.StackedDisplay(memory=session,width=halfw)
+	logdisplay=db.LogDisplay(height=20)
+	column=db.StackedDisplay()
+	column.stack(instructiondisplay,statusdisplay,logdisplay)
+
+	statusdisplay.add(db.ValDisplay('currenttask',msg='{}'))
+	statusdisplay.add(db.Bar('currenttaskcompleteness'))
+
+	# column
+	infodisplay=db.StaticText(sessioninfo)
+	
+
+	# below
+	learningdisplay=db.StackedDisplay(memory=learningmemory,width=w)
+	learningdisplay.add(db.NumberPrint('minibatch loss',msg='training loss {:.3}'))
+	learningdisplay.add(db.Bar('minibatch loss',style='.',emptystyle=' '))
+	learningdisplay.add(db.Bar('minibatch loss',style=db.BOX,avg_of=100))
+	learningdisplay.addspace()
+	learningdisplay.add(db.NumberPrint('minibatchnumber',msg='minibatch number {:.0f}'))
+
+
+	col=DB.add(column,(0,x1),(0,h-11))
+	DB.add(infodisplay,(x2,w-1),(0,h-1))
+	DB.add(learningdisplay,(0,w-1),(h-10,h-1),name='learning',draw=False)
+
+	session.addlistener(col,'recentlog')
+	session.addlistener(col,'currenttaskcompleteness')
+
+
+####################################################################################################
 
 def runexample(runfn):
 	cfg.trackduration=True
+
 	if 'debug' in cfg.cmdparams:
 		import debug
-		displaymode='logdisplay'
-	else:
-		displaymode=pickdisplay()
+		db.clear()
+		runfn()
 
-	db.clear()
-	if displaymode=='fulldisplay':
+	else:
 		import run_in_display
 		run_in_display.RID(runfn,process_input)
-	else:
-		runfn()
 
 
 def runexample0(target,learner):

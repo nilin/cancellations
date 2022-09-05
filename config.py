@@ -82,7 +82,8 @@ class BasicMemory:
 		self.remember(name,val,*x,**y,membound=1)
 
 	def log(self,msg):
-		self.remember('log',msg)
+		#self.remember('log',msg,{'timeprint':tp})
+		self.remember('recentlog',msg,membound=100)
 
 	def gethist(self,name,*metaparams):
 		return self.hists[name].gethist(*metaparams) #if name in self.hists else ([],)+tuple([[] for _ in metaparams])
@@ -101,14 +102,27 @@ class Timer:
 	def time(self):
 		return time.perf_counter()-self.t0
 
+class Watched:
+	def __init__(self):
+		self.signals=dict()
 
-class Memory(BasicMemory,Timer):
+	def addlistener(self,listener,signal):
+		if signal not in self.signals: self.signals[signal]=[]
+		self.signals[signal].append(listener)
+
+	def pokelisteners(self,signal):
+		if signal in self.signals:
+			for listener in self.signals[signal]: listener.poke(self)
+
+
+
+class Memory(BasicMemory,Timer,Watched):
 	def __init__(self):
 		BasicMemory.__init__(self)
 		Timer.__init__(self)
+		Watched.__init__(self)
 		self.memID=int(rnd.randint(nextkey(),minval=0,maxval=10**9,shape=(1,)))
 		self.context=dict()
-		self.listenernames=[]
 
 	def addcontext(self,name,val):
 		self.context[name]=val
@@ -122,20 +136,11 @@ class Memory(BasicMemory,Timer):
 		out=self.gethist(name,timename)
 		return out
 
-	def remember(self,name,val,*listenerargs,**context):
-		super().remember(name,val,self.getcontext()|context)
-		self.pokelisteners(name,*listenerargs)
+	def remember(self,varname,val,**context):
+		super().remember(varname,val,self.getcontext()|context)
+		self.pokelisteners(varname)
+		#poke(varname,val)
 
-		poke(name,val)
-
-	def addlistener(self,listener):
-		lname=int(nextkey()[0])
-		eventlisteners[lname]=listener
-		self.listenernames.append(lname)
-
-	def pokelisteners(self,*args,**kw):
-		for ln in self.listenernames:
-			eventlisteners[ln].poke(*args,**kw)
 
 
 class ActiveMemory(Memory):
@@ -149,25 +154,19 @@ class ActiveMemory(Memory):
 		self.remember(outputname,fn(*inputvals))
 
 
+def timeprint():
+	return datetime.timedelta(seconds=int(session.time()))
+
 class Session(Memory):
 	def log(self,msg):
-		msg='{} | {}'.format(datetime.timedelta(seconds=int(session.time())),msg)
+		msg='{} | {}'.format(timeprint(),msg)
 		write(msg+'\n',*logpaths())
 		if trackduration:
 			write(str(int(session.time())),*[os.sep.join(pathlog.split(os.sep)[:-1])+os.sep+'duration' for pathlog in logpaths()],mode='w')	
 		super().log(msg)
+		if rawlogprint: print(msg)
 
-
-class Watched:
-	def __init__(self):
-		self.listeners=[]
-
-	def addlistener(self,L):
-		self.listeners.append(L)
-
-	def pokelisteners(self,*args,**kwargs):
-		for L in listeners:
-			L.poke(*args,**kwargs)
+rawlogprint=True
 
 #----------------------------------------------------------------------------------------------------
 
@@ -215,7 +214,6 @@ def register(_dict_,names):
 
 def log(msg):
 	session.log(msg)
-	#poke('log',msg)
 
 def dblog(msg):
 	write(str(msg)+'\n','dblog/'+sessionID)
@@ -543,15 +541,16 @@ def getfromargs(**kw):
 fromcmdparams=getfromargs
 getfromcmdparams=getfromargs
 
-
+def checkforinput():
+	pass
 
 #sessionstate=State()
 session=Session()
 params=dict()
 
-def poke(*args,**kw):
-	if 'log' in args:
-		print(args[1])
+#def poke(*args,**kw):
+#	if 'recentlog' in args:
+#		print(args[1])
 
 
 def donothing(*x,**y):
@@ -568,14 +567,14 @@ def logcurrenttask(msg):
 	trackcurrenttask(msg,0)
 	log(msg)
 
-def trackcurrenttask(msg,completeness,*args):
+def trackcurrenttask(msg,completeness):
 	session.trackcurrent('currenttask',msg)
-	session.trackcurrent('currenttaskcompleteness',completeness,*args)
+	session.trackcurrent('currenttaskcompleteness',completeness)
 	
 
 def clearcurrenttask():
 	session.trackcurrent('currenttask',' ')
-	session.trackcurrent('currenttaskcompleteness',0,'updatedisplay')
+	session.trackcurrent('currenttaskcompleteness',0)
 
 
 
@@ -604,6 +603,12 @@ def addparams(**kw):
 
 
 plotfineness=50
+
+dash='\u2015'
+
+def wraptext(msg,style=dash):
+	width=max([len(l) for l in msg.splitlines()])
+	return '{}\n{}\n{}'.format(dash*width,msg,dash*width)
 
 
 ####################################################################################################

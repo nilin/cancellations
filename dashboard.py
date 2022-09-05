@@ -1,3 +1,4 @@
+from re import I
 import sys
 import os
 import math
@@ -24,160 +25,135 @@ def print_at(y,x,msg):
 	print('\x1b[{};{}H{}'.format(y,x,msg))
 
 
+widthbound=400
+
 #----------------------------------------------------------------------------------------------------
 
 
 
-class Display(cfg.Watched,cfg.Stopwatch):
-	def __init__(self,height,width,memory,emptystyle=' ',**kwargs):
-		cfg.Watched.__init__(self)
-		cfg.Stopwatch.__init__(self)
+class Display:
+	def __init__(self,**kw):
+		for k,v in kw.items():
+			setattr(self,k,v)
 
-		self.height=height
-		self.width=width
-		self.Emptystyle=math.ceil(self.width/len(emptystyle))*emptystyle
-		self.memory=memory
-		self.trackedvars=[]
-
-	def getlines_wrapped(self):
+	def getlines(self):
 		try:
-			return self.getlines()
+			return self._getlines_()
 		except Exception as e:
 			return ['pending '+str(e)]
 
-	def getcroppedlines(self):
-		lines=self.getlines()[:self.height]
-
-		lines=[line.splitlines()[0] if len(line)>0 else '' for line in lines]
-		lines=[line[:self.width] for line in lines]
-
-		return [line+self.Emptystyle[-(self.width-len(line)):] for line in lines]
-
-	def getcroppedstr(self):
-		return '\n'.join(self.getcroppedlines())
+	def _getlines_(self):
+		raise NotImplementedError
 
 
+class StaticText(Display):
+	def __init__(self,text):
+		self.text=text
+	def _getlines_(self):
+		return self.text.splitlines()
+
+
+
+class LogDisplay(Display):
+	def __init__(self,height):
+		self.height=height
+	def _getlines_(self):
+		return session.gethist('recentlog')[-self.height:]
+
+
+#----------------------------------------------------------------------------------------------------
 
 class StackedDisplay(Display):
-	
-	def __init__(self,*x,**y):
-		super().__init__(*x,**y)
+	def __init__(self,**kw):
+		super().__init__(**kw)
 		self.displays=[]
 
-	def getlines(self):
-		return [line for display in self.displays for line in display.getlines_wrapped()]
+	def _getlines_(self):
+		return [line for display in self.displays for line in display.getlines()]
 
 	def add(self,display):
 		self.displays.append(display)
-		self.trackedvars=self.trackedvars+display.trackedvars
+		if isinstance(display,DisplayElement):
+			display.attach(self)
 
-	def addbar(self,query,**kwargs):
-		self.add(Bar(self.width,self.memory,query,**kwargs))
+	def stack(self,*displays,style=4*'\n'):
+		for display in displays:
+			self.add(display)
+			self.displays.append(StaticText(style))
+		self.displays.pop()
 
-	def addnumberprint(self,query,**kwargs):
-		self.add(NumberPrint(self.width,self.memory,query,**kwargs))
-
-	def addhistdisplay(self,height,query,**kwargs):
-		self.add(HistDisplay(height,self.width,self.memory,query))
-
-	def addstatictext(self,text,**kwargs):
-		self.add(StaticText(self.width,text,**kwargs))
-
-	def addqueriedtext(self,query,height=1,**kwargs):
-		self.add(QueriedText(height,self.width,self.memory,query,**kwargs))
-
-	def addline(self):
-		self.addstatictext(dash*self.width)
+	def addhistdisplay(self,query,**kw):
+		self.add(HistDisplay(query,**kw))
 
 	def addspace(self,n=1):	
-		for i in range(n):
-			self.addstatictext(' '*self.width)
+		self.add(StaticText('\n'*n))
 
 
-class HistDisplay(Display):
-	def __init__(self,height,width,memory,query,formatting=None,**kwargs):
-		super().__init__(height,width,memory,**kwargs)
-		self.query=query
-		self.formatting=lambda lines:lines[-height:] if formatting==None else formatting
-		self.trackedvars=[query]
+#----------------------------------------------------------------------------------------------------
 
-	def getlines(self):
-		return self.formatting(self.memory.gethist(self.query))
-	
+class DisplayElement(Display):
+	def __init__(self,query,**kw):
+		super().__init__(query=query,**kw)
 
-class StaticText(Display):
-	def __init__(self,width,text,**kwargs):
-		self.lines=text.splitlines()
-		height=len(self.lines)
-		super().__init__(height,width,None,**kwargs)
+	def attach(self,container):
+		self.container=container
 
-	def getlines(self):
-		return self.lines
+	def getval(self): return self.container.memory.getcurrentval(self.query)
+	def getwidth(self): return self.container.width
 
+class ValDisplay(DisplayElement):
+	def __init__(self,query,msg='{}',**kw):
+		super().__init__(query,msg=msg,**kw)
 
-class QueriedText(Display):
-	def __init__(self,height,width,memory,query):
-		super().__init__(height,width,memory)
-		self.query=query
-		self.trackedvars=[query]
-
-	def getlines(self):
-		try:
-			return self.memory.getval(self.query).splitlines()
-		except:
-			return ['pending']
-		
+	def _getlines_(self):
+		return self.msg.format(self.getval()).splitlines()
 
 
-class NumberDisplay(Display):
-	def __init__(self,width,memory,query,transform=None,avg_of=1,**kwargs):
-		super().__init__(1,width,memory,query,**kwargs)
-		self.query=query
-		self.transform=(lambda x:x) if transform==None else transform
-		self.trackedvars=[query]
 
-		if avg_of==1:
-			self.getlines=self.getlines0
-		else:
+
+class NumberDisplay(DisplayElement):
+	def __init__(self,query,**kw):
+		super().__init__(query=query,**kw)
+
+		if 'avg_of' in kw:
 			self.hist=cfg.History()
-			self.avg_of=avg_of
-			self.getlines=self.getlines1
+			self._getlines_=self.getlines1
+		else:
+			self._getlines_=self.getlines0
 
 	def getlines0(self):
-		out=self.transform(self.memory.getcurrentval(self.query))
+		out=self.getval()
 		return [self.formatnumber(out)]
 
 	def getlines1(self):
-		out=self.transform(self.memory.getcurrentval(self.query))
-
+		out=self.getval()
 		self.hist.remember(out,membound=self.avg_of)
 		histvals=self.hist.gethist()
-		#histvals=histvals[-min(self.avg_of,len(histvals)):]
 		return [self.formatnumber(sum(histvals)/len(histvals))]
 
 
-
 class Bar(NumberDisplay):
-	def __init__(self,*x,style=cfg.BOX,**y):
-		super().__init__(*x,**y)
-		self.Style=math.ceil(self.width/len(style))*style
+	def __init__(self,query,style=cfg.BOX,emptystyle=dash,**kw):
+
+		Style=math.ceil(widthbound/len(style))*style
+		Emptystyle=math.ceil(widthbound/len(emptystyle))*emptystyle
+
+		super().__init__(query,Style=Style,Emptystyle=Emptystyle,**kw)
 
 	def formatnumber(self,x):
-		barwidth=math.floor(self.width*max(min(x,1),0))
-		return self.Style[:barwidth]#+cfg.BOX
-
-
+		barwidth=math.floor(self.getwidth()*max(min(x,1),0))
+		return self.Style[:barwidth]+self.Emptystyle[barwidth:self.getwidth()]
 
 class NumberPrint(NumberDisplay):
-	def __init__(self,*x,msg='{:.3}',**y):
-		super().__init__(*x,**y)
-		self.msg=msg
+	def __init__(self,query,msg='{:.3}',**kw):
+		super().__init__(query,msg=msg,**kw)
 
 	def formatnumber(self,x):
 		return self.msg.format(x)
 
 
 
+#----------------------------------------------------------------------------------------------------
 
 
 class AbstractDashboard:
@@ -187,113 +163,18 @@ class AbstractDashboard:
 		self.displays=dict()
 		self.defaultnames=deque(range(100))
 
-	def add_display(self,display,y,x=0,name=None):
+	def add(self,display,xlim,ylim,name=None,draw=True):
 		if name==None: name=self.defaultnames.popleft()
-		display.addlistener(self)
-		cd=self.makeconcretedisplay(display,y,x)
+		cd=self.Concretedisplay(display,xlim,ylim)
 		self.displays[name]=cd
-		display.memory.addlistener(self)
 
-		self.draw(cd)
-		return name
+		if draw: cd.draw()
+		return cd
 
-	def del_display(self,name):
-		del self.displays[name]
 
-	def poke(self,signal,*args,**kw):
-		for name,concretedisplay in self.displays.items():
-			display=self.getdisplay(concretedisplay)
-			if signal==None or signal in display.trackedvars:
-
-				self.draw(concretedisplay)
-				#if display.tick_after(.01) or 'updatedisplay' in args:
-				#	self.draw(concretedisplay)
+	def draw(self,name):
+		self.displays[name].draw()
 
 	def draw_all(self):
 		for name,concretedisplay in self.displays.items():
-			self.draw(concretedisplay)
-
-
-class Dashboard(AbstractDashboard):
-
-	def makeconcretedisplay(self,display,y,x):
-		return (display,y,x)
-
-	def getdisplay(self,concretedisplay):
-		return concretedisplay[0]
-
-	def draw(self,concretedisplay):
-		display,y,x=concretedisplay
-
-		lines=display.getcroppedlines()
-		for i,line in enumerate(lines):
-			print_at(y+i+1,x,line[:display.width])
-
-
-		
-
-
-def get3displays(width,height):
-
-	w1=width//2
-	w2=width-w1
-	h1=height//3
-
-	infodisplay=QueriedText(h1*2,w1,session,'sessioninfo')
-
-	statusdisplay=StackedDisplay(h1,w2,session)
-	statusdisplay.addqueriedtext('statusinfo',height=5)
-	statusdisplay.addspace()
-	statusdisplay.addqueriedtext('currenttask')
-	statusdisplay.addbar('currenttaskcompleteness',style=dash)
-
-	logdisplay=StackedDisplay(h1,w1,session)
-	logdisplay.addstatictext('log')
-	logdisplay.addline()
-	logdisplay.addhistdisplay(h1-4,'log')
-	logdisplay.addline()
-
-	return infodisplay,statusdisplay,logdisplay
-
-
-
-
-
-
-#====================================================================================================
-# testing
-#====================================================================================================
-
-
-
-
-def test(n):
-
-
-	for Y in range(n):
-		session.remember('y',Y)
-		for X in range(n):
-			session.remember('x',X)
-
-
-			cfg.pokelisteners('hello')
-			time.sleep(.001)
-
-
-if __name__=='__main__':
-
-	print('\nrunning test of dashboard\n')
-
-	
-	d=StackedDisplay(10,50,session)
-	d.addbar('y',transform=lambda x:x/100)
-	d.addbar('x',transform=lambda x:x/100)
-	d.addnumberprint('x',transform=lambda x:x/100)
-
-	db=Dashboard0()
-	db.add_display('hello',d,10,10)
-
-	test(100)
-
-
-
+			concretedisplay.draw()

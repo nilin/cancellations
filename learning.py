@@ -40,11 +40,9 @@ import multivariate as mv
 class Trainer():
 	def __init__(self,learner,X,Y,lossfn=None,learning_rate=.01,memory=None,**kwargs):
 
-		#self.memory=cfg.Memory() if memory==None else memory
-		self.memory=cfg.session if memory==None else memory
+		self.memory=cfg.Memory() if memory==None else memory
 
 		self.learner=learner
-		#self.lossgrad=learner.get_lossgrad(cfg.lossfn if lossfn==None else lossfn)
 		self.lossgrad=learner.get_lossgrad(lossfn)
 
 		self.X,self.Y=X,Y
