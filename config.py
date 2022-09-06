@@ -214,6 +214,7 @@ def register(_dict_,names):
 
 def log(msg):
 	session.log(msg)
+	return act_on_input(getinput())
 
 def dblog(msg):
 	write(str(msg)+'\n','dblog/'+sessionID)
@@ -377,12 +378,12 @@ def makedirs(filepath):
 	filename=filepath.split('/')[-1]
 	os.makedirs(path,exist_ok=True)	
 
-def save(data,*paths):
+def save(data,*paths,echo=True):
 	for path in paths:
 		makedirs(path)
 		with open(path,'wb') as file:
 			pickle.dump(data,file)
-	log('Saved data to {}'.format(paths))
+	if echo: log('Saved data to {}'.format(paths))
 
 def savefig(*paths,fig=None):
 	for path in paths:
@@ -541,8 +542,12 @@ def getfromargs(**kw):
 fromcmdparams=getfromargs
 getfromcmdparams=getfromargs
 
-def checkforinput():
-	pass
+
+def getinput():
+	return None
+
+def act_on_input(c):
+	return c
 
 #sessionstate=State()
 session=Session()
@@ -570,6 +575,7 @@ def logcurrenttask(msg):
 def trackcurrenttask(msg,completeness):
 	session.trackcurrent('currenttask',msg)
 	session.trackcurrent('currenttaskcompleteness',completeness)
+	return act_on_input(getinput())
 	
 
 def clearcurrenttask():

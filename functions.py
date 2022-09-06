@@ -211,12 +211,16 @@ class ProdSum(Nonsym):
 
 class ProdState(Nonsym):
 	antisymtype='Slater'
+	def __init__(self,basisfunctions,**kw):
+		super().__init__(basisfunctions=cast(basisfunctions,**kw).compress())
+
 	def gen_f(self):
 		parallel=jax.vmap(self.basisfunctions._gen_f_(),in_axes=(None,-2),out_axes=-2)
 		return jax.jit(lambda params,X: ASt.diagprods(parallel(params,X)))
 
-	def initweights(self):
-		self.weights=self.basisfunctions._initweights_(**self.kw)
+	@staticmethod
+	def _initweights_(basisfunctions):
+		return basisfunctions._initweights_(**basisfunctions.kw)
 
 	def richtypename(self): return self.basisfunctions.richtypename()+dash+self.typename()
 	def info(self): return cfg.indent(self.basisfunctions.info())

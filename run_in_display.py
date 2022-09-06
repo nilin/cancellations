@@ -46,15 +46,8 @@ class CDashboard(db.AbstractDashboard):
 		cfg.rawlogprint=False
 
 
-instr='\n\nPress l (lowercase L) to generate learning plots.\nPress f to generate functions plot.\nPress q to quit.'
-session.trackcurrent('statusinfo',instr)
 
-def getwrapped(runfn,process_input=cfg.donothing):
-
-	def got_input(c):
-		if c==113: quit()
-		else: process_input(c)
-		cs.flushinp()
+def getwrapped(runfn):
 
 	def wrapped(screen):
 
@@ -63,21 +56,22 @@ def getwrapped(runfn,process_input=cfg.donothing):
 		w=cs.COLS
 		cfg.dashboard=CDashboard(w,h)
 
-		blank=cs.newpad(400,400)
-		blank.refresh(0,0,0,0,h-1,w-1)
-		screen.refresh()
+#		blank=cs.newpad(400,400)
+#		blank.refresh(0,0,0,0,h-1,w-1)
+#		screen.refresh()
 
 		#dummywin=cs.newwin(0,0,0,0)
 		#dummywin.nodelay(True)
 
 		screen.nodelay(True)
 
-		def poke(*args,**kw):
-			got_input(screen.getch())
+		def getinput(*args,**kw):
+			c=screen.getch()
+			cs.flushinp()
 			cfg.dashboard.draw_all()
-			pass
+			return c
 
-		cfg.checkforinput=poke
+		cfg.getinput=getinput
 
 		runfn()
 	return wrapped

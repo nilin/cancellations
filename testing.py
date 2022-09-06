@@ -40,7 +40,7 @@ def verify_antisymmetric(f,X,nperms=10):
 
 	should_be_equal=[]
 	for i,(s,P) in enumerate(zip(signs,Perms)):
-		cfg.trackcurrenttask('verifying antisymmetry',i/len(signs))
+		if cfg.trackcurrenttask('verifying antisymmetry',i/len(signs))==98: return None
 		should_be_equal.append(s*f(P(X)))
 	assert_ALLclose(should_be_equal)
 

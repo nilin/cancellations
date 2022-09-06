@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import util
 import dashboard as db
 import config as cfg
-from config import session
+from config import act_on_input, session
 import testing
 import functions
 
@@ -37,7 +37,7 @@ def runexample(prep):
 
 	else:
 		import run_in_display
-		run_in_display.RID(prep_and_run,process_input)
+		run_in_display.RID(prep_and_run)
 
 
 def runfn(target,learner):
@@ -45,8 +45,6 @@ def runfn(target,learner):
 
 	global unprocessed,X,X_test,Y,Y_test,sections,_learner_,_target_
 	_target_,_learner_=target,learner
-
-	#if not hasattr(cfg,'explanation'): cfg.explanation=cfg.exname+'.py'
 
 	cfg.sessioninfo='sessionID: {}\n{}'.format(cfg.sessionID,INFO())
 	cfg.write(cfg.sessioninfo,cfg.outpath+'info.txt',mode='w')
@@ -67,7 +65,6 @@ def runfn(target,learner):
 
 	trainer=learning.Trainer(learner,X,Y,\
 		weight_decay=weight_decay,minibatchsize=minibatchsize,lossfn=util.SI_loss) #,lossgrad=mv.gen_lossgrad(AS,lossfn=util.SI_loss))
-	lazyplot=cfg.Clockedworker()
 	cfg.logcurrenttask('preparing slices for plotting')
 	cfg.currentkeychain=4
 	sections=pt.genCrossSections(X,Y,target.eval)
@@ -92,14 +89,14 @@ def runfn(target,learner):
 
 		if cfg.regsched.activate(i):
 			unprocessed.remember('weights',learner.weights)
-			cfg.save(unprocessed,cfg.outpath+'data/unprocessed')
+			cfg.save(unprocessed,cfg.outpath+'data/unprocessed',echo=False)
 
 		if cfg.plotsched.activate(i):
 			fplot()
-			lazyplot.do_if_rested(.2,lplot)
+			lplot()
 
 		if i%50==0:
-			cfg.checkforinput()
+			if cfg.act_on_input(cfg.getinput())==98: break
 
 
 
@@ -138,7 +135,7 @@ def adjustnorms(Afdescr,X,iterations=500,**learningparams):
 
 	trainer=learning.DirectlossTrainer(directloss,weights,X,**learningparams)
 	for i in range(iterations):
-		cfg.trackcurrenttask('adjusting target norm',i/iterations)
+		if cfg.trackcurrenttask('adjusting target norm',i/iterations)==98: break
 		trainer.step()
 
 	weights=trainer.learner.weights
@@ -153,9 +150,11 @@ def adjustnorms(Afdescr,X,iterations=500,**learningparams):
 
 
 def info(separator=' | '):
+	globals().update(cfg.params)
 	return 'n={}, target: {}{}learner: {}'.format(n,_target_.richtypename(),separator,_learner_.richtypename())
 
 def INFO(separator='\n\n',width=100):
+	globals().update(cfg.params)
 	targetinfo='target\n\n{}'.format(cfg.indent(_target_.getinfo()))
 	learnerinfo='learner\n\n{}'.format(cfg.indent(_learner_.getinfo()))
 	#return lb+'n={}'.format(n)+lb+targetinfo+'\n'*4+learnerinfo+lb
@@ -223,8 +222,9 @@ def processandplot(unprocessed,pfunc,X,Y,process_snapshot_fn=None,plotexample_fn
 	weightslist,i_s=unprocessed.gethist('weights','minibatchnumber')
 	for imgnum,(weights,i) in enumerate(zip(weightslist,i_s)):
 
-		cfg.trackcurrenttask('processing snapshots for learning plot',(imgnum+1)/len(weightslist))
+		if cfg.trackcurrenttask('processing snapshots for learning plot',(imgnum+1)/len(weightslist))==98: break
 		process_snapshot(processed,pfunc.fwithparams(weights),X,Y,i)		
+
 
 	plotexample(unprocessed,processed)
 	#cfg.save(processed,cfg.outpath+'data/processed')
@@ -237,11 +237,10 @@ def processandplot(unprocessed,pfunc,X,Y,process_snapshot_fn=None,plotexample_fn
 # function plots
 
 def plotfunctions(sections,f,figtitle,path):
-	cfg.logcurrenttask('generating function plots')
 	plt.close('all')
 	for fignum,section in enumerate(sections):
 		fig=section.plot_y_vs_f_SI(f)
-		cfg.trackcurrenttask('generating functions plots',(fignum+1)/len(sections))
+		if cfg.trackcurrenttask('generating function plots',(fignum+1)/len(sections))==98: break
 		fig.suptitle(figtitle)
 		cfg.savefig('{} {}.pdf'.format(path,fignum),fig=fig)
 	cfg.clearcurrenttask()
@@ -252,9 +251,13 @@ def plotfunctions(sections,f,figtitle,path):
 # dashboard
 ####################################################################################################
 
-def process_input(c):
+def act_on_input(c):
+	if c==113: quit()
 	if c==108: lplot()
 	if c==102: fplot()
+	return c
+
+cfg.act_on_input=act_on_input
 
 def lplot():
 	processandplot(unprocessed,_learner_,X_test,Y_test)
@@ -268,7 +271,8 @@ def fplot():
 def prepdashboard(instructions):
 
 	try:	
-		instructions+='\n\nPress l (lowercase L) to generate learning plots.\nPress f to generate functions plot.\nPress q to quit.'
+		instructions='\n\nPress [l] (lowercase L) to generate learning plots.\n'+\
+			'Press [f] to generate functions plot.\n\nPress [b] to break from current task.\nPress [q] to quit. '
 
 		DB=cfg.dashboard
 		w=DB.width; h=DB.height
@@ -320,25 +324,5 @@ def addinfodisplay(sessioninfo):
 		infodisplay=db.StaticText(sessioninfo)
 		cfg.dashboard.add(infodisplay,(x2,w-1),(0,h-1))
 	except: pass
-
-
-
-####################################################################################################
-
-#def runexample(runfn):
-#	cfg.trackduration=True
-#
-#	if 'debug' in cfg.cmdparams:
-#		import debug
-#		db.clear()
-#		runfn()
-#
-#	else:
-#		import run_in_display
-#		run_in_display.RID(runfn,process_input)
-
-
-#def runexample0(target,learner):
-#	runexample(getrunfn0(target,learner))
 
 

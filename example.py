@@ -21,23 +21,29 @@ jax.config.update("jax_enable_x64", True)
 
 
 
-db.clear()
+cfg.exname='example'
+cfg.instructions='To load and run with previously generated target function (including weights), run\
+    \n\n>>python {}.py loadtarget'.format(cfg.exname)
+cfg.outpath='outputs/{}/{}/'.format(cfg.exname,cfg.sessionID)
+
 
 
 def prep():
-    cfg.exname='example'
-    cfg.instructions='To load and run with previously generated target function (including weights), run\
-        \n\n>>python {}.py loadtarget'.format(cfg.exname)
-    cfg.outpath='outputs/{}/{}/'.format(cfg.exname,cfg.sessionID)
-
-
-
     cfg.log('imports done')
     global n,d
 
     n=5
     d=2
 
+    cfg.addparams(
+    weight_decay=0,
+    lossfn='SI_loss',
+    samples_train=100000,
+    samples_test=1000,
+    iterations=10000,
+    minibatchsize=None
+    )
+    cfg.register(globals(),['n','d'])
     cfg.X_distr=lambda key,samples:rnd.uniform(key,(samples,n,d),minval=-1,maxval=1)
 
     ####################################################################################################
@@ -64,7 +70,7 @@ def prep():
     ####################################################################################################
     #learneractivation='leakyrelu'
 
-    #learner=functions.Slater(SingleparticleNN(widths=[d,10,10,n],activation=learneractivation))
+    #learner=functions.Slater(SingleparticleNN(widths=[d,100,100,n],activation='tanh'))
     #
     #d_=10;
     #learner=ComposedFunction(\
@@ -85,15 +91,6 @@ def prep():
 
     ####################################################################################################
 
-    cfg.addparams(
-    weight_decay=0,
-    lossfn='SI_loss',
-    samples_train=100000,
-    samples_test=1000,
-    iterations=10000,
-    minibatchsize=None
-    )
-    cfg.register(globals(),['n','d'])
 
     return target,learner
 
