@@ -56,10 +56,10 @@ def runfn(target,learner):
 	X=cfg.genX(samples_train)
 	X_test=cfg.genX(samples_test)
 
-	cfg.logcurrenttask('preparing training data')
-	Y=target.eval(X)
-	cfg.logcurrenttask('preparing test data')
-	Y_test=target.eval(X_test)
+	#cfg.logcurrenttask('preparing training data')
+	Y=target.eval(X,msg='preparing training data')
+	#cfg.logcurrenttask('preparing test data')
+	Y_test=target.eval(X_test,msg='preparing test data')
 
 	setupdata={k:globals()[k] for k in ['X_test','Y_test']}|{'target':target.compress(),'learner':learner.compress()}
 	cfg.save(setupdata,cfg.outpath+'data/setup')
@@ -133,9 +133,9 @@ def adjustnorms(Afdescr,X,iterations=500,**learningparams):
 	trainer=learning.DirectlossTrainer(directloss,weights,X,**learningparams)
 
 	try:
-		temp3=cfg.statusdisplay.add(db.NumberPrint('target |f|/|Af|',msg='\n\n|f|/|Af|={:.3f} objective: decrease (may be fixed by function class)'))
+		temp3=cfg.statusdisplay.add(db.NumberPrint('target |f|/|Af|',msg='\n\n|f|/|Af|={:.3f} (objective: decrease) possibly fixed'))
 		temp4=cfg.statusdisplay.add(db.RplusBar('target |f|/|Af|'))
-		temp1=cfg.statusdisplay.add(db.NumberPrint('target |Af|',msg='\n|Af|={:.3f} objective: ~1'))
+		temp1=cfg.statusdisplay.add(db.NumberPrint('target |Af|',msg='\n|Af|={:.3f} (objective: approach 1)'))
 		temp2=cfg.statusdisplay.add(db.RplusBar('target |Af|'))
 	except: pass
 	

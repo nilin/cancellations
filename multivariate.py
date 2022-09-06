@@ -86,11 +86,11 @@ def initweights_NN(widths,*args,**kw):
 #----------------------------------------------------------------------------------------------------
 
 def multiply(*fs):
-	if max([takesparams(f) for f in fs]):
+	if max([util.takesparams(f) for f in fs]):
 		def F(paramsbundle,X):
 			out=1
 			for f,params in zip(fs,paramsbundle):
-				out*=pad(f)(params,X)
+				out*=util.pad(f)(params,X)
 			return out
 	else:
 		def F(X):
@@ -99,13 +99,6 @@ def multiply(*fs):
 			return out
 	return F
 
-
-def takesparams(f):
-	return len(signature(f).parameters)==2	
-
-def pad(f):
-	return f if takesparams(f) else util.dummyparams(f)
-	
 
 
 

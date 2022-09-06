@@ -6,17 +6,10 @@ import jax.random as rnd
 import config as cfg
 from config import session
 from collections import deque
+from inspect import signature
 
 from jax.numpy import tanh
 from jax.nn import softplus
-
-
-
-
-
-
-
-
 
 
 
@@ -202,25 +195,31 @@ def chop(*Xs,chunksize):
 	
 
 
+def takesparams(f):
+	return len(signature(f).parameters)==2	
 
-def makeblockwise(f,*args):
+def pad(f):
+	return f if takesparams(f) else dummyparams(f)
 
-	loud = 'loud' in args
 
+def eval_blockwise(f,params,X,msg=None):
+	f=pad(f)
+	_,n,_=X.shape	
+	Xs=chop(X,chunksize=cfg.memorybatchlimit(n))
+	out=[]
+	for i,(B,) in enumerate(Xs):
+		#out.append(f(B))
+		out.append(jnp.squeeze(f(params,B)))
+		if msg!=None and len(Xs)>1:
+			cfg.trackcurrenttask(msg,(i+1)/len(Xs))
+	return jnp.concatenate(out,axis=0)
 
-	def blockwise_f(X):
-		_,n,_=X.shape	
-		Xs=chop(X,chunksize=cfg.memorybatchlimit(n))
-		out=[]
-		for i,(B,) in enumerate(Xs):
-			#out.append(f(B))
-			out.append(jnp.squeeze(f(B)))
-			if loud:
-				cfg.trackcurrenttask('blockwise eval',(i+1)/len(Xs))
-		return jnp.concatenate(out,axis=0)
-
-	return blockwise_f
-
+def makeblockwise(f):
+	if takesparams(f):
+		blockwise=lambda params,X,**kw: eval_blockwise(f,params,X,**kw)
+	else:
+		blockwise=lambda X,**kw: eval_blockwise(f,None,X,**kw)
+	return blockwise
 
 
 

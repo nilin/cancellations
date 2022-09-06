@@ -67,15 +67,15 @@ class FunctionDescription:
 		if 'f' in vars(self) and self.f!=None:
 			return self.f
 		else:
-			return mv.pad(self.gen_f())
+			return util.pad(self.gen_f())
 
 	# parameters
 
 	def initweights(self):
 		self.weights=self._initweights_(**self.kw)
 
-	def eval(self,X):
-		return self.fwithparams(self.weights)(X)
+	def eval(self,X,**kw):
+		return util.eval_blockwise(self.f,self.weights,X,**kw)
 
 	@staticmethod	
 	def _initweights_(**kw):
