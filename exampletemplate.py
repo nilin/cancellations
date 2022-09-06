@@ -127,7 +127,7 @@ def adjustnorms(Afdescr,X,iterations=500,**learningparams):
 	def directloss(params,Y):
 		Af_norm=util.norm(Af(params,Y))
 		f_norm=util.norm(f(params,Y))
-		normloss=jnp.abs(jnp.log(Af_norm))*1.1
+		normloss=jnp.abs(jnp.log(Af_norm))
 		ratioloss=jnp.log(f_norm/Af_norm)
 		return normloss+ratioloss
 
