@@ -593,17 +593,17 @@ def clearcurrenttask():
 
 
 
-def printonpoke(msgfn):
-	def newpoke(*args,**kw):
-		print(msgfn(*args,**kw))
-	global poke
-	poke=newpoke
-
-def print_task_on_poke():
-	def msgfn(*args,**kw):
-		return '{}: {:.0%}'.format(session.getcurrentval('currenttask'),\
-			session.getcurrentval('currenttaskcompleteness'))
-	printonpoke(msgfn)
+#def printonpoke(msgfn):
+#	def newpoke(*args,**kw):
+#		print(msgfn(*args,**kw))
+#	global poke
+#	poke=newpoke
+#
+#def print_task_on_poke():
+#	def msgfn(*args,**kw):
+#		return '{}: {:.0%}'.format(session.getcurrentval('currenttask'),\
+#			session.getcurrentval('currenttaskcompleteness'))
+#	printonpoke(msgfn)
 
 def indent(s):
 	return '\n'.join(['    '+l for l in s.splitlines()])

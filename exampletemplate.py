@@ -109,6 +109,7 @@ def testantisymmetry(target,learner,X):
 	testing.verify_antisymmetric(target.eval,X[:100])
 	cfg.logcurrenttask('verifying antisymmetry of learner')
 	testing.verify_antisymmetric(learner.eval,X[:100])
+	cfg.clearcurrenttask()
 	return True
 
 
@@ -142,9 +143,8 @@ def adjustnorms(Afdescr,X,iterations=500,**learningparams):
 	for i in range(iterations):
 		if cfg.trackcurrenttask('adjusting target norm',i/iterations)=='b': break
 		trainer.step()
-
-		cfg.session.trackcurrent('target |Af|',util.norm(Af(trainer.learner.weights,X)))
-		cfg.session.trackcurrent('target |f|/|Af|',normratio(trainer.learner.weights,X))
+		cfg.session.trackcurrent('target |Af|',util.norm(Af(trainer.learner.weights,X[:64])))
+		cfg.session.trackcurrent('target |f|/|Af|',normratio(trainer.learner.weights,X[:64]))
 
 	try: cfg.statusdisplay.delete(temp1,temp2,temp3,temp4)
 	except: pass

@@ -36,12 +36,12 @@ def verify_antisymmetric(f,X,nperms=10):
 	signs=[sign(p) for p in perms]
 		
 	Perms=[perm_as_function(p) for p in perms]
-	#should_be_equal=[s*f(P(X)) for s,P in zip(signs,Perms)]
+	should_be_equal=[s*f(P(X)) for s,P in zip(signs,Perms)]
 
-	should_be_equal=[]
-	for i,(s,P) in enumerate(zip(signs,Perms)):
-		if cfg.trackcurrenttask('verifying antisymmetry',i/len(signs))=='b': return None
-		should_be_equal.append(s*f(P(X)))
+	#should_be_equal=[]
+	#for i,(s,P) in enumerate(zip(signs,Perms)):
+	#	if cfg.trackcurrenttask('verifying antisymmetry',(i+1)/len(signs))=='b': return None
+	#	should_be_equal.append(s*f(P(X)))
 	assert_ALLclose(should_be_equal)
 
 
