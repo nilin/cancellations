@@ -90,7 +90,7 @@ def prep():
         target=choosetarget(targetchoice,n=n,d=d)
         if 'skipadjust' not in cfg.cmdparams:
             cfg.log('adjusting target weights')
-            exampletemplate.adjustnorms(target,X=cfg.genX(10000),iterations=1000,learning_rate=1.0)
+            exampletemplate.adjustnorms(target,X=cfg.genX(10000),iterations=500,learning_rate=1.0)
         target=target.compose(functions.Flatten(sharpness=1))
         cfg.log('target initialized')
 
