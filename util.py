@@ -78,6 +78,10 @@ drelu=DReLU
 def leaky_ReLU(x):
 	return jnp.maximum(x,.01*x)
 
+
+sigmoid=jax.jit(lambda x:(jnp.tanh(x)+1)/2)
+
+
 ac_aliases={\
 	'ReLU':['r','relu'],
 	'tanh':['t'],

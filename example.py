@@ -28,25 +28,30 @@ cfg.instructions='To load and run with previously generated target function (inc
 cfg.outpath='outputs/{}/{}/'.format(cfg.exname,cfg.sessionID)
 
 
-def choosetarget(choice,n,d):
+def pickexample(choice,n,d):
     match choice:
+        # meant as target
+
         case 'hg':
             return ComposedFunction(functions.Slater('hermitegaussproducts',n=n,d=d,mode='gen'),functions.Outputscaling())
         case 'gauss':
             return ComposedFunction(functions.Slater('parallelgaussians',n=n,d=d,mode='gen'),functions.Outputscaling())
-        case 'ASNN':
-            return functions.ASNN(n=n,d=d,widths=['nd',10,10,1],activation='tanh')
+        case 'ASNN1':
+            return ComposedFunction(functions.ASNN(n=n,d=d,widths=['nd',10,10,1],activation='tanh'),functions.Outputscaling())
 
-def chooselearner(choice,n,d):
-    match choice:
-        case 'NNslater':
-            return functions.Slater(SingleparticleNN(widths=[d,100,100,n],activation='tanh'))
+        # meant as learner
 
-        case 'ASNN': 
+        case 'slaterNN':
+            return ComposedFunction(\
+                functions.Slater(SingleparticleNN(widths=[d,100,100,n],activation='tanh')),
+                functions.OddNN(widths=[1,100,1],activation='leakyrelu'))
+
+        case 'ASNN2': 
             d_=10;
             return ComposedFunction(\
                 SingleparticleNN(widths=[d,100,100,d_],activation='tanh'),\
-                functions.ASNN(n=n,d=d_,widths=['nd',100,1],activation=learneractivation))
+                functions.ASNN(n=n,d=d_,widths=['nd',100,1],activation='leakyrelu'),\
+                functions.OddNN(widths=[1,100,1],activation='leakyrelu'))
 
         case 'backflow':
             d_=100; ndets=10;
@@ -54,8 +59,7 @@ def chooselearner(choice,n,d):
                 SingleparticleNN(widths=[d,100,d_],activation='leakyrelu'),\
                 functions.Backflow(widths=[d_,d_],activation='leakyrelu'),\
                 functions.DetSum(n=n,d=d_,ndets=ndets),\
-                functions.OddNN(widths=[1,100,1],activation='leakyrelu')
-            )
+                functions.OddNN(widths=[1,100,1],activation='leakyrelu'))
 
 
 
@@ -65,7 +69,7 @@ def prep():
 
     n=5
     d=2
-    targetchoice='gauss'
+    targetchoice='ASNN1'
     learnerchoice='backflow'
 
     cfg.addparams(
@@ -87,15 +91,15 @@ def prep():
         exampletemplate.prepdashboard(cfg.instructions)
     else:
         exampletemplate.prepdashboard(cfg.instructions)
-        target=choosetarget(targetchoice,n=n,d=d)
+        target=pickexample(targetchoice,n=n,d=d)
         if 'skipadjust' not in cfg.cmdparams:
             cfg.log('adjusting target weights')
-            exampletemplate.adjustnorms(target,X=cfg.genX(10000),iterations=500,learning_rate=1.0)
+            exampletemplate.adjustnorms(target,X=cfg.genX(10000),iterations=100,learning_rate=.01,minibatchsize=64)
         target=target.compose(functions.Flatten(sharpness=1))
         cfg.log('target initialized')
 
     cfg.log('learner initialized')
-    learner=chooselearner(learnerchoice,n=n,d=d)
+    learner=pickexample(learnerchoice,n=n,d=d)
 
     cfg.dblog(functions.formatinspection(learner.inspect(cfg.genX(55))))
 

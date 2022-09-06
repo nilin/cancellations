@@ -126,14 +126,28 @@ def adjustnorms(Afdescr,X,iterations=500,**learningparams):
 	def directloss(params,Y):
 		Af_norm=util.norm(Af(params,Y))
 		f_norm=util.norm(f(params,Y))
-		normloss=jnp.log(Af_norm)**2
+		normloss=jnp.abs(jnp.log(Af_norm))*1.1
 		ratioloss=jnp.log(f_norm/Af_norm)
 		return normloss+ratioloss
 
 	trainer=learning.DirectlossTrainer(directloss,weights,X,**learningparams)
+
+	try:
+		temp3=cfg.statusdisplay.add(db.NumberPrint('target |f|/|Af|',msg='\n|f|/|Af|={:.3f} objective: decrease (may be fixed by function class)'))
+		temp4=cfg.statusdisplay.add(db.RplusBar('target |f|/|Af|'))
+		temp1=cfg.statusdisplay.add(db.NumberPrint('target |Af|',msg='\n|Af|={:.3f} objective: ~1'))
+		temp2=cfg.statusdisplay.add(db.RplusBar('target |Af|'))
+	except: pass
+	
 	for i in range(iterations):
 		if cfg.trackcurrenttask('adjusting target norm',i/iterations)=='b': break
 		trainer.step()
+
+		cfg.session.trackcurrent('target |Af|',util.norm(Af(trainer.learner.weights,X)))
+		cfg.session.trackcurrent('target |f|/|Af|',normratio(trainer.learner.weights,X))
+
+	try: cfg.statusdisplay.delete(temp1,temp2,temp3,temp4)
+	except: pass
 
 	weights=trainer.learner.weights
 	cfg.log('after adjustment:')
@@ -285,6 +299,7 @@ def prepdashboard(instructions):
 
 		statusdisplay.add(db.ValDisplay('currenttask',msg='{}'))
 		statusdisplay.add(db.Bar('currenttaskcompleteness'))
+		cfg.statusdisplay=statusdisplay
 
 		col=DB.add(column,(0,x1),(0,h-11))
 

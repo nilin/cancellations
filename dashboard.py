@@ -8,6 +8,7 @@ import pdb
 import config as cfg
 from collections import deque
 import time
+import util
 from config import session
 
 
@@ -17,6 +18,7 @@ from config import session
 BOX='\u2588'
 box='\u2592'
 dash='\u2015'
+infty='\u221E'
 
 def clear():
 	os.system('cls' if os.name == 'nt' else 'clear')
@@ -77,6 +79,11 @@ class StackedDisplay(Display):
 		self.displays.append(display)
 		if isinstance(display,DisplayElement):
 			display.attach(self)
+		return display
+
+	def delete(self,*elements):
+		for e in elements:
+			self.displays.remove(e)
 
 	def stack(self,*displays,style=4*'\n'):
 		for display in displays:
@@ -125,13 +132,13 @@ class NumberDisplay(DisplayElement):
 
 	def getlines0(self):
 		out=self.getval()
-		return [self.formatnumber(out)]
+		return self.formatnumber(out).splitlines()
 
 	def getlines1(self):
 		out=self.getval()
 		self.hist.remember(out,membound=self.avg_of)
 		histvals=self.hist.gethist()
-		return [self.formatnumber(sum(histvals)/len(histvals))]
+		return self.formatnumber(sum(histvals)/len(histvals)).splitlines()
 
 
 class Bar(NumberDisplay):
@@ -145,6 +152,14 @@ class Bar(NumberDisplay):
 	def formatnumber(self,x):
 		barwidth=math.ceil(self.getwidth()*max(min(x,1),0))
 		return self.Style[:barwidth]+self.Emptystyle[barwidth:self.getwidth()+1]
+
+class RplusBar(NumberDisplay):
+	def formatnumber(self,x):
+		s=[dash]*self.getwidth()
+		s[0]='0'; s[self.getwidth()//2]='1'; s[-5:]='INFTY'
+		t=math.floor(self.getwidth()*util.sigmoid(jnp.log(x)))
+		s[t]=BOX
+		return ''.join(s)
 
 class NumberPrint(NumberDisplay):
 	def __init__(self,query,msg='{:.3}',**kw):
@@ -173,6 +188,8 @@ class AbstractDashboard:
 		if draw: cd.draw()
 		return cd
 
+	def delete(self,name):
+		del self.displays[name]
 
 	def draw(self,name):
 		self.displays[name].draw()
