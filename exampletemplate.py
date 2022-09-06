@@ -65,17 +65,16 @@ def runfn(target,learner):
 	cfg.save(setupdata,cfg.outpath+'data/setup')
 
 	trainer=learning.Trainer(learner,X,Y,\
-		weight_decay=weight_decay,minibatchsize=minibatchsize,lossfn=util.SI_loss) #,lossgrad=mv.gen_lossgrad(AS,lossfn=util.SI_loss))
-	cfg.logcurrenttask('preparing slices for plotting')
-	cfg.currentkeychain=4
+		weight_decay=weight_decay,minibatchsize=minibatchsize,lossfn=util.SI_loss,memory=session) #,lossgrad=mv.gen_lossgrad(AS,lossfn=util.SI_loss))
 	sections=pt.genCrossSections(X,Y,target.eval)
 
 	cfg.regsched=cfg.Scheduler(cfg.nonsparsesched(iterations,start=100))
 	cfg.provide(plotsched=cfg.Scheduler(cfg.sparsesched(iterations,start=1000)))
 
-	cfg.logcurrenttask('begin training')
 
+	trainer.prepnextepoch(permute=False)
 
+	#cfg.logcurrenttask('begin training')
 	unprocessed=cfg.ActiveMemory()
 	addlearningdisplay(unprocessed)
 	#prepdashboard(sessioninfo,unprocessed,instructions=cfg.explanation)
@@ -116,12 +115,11 @@ def testantisymmetry(target,learner,X):
 def adjustnorms(Afdescr,X,iterations=500,**learningparams):
 	Af=Afdescr.f
 	f=functions.switchtype(Afdescr).f
+	normratio=jax.jit(lambda weights,X:util.norm(f(weights,X))/util.norm(Af(weights,X)))
 	weights=Afdescr.weights
 
-	normratio=jax.jit(lambda weights,X:util.norm(f(weights,X))/util.norm(Af(weights,X)))
-	cfg.log('before adjustment:')
-	cfg.log('|f|/|Af|={:.3}'.format(normratio(weights,X)))
-	cfg.log('|Af|={:.3}'.format(util.norm(Af(weights,X))))
+	cfg.log('|f|/|Af|={:.3f}, |Af|={:.3f} before adjustment'.format(\
+		normratio(weights,X[:1000]),util.norm(Af(weights,X[:1000]))))
 
 	@jax.jit
 	def directloss(params,Y):
@@ -134,7 +132,7 @@ def adjustnorms(Afdescr,X,iterations=500,**learningparams):
 	trainer=learning.DirectlossTrainer(directloss,weights,X,**learningparams)
 
 	try:
-		temp3=cfg.statusdisplay.add(db.NumberPrint('target |f|/|Af|',msg='\n\n|f|/|Af|={:.3f} (objective: decrease) possibly fixed'))
+		temp3=cfg.statusdisplay.add(db.NumberPrint('target |f|/|Af|',msg='\n\n|f|/|Af|={:.3f} (objective: decrease)'))
 		temp4=cfg.statusdisplay.add(db.RplusBar('target |f|/|Af|'))
 		temp1=cfg.statusdisplay.add(db.NumberPrint('target |Af|',msg='\n|Af|={:.3f} (objective: approach 1)'))
 		temp2=cfg.statusdisplay.add(db.RplusBar('target |Af|'))
@@ -150,9 +148,8 @@ def adjustnorms(Afdescr,X,iterations=500,**learningparams):
 	except: pass
 
 	weights=trainer.learner.weights
-	cfg.log('after adjustment:')
-	cfg.log('|f|/|Af|={:.3}'.format(normratio(weights,X)))
-	cfg.log('|Af|={:.3}'.format(util.norm(Af(weights,X))))
+	cfg.log('|f|/|Af|={:.3f}, |Af|={:.3f} after adjustment'.format(\
+		normratio(weights,X[:1000]),util.norm(Af(weights,X[:1000]))))
 	return weights
 
 
@@ -300,10 +297,11 @@ def prepdashboard(instructions):
 		statusdisplay=db.StackedDisplay(memory=session,width=halfw)
 		logdisplay=db.LogDisplay(height=20)
 		column=db.StackedDisplay()
-		column.stack(instructiondisplay,statusdisplay,logdisplay)
+		column.stack(instructiondisplay,logdisplay,statusdisplay)
+		#column.stack(instructiondisplay,statusdisplay,logdisplay)
 
-		statusdisplay.add(db.ValDisplay('currenttask',msg='{}'))
-		statusdisplay.add(db.Bar('currenttaskcompleteness'))
+		statusdisplay.add(db.ValDisplay('currenttask',msg='{}',msgtransform=lambda msg:msg if cfg.getcurrenttask()!=None else ''))
+		statusdisplay.add(db.Bar('currenttaskcompleteness',msgtransform=lambda msg:msg if cfg.getcurrenttask()!=None else ''))
 		cfg.statusdisplay=statusdisplay
 
 		col=DB.add(column,(0,x1),(0,h-11))

@@ -54,7 +54,6 @@ class Trainer():
 		self.set_default_batchsizes(**kwargs)
 		self.minibatches=deque([])
 
-		#self.compilegrad()
 		
 
 	def minibatch_step(self,X_mini,*Y_mini):
@@ -67,7 +66,6 @@ class Trainer():
 
 
 	def step(self):
-
 		if len(self.minibatches)==0:
 			self.prepnextepoch()
 		(X_mini,Y_mini)=self.minibatches.popleft()
@@ -76,8 +74,8 @@ class Trainer():
 		return self.minibatch_step(X_mini,Y_mini)	
 
 
-	def prepnextepoch(self):
-		self.X,self.Y=util.randperm(self.X,self.Y)
+	def prepnextepoch(self,permute=True):
+		if permute: self.X,self.Y=util.randperm(self.X,self.Y)
 		self.minibatches=deque(util.chop(self.X,self.Y,chunksize=self.minibatchsize))
 
 		self.memory.log('start new epoch')
@@ -88,19 +86,16 @@ class Trainer():
 		self.minibatchsize=min(self.X.shape[0],cfg.memorybatchlimit(self.n),1000) if minibatchsize==None else minibatchsize
 		self.memory.log('minibatch size set to '+str(self.minibatchsize))
 
-#	def get_learned(self):
-#		return self.learner.as_static()
-
 	def checkpoint(self):
 		self.memory.remember('weights',copy.deepcopy(self.learner.weights))
 		self.memory.log('learner checkpoint')
 
 
-	def compilegrad(self):
-		self.memory.log('compiling learning gradient')	
-		X_dummy=jnp.zeros_like(self.X[:self.minibatchsize])
-		Y_dummy=jnp.zeros_like(self.Y[:self.minibatchsize])
-		_0,_1=self.lossgrad(self.learner.weights,X_dummy,Y_dummy)
+#	def compilegrad(self):
+#		self.memory.log('compiling learning gradient')	
+#		X_dummy=jnp.zeros_like(self.X[:self.minibatchsize])
+#		Y_dummy=jnp.zeros_like(self.Y[:self.minibatchsize])
+#		self.lossgrad(self.learner.weights,X_dummy,Y_dummy)
 		
 
 

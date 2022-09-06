@@ -61,11 +61,14 @@ def slicesthrough(x,I):
 
 
 def genCrossSections(X,Y,target):
-	cfg.log('Preparing cross sections for plotting.')
+	cfg.logcurrenttask('Preparing cross sections for plotting.')
+	cfg.currentkeychain=4
 	n=X.shape[-1]
 	x0s=samplepoints(X,Y,{1:3,2:3,3:1}[n])
 	CrossSection=globals()['CrossSection{}D'.format(n)]
-	return [CrossSection(X,Y,target,x0) for x0 in x0s]
+	sections=[CrossSection(X,Y,target,x0) for x0 in x0s]
+	cfg.clearcurrenttask()
+	return sections
 
 class CrossSection:
 	def __init__(self,X,Y,fineness):

@@ -585,10 +585,13 @@ def trackcurrenttask(msg,completeness):
 	session.trackcurrent('currenttask',msg)
 	session.trackcurrent('currenttaskcompleteness',completeness)
 	return act_on_input(getinput())
-	
+
+def getcurrenttask():
+	try: return session.getval('currenttask')	
+	except: None
 
 def clearcurrenttask():
-	session.trackcurrent('currenttask',' ')
+	session.trackcurrent('currenttask',None)
 	session.trackcurrent('currenttaskcompleteness',0)
 
 

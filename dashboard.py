@@ -41,7 +41,7 @@ class Display:
 
 	def getlines(self):
 		try:
-			return self._getlines_()
+			return self.msgtransform(self._getlines_()) if 'msgtransform' in vars(self) else self._getlines_()
 		except Exception as e:
 			return ['pending '+str(e)]
 
