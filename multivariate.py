@@ -46,8 +46,6 @@ def gen_NN(activation):
 	return util.scalarfunction(gen_NN_wideoutput(activation))
 
 
-
-
 def gen_NN_NS(activation):
 	NN=gen_NN(activation)
 
@@ -61,12 +59,6 @@ def gen_NN_NS(activation):
 
 
 
-
-#----------------------------------------------------------------------------------------------------
-
-
-
-
 def gen_lossgrad(f,lossfn=None):
 	if lossfn==None: lossfn=cfg.getlossfn()
 
@@ -74,15 +66,6 @@ def gen_lossgrad(f,lossfn=None):
 		return lossfn(f(params,X),*Y)
 
 	return jax.value_and_grad(collectiveloss)
-#	l_grad=jax.value_and_grad(collectiveloss)
-#
-#	@jax.jit	
-#	def lossgrad(params,X,*Y):
-#		return l_grad(params,X,*Y)
-#
-#	return lossgrad
-
-
 	
 
 #----------------------------------------------------------------------------------------------------
@@ -123,6 +106,17 @@ def takesparams(f):
 def pad(f):
 	return f if takesparams(f) else util.dummyparams(f)
 	
+
+
+
+def inspect_composition(steps,params,X):
+	layers=[(None,X)]
+	for step,weights in zip(steps,params):
+		try:
+			layers.append((weights,step(weights,layers[-1][-1])))
+		except Exception as e:
+			layers.append((weights,None))
+	return layers
 
 
 

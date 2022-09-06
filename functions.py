@@ -97,6 +97,16 @@ class FunctionDescription:
 	def compose(self,fd):
 		return ComposedFunction(self,fd)
 
+	def _inspect_(self,params,X):
+		return [(None,X),(params,self._gen_f_()(params,X))]
+
+	def inspect(self,*args):
+		match len(args):
+			case 1: params,X=(self.weights,)+args
+			case 2: params,X=args
+		return (self.typename(),self._inspect_(params,X))
+
+
 
 def initweights(*functions):
 	for f in functions: f.initweights()
@@ -130,6 +140,13 @@ class ComposedFunction(FunctionDescription):
 		new_c_elements=[e.compress() for e in c.elements]
 		c.elements=new_c_elements
 		return c
+
+	def _inspect_(self,weights,X):
+		steps=[('input',[(None,X)])]
+		for e,w in zip(self.elements,weights):
+			steps.append(e.inspect(w,steps[-1][-1][-1][-1]))
+			if not isinstance(steps[-1][-1][-1][-1],jnp.ndarray): break
+		return steps
 
 
 #=======================================================================================================
@@ -205,7 +222,8 @@ class ProdSum(Nonsym):
 	antisymtype='DetSum'
 	def gen_f(self): return AS_tools.prodsum
 	@staticmethod
-	def _initweights_(k,n,d,**kw): return util.initweights((k,n,d))
+	def _initweights_(k,n,d,**kw):
+		return util.initweights((k,n,d))
 	@staticmethod
 	def translation(name):return 'k' if name=='ndets' else name
 
@@ -247,6 +265,8 @@ class DetSum(Antisymmetric):
 	def gen_f(self): return AS_tools.detsum
 	@staticmethod
 	def translation(name):return 'ndets' if name=='k' else name
+
+	def _inspect_(self,params,X): return AS_tools.inspectdetsum(params,X)
 
 class Slater(Antisymmetric):
 	nonsym=ProdState
@@ -329,4 +349,25 @@ def cast(f,**kw):
 		return cast(f0,**kw0)
 	return f if isinstance(f,FunctionDescription) else Wrappedfunction(f,**kw)
 
+
+
+def formatinspection(L):
+	info,steps=L
+
+	try:
+		s='W.shape {}\n'.format(util.shapestr(info))
+	except:
+		s=info+'\n' if type(info)==str else ''
+
+	try:
+		v='Y.shape {}\n|'.format(str(steps.shape))
+	except:
+		if type(steps)==str:
+			v=steps
+		elif type(steps)==list:
+			v=cfg.indent('\n'.join([formatinspection(step) for step in steps]))
+		else:
+			v='formatting failed'
+
+	return s+v
 

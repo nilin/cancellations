@@ -44,3 +44,4 @@ outputs/*
 logs
 e_db*
 nonfunc*
+venv*

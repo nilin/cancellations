@@ -335,8 +335,8 @@ def shapestr(l):
 	return str(dimlist(l))
 
 
-def printshape(l):
-	cfg.print(shapestr(l))
+def printshape(l,msg=''):
+	cfg.log(msg+shapestr(l))
 
 
 def scalarfunction(f):

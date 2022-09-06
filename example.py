@@ -15,6 +15,7 @@ import jax
 from functions import ComposedFunction,SingleparticleNN
 import jax.random as rnd
 import browse_runs
+import util
 import os
 jax.config.update("jax_enable_x64", True)
 
@@ -27,6 +28,36 @@ cfg.instructions='To load and run with previously generated target function (inc
 cfg.outpath='outputs/{}/{}/'.format(cfg.exname,cfg.sessionID)
 
 
+def choosetarget(choice,n,d):
+    match choice:
+        case 'hg':
+            return ComposedFunction(functions.Slater('hermitegaussproducts',n=n,d=d,mode='gen'),functions.Outputscaling())
+        case 'gauss':
+            return ComposedFunction(functions.Slater('parallelgaussians',n=n,d=d,mode='gen'),functions.Outputscaling())
+        case 'ASNN':
+            return functions.ASNN(n=n,d=d,widths=['nd',10,10,1],activation='tanh')
+
+def chooselearner(choice,n,d):
+    match choice:
+        case 'NNslater':
+            return functions.Slater(SingleparticleNN(widths=[d,100,100,n],activation='tanh'))
+
+        case 'ASNN': 
+            d_=10;
+            return ComposedFunction(\
+                SingleparticleNN(widths=[d,100,100,d_],activation='tanh'),\
+                functions.ASNN(n=n,d=d_,widths=['nd',100,1],activation=learneractivation))
+
+        case 'backflow':
+            d_=100; ndets=10;
+            return ComposedFunction(\
+                SingleparticleNN(widths=[d,100,d_],activation='leakyrelu'),\
+                functions.Backflow(widths=[d_,d_],activation='leakyrelu'),\
+                functions.DetSum(n=n,d=d_,ndets=ndets),\
+                functions.OddNN(widths=[1,100,1],activation='leakyrelu')
+            )
+
+
 
 def prep():
     cfg.log('imports done')
@@ -34,6 +65,8 @@ def prep():
 
     n=5
     d=2
+    targetchoice='gauss'
+    learnerchoice='backflow'
 
     cfg.addparams(
     weight_decay=0,
@@ -46,51 +79,27 @@ def prep():
     cfg.register(globals(),['n','d'])
     cfg.X_distr=lambda key,samples:rnd.uniform(key,(samples,n,d),minval=-1,maxval=1)
 
-    ####################################################################################################
-
     if 'loadtarget' in cfg.cmdparams:
         path=browse_runs.pickfolders(multiple=False,msg='Choose target from previous run.',\
             condition=lambda path:os.path.exists(path+'/data/setup'))+'data/setup'
         target=cfg.load(path)['target']
         target.restore()
-
         exampletemplate.prepdashboard(cfg.instructions)
     else:
         exampletemplate.prepdashboard(cfg.instructions)
-
-        #target=ComposedFunction(functions.Slater('hermitegaussproducts',n=n,d=d,mode='gen'),functions.Outputscaling())
-        target=ComposedFunction(functions.Slater('parallelgaussians',n=n,d=d,mode='gen'),functions.Outputscaling())
-        #target=functions.ASNN(n=n,d=d,widths=['nd',10,10,1],activation='tanh')
-
-        cfg.log('adjusting target weights')
-        exampletemplate.adjustnorms(target,X=cfg.genX(10000),iterations=1000,learning_rate=1.0)
+        target=choosetarget(targetchoice,n=n,d=d)
+        if 'skipadjust' not in cfg.cmdparams:
+            cfg.log('adjusting target weights')
+            exampletemplate.adjustnorms(target,X=cfg.genX(10000),iterations=1000,learning_rate=1.0)
         target=target.compose(functions.Flatten(sharpness=1))
         cfg.log('target initialized')
 
-    ####################################################################################################
-    #learneractivation='leakyrelu'
-
-    #learner=functions.Slater(SingleparticleNN(widths=[d,100,100,n],activation='tanh'))
-    #
-    #d_=10;
-    #learner=ComposedFunction(\
-    #	SingleparticleNN(widths=[d,100,100,d_],activation='tanh'),\
-    #	functions.ASNN(n=n,d=d_,widths=['nd',100,1],activation=learneractivation))
-
-    d_=100; ndets=10;
-    learner=ComposedFunction(\
-    SingleparticleNN(widths=[d,100,d_],activation='leakyrelu'),\
-    functions.Backflow(widths=[d_,d_],activation='leakyrelu'),\
-    functions.DetSum(n=n,d=d_,ndets=ndets),\
-    functions.OddNN(widths=[1,100,1],activation='leakyrelu')
-    )
     cfg.log('learner initialized')
-    ####################################################################################################
+    learner=chooselearner(learnerchoice,n=n,d=d)
+
+    cfg.dblog(functions.formatinspection(learner.inspect(cfg.genX(55))))
 
     exampletemplate.testantisymmetry(target,learner,X=cfg.genX(100))
-
-    ####################################################################################################
-
 
     return target,learner
 

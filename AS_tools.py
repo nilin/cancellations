@@ -56,9 +56,6 @@ def gen_Af_simple(n,f):
 	return Af
 
 
-	
-
-
 
 # combine light and heavy regimes 
 #----------------------------------------------------------------------------------------------------
@@ -71,15 +68,11 @@ def gen_lossgrad_Af(n,f,lossfn):
 
 		
 
-
-
-
 #=======================================================================================================
 #
 # backflow+det
 #
 #=======================================================================================================
-
 
 
 @jax.jit
@@ -88,9 +81,14 @@ def detsum(A,Y):
 	sknn=jnp.swapaxes(snkn,-3,-2)
 	return jnp.sum(jnp.linalg.det(sknn),axis=-1)
 
-def gen_backflow0(activation):
-	return util.compose(bf.gen_backflow(activation),detsum)
 
+def inspectdetsum(A,Y):
+	def step1(A,Y):
+		snkn=jnp.inner(Y,A)
+		return jnp.swapaxes(snkn,-3,-2)
+	def step2(_,Y): return jnp.linalg.det(Y)
+	def step3(_,Y): return jnp.sum(Y,axis=-1)
+	return mv.inspect_composition([step1,step2,step3],[A,None,None],Y)
 
 #=======================================================================================================
 def diagprods(A):
@@ -104,19 +102,6 @@ def prodsum(A,Y):
 
 #=======================================================================================================
 
-#===================
-# Example: ferminet
-#===================
-#
-#def gen_ferminet(n,ac='tanh'):
-#	return util.recompose(bf.gen_FN_backflow(ac),get_detsum(n))
-#
-
-
-
-
-#def initweights_detsum(n,d,ndets):
-#	return util.initweights((ndets,n,d))
 
 
 #=======================================================================================================

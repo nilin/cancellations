@@ -17,17 +17,6 @@ import re
 
 
 
-
-
-
-
-
-
-
-
-
-
-
 #----------------------------------------------------------------------------------------------------
 # replacement for state
 #----------------------------------------------------------------------------------------------------
@@ -490,7 +479,6 @@ def latest(folder):
 
 
 
-
 def memorybatchlimit(n):
 	s=1
 	#memlim=50000
@@ -564,6 +552,16 @@ def donothing(*x,**y):
 def conditional(f,do):
 	if do:
 		f()
+
+
+def extractkey_cs(a):
+	try: return chr(a)
+	except: pass
+	try: return {259:'UP',258:'DOWN',260:'LEFT',261:'RIGHT'}[a]
+	except: pass
+	try: return {27:'ESCAPE',127:'BACKSPACE',10:'ENTER'}[a]
+	except: pass
+	return a
 
 
 

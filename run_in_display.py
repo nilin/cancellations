@@ -66,10 +66,10 @@ def getwrapped(runfn):
 		screen.nodelay(True)
 
 		def getinput(*args,**kw):
-			c=screen.getch()
+			a=screen.getch()
 			cs.flushinp()
 			cfg.dashboard.draw_all()
-			return c
+			return cfg.extractkey_cs(a)
 
 		cfg.getinput=getinput
 

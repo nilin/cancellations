@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import util
 import dashboard as db
 import config as cfg
-from config import act_on_input, session
+from config import act_on_input, getinput, session
 import testing
 import functions
 
@@ -33,6 +33,7 @@ def runexample(prep):
 	if 'debug' in cfg.cmdparams:
 		import debug
 		db.clear()
+		get_pynputkeyboard()
 		prep_and_run()
 
 	else:
@@ -96,7 +97,7 @@ def runfn(target,learner):
 			lplot()
 
 		if i%50==0:
-			if cfg.act_on_input(cfg.getinput())==98: break
+			if cfg.act_on_input(cfg.getinput())=='b': break
 
 
 
@@ -104,15 +105,11 @@ def runfn(target,learner):
 ####################################################################################################
 
 def testantisymmetry(target,learner,X):
-	try:
-		cfg.logcurrenttask('verifying antisymmetry of target')
-		testing.verify_antisymmetric(target.eval,X[:100])
-		cfg.logcurrenttask('verifying antisymmetry of learner')
-		testing.verify_antisymmetric(learner.eval,X[:100])
-		return True
-	except:
-		cfg.log('Warning: not antisymmetric')
-		return False
+	cfg.logcurrenttask('verifying antisymmetry of target')
+	testing.verify_antisymmetric(target.eval,X[:100])
+	cfg.logcurrenttask('verifying antisymmetry of learner')
+	testing.verify_antisymmetric(learner.eval,X[:100])
+	return True
 
 
 def adjustnorms(Afdescr,X,iterations=500,**learningparams):
@@ -135,7 +132,7 @@ def adjustnorms(Afdescr,X,iterations=500,**learningparams):
 
 	trainer=learning.DirectlossTrainer(directloss,weights,X,**learningparams)
 	for i in range(iterations):
-		if cfg.trackcurrenttask('adjusting target norm',i/iterations)==98: break
+		if cfg.trackcurrenttask('adjusting target norm',i/iterations)=='b': break
 		trainer.step()
 
 	weights=trainer.learner.weights
@@ -222,7 +219,7 @@ def processandplot(unprocessed,pfunc,X,Y,process_snapshot_fn=None,plotexample_fn
 	weightslist,i_s=unprocessed.gethist('weights','minibatchnumber')
 	for imgnum,(weights,i) in enumerate(zip(weightslist,i_s)):
 
-		if cfg.trackcurrenttask('processing snapshots for learning plot',(imgnum+1)/len(weightslist))==98: break
+		if cfg.trackcurrenttask('processing snapshots for learning plot',(imgnum+1)/len(weightslist))=='b': break
 		process_snapshot(processed,pfunc.fwithparams(weights),X,Y,i)		
 
 
@@ -240,7 +237,7 @@ def plotfunctions(sections,f,figtitle,path):
 	plt.close('all')
 	for fignum,section in enumerate(sections):
 		fig=section.plot_y_vs_f_SI(f)
-		if cfg.trackcurrenttask('generating function plots',(fignum+1)/len(sections))==98: break
+		if cfg.trackcurrenttask('generating function plots',(fignum+1)/len(sections))=='b': break
 		fig.suptitle(figtitle)
 		cfg.savefig('{} {}.pdf'.format(path,fignum),fig=fig)
 	cfg.clearcurrenttask()
@@ -251,11 +248,11 @@ def plotfunctions(sections,f,figtitle,path):
 # dashboard
 ####################################################################################################
 
-def act_on_input(c):
-	if c==113: quit()
-	if c==108: lplot()
-	if c==102: fplot()
-	return c
+def act_on_input(key):
+	if key=='q': quit()
+	if key=='l': lplot()
+	if key=='f': fplot()
+	return key
 
 cfg.act_on_input=act_on_input
 
@@ -326,3 +323,20 @@ def addinfodisplay(sessioninfo):
 	except: pass
 
 
+# pynputkeyboard for debug
+####################################################################################################
+
+def get_pynputkeyboard():
+	from pynput import keyboard
+
+	cfg.inputbuffer=None
+	def getinput():
+		out=cfg.inputbuffer
+		cfg.inputbuffer=None
+		return out
+	cfg.getinput=getinput
+
+	def on_press(key):
+		cfg.inputbuffer=key
+	listener=keyboard.Listener(on_press=on_press)
+	listener.start()
