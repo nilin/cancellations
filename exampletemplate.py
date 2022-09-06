@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import util
 import dashboard as db
 import config as cfg
-from config import act_on_input, getinput, session
+from config import session
 import testing
 import functions
 
@@ -266,7 +266,10 @@ def act_on_input(key):
 	if key=='q': quit()
 	if key=='l': lplot()
 	if key=='f': fplot()
-	if key=='o': cfg.showfile(cfg.getoutpath())
+	if key=='o':
+		cfg.showfile(cfg.getoutpath())
+		try: fplot()
+		except: pass
 	return key
 
 cfg.act_on_input=act_on_input
