@@ -184,7 +184,8 @@ def histpath():
 def logpaths():
 	return [outpath+'log','logs/'+sessionID]
 
-
+def getoutpath():
+	return outpath
 
 def register(_dict_,names):
 	params.update({k:_dict_[k] for k in names})
@@ -395,7 +396,17 @@ def load(path):
 		return pickle.load(file)
 
 		
+def showfile(path):
+	import os
+	import subprocess
+	log('opening path '+path)
 
+	try: subprocess.Popen(['open',path])
+	except: pass
+	try: subprocess.Popen(['xdg-open',path])
+	except: pass
+	try: os.startfile(path)
+	except: pass
 
 #====================================================================================================
 

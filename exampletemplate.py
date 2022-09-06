@@ -133,7 +133,7 @@ def adjustnorms(Afdescr,X,iterations=500,**learningparams):
 	trainer=learning.DirectlossTrainer(directloss,weights,X,**learningparams)
 
 	try:
-		temp3=cfg.statusdisplay.add(db.NumberPrint('target |f|/|Af|',msg='\n|f|/|Af|={:.3f} objective: decrease (may be fixed by function class)'))
+		temp3=cfg.statusdisplay.add(db.NumberPrint('target |f|/|Af|',msg='\n\n|f|/|Af|={:.3f} objective: decrease (may be fixed by function class)'))
 		temp4=cfg.statusdisplay.add(db.RplusBar('target |f|/|Af|'))
 		temp1=cfg.statusdisplay.add(db.NumberPrint('target |Af|',msg='\n|Af|={:.3f} objective: ~1'))
 		temp2=cfg.statusdisplay.add(db.RplusBar('target |Af|'))
@@ -266,6 +266,7 @@ def act_on_input(key):
 	if key=='q': quit()
 	if key=='l': lplot()
 	if key=='f': fplot()
+	if key=='o': cfg.showfile(cfg.getoutpath())
 	return key
 
 cfg.act_on_input=act_on_input
@@ -283,7 +284,8 @@ def prepdashboard(instructions):
 
 	try:	
 		instructions='\n\nPress [l] (lowercase L) to generate learning plots.\n'+\
-			'Press [f] to generate functions plot.\n\nPress [b] to break from current task.\nPress [q] to quit. '
+			'Press [f] to generate functions plot.\nPress [o] to open output folder.\
+			\n\nPress [b] to break from current task.\nPress [q] to quit. '
 
 		DB=cfg.dashboard
 		w=DB.width; h=DB.height
