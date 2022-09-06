@@ -94,7 +94,7 @@ def prep():
         target=pickexample(targetchoice,n=n,d=d)
         if 'skipadjust' not in cfg.cmdparams:
             cfg.log('adjusting target weights')
-            exampletemplate.adjustnorms(target,X=cfg.genX(10000),iterations=500,learning_rate=.01)#,minibatchsize=32)
+            exampletemplate.adjustnorms(target,X=cfg.genX(10000),iterations=250,learning_rate=.01)#,minibatchsize=32)
         target=target.compose(functions.Flatten(sharpness=1))
         cfg.log('target initialized')
 
