@@ -139,10 +139,11 @@ def adjustnorms(Afdescr,X,iterations=500,**learningparams):
 	except: pass
 	
 	for i in range(iterations):
-		if cfg.trackcurrenttask('adjusting target norm',i/iterations)=='b': break
+		#if cfg.trackcurrenttask('adjusting target norm',i/iterations)=='b': break
 		trainer.step()
 		cfg.session.trackcurrent('target |Af|',util.norm(Af(trainer.learner.weights,X[:64])))
 		cfg.session.trackcurrent('target |f|/|Af|',normratio(trainer.learner.weights,X[:64]))
+		if cfg.getinput()=='b':break
 
 	try: cfg.statusdisplay.delete(temp1,temp2,temp3,temp4)
 	except: pass
@@ -308,6 +309,7 @@ def prepdashboard(instructions):
 
 		session.addlistener(col,'recentlog')
 		session.addlistener(col,'currenttaskcompleteness')
+		session.addlistener(col,'target |Af|')
 	
 	except: cfg.log('dashboard skipped')
 

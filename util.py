@@ -315,7 +315,7 @@ nestedstructure=applyonleaves
 
 
 def dimlist(T):
-	return nestedstructure(T,lambda A:A.shape)
+	return nestedstructure(T,lambda A:A.shape if isinstance(A,jnp.ndarray) else str(type(A)))
 
 
 

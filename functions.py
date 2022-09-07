@@ -97,14 +97,16 @@ class FunctionDescription:
 	def compose(self,fd):
 		return ComposedFunction(self,fd)
 
-	def _inspect_(self,params,X):
-		return [(None,X),(params,self._gen_f_()(params,X))]
+	# debug
 
-	def inspect(self,*args):
-		match len(args):
-			case 1: params,X=(self.weights,)+args
-			case 2: params,X=args
-		return (self.typename(),self._inspect_(params,X))
+	def _inspect_(self,params,X):
+		return self.typename(),['input',params],[X,self._gen_f_()(params,X)]
+#
+#	def inspect(self,*args):
+#		match len(args):
+#			case 1: params,X=(self.weights,)+args
+#			case 2: params,X=args
+#		return (self.typename(),self._inspect_(params,X))
 
 
 
@@ -141,12 +143,20 @@ class ComposedFunction(FunctionDescription):
 		c.elements=new_c_elements
 		return c
 
-	def _inspect_(self,weights,X):
-		steps=[('input',[(None,X)])]
-		for e,w in zip(self.elements,weights):
-			steps.append(e.inspect(w,steps[-1][-1][-1][-1]))
-			if not isinstance(steps[-1][-1][-1][-1],jnp.ndarray): break
-		return steps
+	def _inspect_(self,params,X):
+		subprocs=['input']
+		Xhist=[X]
+		for e,w in zip(self.elements,params):
+			fname,subproc,Xsubproc=e._inspect_(w,Xhist[-1])
+			subprocs.append((fname,subproc,Xsubproc))
+			Xhist.append(Xsubproc[-1])
+			#try:
+			#	subprocs.append(e._inspect_(w,Xhist[-1]))
+			#	Xhist.append(subprocs[-1][-1])
+			#except Exception as e:
+			#	cfg.dblog(str(e))
+			#	break
+		return self.typename(),subprocs,Xhist
 
 
 #=======================================================================================================
@@ -266,7 +276,7 @@ class DetSum(Antisymmetric):
 	@staticmethod
 	def translation(name):return 'ndets' if name=='k' else name
 
-	def _inspect_(self,params,X): return AS_tools.inspectdetsum(params,X)
+	#def _inspect_(self,params,X): return AS_tools.inspectdetsum(params,X)
 
 class Slater(Antisymmetric):
 	nonsym=ProdState
@@ -371,3 +381,39 @@ def formatinspection(L):
 
 	return s+v
 
+
+
+def inspect(fd,X,formatarrays=None,msg=''):
+
+	cfg.logcurrenttask('inspect function '+msg)
+
+	if formatarrays==None:
+		def formatarrays(name,val):
+			s=name+' '
+			if name in ['weights','X']:
+				try: s+=util.shapestr(val)
+				except Exception as e: s+='formatting error '+str(e)
+			return s
+
+	def steps(info,level=0):
+		if type(info)==tuple and len(info)==3:
+			fname,subprocs,Xhist=info
+			S=[{'name':fname,'val':None,'level':level}]
+			for subproc,X in zip(subprocs,Xhist):
+				S+=steps(subproc,level=level+1)
+				S.append({'name':'X','val':X,'level':level+1}) 
+			return S
+
+		else:
+			if type(info)==str: return [{'name':info,'val':None,'level':level}]
+			return [{'name':'weights','val':info,'level':level}] 
+
+
+	S=steps(fd._inspect_(fd.weights,X))
+	cfg.dblog(msg+'\n'+'\n'.join([step['level']*'| '+formatarrays(step['name'],step['val']) for step in S]))
+
+	cfg.clearcurrenttask()
+	return S
+	
+
+		

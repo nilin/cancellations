@@ -28,7 +28,8 @@ cfg.instructions='To load and run with previously generated target function (inc
 cfg.outpath='outputs/{}/{}/'.format(cfg.exname,cfg.sessionID)
 
 
-def pickexample(choice,n,d):
+def pickexample(choice,n,d,**kw):
+
     match choice:
         # meant as target
 
@@ -37,7 +38,8 @@ def pickexample(choice,n,d):
         case 'gauss':
             return ComposedFunction(functions.Slater('parallelgaussians',n=n,d=d,mode='gen'),functions.Outputscaling())
         case 'ASNN1':
-            return ComposedFunction(functions.ASNN(n=n,d=d,widths=['nd',10,10,1],activation='tanh'),functions.Outputscaling())
+            m=10
+            return ComposedFunction(functions.ASNN(n=n,d=d,widths=['nd',m,m,1],activation='tanh'),functions.Outputscaling())
 
         # meant as learner
 
@@ -47,14 +49,14 @@ def pickexample(choice,n,d):
                 functions.OddNN(widths=[1,100,1],activation='leakyrelu'))
 
         case 'ASNN2': 
-            d_=10;
+            d_=10; m=100
             return ComposedFunction(\
                 SingleparticleNN(widths=[d,100,100,d_],activation='tanh'),\
-                functions.ASNN(n=n,d=d_,widths=['nd',100,1],activation='leakyrelu'),\
+                functions.ASNN(n=n,d=d_,widths=['nd',m,1],activation='leakyrelu'),\
                 functions.OddNN(widths=[1,100,1],activation='leakyrelu'))
 
         case 'backflow':
-            d_=100; ndets=10;
+            d_=100; ndets=10
             return ComposedFunction(\
                 SingleparticleNN(widths=[d,100,d_],activation='leakyrelu'),\
                 functions.Backflow(widths=[d_,d_],activation='leakyrelu'),\
@@ -92,6 +94,8 @@ def prep():
     else:
         exampletemplate.prepdashboard(cfg.instructions)
         target=pickexample(targetchoice,n=n,d=d)
+
+
         cfg.log('adjusting target weights')
         exampletemplate.adjustnorms(target,X=cfg.genX(10000),iterations=250,learning_rate=.01)#,minibatchsize=32)
         target=target.compose(functions.Flatten(sharpness=1))
@@ -100,9 +104,13 @@ def prep():
     cfg.log('learner initialized')
     learner=pickexample(learnerchoice,n=n,d=d)
 
-    #cfg.dblog(functions.formatinspection(learner.inspect(cfg.genX(55))))
 
     exampletemplate.testantisymmetry(target,learner,X=cfg.genX(100))
+
+    try:
+        functions.inspect(target,cfg.genX(55),msg='target')
+        functions.inspect(learner,cfg.genX(55),msg='learner')
+    except: pass
 
     return target,learner
 

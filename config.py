@@ -208,6 +208,7 @@ def log(msg):
 
 def dblog(msg):
 	write(str(msg)+'\n','dblog/'+sessionID)
+	write(str(msg)+'\n\n',outpath+'dblog')
 
 
 
@@ -594,7 +595,7 @@ def clearcurrenttask():
 	session.trackcurrent('currenttask',None)
 	session.trackcurrent('currenttaskcompleteness',0)
 
-
+clearcurrenttask()
 
 #def printonpoke(msgfn):
 #	def newpoke(*args,**kw):
@@ -611,10 +612,11 @@ def clearcurrenttask():
 def indent(s):
 	return '\n'.join(['    '+l for l in s.splitlines()])
 
-def provide(**kw):
+def provide(context=None,**kw):
+	if context==None: context=globals()
 	for name,val in kw.items():
-		if name not in globals():
-			globals()[name]=val	
+		if name not in context:
+			context[name]=val	
 
 def addparams(**kw):
 	params.update(kw)
