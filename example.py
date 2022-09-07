@@ -79,14 +79,16 @@ def prep_and_run():
     d=2
     targetchoice='ASNN1'
 
-    learnerchoice='backflow'
+    learnerparams={}
+    learnerchoice='backflow'; 
+    #learnerchoice='backflow'; learnerparams=dict(activations=['tanh']*3)
     #learnerchoice='ASNN2'
 
 
     samples_train=100000
     samples_test=1000
 
-    learningparams=cfg.getdict\
+    learningparams=dict\
     (
     weight_decay=0,
     lossfn=util.SI_loss,
@@ -133,7 +135,7 @@ def prep_and_run():
         Y_test=target.eval(X_test,msg='preparing test data')
         sections=pt.genCrossSections(target.eval)
 
-    learner=pickexample(learnerchoice,n=n,d=d)
+    learner=pickexample(learnerchoice,n=n,d=d,**learnerparams)
     cfg.log('learner initialized')
     info+=4*'\n'+'learner\n\n{}'.format(cfg.indent(learner.getinfo())); cfg.session.trackcurrent('sessioninfo',info)
 

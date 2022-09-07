@@ -205,8 +205,6 @@ def retrieveparams(context):
 #	savestate(*histpaths())
 #
 
-def getdict(**kw):
-	return kw
 
 #----------------------------------------------------------------------------------------------------
 
