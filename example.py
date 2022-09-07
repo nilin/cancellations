@@ -38,7 +38,7 @@ def pickexample(choice,n,d,**kw):
         case 'gauss':
             return ComposedFunction(functions.Slater('parallelgaussians',n=n,d=d,mode='gen'),functions.Outputscaling())
         case 'ASNN1':
-            m=10
+            m=cfg.providedefault(kw,m=10)
             return ComposedFunction(functions.ASNN(n=n,d=d,widths=['nd',m,m,1],activation='tanh'),functions.Outputscaling())
 
         # meant as learner
@@ -49,14 +49,18 @@ def pickexample(choice,n,d,**kw):
                 functions.OddNN(widths=[1,100,1],activation='leakyrelu'))
 
         case 'ASNN2': 
-            d_=10; m=100
+            d_=cfg.providedefault(kw,d_=10)
+            m=cfg.providedefault(kw,m=100)
+
             return ComposedFunction(\
                 SingleparticleNN(widths=[d,100,100,d_],activation='tanh'),\
                 functions.ASNN(n=n,d=d_,widths=['nd',m,1],activation='leakyrelu'),\
                 functions.OddNN(widths=[1,100,1],activation='leakyrelu'))
 
         case 'backflow':
-            d_=100; ndets=10
+            d_=cfg.providedefault(kw,d_=100)
+            ndets=cfg.providedefault(kw,ndets=10)
+
             return ComposedFunction(\
                 SingleparticleNN(widths=[d,100,d_],activation='leakyrelu'),\
                 functions.Backflow(widths=[d_,d_],activation='leakyrelu'),\

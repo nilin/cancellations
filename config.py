@@ -618,6 +618,12 @@ def provide(context=None,**kw):
 		if name not in context:
 			context[name]=val	
 
+def providedefault(defs,**kw):
+	[(name,defaultval)]=list(kw.items())
+	try: return defs[name]
+	except: return defaultval
+
+
 def addparams(**kw):
 	params.update(kw)
 
