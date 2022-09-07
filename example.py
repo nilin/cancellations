@@ -61,12 +61,13 @@ def pickexample(choice,n,d,**kw):
         case 'backflow':
             d_=cfg.providedefault(kw,d_=100)
             ndets=cfg.providedefault(kw,ndets=10)
+            activations=cfg.providedefault(kw,activations=['leakyrelu','leakyrelu','leakyrelu'])
 
             return ComposedFunction(\
-                SingleparticleNN(widths=[d,100,d_],activation='leakyrelu'),\
-                functions.Backflow(widths=[d_,d_],activation='leakyrelu'),\
+                SingleparticleNN(widths=[d,100,d_],activation=activations[0]),\
+                functions.Backflow(widths=[d_,d_],activation=activations[1]),\
                 functions.DetSum(n=n,d=d_,ndets=ndets),\
-                functions.OddNN(widths=[1,100,1],activation='leakyrelu'))
+                functions.OddNN(widths=[1,100,1],activation=activations[2]))
 
 
 
@@ -89,7 +90,7 @@ def prep_and_run():
     (
     weight_decay=0,
     lossfn=util.SI_loss,
-    iterations=10000,
+    iterations=100000,
     minibatchsize=None
     )
     cfg.retrieveparams(globals())
