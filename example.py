@@ -22,12 +22,32 @@ jax.config.update("jax_enable_x64", True)
 
 
 
-
 cfg.exname='example'
 cfg.instructions='To load and run with previously generated target function (including weights), run\
     \n\n>>python {}.py loadtarget'.format(cfg.exname)
 cfg.outpath='outputs/{}/{}/'.format(cfg.exname,cfg.sessionID)
 
+cfg.targetparams={}
+cfg.targetchoice='ASNN1'
+
+cfg.learnerparams={}
+cfg.learnerchoice='backflow' 
+#cfg.learnerchoice='backflow'; cfg.learnerparams=dict(activations=['tanh']*3)
+#cfg.learnerchoice='ASNN2'
+
+
+n=5
+d=2
+
+cfg.trainingparams=dict\
+(
+weight_decay=0,
+lossfn=util.SI_loss,
+iterations=100000,
+minibatchsize=None
+)
+cfg.samples_train=100000
+cfg.samples_test=1000
 
 def pickexample(choice,n,d,**kw):
 
@@ -70,31 +90,9 @@ def pickexample(choice,n,d,**kw):
                 functions.OddNN(widths=[1,100,1],activation=activations[2]))
 
 
-
 def prep_and_run():
     cfg.log('imports done')
-    global n,d
 
-    n=5
-    d=2
-    targetchoice='ASNN1'
-
-    learnerparams={}
-    learnerchoice='backflow'; 
-    #learnerchoice='backflow'; learnerparams=dict(activations=['tanh']*3)
-    #learnerchoice='ASNN2'
-
-
-    samples_train=100000
-    samples_test=1000
-
-    learningparams=dict\
-    (
-    weight_decay=0,
-    lossfn=util.SI_loss,
-    iterations=100000,
-    minibatchsize=None
-    )
     cfg.retrieveparams(globals())
     exampletemplate.register('n','d',sourcedict=globals())
     cfg.X_distr=lambda key,samples:rnd.uniform(key,(samples,n,d),minval=-1,maxval=1)
@@ -119,7 +117,7 @@ def prep_and_run():
 
 
     else:
-        target=pickexample(targetchoice,n=n,d=d)
+        target=pickexample(cfg.targetchoice,n=n,d=d,**cfg.targetparams)
 
         cfg.log('adjusting target weights')
         exampletemplate.adjustnorms(target,X=cfg.genX(10000),iterations=250,learning_rate=.01)
@@ -128,14 +126,14 @@ def prep_and_run():
 
         info+='target\n\n{}'.format(cfg.indent(target.getinfo())); cfg.session.trackcurrent('sessioninfo',info)
 
-        X_train=cfg.genX(samples_train)
+        X_train=cfg.genX(cfg.samples_train)
         cfg.logcurrenttask('preparing training data')
         Y_train=target.eval(X_train,msg='preparing training data')
-        X_test=cfg.genX(samples_test)
+        X_test=cfg.genX(cfg.samples_test)
         Y_test=target.eval(X_test,msg='preparing test data')
         sections=pt.genCrossSections(target.eval)
 
-    learner=pickexample(learnerchoice,n=n,d=d,**learnerparams)
+    learner=pickexample(cfg.learnerchoice,n=n,d=d,**cfg.learnerparams)
     cfg.log('learner initialized')
     info+=4*'\n'+'learner\n\n{}'.format(cfg.indent(learner.getinfo())); cfg.session.trackcurrent('sessioninfo',info)
 
@@ -159,7 +157,7 @@ def prep_and_run():
     cfg.write(info,cfg.outpath+'info.txt',mode='w')
 
     exampletemplate.inspect()
-    exampletemplate.train(learner,X_train,Y_train,**learningparams)
+    exampletemplate.train(learner,X_train,Y_train,**cfg.trainingparams)
 
-
-exampletemplate.runexample(prep_and_run)
+if __name__=='__main__':
+    exampletemplate.runexample(prep_and_run)
