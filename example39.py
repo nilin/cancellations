@@ -5,10 +5,9 @@
 #
 
 
-from re import I
 import config as cfg
 import functions
-import dashboard as db
+import display as disp
 from config import session
 import exampletemplate
 import jax

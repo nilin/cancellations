@@ -5,10 +5,9 @@
 #
 
 
-from re import I
 import config as cfg
 import functions
-import dashboard as db
+import display as disp
 from config import session
 import exampletemplate
 import jax
@@ -16,6 +15,8 @@ from functions import ComposedFunction,SingleparticleNN
 import jax.random as rnd
 import browse_runs
 import util
+import copy
+import plottools as pt
 import os
 jax.config.update("jax_enable_x64", True)
 
@@ -50,12 +51,12 @@ def pickexample(choice,n,d,**kw):
 
         case 'ASNN2': 
             d_=cfg.providedefault(kw,d_=10)
-            m=cfg.providedefault(kw,m=100)
+            m=cfg.providedefault(kw,m=10)
 
             return ComposedFunction(\
-                SingleparticleNN(widths=[d,100,100,d_],activation='tanh'),\
+                SingleparticleNN(widths=[d,10,10,d_],activation='tanh'),\
                 functions.ASNN(n=n,d=d_,widths=['nd',m,1],activation='leakyrelu'),\
-                functions.OddNN(widths=[1,100,1],activation='leakyrelu'))
+                functions.OddNN(widths=[1,10,1],activation='leakyrelu'))
 
         case 'backflow':
             d_=cfg.providedefault(kw,d_=100)
@@ -69,54 +70,93 @@ def pickexample(choice,n,d,**kw):
 
 
 
-def prep():
+def prep_and_run():
     cfg.log('imports done')
     global n,d
 
     n=5
     d=2
     targetchoice='ASNN1'
-    learnerchoice='backflow'
 
-    cfg.addparams(
+    learnerchoice='backflow'
+    #learnerchoice='ASNN2'
+
+
+    samples_train=100000
+    samples_test=1000
+
+    learningparams=cfg.getdict\
+    (
     weight_decay=0,
-    lossfn='SI_loss',
-    samples_train=100000,
-    samples_test=1000,
+    lossfn=util.SI_loss,
     iterations=10000,
     minibatchsize=None
     )
-    cfg.register(globals(),['n','d'])
+    cfg.retrieveparams(globals())
+    exampletemplate.register('n','d',sourcedict=globals())
     cfg.X_distr=lambda key,samples:rnd.uniform(key,(samples,n,d),minval=-1,maxval=1)
+    cfg.unprocessed=cfg.Memory()
+    info='sessionID: {}\n'.format(cfg.sessionID)+'\n'*4; cfg.session.trackcurrent('sessioninfo',info)
+
 
     if 'loadtarget' in cfg.cmdparams:
         path=browse_runs.pickfolders(multiple=False,msg='Choose target from previous run.',\
             condition=lambda path:os.path.exists(path+'/data/setup'))+'data/setup'
-        target=cfg.load(path)['target']
-        target.restore()
-        exampletemplate.prepdashboard(cfg.instructions)
+        setupdata=cfg.load(path)
+
+        target  =setupdata['target'].restore()
+        X_train =setupdata['X_train']
+        Y_train =setupdata['Y_train']
+        X_test  =setupdata['X_test']
+        Y_test  =setupdata['Y_test']
+        sections=setupdata['sections']
+        cfg.log('Loaded learner and training data')
+
+        info+='target\n\n{}'.format(cfg.indent(target.getinfo())); cfg.session.trackcurrent('sessioninfo',info)
+
+
     else:
-        exampletemplate.prepdashboard(cfg.instructions)
         target=pickexample(targetchoice,n=n,d=d)
 
-
         cfg.log('adjusting target weights')
-        exampletemplate.adjustnorms(target,X=cfg.genX(10000),iterations=250,learning_rate=.01)#,minibatchsize=32)
+        exampletemplate.adjustnorms(target,X=cfg.genX(10000),iterations=250,learning_rate=.01)
         target=target.compose(functions.Flatten(sharpness=1))
         cfg.log('target initialized')
 
-    cfg.log('learner initialized')
+        info+='target\n\n{}'.format(cfg.indent(target.getinfo())); cfg.session.trackcurrent('sessioninfo',info)
+
+        X_train=cfg.genX(samples_train)
+        cfg.logcurrenttask('preparing training data')
+        Y_train=target.eval(X_train,msg='preparing training data')
+        X_test=cfg.genX(samples_test)
+        Y_test=target.eval(X_test,msg='preparing test data')
+        sections=pt.genCrossSections(target.eval)
+
     learner=pickexample(learnerchoice,n=n,d=d)
+    cfg.log('learner initialized')
+    info+=4*'\n'+'learner\n\n{}'.format(cfg.indent(learner.getinfo())); cfg.session.trackcurrent('sessioninfo',info)
 
 
-    exampletemplate.testantisymmetry(target,learner,X=cfg.genX(100))
+    sourcedict=copy.copy(locals())
+    setupdata={k:sourcedict[k] for k in ['X_train','Y_train','X_test','Y_test']}|\
+        {'target':target.compress(),'learner':learner.compress(),'sections':sections}
+    cfg.save(setupdata,cfg.outpath+'data/setup')
 
-    try:
-        functions.inspect(target,cfg.genX(55),msg='target')
-        functions.inspect(learner,cfg.genX(55),msg='learner')
-    except: pass
+    cfg.register(\
+        'target',\
+        'learner',\
+        'X_train',\
+        'Y_train',\
+        'X_test',\
+        'Y_test',\
+        'sections',\
+        sourcedict=locals(),savetoglobals=True)
 
-    return target,learner
+    cfg.session.trackcurrent('sessioninfo',info)
+    cfg.write(info,cfg.outpath+'info.txt',mode='w')
+
+    exampletemplate.inspect()
+    exampletemplate.train(learner,X_train,Y_train,**learningparams)
 
 
-exampletemplate.runexample(prep)
+exampletemplate.runexample(prep_and_run)

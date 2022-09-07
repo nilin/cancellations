@@ -153,9 +153,9 @@ class Session(Memory):
 		if trackduration:
 			write(str(int(session.time())),*[os.sep.join(pathlog.split(os.sep)[:-1])+os.sep+'duration' for pathlog in logpaths()],mode='w')	
 		super().log(msg)
-		if rawlogprint: print(msg)
+		#if rawlogprint: print(msg)
 
-rawlogprint=True
+#rawlogprint=True
 
 #----------------------------------------------------------------------------------------------------
 
@@ -187,8 +187,15 @@ def logpaths():
 def getoutpath():
 	return outpath
 
-def register(_dict_,names):
-	params.update({k:_dict_[k] for k in names})
+def register(*names,sourcedict,savetoglobals=False):
+	cfgcontext=globals() if savetoglobals else params
+	cfgcontext.update({k:sourcedict[k] for k in names})
+
+def retrieve(context,names):
+	context.update({k:params[k] if k in params else globals()[k] for k in names})
+
+def retrieveparams(context):
+	context.update(params)	
 
 #
 #def savestate(*paths):
@@ -198,13 +205,17 @@ def register(_dict_,names):
 #	savestate(*histpaths())
 #
 
-
+def getdict(**kw):
+	return kw
 
 #----------------------------------------------------------------------------------------------------
 
 def log(msg):
 	session.log(msg)
 	return act_on_input(getinput())
+
+def LOG(msg):
+	log('\n\n'+msg+'\n\n')
 
 def dblog(msg):
 	write(str(msg)+'\n','dblog/'+sessionID)
@@ -551,6 +562,7 @@ def act_on_input(c):
 
 #sessionstate=State()
 session=Session()
+displaymem=Memory()
 params=dict()
 
 #def poke(*args,**kw):
@@ -641,6 +653,12 @@ def wraplines(lines,style=dash):
 	width=max([len(l) for l in lines])
 	line=dash*width
 	return [line]+lines+[line]
+
+
+def refreshdisplay(name):
+	try: dashboard.draw(name)
+	except: log('failed to refresh display '+name)
+
 
 ####################################################################################################
 

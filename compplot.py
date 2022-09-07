@@ -19,7 +19,7 @@ import jax.numpy as jnp
 import exampletemplate
 import matplotlib.pyplot as plt
 from config import session
-from dashboard import clear
+from display import clear
 
 
 def process_snapshot(processed,f,weights,X,Y,i):

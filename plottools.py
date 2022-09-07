@@ -60,13 +60,17 @@ def slicesthrough(x,I):
 
 
 
-def genCrossSections(X,Y,target):
-	cfg.logcurrenttask('Preparing cross sections for plotting.')
+#def genCrossSections(X,Y,target):
+def genCrossSections(targetfn):
+	cfg.logcurrenttask('Preparing cross sections for plotting.')	
 	cfg.currentkeychain=4
+
+	X=cfg.genX(1000)
+	Y=targetfn(X)
 	n=X.shape[-1]
 	x0s=samplepoints(X,Y,{1:3,2:3,3:1}[n])
 	CrossSection=globals()['CrossSection{}D'.format(n)]
-	sections=[CrossSection(X,Y,target,x0) for x0 in x0s]
+	sections=[CrossSection(X,Y,targetfn,x0) for x0 in x0s]
 	cfg.clearcurrenttask()
 	return sections
 

@@ -17,7 +17,7 @@ import backflow as bf
 import copy
 from collections import deque
 import backflow
-from dashboard import dash
+from display import dash
 from backflow import gen_backflow,initweights_Backflow
 from AS_tools import detsum #,initweights_detsum
 from jax.numpy import tanh

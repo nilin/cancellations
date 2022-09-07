@@ -2,7 +2,7 @@ import os
 import re
 import curses as cs
 import pdb
-from dashboard import dash
+from display import dash
 
 
 
