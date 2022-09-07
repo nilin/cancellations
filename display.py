@@ -215,10 +215,11 @@ class Bar(NumberDisplay):
 
 class RplusBar(NumberDisplay):
 	def formatnumber(self,x):
-		s=[dash]*self.width
-		s[0]='0'; s[self.width//2]='1'; s[-5:]='INFTY'
-		t=math.floor(self.width*util.sigmoid(jnp.log(x)))
-		s[t]=BOX
+		mapping=lambda x:1-1/(1+x)
+		_mapping_=lambda x:round(math.floor(self.width*mapping(x)))
+		s=_mapping_(x)*[BOX]+(self.width-_mapping_(x))*[dash]
+		for i in [0,1,2,10]:
+			s[_mapping_(i)]=str(i)
 		return ''.join(s)
 
 class NumberPrint(NumberDisplay):

@@ -75,6 +75,7 @@ class Trainer():
 
 
 	def prepnextepoch(self,permute=True):
+		self.memory.log('preparing new epoch')
 		if permute: self.X,self.Y=util.randperm(self.X,self.Y)
 		self.minibatches=deque(util.chop(self.X,self.Y,chunksize=self.minibatchsize))
 
