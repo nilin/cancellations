@@ -5,6 +5,7 @@
 #
 
 
+from distutils.command.config import config
 import config as cfg
 import functions
 import display as disp
@@ -110,8 +111,9 @@ def prep_and_run(runprofile=None):
     if 'loadtarget' in cfg.cmdparams:
         try: path=cfg.loadtargetpath+'data/setup'
         except:
-            path=browse_runs.pickfolders(multiple=False,msg='Choose target from previous run.',\
-                condition=lambda path:os.path.exists(path+'/data/setup'))+'data/setup'
+            path=browse_runs.pickfolders(msg='Choose target from previous run.\n'+\
+                'Only the path in front of the arrow will be used.',\
+                condition=lambda path:os.path.exists(path+'/data/setup'))[0]+'data/setup'
         setupdata=cfg.load(path)
 
         target  =setupdata['target'].restore()
@@ -169,7 +171,8 @@ def prep_and_run(runprofile=None):
     exampletemplate.train(learner,X_train,Y_train,**cprof.trainingparams)
 
 if __name__=='__main__':
-    cfg.currentprofile().prepdashboard=exampletemplate.prepdashboard
-    cfg.currentprofile().act_on_input=exampletemplate.act_on_input
+    cprof=cfg.defaultrunprofile
+    cprof.prepdashboard=exampletemplate.prepdashboard
+    cprof.act_on_input=exampletemplate.act_on_input
     import cdisplay
-    cdisplay.run_in_display(prep_and_run)
+    cdisplay.run_in_display(prep_and_run,cprof)

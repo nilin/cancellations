@@ -242,7 +242,7 @@ def currentprofile(): return _currentprofile_
 
 session=Session()
 defaultrunprofile=RunProfile(ID=sessionID)
-_currentprofile_=defaultrunprofile
+#_currentprofile_=defaultrunprofile
 
 #----------------------------------------------------------------------------------------------------
 def nextkey(): return currentprofile().nextkey()
@@ -627,6 +627,7 @@ def conditional(f,do):
 
 
 def extractkey_cs(a):
+
     try: return chr(a)
     except: pass
     try: return {259:'UP',258:'DOWN',260:'LEFT',261:'RIGHT'}[a]

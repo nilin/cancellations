@@ -29,7 +29,6 @@ class ConcreteDisplay(disp.StackedDisplay):
 	def poke(self,src):
 		self.draw()
 
-
 def getinput(*args,**kw):
 	a=getscreen().getch()
 	cs.flushinp()
@@ -39,18 +38,31 @@ def getinput(*args,**kw):
 def getscreen(): return cfg.screen
 cfg.getinput=getinput
 
-
-def run_in_display(runfn):
+def run_in_display(runfn,profile,*a,**kw):
+	cfg._currentprofile_=profile
 	def wrapped(screen):
 		cfg.screen=screen
 		screen.nodelay(True)
 		cs.use_default_colors()
-		cfg.currentprofile().dashboard=disp.CDashboard(width=cs.COLS,height=cs.LINES)
-		cfg.currentprofile().prepdashboard()
-		runfn()
+		profile.dashboard=disp.CDashboard(width=cs.COLS,height=cs.LINES)
+		try: profile.prepdashboard()
+		except: pass
+		runfn(*a,**kw)
 	cs.wrapper(wrapped)
 
+def clear():
+	cfg.screen.clear()
+	cfg.screen.refresh()
 
+def subtask_in_display(runfn,profile,*args,**kw):
+	profile.dashboard=disp.CDashboard(width=cs.COLS,height=cs.LINES)
+	outerprofile=cfg.currentprofile()
+	cfg._currentprofile_=profile
+	clear()
+	out=runfn(*args,**kw)
+	clear()
+	cfg._currentprofile_=outerprofile
+	return out
 
 
 # test
