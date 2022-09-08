@@ -24,57 +24,36 @@ import functions
 
 
 
-
-def runexample(prep_and_run):
-	cfg.trackduration=True
-
-	if 'debug' in cfg.cmdparams:
-		import debug
-		disp.clear()
-		get_pynputkeyboard()
-		prep_and_run()
-
-	else:
-		cfg.prepdashboard=prepdashboard
-		import cdisplay
-		cdisplay.RID(prep_and_run)
-
-
-
-def register(*names,sourcedict):
-	globals().update({k:sourcedict[k] for k in names})
-
-
-
 def train(learner,X_train,Y_train,**kw):
+	cprof=cfg.currentprofile()
 
 	iterations=kw['iterations']
-	trainer=learning.Trainer(learner,X_train,Y_train,memory=session,**kw) 
-	cfg.regsched=cfg.Scheduler(cfg.nonsparsesched(iterations,start=100))
-	cfg.provide(plotsched=cfg.Scheduler(cfg.sparsesched(iterations,start=500)))
+	trainer=learning.Trainer(learner,X_train,Y_train,memory=cprof.run,**kw) 
+	cprof.regsched=cfg.Scheduler(cfg.nonsparsesched(iterations,start=100))
+	cprof.plotsched=cfg.Scheduler(cfg.sparsesched(iterations,start=500))
 	trainer.prepnextepoch(permute=False)
 	addlearningdisplay()
 
 
 	for i in range(iterations+1):
-		try: cfg.learningdisplay.draw()
+		try: cprof.learningdisplay.draw()
 		except: pass
 
 		loss=trainer.step()
-		for mem in [cfg.unprocessed,session]:
+		for mem in [cprof.unprocessed,cprof.run]:
 			mem.addcontext('minibatchnumber',i)
 			mem.remember('minibatch loss',loss)
 
-		if cfg.regsched.activate(i):
-			cfg.unprocessed.remember('weights',learner.weights)
-			cfg.save(cfg.unprocessed,cfg.outpath+'data/unprocessed',echo=False)
+		if cprof.regsched.activate(i):
+			cprof.unprocessed.remember('weights',learner.weights)
+			cfg.save(cprof.unprocessed,cprof.outpath+'data/unprocessed',echo=False)
 
-		if cfg.plotsched.activate(i):
+		if cprof.plotsched.activate(i):
 			fplot()
 			lplot()
 
-		if i%50==0:
-			if cfg.act_on_input(cfg.getinput())=='b': break
+		if cfg.stopwatch.tick_after(.2) and cfg.currentprofile().act_on_input(cfg.getinput())=='b':
+			break
 
 
 
@@ -82,9 +61,10 @@ def train(learner,X_train,Y_train,**kw):
 ####################################################################################################
 
 def inspect():
-	testantisymmetry(cfg.target,cfg.learner,cfg.genX(100))
-	functions.inspect(cfg.target,cfg.genX(55),msg='target')
-	functions.inspect(cfg.learner,cfg.genX(55),msg='learner')
+	cprof=cfg.currentprofile()
+	testantisymmetry(cprof.target,cprof.learner,cprof.genX(100))
+	functions.inspect(cprof.target,cprof.genX(55),msg='target')
+	functions.inspect(cprof.learner,cprof.genX(55),msg='learner')
 
 
 def testantisymmetry(target,learner,X):
@@ -97,6 +77,7 @@ def testantisymmetry(target,learner,X):
 
 
 def adjustnorms(Afdescr,X,iterations=500,**learningparams):
+	cprof=cfg.currentprofile()
 	Af=Afdescr.f
 	f=functions.switchtype(Afdescr).f
 	normratio=jax.jit(lambda weights,X:util.norm(f(weights,X))/util.norm(Af(weights,X)))
@@ -115,22 +96,18 @@ def adjustnorms(Afdescr,X,iterations=500,**learningparams):
 
 	trainer=learning.DirectlossTrainer(directloss,weights,X,**learningparams)
 
-	try:
-		temp1=cfg.statusdisplay.add(disp.NumberPrint('target |f|/|Af|',msg='\n\n|f|/|Af|={:.3f} (objective: decrease)'))
-		temp2=cfg.statusdisplay.add(disp.RplusBar('target |f|/|Af|'))
-		temp3=cfg.statusdisplay.add(disp.NumberPrint('target |Af|',msg='\n|Af|={:.3f} (objective: approach 1)'))
-		temp4=cfg.statusdisplay.add(disp.RplusBar('target |Af|'))
-	except: pass
+	temp1=cprof.statusdisplay.add(disp.NumberPrint('target |f|/|Af|',msg='\n\n|f|/|Af|={:.3f} (objective: decrease)'))
+	temp2=cprof.statusdisplay.add(disp.RplusBar('target |f|/|Af|'))
+	temp3=cprof.statusdisplay.add(disp.NumberPrint('target |Af|',msg='\n|Af|={:.3f} (objective: approach 1)'))
+	temp4=cprof.statusdisplay.add(disp.RplusBar('target |Af|'))
 	
 	for i in range(iterations):
 		trainer.step()
-		cfg.session.trackcurrent('target |Af|',util.norm(Af(trainer.learner.weights,X[:100])))
-		cfg.session.trackcurrent('target |f|/|Af|',normratio(trainer.learner.weights,X[:100]))
-		temp1.draw()
-		if cfg.getinput()=='b':break
+		cprof.run.trackcurrent('target |Af|',util.norm(Af(trainer.learner.weights,X[:100])))
+		cprof.run.trackcurrent('target |f|/|Af|',normratio(trainer.learner.weights,X[:100]))
+		if cfg.stopwatch.tick_after(.05) and cfg.getinput()=='b':break
 
-	try: cfg.statusdisplay.delete(temp1,temp2,temp3,temp4)
-	except: pass
+	cprof.statusdisplay.delete(temp1,temp2,temp3,temp4)
 
 	weights=trainer.learner.weights
 	cfg.log('|f|/|Af|={:.3f}, |Af|={:.3f} after adjustment'.format(\
@@ -143,14 +120,15 @@ def adjustnorms(Afdescr,X,iterations=500,**learningparams):
 
 
 def info(separator=' | '):
-	globals().update(cfg.params)
-	return 'n={}, target: {}{}learner: {}'.format(n,cfg.target.richtypename(),separator,cfg.learner.richtypename())
+	cprof=cfg.currentprofile()
+	return 'n={}, target: {}{}learner: {}'.format(cprof['n'],\
+		cprof['target'].richtypename(),separator,cprof['learner'].richtypename())
 
 def INFO(separator='\n\n',width=100):
+	cprof=cfg.currentprofile()
 	globals().update(cfg.params)
-	targetinfo='target\n\n{}'.format(cfg.indent(cfg.target.getinfo()))
-	learnerinfo='learner\n\n{}'.format(cfg.indent(cfg.learner.getinfo()))
-	#return lb+'n={}'.format(n)+lb+targetinfo+'\n'*4+learnerinfo+lb
+	targetinfo='target\n\n{}'.format(cfg.indent(cprof['target'].getinfo()))
+	learnerinfo='learner\n\n{}'.format(cfg.indent(cprof['learner'].getinfo()))
 	return cfg.wraptext(targetinfo+'\n'*4+learnerinfo)
 
 
@@ -171,6 +149,7 @@ def process_snapshot_0(processed,f,X,Y,i):
 	processed.remember('test loss',util.SI_loss(f(X),Y))
 
 def plotexample_0(unprocessed,processed):
+	cprof=cfg.currentprofile()
 	plt.close('all')
 
 
@@ -188,7 +167,7 @@ def plotexample_0(unprocessed,processed):
 	ax1.set_yscale('log')
 	ax1.grid(True,which='major',ls='-',axis='y')
 	ax1.grid(True,which='minor',ls=':',axis='y')
-	cfg.savefig('{}{}'.format(cfg.outpath,'losses.pdf'),fig=fig)
+	cfg.savefig('{}{}'.format(cprof.outpath,'losses.pdf'),fig=fig)
 
 
 
@@ -198,7 +177,7 @@ def plotexample_0(unprocessed,processed):
 	ax.plot(t,I)
 	ax.set_xlabel('time')
 	ax.set_ylabel('minibatch')
-	cfg.savefig('{}{}'.format(cfg.outpath,'performance.pdf'),fig=fig)
+	cfg.savefig('{}{}'.format(cprof.outpath,'performance.pdf'),fig=fig)
 
 
 process_snapshot=process_snapshot_0
@@ -209,7 +188,7 @@ def processandplot(unprocessed,pfunc,X,Y,process_snapshot_fn=None,plotexample_fn
 	pfunc=pfunc.getemptyclone()
 	if process_snapshot_fn==None: process_snapshot_fn=process_snapshot
 	if plotexample_fn==None: plotexample_fn=plotexample
-	processed=cfg.ActiveMemory()
+	processed=cfg.Memory()
 
 	weightslist,i_s=unprocessed.gethist('weights','minibatchnumber')
 	for imgnum,(weights,i) in enumerate(zip(weightslist,i_s)):
@@ -222,7 +201,8 @@ def processandplot(unprocessed,pfunc,X,Y,process_snapshot_fn=None,plotexample_fn
 	return processed
 
 def lplot():
-	processandplot(cfg.unprocessed,cfg.learner,cfg.X_test,cfg.Y_test)
+	cprof=cfg.currentprofile()
+	processandplot(cprof.unprocessed,cprof.learner,cprof.X_test,cprof.Y_test)
 
 
 # function plots
@@ -237,9 +217,10 @@ def plotfunctions(sections,f,figtitle,path):
 	cfg.clearcurrenttask()
 
 def fplot():
-	figtitle=info()
-	figpath='{}{} minibatches'.format(cfg.outpath,int(cfg.unprocessed.getval('minibatchnumber')))
-	plotfunctions(cfg.sections,cfg.learner.eval,figtitle,figpath)
+	cprof=cfg.currentprofile()
+	figtitle=info(separator='\n')
+	figpath='{}{} minibatches'.format(cprof.outpath,int(cprof.unprocessed.getval('minibatchnumber')))
+	plotfunctions(cprof.sections,cprof.learner.eval,figtitle,figpath)
 
 
 # dashboard
@@ -253,61 +234,58 @@ def act_on_input(key):
 		cfg.showfile(cfg.getoutpath())
 	return key
 
-cfg.act_on_input=act_on_input
+
 
 
 
 
 def prepdashboard():
-
+	cprof=cfg.currentprofile()
 	import cdisplay
 
 	# columndisplay
 
-	instructions=cfg.instructions+'\n\n\nPress [l] (lowercase L) to generate learning plots.\n'+\
+	instructions=cprof.instructions+'\n\n\nPress [l] (lowercase L) to generate learning plots.\n'+\
 		'Press [f] to generate functions plot.\nPress [o] to open output folder.\
 		\n\nPress [b] to break from current task.\nPress [q] to quit. '
 
-	DB=cfg.dashboard
+	DB=cprof.dashboard
 	w=DB.width; h=DB.height
 	a,b,c,d=5,w//2-5,w//2+5,w-5
-	y0,y1=3,h-15
-
+	y0=3
 
 	# cdisplay1
 
-	CD1=cdisplay.ConcreteDisplay(xlim=(a,b),ylim=(y0,y1))
+	CD1=cdisplay.ConcreteDisplay(xlim=(a,b),ylim=(y0,h//2))
+	CD1.add(disp.StaticText(msg=instructions))
+	CD1.add(disp.VSpace(2))
+	CD1.add(disp.Hline())
+	CD1.add(disp.LogDisplay(height=10))
+	CD1.add(disp.Hline())
+	CD1.draw()
 
-	instructiondisplay=disp.StaticText(msg=instructions)
-	logdisplay=disp.LogDisplay(height=10)
-	statusdisplay=disp.StackedDisplay(memory=session)
-	statusdisplay.add(disp.SessionText(query='currenttask',msgtransform=lambda msg:msg if cfg.getcurrenttask()!=None else ''))
+	CD2=cdisplay.ConcreteDisplay(xlim=(a,b),ylim=(h//2,3*h//4))
+	statusdisplay=disp.StackedDisplay(memory=cprof.run)
+	statusdisplay.add(disp.RunText(query='currenttask',msgtransform=lambda msg:msg if cfg.getcurrenttask()!=None else ''))
 	statusdisplay.add(disp.Bar('currenttaskcompleteness',msgtransform=lambda msg:msg if cfg.getcurrenttask()!=None else ''))
-	cfg.statusdisplay=statusdisplay
-
-	CD1.add(instructiondisplay)
-	CD1.add(disp.VSpace(2))
-	CD1.add(disp.Hline())
-	CD1.add(logdisplay)
-	CD1.add(disp.Hline())
-	CD1.add(disp.VSpace(2))
-	CD1.add(statusdisplay)
-
+	cprof.statusdisplay=statusdisplay
+	CD2.add(statusdisplay)
 
 	# infodisplay
 
-	CD2=cdisplay.ConcreteDisplay(xlim=(c,d),ylim=(y0,y1))
-	CD2.add(disp.SessionText(query='sessioninfo',wrap=True))
+	CD3=cdisplay.ConcreteDisplay(xlim=(c,d),ylim=(y0,3*h//4))
+	CD3.add(disp.RunText(query='runinfo',wrap=True))
 
 
-	session.addlistener(CD1,'recentlog')
-	session.addlistener(CD1,'currenttaskcompleteness')
-	session.addlistener(CD1,'target |Af|')
-	session.addlistener(CD2,'sessioninfo')
+	cprof.run.addlistener(CD1,'recentlog')
+	cprof.run.addlistener(CD2,'currenttaskcompleteness')
+	cprof.run.addlistener(CD2,'target |Af|')
+	cprof.run.addlistener(CD3,'runinfo')
 
 
-	cfg.dashboard.add(CD1,'column')
-	cfg.dashboard.add(CD2,'info')
+	cprof.dashboard.add(CD1,'logcolumn')
+	cprof.dashboard.add(CD2,'status')
+	cprof.dashboard.add(CD3,'info')
 
 
 
@@ -316,38 +294,22 @@ def prepdashboard():
 
 def addlearningdisplay():
 	import cdisplay
-	DB=cfg.dashboard
+	cprof=cfg.currentprofile()
+
+	DB=cprof.dashboard
 
 	w=DB.width; h=DB.height
 	a,b=5,w-5
 
-	CD3=cdisplay.ConcreteDisplay((a,b),(h-10,h-1))
-	CD3.add(disp.NumberPrint('minibatch loss',msg='training loss {:.3}'))
-	CD3.add(disp.Bar('minibatch loss',style='.',emptystyle=' '))
-	CD3.add(disp.Bar('minibatch loss',style=disp.BOX,avg_of=25))
-	CD3.add(disp.VSpace(1))
-	CD3.add(disp.NumberPrint('minibatchnumber',msg='minibatch number {:.0f}'))
+	CD4=cdisplay.ConcreteDisplay((a,b),(h-10,h-1))
+	CD4.add(disp.NumberPrint('minibatch loss',msg='training loss {:.3}'))
+	CD4.add(disp.Bar('minibatch loss',style='.',emptystyle=' '))
+	CD4.add(disp.Bar('minibatch loss',style=disp.BOX,avg_of=25))
+	CD4.add(disp.VSpace(1))
+	CD4.add(disp.NumberPrint('minibatchnumber',msg='minibatch number {:.0f}'))
 
-	cfg.learningdisplay=CD3
-	return cfg.dashboard.add(CD3)
-
-
+	cprof.learningdisplay=CD4
+	return cprof.dashboard.add(CD4)
 
 
-# pynputkeyboard for debug
-####################################################################################################
 
-def get_pynputkeyboard():
-	from pynput import keyboard
-
-	cfg.inputbuffer=None
-	def getinput():
-		out=cfg.inputbuffer
-		cfg.inputbuffer=None
-		return out
-	cfg.getinput=getinput
-
-	def on_press(key):
-		cfg.inputbuffer=key
-	listener=keyboard.Listener(on_press=on_press)
-	listener.start()

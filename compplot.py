@@ -1,12 +1,11 @@
+from re import I
 from browse_runs import pickfolders,commonanc
 
 folders=pickfolders()
 outpath,branches=commonanc(*folders)
 
-#print(folders)
-#print(outpath)
-#print(branches)
-#
+
+
 
 
 import os
@@ -61,17 +60,19 @@ def plotexamples(paths):
 	fig,(ax0,ax1)=plt.subplots(1,2,figsize=(15,7))
 	#fig.suptitle('test loss '+)
 
-	lstyles=['r-','b--','g:','m:']
+	lstyles=['r-','b--','g:','m:','ro-','bo--','go:','mo:']
 
 	for ls,processed,learner in zip(lstyles,processedruns,learners):
 		ax0.plot(*util.swap(*processed.gethist('test loss','minibatchnumber')),ls,label=learner.richtypename())
 		ax1.plot(*util.swap(*processed.gethist('test loss','minibatchnumber')),ls,label=learner.richtypename())
 	ax0.legend()
-	ax0.set_ylim(bottom=0,top=1)
+	ax0.set_xscale('log')
+	ax0.set_ylim(bottom=0,top=1.1)
 	ax0.grid(True,which='major',ls='-',axis='y')
 	ax0.grid(True,which='minor',ls=':',axis='y')
 
 	ax1.legend()
+	ax1.set_xscale('log')
 	ax1.set_yscale('log')
 	ax1.grid(True,which='major',ls='-',axis='y')
 	ax1.grid(True,which='minor',ls=':',axis='y')
@@ -100,6 +101,58 @@ def plotexamples(paths):
 
 clear()
 cfg.outpath=outpath+' and '.join([b[:-1] for b in branches])+'/'
+if os.path.exists(cfg.outpath):
+	for i in range(100):
+		path_i=cfg.outpath[:-1]+' ({})/'.format(i)
+		if not os.path.exists(path_i):
+			cfg.outpath=path_i
+			break
+
+
+
+
+
+
+
+
+
+import os
+import shutil
+os.makedirs(cfg.outpath,exist_ok=True)	
+
+for folder,branch in zip(folders,branches):
+	shutil.copytree(folder,cfg.outpath+branch)
+#print(folders)
+#print(outpath)
+#print(branches)
+#
+
+innernames=[]
+for folder in folders:
+	for fn in os.listdir(folder):
+		try:
+			int(fn[0])
+			if fn not in innernames:
+				print('appending '+fn)
+				innernames.append(fn)
+		except:
+			print('discarding '+fn)
+			break
+
+for fn in innernames:
+	nfiles=sum([os.path.exists(folder+fn) for folder in folders])
+	for folder,branch in zip(folders,branches):
+		print(fn)
+		newfolder=cfg.outpath+fn[:-4]+' ({} runs)'.format(nfiles)+'/'
+		newpath=newfolder+branch[:-1]+'.pdf'
+		os.makedirs(newfolder,exist_ok=True)	
+		try: shutil.copy(folder+fn,newpath)
+		except: pass
+
+
+
+
+
 plotexamples(folders)
 	
 	#plotexamples(folders)

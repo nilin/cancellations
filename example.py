@@ -17,21 +17,23 @@ import browse_runs
 import util
 import copy
 import plottools as pt
+from config import defaultrunprofile as dprof
 import os
 jax.config.update("jax_enable_x64", True)
 
 
 
-cfg.exname='example'
-cfg.instructions='To load and run with previously generated target function (including weights), run\
-    \n\n>>python {}.py loadtarget'.format(cfg.exname)
-cfg.outpath='outputs/{}/{}/'.format(cfg.exname,cfg.sessionID)
+dprof.exname='example'
+dprof.instructions='To load and run with previously generated target function (including weights), run\
+    \n\n>>python {}.py loadtarget'.format(dprof.exname)
+dprof.outpath='outputs/{}/'.format(dprof.runID)
+cfg.outpath='outputs/{}/'.format(cfg.sessionID)
 
-cfg.targetparams={}
-cfg.targetchoice='ASNN1'
+dprof.targetparams={}
+dprof.targetchoice='ASNN1'
 
-cfg.learnerparams={}
-cfg.learnerchoice='backflow' 
+dprof.learnerparams={}
+dprof.learnerchoice='backflow' 
 #cfg.learnerchoice='backflow'; cfg.learnerparams=dict(activations=['tanh']*3)
 #cfg.learnerchoice='ASNN2'
 
@@ -39,15 +41,18 @@ cfg.learnerchoice='backflow'
 n=5
 d=2
 
-cfg.trainingparams=dict\
+dprof.trainingparams=dict\
 (
 weight_decay=0,
 lossfn=util.SI_loss,
-iterations=100000,
+iterations=25000,
 minibatchsize=None
 )
-cfg.samples_train=100000
-cfg.samples_test=1000
+dprof.samples_train=100000
+dprof.samples_test=1000
+
+
+
 
 def pickexample(choice,n,d,**kw):
 
@@ -90,19 +95,23 @@ def pickexample(choice,n,d,**kw):
                 functions.OddNN(widths=[1,100,1],activation=activations[2]))
 
 
-def prep_and_run():
+def prep_and_run(runprofile=None):
+    if runprofile is not None: cfg._currentprofile_=runprofile
+    cprof=cfg.currentprofile()
     cfg.log('imports done')
 
-    cfg.retrieveparams(globals())
-    exampletemplate.register('n','d',sourcedict=globals())
-    cfg.X_distr=lambda key,samples:rnd.uniform(key,(samples,n,d),minval=-1,maxval=1)
-    cfg.unprocessed=cfg.Memory()
-    info='sessionID: {}\n'.format(cfg.sessionID)+'\n'*4; cfg.session.trackcurrent('sessioninfo',info)
+    cprof.retrieveparams(globals())
+    cprof.register('n','d',sourcedict=globals())
+    cprof.X_distr=lambda key,samples:rnd.uniform(key,(samples,n,d),minval=-1,maxval=1)
+    cprof.unprocessed=cfg.Memory()
+    info='runID: {}\n'.format(cprof.runID)+'\n'*4; cprof.run.trackcurrent('runinfo',info)
 
 
     if 'loadtarget' in cfg.cmdparams:
-        path=browse_runs.pickfolders(multiple=False,msg='Choose target from previous run.',\
-            condition=lambda path:os.path.exists(path+'/data/setup'))+'data/setup'
+        try: path=cfg.loadtargetpath+'data/setup'
+        except:
+            path=browse_runs.pickfolders(multiple=False,msg='Choose target from previous run.',\
+                condition=lambda path:os.path.exists(path+'/data/setup'))+'data/setup'
         setupdata=cfg.load(path)
 
         target  =setupdata['target'].restore()
@@ -111,39 +120,39 @@ def prep_and_run():
         X_test  =setupdata['X_test']
         Y_test  =setupdata['Y_test']
         sections=setupdata['sections']
-        cfg.log('Loaded learner and training data')
+        cfg.log('Loaded target and training data from '+path)
 
-        info+='target\n\n{}'.format(cfg.indent(target.getinfo())); cfg.session.trackcurrent('sessioninfo',info)
+        info+='target\n\n{}'.format(cfg.indent(target.getinfo())); cprof.run.trackcurrent('runinfo',info)
 
 
     else:
-        target=pickexample(cfg.targetchoice,n=n,d=d,**cfg.targetparams)
+        target=pickexample(cprof.targetchoice,n=n,d=d,**cprof.targetparams)
 
         cfg.log('adjusting target weights')
-        exampletemplate.adjustnorms(target,X=cfg.genX(10000),iterations=250,learning_rate=.01)
+        exampletemplate.adjustnorms(target,X=cprof.genX(10000),iterations=250,learning_rate=.01)
         target=target.compose(functions.Flatten(sharpness=1))
         cfg.log('target initialized')
 
-        info+='target\n\n{}'.format(cfg.indent(target.getinfo())); cfg.session.trackcurrent('sessioninfo',info)
+        info+='target\n\n{}'.format(cfg.indent(target.getinfo())); cprof.run.trackcurrent('runinfo',info)
 
-        X_train=cfg.genX(cfg.samples_train)
-        cfg.logcurrenttask('preparing training data')
+        X_train=cprof.genX(cprof.samples_train)
+        cprof.logcurrenttask('preparing training data')
         Y_train=target.eval(X_train,msg='preparing training data')
-        X_test=cfg.genX(cfg.samples_test)
+        X_test=cprof.genX(cprof.samples_test)
         Y_test=target.eval(X_test,msg='preparing test data')
         sections=pt.genCrossSections(target.eval)
 
-    learner=pickexample(cfg.learnerchoice,n=n,d=d,**cfg.learnerparams)
+    learner=pickexample(cprof.learnerchoice,n=n,d=d,**cprof.learnerparams)
     cfg.log('learner initialized')
-    info+=4*'\n'+'learner\n\n{}'.format(cfg.indent(learner.getinfo())); cfg.session.trackcurrent('sessioninfo',info)
+    info+=4*'\n'+'learner\n\n{}'.format(cfg.indent(learner.getinfo())); cprof.run.trackcurrent('runinfo',info)
 
 
     sourcedict=copy.copy(locals())
     setupdata={k:sourcedict[k] for k in ['X_train','Y_train','X_test','Y_test']}|\
         {'target':target.compress(),'learner':learner.compress(),'sections':sections}
-    cfg.save(setupdata,cfg.outpath+'data/setup')
+    cfg.save(setupdata,cprof.outpath+'data/setup')
 
-    cfg.register(\
+    cprof.register(\
         'target',\
         'learner',\
         'X_train',\
@@ -151,13 +160,16 @@ def prep_and_run():
         'X_test',\
         'Y_test',\
         'sections',\
-        sourcedict=locals(),savetoglobals=True)
+        sourcedict=locals())
 
-    cfg.session.trackcurrent('sessioninfo',info)
-    cfg.write(info,cfg.outpath+'info.txt',mode='w')
+    cprof.run.trackcurrent('runinfo',info)
+    cfg.write(info,cprof.outpath+'info.txt',mode='w')
 
     exampletemplate.inspect()
-    exampletemplate.train(learner,X_train,Y_train,**cfg.trainingparams)
+    exampletemplate.train(learner,X_train,Y_train,**cprof.trainingparams)
 
 if __name__=='__main__':
-    exampletemplate.runexample(prep_and_run)
+    cfg.currentprofile().prepdashboard=exampletemplate.prepdashboard
+    cfg.currentprofile().act_on_input=exampletemplate.act_on_input
+    import cdisplay
+    cdisplay.run_in_display(prep_and_run)

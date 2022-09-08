@@ -78,7 +78,7 @@ sigmoid=jax.jit(lambda x:(jnp.tanh(x)+1)/2)
 ac_aliases={\
 	'ReLU':['r','relu'],
 	'tanh':['t'],
-	'leaky_ReLU':['lr','leakyrelu'],
+	'leaky_ReLU':['lr','leakyrelu','lrelu'],
 	'DReLU':['dr','drelu'],
 	'softplus':['sp']
 	}
@@ -367,7 +367,7 @@ def combinelossgradfns(lossgradfns,nums_inputs,coefficients):
 #	return 1/jnp.max(jnp.triu(1/sqdists))
 
 def initweights(shape):
-	return rnd.normal(cfg.nextkey(),shape)*jnp.sqrt(2/shape[-1])
+	return rnd.normal(cfg.currentprofile().nextkey(),shape)*jnp.sqrt(2/shape[-1])
 
 
 

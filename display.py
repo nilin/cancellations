@@ -89,7 +89,6 @@ class Display:
 	def attach(self,container):
 		self.container=container
 	
-	def draw(self): pass
 
 
 class StaticText(Display):
@@ -107,6 +106,11 @@ class Hline(StaticText):
 class SessionText(Display):
 	def _gettext_(self):
 		return session.getval(self.query)
+
+class RunText(Display):
+	def _gettext_(self):
+		cprof=cfg.currentprofile()
+		return cprof.run.getval(self.query)
 
 class LogDisplay(Display):
 	def __init__(self,**kw):
@@ -177,7 +181,8 @@ class QueryDisplay(Display):
 		super().__init__(query=query,**kw)
 
 	def getval(self):
-		return session.getcurrentval(self.query)
+		cprof=cfg.currentprofile()
+		return cprof.run.getcurrentval(self.query)
 
 
 class NumberDisplay(QueryDisplay):

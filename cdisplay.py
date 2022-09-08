@@ -1,13 +1,6 @@
 import display as disp
-import pdb
 import config as cfg
-import numpy as np
-import sys
-from config import session
-
-
 import curses as cs
-
 
 
 
@@ -37,36 +30,24 @@ class ConcreteDisplay(disp.StackedDisplay):
 		self.draw()
 
 
+def getinput(*args,**kw):
+	a=getscreen().getch()
+	cs.flushinp()
+	cfg.currentprofile().dashboard.draw()
+	return cfg.extractkey_cs(a)
 
-def getwrapped(runfn):
+def getscreen(): return cfg.screen
+cfg.getinput=getinput
 
+
+def run_in_display(runfn):
 	def wrapped(screen):
-
-		cs.use_default_colors()
 		cfg.screen=screen
-		cfg.dashboard=disp.CDashboard(width=cs.COLS,height=cs.LINES)
-
 		screen.nodelay(True)
-
-		def getinput(*args,**kw):
-			a=screen.getch()
-			cs.flushinp()
-			cfg.dashboard.draw()
-			return cfg.extractkey_cs(a)
-
-		cfg.getinput=getinput
-
-		cfg.prepdashboard()
+		cs.use_default_colors()
+		cfg.currentprofile().dashboard=disp.CDashboard(width=cs.COLS,height=cs.LINES)
+		cfg.currentprofile().prepdashboard()
 		runfn()
-	return wrapped
-
-
-
-
-
-
-def RID(runfn,*x,**y):
-	wrapped=getwrapped(runfn,*x,**y)
 	cs.wrapper(wrapped)
 
 
