@@ -6,6 +6,7 @@ data/*
 stash*
 datastash*
 **/datastash/*
+*.pdf
 log
 runlocal*
 *stash*
@@ -20,9 +21,11 @@ D/*
 matlab/Ints
 inputs matlab*
 matlab/Ds*
+2n1dplot*
 matlab/Ws*
 computed_by_integral*
 zipoutputs*
+outputs*
 test*
 savio*
 zipout*
@@ -45,3 +48,4 @@ logs
 e_db*
 nonfunc*
 venv*
+2plot*

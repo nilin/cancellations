@@ -158,12 +158,12 @@ class Session(Memory):
     def log(self,msg):
         msg='{} | {}'.format(timeprint(),msg)
         write(msg+'\n',*logpaths())
-        if trackduration:
-            write(str(int(session.time())),*[os.sep.join(pathlog.split(os.sep)[:-1])+os.sep+'duration' for pathlog in logpaths()],mode='w')	
         super().log(msg)
         #if rawlogprint: print(msg)
 
 
+def donothing(*x,**y):
+    return None
 #----------------------------------------------------------------------------------------------------
 
 class Keychain:
@@ -190,6 +190,7 @@ class Profile(dict):
         super().__init__(*a,**kw)
         self.run=Memory()
         self.keychain=Keychain()
+        self.act_on_input=donothing
 
     __getattr__=dict.get
 
@@ -216,7 +217,7 @@ class Profile(dict):
         if completeness>=1 or stopwatch.tick_after(.05):
             self.run.trackcurrent('currenttask',msg)
             self.run.trackcurrent('currenttaskcompleteness',completeness)
-            return self.act_on_input(getinput())
+            return self.act_on_input(checkforinput())
         else: return None
 
     def getcurrenttask(self):
@@ -242,7 +243,7 @@ def currentprofile(): return _currentprofile_
 
 session=Session()
 defaultrunprofile=RunProfile(ID=sessionID)
-#_currentprofile_=defaultrunprofile
+_currentprofile_=defaultrunprofile
 
 #----------------------------------------------------------------------------------------------------
 def nextkey(): return currentprofile().nextkey()
@@ -288,7 +289,8 @@ def retrieve(context,names):
 
 def log(msg):
     session.log(msg)
-    return act_on_input(getinput())
+    return act_on_input(checkforinput())
+
 
 def LOG(msg):
     log('\n\n'+msg+'\n\n')
@@ -552,21 +554,16 @@ def latest(folder):
     return folder+max([(subfolder,relorder(subfolder)) for subfolder in folders],key=lambda pair:pair[1])[0]+'/'
 
 
-
-
-
-
-def memorybatchlimit(n):
-    s=1
-    #memlim=50000
-    memlim=10000
-    while(s*math.factorial(n)<memlim):
-        s=s*2
-
-    if n>heavy_threshold:
-        assert s==1, 'AS_HEAVY assumes single samples'
-
-    return s
+#def memorybatchlimit(n):
+#    s=1
+#    memlim=10**6
+#    while(s*math.factorial(n)<memlim):
+#        s=s*2
+#
+#    if n>heavy_threshold:
+#        assert s==1, 'AS_HEAVY assumes single samples'
+#
+#    return s
         
 
 
@@ -588,8 +585,6 @@ dash='\u2015'
 t0=time.perf_counter()
 trackedvals=dict()
 eventlisteners=dict()
-
-trackduration=False
 
 biasinitsize=.1
 
@@ -618,8 +613,6 @@ def act_on_input(c):
 #		print(args[1])
 
 
-def donothing(*x,**y):
-    return None
 
 def conditional(f,do):
     if do:
@@ -695,7 +688,8 @@ def refreshdisplay(name):
 # testing
 
 
-
+checkforinput=donothing
+defaultrunprofile.act_on_input=donothing
 
 
 

@@ -29,40 +29,46 @@ class ConcreteDisplay(disp.StackedDisplay):
 	def poke(self,src):
 		self.draw()
 
-def getinput(*args,**kw):
+def checkforinput(*args,**kw):
 	a=getscreen().getch()
 	cs.flushinp()
 	cfg.currentprofile().dashboard.draw()
 	return cfg.extractkey_cs(a)
 
 def getscreen(): return cfg.screen
-cfg.getinput=getinput
+cfg.checkforinput=checkforinput
 
-def run_in_display(runfn,profile,*a,**kw):
+def run_in_display(runfn,profile,*a,nodelay=True,**kw):
+	#peeledprofile=cfg.currentprofile()
 	cfg._currentprofile_=profile
 	def wrapped(screen):
 		cfg.screen=screen
-		screen.nodelay(True)
+		screen.nodelay(nodelay)
 		cs.use_default_colors()
 		profile.dashboard=disp.CDashboard(width=cs.COLS,height=cs.LINES)
-		try: profile.prepdashboard()
+		try: profile.prepdashboard(profile.dashboard)
 		except: pass
-		runfn(*a,**kw)
-	cs.wrapper(wrapped)
+		runfn(profile,*a,**kw)
+	out=cs.wrapper(wrapped)
+	#cfg._currentprofile_=peeledprofile
+	return out
 
 def clear():
 	cfg.screen.clear()
 	cfg.screen.refresh()
 
 def subtask_in_display(runfn,profile,*args,**kw):
-	profile.dashboard=disp.CDashboard(width=cs.COLS,height=cs.LINES)
 	outerprofile=cfg.currentprofile()
+
+	profile.dashboard=disp.CDashboard(width=cs.COLS,height=cs.LINES)
 	cfg._currentprofile_=profile
 	clear()
-	out=runfn(*args,**kw)
+	out=runfn(profile,*args,**kw)
 	clear()
+
 	cfg._currentprofile_=outerprofile
 	return out
+
 
 
 # test

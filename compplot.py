@@ -1,14 +1,8 @@
 from re import I
 from browse_runs import pickfolders,commonanc
-
-folders=pickfolders()
-outpath,branches=commonanc(*folders)
-
-
-
-
-
+import browse_runs
 import os
+import shutil
 import util
 import config as cfg
 import re
@@ -23,8 +17,8 @@ from display import clear
 
 def process_snapshot(processed,f,weights,X,Y,i):
 	processed.addcontext('minibatchnumber',i)
-	processed.remember('Af norm',jnp.average(f(X[:100])**2))
-	processed.remember('test loss',util.SI_loss(f(X),Y))
+	processed.remember('Af norm',jnp.average(f(weights,X[:100])**2))
+	processed.remember('test loss',util.SI_loss(f(weights,X),Y))
 	processed.remember('weight norms',util.applyonleaves(weights,util.norm))
 
 def plotexamples(paths):
@@ -42,13 +36,13 @@ def plotexamples(paths):
 
 		weightslist,i_s=unprocessed.gethist('weights','minibatchnumber')
 
-		processed=cfg.ActiveMemory()
+		processed=cfg.Memory()
 		print('processing run {}'.format(i_run+1))
 		for imgnum,(weights,i) in enumerate(zip(weightslist,i_s)):
 			print('image {} of {}'.format(imgnum+1,len(i_s)),end='\r')
 
 			cfg.trackcurrenttask('processing snapshots for learning plot',(imgnum+1)/len(weightslist))
-			process_snapshot(processed,pfunc.fwithparams(weights),weights,X,Y,i)		
+			process_snapshot(processed,pfunc.f,weights,X,Y,i)		
 
 		processedruns.append(processed)
 		learners.append(learner)
@@ -99,6 +93,16 @@ def plotexamples(paths):
 
 
 
+
+
+
+
+
+
+_,folders=browse_runs.pickfolders_leave_cs()
+outpath,branches=commonanc(*folders)
+
+
 clear()
 cfg.outpath=outpath+' and '.join([b[:-1] for b in branches])+'/'
 if os.path.exists(cfg.outpath):
@@ -108,18 +112,7 @@ if os.path.exists(cfg.outpath):
 			cfg.outpath=path_i
 			break
 
-
-
-
-
-
-
-
-
-import os
-import shutil
 os.makedirs(cfg.outpath,exist_ok=True)	
-
 for folder,branch in zip(folders,branches):
 	shutil.copytree(folder,cfg.outpath+branch)
 #print(folders)

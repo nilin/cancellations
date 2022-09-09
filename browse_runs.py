@@ -13,12 +13,12 @@ down='\u2193'
 left='\u2190'
 right='\u2192'
 
-def _pickfolders_(msg='select folder',condition=None):
+def _pickfolders_(profile,msg='select folder',condition=None):
 
 	W=cfg.currentprofile().dashboard.width
 	H=cfg.currentprofile().dashboard.height
-	stdscr=cfg.screen
-	stdscr.nodelay(False)
+	screen=cfg.screen
+	screen.nodelay(False)
 	explainpad=cs.newpad(500,500)
 	listpad=cs.newpad(500,500)
 	matchinfopad=cs.newpad(500,500)
@@ -26,15 +26,20 @@ def _pickfolders_(msg='select folder',condition=None):
 	explanation=\
 		cfg.wraptext(msg)+'\n\n'\
 		+'Move with arrow keys:\n{}: up\n{}: down\n{}: fast up\n{}: fast down'.format(up,down,left,right)\
-		+'\n\nPress SPACE or a to add (i.e. mark) elements. \nPress ENTER to finish selection'
+		+'\n\nPress SPACE or a to add (i.e. mark) elements.'\
+		+'\nPress s or c to move between marked elements.'\
+		+'\n\nPress ENTER to finish selection'
 	explainpad.addstr(0,0,explanation)
 	explainpad.refresh(0,0,3,5,H-3,W//3)
+	screen.refresh()
+	
 
 	def displayoptions(options,selection,selections,listpad,matchinfopad):
 		matchinfopad.erase()
 		listpad.erase()
 		for i,match in enumerate(options):
-			listpad.addstr(i,3,'{}: {}        -{}'.format(str(i+1).rjust(3),match,runinfo(match)))
+			#listpad.addstr(i,2,'{}: {} - {}'.format(str(i+1).rjust(3),match,runinfo(match)))
+			listpad.addstr(i,2,'{}: {} - {}'.format(str(i+1),match,runinfo(match)))
 		try:
 			matchinfopad.addstr(0,0,runinfo(options[selection]))
 			matchinfopad.addstr(2,0,getinfo(options[selection]))
@@ -54,10 +59,11 @@ def _pickfolders_(msg='select folder',condition=None):
 	paths.sort(reverse=True,key=lambda s:s[-15:])
 	while True:
 
+		explainpad.refresh(0,0,3,5,H-3,W//3)
 		ls=max(0,min(len(paths)-1,ls))
 		displayoptions(paths,ls,choices,listpad,matchinfopad)
 
-		c=stdscr.getch()
+		c=screen.getch()
 		if c==97 or c==32: choices.append(ls)
 		elif c==127 and ls in choices: choices.remove(ls)
 		elif c==259: ls-=1
@@ -73,17 +79,24 @@ def _pickfolders_(msg='select folder',condition=None):
 		elif c==10: break
 		elif c==113: quit()
 
-	stdscr.nodelay(True)
-	return paths[ls],[paths[ls] for ls in choices]
+	screen.nodelay(True)
+	out=paths[ls],[paths[ls] for ls in choices]
+	cfg.currentprofile().loadedpathandpaths=out
+	return out
 
 
 
 def runinfo(folder):
 	try:
+		with open(folder+'metadata.txt','r') as f:
+			return f.readline()
+	except:pass
+	try:
 		with open(folder+'duration','r') as f:
-			return 'duration {} s'.format(f.readline())
-	except:
+			return f.readline()
+	except Exception as e:
 		return ''
+		#return str(e)[10:]
 
 def getinfo(path):
 	try:
@@ -106,11 +119,16 @@ def commonanc(*fs):
 	return path,[f[len(path):] for f in fs]
 
 
-browsingprofile=cfg.Profile()
 
+browsingprofile=cfg.Profile()
 
 def pickfolders(**kw):
 	return cdisplay.subtask_in_display(_pickfolders_,browsingprofile,**kw)
+
+def pickfolders_leave_cs(**kw):
+	cdisplay.run_in_display(_pickfolders_,browsingprofile,nodelay=False,**kw)
+	return browsingprofile.loadedpathandpaths
+
 
 
 #

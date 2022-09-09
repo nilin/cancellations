@@ -19,7 +19,7 @@ import config as cfg
 from config import session
 import testing
 import functions
-
+import os
 
 
 
@@ -47,12 +47,13 @@ def train(learner,X_train,Y_train,**kw):
 		if cprof.regsched.activate(i):
 			cprof.unprocessed.remember('weights',learner.weights)
 			cfg.save(cprof.unprocessed,cprof.outpath+'data/unprocessed',echo=False)
+			cfg.write('loss {:.3f}, iterations: {}'.format(loss,i),cprof.outpath+'metadata.txt',mode='w')	
 
 		if cprof.plotsched.activate(i):
 			fplot()
 			lplot()
 
-		if cfg.stopwatch.tick_after(.2) and cfg.currentprofile().act_on_input(cfg.getinput())=='b':
+		if cfg.stopwatch.tick_after(.2) and cfg.currentprofile().act_on_input(cfg.checkforinput())=='b':
 			break
 
 
@@ -105,7 +106,7 @@ def adjustnorms(Afdescr,X,iterations=500,**learningparams):
 		trainer.step()
 		cprof.run.trackcurrent('target |Af|',util.norm(Af(trainer.learner.weights,X[:100])))
 		cprof.run.trackcurrent('target |f|/|Af|',normratio(trainer.learner.weights,X[:100]))
-		if cfg.stopwatch.tick_after(.05) and cfg.getinput()=='b':break
+		if cfg.stopwatch.tick_after(.05) and cfg.checkforinput()=='b':break
 
 	cprof.statusdisplay.delete(temp1,temp2,temp3,temp4)
 
@@ -194,7 +195,7 @@ def processandplot(unprocessed,pfunc,X,Y,process_snapshot_fn=None,plotexample_fn
 	for imgnum,(weights,i) in enumerate(zip(weightslist,i_s)):
 
 		if cfg.trackcurrenttask('processing snapshots for learning plot',(imgnum+1)/len(weightslist))=='b': break
-		process_snapshot(processed,pfunc.fwithparams(weights),X,Y,i)		
+		process_snapshot(processed,util.fixparams(pfunc.f,weights),X,Y,i)		
 
 	plotexample(unprocessed,processed)
 	cfg.clearcurrenttask()
@@ -239,7 +240,7 @@ def act_on_input(key):
 
 
 
-def prepdashboard():
+def prepdashboard(dashboard):
 	cprof=cfg.currentprofile()
 	import cdisplay
 
@@ -249,7 +250,7 @@ def prepdashboard():
 		'Press [f] to generate functions plot.\nPress [o] to open output folder.\
 		\n\nPress [b] to break from current task.\nPress [q] to quit. '
 
-	DB=cprof.dashboard
+	DB=dashboard
 	w=DB.width; h=DB.height
 	a,b,c,d=5,w//2-5,w//2+5,w-5
 	y0=3

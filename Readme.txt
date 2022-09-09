@@ -14,11 +14,9 @@ To fit an antisymmetric function:
 
 
 
+To run example with different parameters, modify and run
 
-Modify example.py by commenting/uncommenting the lines defining target/learner. Once again run
-
->python example.py
-
+>python batch.py
 
 
 

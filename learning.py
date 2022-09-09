@@ -38,7 +38,7 @@ import multivariate as mv
 
 	
 class Trainer():
-	def __init__(self,learner,X,Y,lossfn=None,learning_rate=.01,memory=None,**kwargs):
+	def __init__(self,learner,X,Y,lossfn=None,learning_rate=.01,memory=None,minibatchsize=100,**kwargs):
 
 		self.memory=cfg.Memory() if memory==None else memory
 
@@ -51,7 +51,8 @@ class Trainer():
 		self.opt=optax.adamw(learning_rate,**{k:val for k,val in kwargs.items() if k in ['weight_decay','mask']})
 		self.state=self.opt.init(self.learner.weights)
 
-		self.set_default_batchsizes(**kwargs)
+		self.minibatchsize=100
+		#self.set_default_batchsizes(**kwargs)
 		self.minibatches=deque([])
 
 		
@@ -77,15 +78,15 @@ class Trainer():
 	def prepnextepoch(self,permute=True):
 		self.memory.log('preparing new epoch')
 		if permute: self.X,self.Y=util.randperm(self.X,self.Y)
-		self.minibatches=deque(util.chop(self.X,self.Y,chunksize=self.minibatchsize))
+		self.minibatches=deque(util.chop(self.X,self.Y,blocksize=self.minibatchsize))
 
 		self.memory.log('start new epoch')
 		self.memory.remember('minibatches in epoch',len(self.minibatches))
 
 
-	def set_default_batchsizes(self,minibatchsize=None,**kwargs):
-		self.minibatchsize=min(self.X.shape[0],cfg.memorybatchlimit(self.n),1000) if minibatchsize==None else minibatchsize
-		self.memory.log('minibatch size set to '+str(self.minibatchsize))
+#	def set_default_batchsizes(self,minibatchsize=None,**kwargs):
+#		self.minibatchsize=min(self.X.shape[0],cfg.memorybatchlimit(self.n),1000) if minibatchsize==None else minibatchsize
+#		self.memory.log('minibatch size set to '+str(self.minibatchsize))
 
 	def checkpoint(self):
 		self.memory.remember('weights',copy.deepcopy(self.learner.weights))
@@ -119,7 +120,7 @@ class DynamicTrainer(Trainer):
 
 	def prepnextepoch(self):
 		[self.X]=util.randperm(self.X)
-		self.minibatches=deque(util.chop(self.X,chunksize=self.minibatchsize))
+		self.minibatches=deque(util.chop(self.X,blocksize=self.minibatchsize))
 
 		self.memory.log('start new epoch')
 		self.memory.remember('minibatches in epoch',len(self.minibatches))

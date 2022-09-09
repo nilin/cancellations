@@ -188,9 +188,9 @@ def closest_multiple(f,X,Y_target,normalized=False):
 
 
 
-def chop(*Xs,chunksize):
+def chop(*Xs,blocksize):
 	S=Xs[0].shape[0]
-	limits=[(a,min(a+chunksize,S)) for a in range(0,S,chunksize)]
+	limits=[(a,min(a+blocksize,S)) for a in range(0,S,blocksize)]
 	return [tuple([X[a:b] for X in Xs]) for a,b in limits]
 	
 
@@ -202,10 +202,10 @@ def pad(f):
 	return f if takesparams(f) else dummyparams(f)
 
 
-def eval_blockwise(f,params,X,msg=None):
+def eval_blockwise(f,params,X,blocksize=100000,msg=None):
 	f=pad(f)
 	_,n,_=X.shape	
-	Xs=chop(X,chunksize=cfg.memorybatchlimit(n))
+	Xs=chop(X,blocksize=blocksize)
 	out=[]
 	for i,(B,) in enumerate(Xs):
 		#out.append(f(B))
@@ -214,12 +214,12 @@ def eval_blockwise(f,params,X,msg=None):
 			cfg.trackcurrenttask(msg,(i+1)/len(Xs))
 	return jnp.concatenate(out,axis=0)
 
-def makeblockwise(f):
-	if takesparams(f):
-		blockwise=lambda params,X,**kw: eval_blockwise(f,params,X,**kw)
-	else:
-		blockwise=lambda X,**kw: eval_blockwise(f,None,X,**kw)
-	return blockwise
+#def makeblockwise(f):
+#	if takesparams(f):
+#		blockwise=lambda params,X,**kw: eval_blockwise(f,params,X,**kw)
+#	else:
+#		blockwise=lambda X,**kw: eval_blockwise(f,None,X,**kw)
+#	return blockwise
 
 
 

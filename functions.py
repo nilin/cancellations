@@ -39,8 +39,7 @@ class FunctionDescription:
 		return mv.gen_lossgrad(self.f,lossfn=lossfn)
 
 	def fwithparams(self,params):
-		fs=util.fixparams(self.f,params)
-		return util.makeblockwise(fs)
+		return util.fixparams(self.f,params)
 
 	def restore(self):
 		self.f=self._gen_f_()
@@ -74,8 +73,8 @@ class FunctionDescription:
 	def initweights(self):
 		self.weights=self._initweights_(**self.kw)
 
-	def eval(self,X,**kw):
-		return util.eval_blockwise(self.f,self.weights,X,**kw)
+	def eval(self,X,blocksize=10**5,**kw):
+		return util.eval_blockwise(self.f,self.weights,X,blocksize=blocksize,**kw)
 
 	@staticmethod	
 	def _initweights_(**kw):
@@ -208,6 +207,7 @@ class Switchable:
 	def switch(self,newclass):
 		kw={newclass.translation(k):v for k,v in self.kw.items()}
 		Tf=newclass(**kw)
+		if hasattr(self,'weights') and self.weights!=None: Tf.weights=self.weights
 		return Tf
 	@staticmethod
 	def translation(k): return k
