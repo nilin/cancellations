@@ -1,6 +1,6 @@
 import jax
 import math
-import util
+from ..utilities import util
 import jax.numpy as jnp
 
 def gen_att(omega):

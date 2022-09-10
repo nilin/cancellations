@@ -12,8 +12,7 @@
 import jax
 import jax.numpy as jnp
 import jax.random as rnd
-import util
-import config as cfg
+from ..utilities import math as mathutil, util
 import optax
 import math
 #import universality
@@ -23,12 +22,12 @@ import numpy as np
 import scipy.stats as st
 import time
 import pdb
-import AS_tools
+from ..functions import AS_tools
 
 import collections
 import copy
 from collections import deque
-from functions import multivariate as mv
+from ..functions import multivariate as mv
 
 
 #----------------------------------------------------------------------------------------------------
@@ -40,7 +39,7 @@ from functions import multivariate as mv
 class Trainer():
 	def __init__(self,learner,X,Y,lossfn=None,learning_rate=.01,memory=None,minibatchsize=100,**kwargs):
 
-		self.memory=cfg.Memory() if memory==None else memory
+		self.memory=util.Memory() if memory==None else memory
 
 		self.learner=learner
 		self.lossgrad=learner.get_lossgrad(lossfn)
@@ -119,8 +118,8 @@ class DynamicTrainer(Trainer):
 		return self.minibatch_step(X_mini,f_target(X_mini))	
 
 	def prepnextepoch(self):
-		[self.X]=util.randperm(self.X)
-		self.minibatches=deque(util.chop(self.X,blocksize=self.minibatchsize))
+		[self.X]=mathutil.randperm(self.X)
+		self.minibatches=deque(mathutil.chop(self.X,blocksize=self.minibatchsize))
 
 		self.memory.log('start new epoch')
 		self.memory.remember('minibatches in epoch',len(self.minibatches))

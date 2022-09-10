@@ -1,19 +1,15 @@
 import jax
 import jax.numpy as jnp
 import jax.random as rnd
-import util
-import config as cfg
-import optax
+from ..utilities import util
 import math
 import numpy as np
 import sys
 import matplotlib.pyplot as plt
 import numpy as np
-import learning
 
 import copy
 import pdb
-from config import session
 from collections import deque
 
 import warnings

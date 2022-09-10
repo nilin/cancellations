@@ -3,8 +3,8 @@ import math
 import jax.numpy as jnp
 import jax
 import jax.random as rnd
-import config as cfg
-from config import session
+from ..utilities import config as cfg
+from ..utilities.util import session
 from collections import deque
 from inspect import signature
 

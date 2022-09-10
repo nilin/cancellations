@@ -5,21 +5,22 @@
 #
 
 
-from distutils.command.config import config
-from config import config as cfg
-import exampletemplate
 import jax
-from functions.functions import ComposedFunction,SingleparticleNN
-import jax.random as rnd
-import config.util as util
-import plotting.plottools as pt
-import display.cdisplay as cdisplay
 import jax.numpy as jnp
-from functions import functions
+import jax.random as rnd
+from ..functions import functions
+from ..functions.functions import ComposedFunction,SingleparticleNN
+from ..utilities import config as cfg, util, sysutil, math
+from ..display import cdisplay,display as disp
+from . import plottools as pt
+from . import exampletemplate
+
 jax.config.update("jax_enable_x64", True)
 
+
+
 def getdefaultprofile():
-    profile=cfg.Profile(name='default example')
+    profile=util.Profile(name='default example')
     profile.exname='example'
     profile.instructions='To load and run with previously generated target function (including weights), run\
         \n\n>>python {}.py loadtarget'.format(profile.exname)
@@ -29,8 +30,6 @@ def getdefaultprofile():
 
     profile.learnerparams={}
     profile.learnerchoice='backflow' 
-    #cfg.learnerchoice='backflow'; cfg.learnerparams=dict(activations=['tanh']*3)
-    #cfg.learnerchoice='ASNN2'
 
 
     profile.n=5
@@ -42,7 +41,7 @@ def getdefaultprofile():
     profile.trainingparams=dict\
     (
     weight_decay=0,
-    lossfn=util.SI_loss,
+    lossfn=math.SI_loss,
     iterations=25000,
     minibatchsize=None
     )
@@ -98,14 +97,14 @@ def pickexample(choice,n,d,**kw):
                 functions.OddNN(widths=[1,100,1],activation=activations[2]))
 
 
-def prep_and_run(run:cfg.Run):
+def prep_and_run(run:util.Run):
 
     run.outpath='outputs/{}/'.format(run.ID)
     cfg.outpath='outputs/{}/'.format(run.ID)
     cfg.log('imports done')
 
     
-    run.unprocessed=cfg.Memory()
+    run.unprocessed=util.Memory()
     info='runID: {}\n'.format(run.ID)+'\n'*4; run.trackcurrent('runinfo',info)
 
 #    if 'loadtarget' in cfg.cmdparams:
@@ -118,7 +117,7 @@ def prep_and_run(run:cfg.Run):
 #        setupdata=cfg.Profile(cfg.load(path))
 
     if 'setupdata_path' in run.keys():
-        run.update(cfg.load(run.setupdata_path))
+        run.update(sysutil.load(run.setupdata_path))
         run.target.restore()
         cfg.log('Loaded target and training data from '+run.setupdata_path)
         info+='target\n\n{}'.format(cfg.indent(run.target.getinfo())); run.trackcurrent('runinfo',info)
@@ -131,7 +130,7 @@ def prep_and_run(run:cfg.Run):
         run.target=target.compose(functions.Flatten(sharpness=1))
         cfg.log('target initialized')
 
-        info+='target\n\n{}'.format(cfg.indent(target.getinfo())); run.trackcurrent('runinfo',info)
+        info+='target\n\n{}'.format(disp.indent(target.getinfo())); run.trackcurrent('runinfo',info)
 
         run.X_train=run.genX(run.samples_train)
         run.logcurrenttask('preparing training data')
@@ -158,7 +157,7 @@ def prep_and_run(run:cfg.Run):
 
 
 def main(profile,display,*a,**kw):
-    run=cfg.Run(profile,display=display)
+    run=util.Run(profile,display=display)
     exampletemplate.prepdisplay(run)
     run.act_on_input=exampletemplate.act_on_input
     cfg.loadprocess(run)

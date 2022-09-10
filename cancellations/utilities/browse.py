@@ -2,9 +2,10 @@ import os
 import re
 import curses as cs
 import pdb
-from display import dash
-import config as cfg
-import cdisplay
+from ..display.display import dash
+from ..display import display as disp
+from ..display import cdisplay
+from ..utilities import config as cfg,util
 import time
 
 
@@ -16,7 +17,7 @@ right='\u2192'
 
 
 def getdefaultprofile():
-	profile=cfg.Profile(name='browsing')
+	profile=util.Profile(name='browsing')
 	profile.parentfolder='outputs'
 	profile.msg='select folder'
 	profile.onlyone=False
@@ -26,7 +27,7 @@ def getdefaultprofile():
 
 def _pickfolders_(profile,display):
 
-	browsing=cfg.Process(profile,display=display)
+	browsing=util.Process(profile,display=display)
 
 	W=display.width
 	H=display.height
@@ -37,7 +38,7 @@ def _pickfolders_(profile,display):
 	matchinfopad=cdisplay.Pad((2*W//3,W),(0,H))
 
 	explanation=\
-		cfg.wraptext(profile.msg)+'\n\n'\
+		disp.wraptext(profile.msg)+'\n\n'\
 		+'Move with arrow keys:\n{}: up\n{}: down\n{}: fast up\n{}: fast down'.format(up,down,left,right)\
 		+'\n\nPress SPACE or a to add (i.e. mark) elements.'\
 		+'\nPress s or c to move between marked elements.'\
@@ -75,7 +76,7 @@ def _pickfolders_(profile,display):
 		ls=max(0,min(len(paths)-1,ls))
 		displayoptions(paths,ls,choices,listpad,matchinfopad)
 
-		c=cfg.extractkey_cs(screen.getch())
+		c=cdisplay.extractkey_cs(screen.getch())
 		if c=='SPACE' and not profile.onlyone: choices.append(ls)
 		elif c=='BACKSPACE' and ls in choices: choices.remove(ls)
 		elif c==259: ls-=1
@@ -126,7 +127,7 @@ def commonanc(*fs):
 
 
 
-browsingprofile=cfg.Profile()
+browsingprofile=util.Profile()
 
 def pickfolders(**kw):
 	return cdisplay.subtask_in_display(_pickfolders_,browsingprofile,**kw)

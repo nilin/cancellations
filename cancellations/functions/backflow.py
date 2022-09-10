@@ -5,13 +5,10 @@
 
 import jax.numpy as jnp
 import jax
-import util
+from ..utilities import util, config as cfg
 import math
 import jax.random as rnd
-import config as cfg
-from util import activations
 import pdb
-from functions import multivariate as mv
 
 jax.config.update("jax_enable_x64", True)
 

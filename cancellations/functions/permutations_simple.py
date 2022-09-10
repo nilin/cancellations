@@ -9,7 +9,7 @@ import math
 import pickle
 import time
 import copy
-import util
+from .. import utilities
 import jax
 import sys
 import jax.numpy as jnp

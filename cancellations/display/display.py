@@ -1,17 +1,7 @@
-from re import I
-import sys
 import os
 import math
-import numpy as np
-import jax.numpy as jnp
-import pdb
-import config as cfg
-from collections import deque
-import time
-import util
-import random
-from config import session
-
+from ..utilities import config as cfg, util
+import collections
 
 #----------------------------------------------------------------------------------------------------
 
@@ -127,11 +117,11 @@ class CompositeDisplay(Display):
 		x0,x1=xlim
 		y0,y1=ylim
 		
-		super().__init__(*a,\
-			xlim=xlim,ylim=ylim,
-			width=x1-x0,height=y1-y0,
-			elements=cfg.dotdict(),\
-			defaultnames=deque(range(100)), **kw)
+		super().__init__(*a, \
+						 xlim=xlim, ylim=ylim,
+						 width=x1-x0, height=y1-y0,
+						 elements=util.dotdict(), \
+						 defaultnames=collections.deque(range(100)), **kw)
 
 	def __getattr__(self,name):
 		try: return super.__getattr__(name)
@@ -186,7 +176,7 @@ class NumberDisplay(QueryDisplay):
 		super().__init__(query=query,**kw)
 
 		if 'avg_of' in kw:
-			self.hist=cfg.History()
+			self.hist=util.History()
 			self._gettext_=self._gettext_1
 		else:
 			self._gettext_=self._gettext_0
@@ -205,7 +195,7 @@ class NumberDisplay(QueryDisplay):
 
 
 class Bar(NumberDisplay):
-	def __init__(self,query,style=cfg.BOX,emptystyle=dash,**kw):
+	def __init__(self,query,style=BOX,emptystyle=dash,**kw):
 		Style=math.ceil(widthbound/len(style))*style
 		Emptystyle=math.ceil(widthbound/len(emptystyle))*emptystyle
 		super().__init__(query,Style=Style,Emptystyle=Emptystyle,**kw)
@@ -232,3 +222,17 @@ class NumberPrint(NumberDisplay):
 
 
 
+#----------------------------------------------------------------------------------------------------
+
+def wraptext(msg,style=dash):
+    width=max([len(l) for l in msg.splitlines()])
+    line=dash*width
+    return '{}\n{}\n{}'.format(line,msg,line)
+
+def wraplines(lines,style=dash):
+    width=max([len(l) for l in lines])
+    line=dash*width
+    return [line]+lines+[line]
+
+def indent(s):
+    return '\n'.join(['    '+l for l in s.splitlines()])

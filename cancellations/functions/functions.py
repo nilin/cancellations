@@ -3,27 +3,20 @@
 import jax
 import jax.numpy as jnp
 import jax.random as rnd
-import util
-import config as cfg
+from cancellations.utilities import util,math as mathutil
+from cancellations.utilities import config as cfg
+from ..display import display as disp
 #from GPU_sum import sum_perms_multilayer as sumperms
-import optax
-import math
-import testing
-import AS_tools
-import AS_tools as ASt
-from functions import multivariate as mv
+from . import multivariate as mv
+from . import AS_tools
+from . import AS_tools as ASt
 import jax.random as rnd
-import backflow as bf
+from . import backflow as bf
 import copy
-from collections import deque
-import backflow
-from display import dash
-from backflow import gen_backflow,initweights_Backflow
-from AS_tools import detsum #,initweights_detsum
+from .backflow import gen_backflow,initweights_Backflow
+from .AS_tools import detsum #,initweights_detsum
 from jax.numpy import tanh
-from util import drelu
-import examplefunctions
-from examplefunctions import gen_parallelgaussians,gen_hermitegaussproducts
+from ..utilities.math import drelu
 
 
 class FunctionDescription:
@@ -39,7 +32,7 @@ class FunctionDescription:
 		return mv.gen_lossgrad(self.f,lossfn=lossfn)
 
 	def fwithparams(self,params):
-		return util.fixparams(self.f,params)
+		return mathutil.fixparams(self.f,params)
 
 	def restore(self):
 		self.f=self._gen_f_()
@@ -66,7 +59,7 @@ class FunctionDescription:
 		if 'f' in vars(self) and self.f!=None:
 			return self.f
 		else:
-			return util.pad(self.gen_f())
+			return mathutil.pad(self.gen_f())
 
 	# parameters
 
@@ -74,7 +67,7 @@ class FunctionDescription:
 		self.weights=self._initweights_(**self.kw)
 
 	def eval(self,X,blocksize=10**5,**kw):
-		return util.eval_blockwise(self.f,self.weights,X,blocksize=blocksize,**kw)
+		return mathutil.eval_blockwise(self.f,self.weights,X,blocksize=blocksize,**kw)
 
 	@staticmethod	
 	def _initweights_(**kw):
@@ -121,7 +114,7 @@ class ComposedFunction(FunctionDescription):
 		self.weights=weights
 
 	def gen_f(self):
-		return util.compose(*[e._gen_f_() for e in self.elements])
+		return mathutil.compose(*[e._gen_f_() for e in self.elements])
 
 #	def inheritweights(self):
 #		self.weights=[e.popweights() for e in self.elements]
@@ -134,7 +127,7 @@ class ComposedFunction(FunctionDescription):
 		return ' -> '.join([e.richtypename() for e in self.elements])+' composition'
 
 	def info(self):
-		return '\n'+'\n\n'.join([cfg.indent(e.getinfo()) for e in self.elements])
+		return '\n'+'\n\n'.join([disp.indent(e.getinfo()) for e in self.elements])
 
 	def compress(self):
 		c=super().compress()
@@ -190,8 +183,8 @@ class Backflow(NNfunction,Equivariant):
 		return bf.initweights_Backflow(widths)
 
 
-import transformer
-from transformer import initweights_SimpleSAB
+from . import transformer
+from .transformer import initweights_SimpleSAB
 from jax.nn import softmax
 
 class SimpleSAB(Equivariant):
@@ -233,7 +226,7 @@ class ProdSum(Nonsym):
 	def gen_f(self): return AS_tools.prodsum
 	@staticmethod
 	def _initweights_(k,n,d,**kw):
-		return util.initweights((k,n,d))
+		return mathutil.initweights((k,n,d))
 	@staticmethod
 	def translation(name):return 'k' if name=='ndets' else name
 

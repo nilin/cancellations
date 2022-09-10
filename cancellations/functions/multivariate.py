@@ -5,13 +5,13 @@
 
 import jax.numpy as jnp
 import jax
-import util
+from ..utilities import util,math as mathutil,config as cfg
 
 import math
 import jax.random as rnd
 
-import config as cfg
-from util import activations
+from ..utilities.math import activations
+from ..utilities import math as mathutil
 import pdb
 
 from inspect import signature
@@ -43,7 +43,7 @@ def gen_NN_wideoutput(ac):
 
 
 def gen_NN(activation):
-	return util.scalarfunction(gen_NN_wideoutput(activation))
+	return mathutil.scalarfunction(gen_NN_wideoutput(activation))
 
 
 def gen_NN_NS(activation):
@@ -51,7 +51,7 @@ def gen_NN_NS(activation):
 
 	@jax.jit
 	def NN_NS(params,X):
-		X=util.collapselast(X,2)
+		X=mathutil.collapselast(X,2)
 		return NN(params,X)
 
 	return NN_NS
@@ -75,7 +75,7 @@ def gen_lossgrad(f,lossfn=None):
 
 def initweights_NN(widths,*args,**kw):
 	ds=widths
-	Ws=[util.initweights((d2,d1)) for d1,d2 in zip(ds[:-1],ds[1:])]
+	Ws=[mathutil.initweights((d2,d1)) for d1,d2 in zip(ds[:-1],ds[1:])]
 	bs=[rnd.normal(cfg.nextkey(),(d2,))*cfg.biasinitsize for d2 in ds[1:]]
 
 	return list(zip(Ws,bs))
@@ -86,11 +86,11 @@ def initweights_NN(widths,*args,**kw):
 #----------------------------------------------------------------------------------------------------
 
 def multiply(*fs):
-	if max([util.takesparams(f) for f in fs]):
+	if max([mathutil.takesparams(f) for f in fs]):
 		def F(paramsbundle,X):
 			out=1
 			for f,params in zip(fs,paramsbundle):
-				out*=util.pad(f)(params,X)
+				out*=mathutil.pad(f)(params,X)
 			return out
 	else:
 		def F(X):

@@ -10,15 +10,13 @@ from re import I
 import jax.numpy as jnp
 import jax.random as rnd
 import jax
-import learning
-import plottools as pt
+from ..learning import learning
+from . import plottools as pt
 import matplotlib.pyplot as plt
-import util
-import display as disp
-import config as cfg
-from config import session
-import testing
-from functions import functions
+from ..display import cdisplay,display as disp
+
+from ..utilities import util,math as mathutil,config as cfg
+from ..functions import functions
 import os
 
 
@@ -82,16 +80,16 @@ def adjustnorms(Afdescr,X,iterations=500,**learningparams):
 	run=cfg.currentprocess()
 	Af=Afdescr.f
 	f=functions.switchtype(Afdescr).f
-	normratio=jax.jit(lambda weights,X:util.norm(f(weights,X))/util.norm(Af(weights,X)))
+	normratio=jax.jit(lambda weights,X:mathutil.norm(f(weights,X))/mathutil.norm(Af(weights,X)))
 	weights=Afdescr.weights
 
 	cfg.log('|f|/|Af|={:.3f}, |Af|={:.3f} before adjustment'.format(\
-		normratio(weights,X[:1000]),util.norm(Af(weights,X[:1000]))))
+		normratio(weights,X[:1000]),mathutil.norm(Af(weights,X[:1000]))))
 
 	@jax.jit
 	def directloss(params,Y):
-		Af_norm=util.norm(Af(params,Y))
-		f_norm=util.norm(f(params,Y))
+		Af_norm=mathutil.norm(Af(params,Y))
+		f_norm=mathutil.norm(f(params,Y))
 		normloss=jnp.abs(jnp.log(Af_norm))
 		ratioloss=jnp.log(f_norm/Af_norm)
 		return normloss+ratioloss
@@ -105,15 +103,15 @@ def adjustnorms(Afdescr,X,iterations=500,**learningparams):
 	
 	for i in range(iterations):
 		trainer.step()
-		run.trackcurrent('target |Af|',util.norm(Af(trainer.learner.weights,X[:100])))
+		run.trackcurrent('target |Af|',mathutil.norm(Af(trainer.learner.weights,X[:100])))
 		run.trackcurrent('target |f|/|Af|',normratio(trainer.learner.weights,X[:100]))
-		if cfg.stopwatch.tick_after(.05) and cfg.act_on_input(cfg.checkforinput())=='b':break
+		if util.stopwatch.tick_after(.05) and cfg.act_on_input(cfg.checkforinput())=='b':break
 
 	run.display.column1.delkeys(key1,key2,key3,key4)
 
 	weights=trainer.learner.weights
 	cfg.log('|f|/|Af|={:.3f}, |Af|={:.3f} after adjustment'.format(\
-		normratio(weights,X[:1000]),util.norm(Af(weights,X[:1000]))))
+		normratio(weights,X[:1000]),mathutil.norm(Af(weights,X[:1000]))))
 	return weights
 
 
@@ -148,7 +146,7 @@ def INFO(separator='\n\n',width=100):
 def process_snapshot_0(processed,f,X,Y,i):
 	processed.addcontext('minibatchnumber',i)
 	processed.remember('Af norm',jnp.average(f(X[:100])**2))
-	processed.remember('test loss',util.SI_loss(f(X),Y))
+	processed.remember('test loss',mathutil.SI_loss(f(X),Y))
 
 def plotexample_0(unprocessed,processed):
 	plt.close('all')
@@ -157,13 +155,13 @@ def plotexample_0(unprocessed,processed):
 	fig,(ax0,ax1)=plt.subplots(2)
 	fig.suptitle('test loss '+info())
 
-	ax0.plot(*util.swap(*processed.gethist('test loss','minibatchnumber')),'r-',label='test loss')
+	ax0.plot(*mathutil.swap(*processed.gethist('test loss','minibatchnumber')),'r-',label='test loss')
 	ax0.legend()
 	ax0.set_ylim(bottom=0,top=1)
 	ax0.grid(True,which='major',ls='-',axis='y')
 	ax0.grid(True,which='minor',ls=':',axis='y')
 
-	ax1.plot(*util.swap(*processed.gethist('test loss','minibatchnumber')),'r-',label='test loss')
+	ax1.plot(*mathutil.swap(*processed.gethist('test loss','minibatchnumber')),'r-',label='test loss')
 	ax1.legend()
 	ax1.set_yscale('log')
 	ax1.grid(True,which='major',ls='-',axis='y')
@@ -195,7 +193,7 @@ def processandplot(unprocessed,pfunc,X,Y,process_snapshot_fn=None,plotexample_fn
 	for imgnum,(weights,i) in enumerate(zip(weightslist,i_s)):
 
 		if cfg.trackcurrenttask('processing snapshots for learning plot',(imgnum+1)/len(weightslist))=='b': break
-		process_snapshot(processed,util.fixparams(pfunc.f,weights),X,Y,i)		
+		process_snapshot(processed,mathutil.fixparams(pfunc.f,weights),X,Y,i)		
 
 	plotexample(unprocessed,processed)
 	cfg.clearcurrenttask()
@@ -240,7 +238,6 @@ def act_on_input(key):
 
 
 def prepdisplay(run):
-	import cdisplay
 
 	display=run.display
 

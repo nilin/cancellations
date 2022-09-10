@@ -1,22 +1,15 @@
 import numpy as np
-import math
-import pickle
 import time
 import copy
-import jax
 import jax.numpy as jnp
+from . import sysutil
 import matplotlib.pyplot as plt
-import os
 import datetime
 import jax.random as rnd
-import sys
 import copy
 from collections import deque
 import datetime
 import random
-import sys
-import re
-
 
 
 #----------------------------------------------------------------------------------------------------
@@ -196,7 +189,6 @@ class Process(Profile,Memory):
 
     def log(self,msg):
         msg='{} | {}'.format(timeprint(),msg)
-        write(msg+'\n',*logpaths())
         super().log(msg)
 
     def nextkey(self):
@@ -233,33 +225,6 @@ class Run(Process):
 
 #stack
 
-def loadprocess(process):
-    if len(processes)==0 or processes[-1]!=process:
-        processes.append(process)
-
-def unloadprocess(process):
-    if len(processes)>0 and processes[-1]==process:
-        processes.pop()
-
-def currentprocess():
-    return processes[-1]
-
-def pull(*varnames):
-    process=currentprocess()
-    return [process[vn] for vn in varnames]
-
-def act_on_input(inp):
-    return processes[-1].act_on_input(inp)
-
-
-
-#----------------------------------------------------------------------------------------------------
-def nextkey(): return currentprocess().nextkey()
-def logcurrenttask(msg): currentprocess().logcurrenttask(msg)
-def trackcurrenttask(msg,completeness): return currentprocess().trackcurrenttask(msg,completeness)
-def getcurrenttask(): return currentprocess().getcurrenttask()
-def clearcurrenttask(): currentprocess().clearcurrenttask()
-#----------------------------------------------------------------------------------------------------
 
 
 
@@ -294,7 +259,6 @@ class Stopwatch:
             return False
 
 
-stopwatch=Stopwatch()
 
 
 #----------------------------------------------------------------------------------------------------
@@ -398,76 +362,10 @@ class Clockedworker(Stopwatch):
 #====================================================================================================
 
 
+stopwatch=Stopwatch()
+session=Process({'name':'session'},display=None,ID='session '+nowstr())
 
 
-
-
-
-def makedirs(filepath):
-    path='/'.join(filepath.split('/')[:-1])
-    filename=filepath.split('/')[-1]
-    os.makedirs(path,exist_ok=True)	
-
-def save(data,*paths,echo=True):
-    for path in paths:
-        makedirs(path)
-        with open(path,'wb') as file:
-            pickle.dump(data,file)
-    if echo: log('Saved data to {}'.format(paths))
-
-def savefig(*paths,fig=None):
-    for path in paths:
-        makedirs(path)
-        if fig==None:
-            plt.savefig(path)
-        else:
-            fig.savefig(path)
-    log('Saved figure to {}'.format(paths))
-
-
-def write(msg,*paths,mode='a'):
-    for path in paths:
-        makedirs(path)
-        with open(path,mode) as f:
-            f.write(msg)
-    
-def load(path):
-    with open(path,"rb") as file:
-        return pickle.load(file)
-
-        
-def showfile(path):
-    import os
-    import subprocess
-    log('opening path '+path)
-
-    try: subprocess.Popen(['open',path])
-    except: pass
-    try: subprocess.Popen(['xdg-open',path])
-    except: pass
-    try: os.startfile(path)
-    except: pass
-
-#====================================================================================================
-
-
-
-def wraptext(msg,style=dash):
-    width=max([len(l) for l in msg.splitlines()])
-    line=dash*width
-    return '{}\n{}\n{}'.format(line,msg,line)
-
-def wraplines(lines,style=dash):
-    width=max([len(l) for l in lines])
-    line=dash*width
-    return [line]+lines+[line]
-
-BOX='\u2588'
-box='\u2592'
-dash='\u2015'
-hour=3600
-day=24*hour
-week=7*day
 
 
 
@@ -475,16 +373,6 @@ week=7*day
 #====================================================================================================
 
 
-
-def runbatch(batch,display):
-    tasks=[]
-    for i in range(1,1000):
-        try: tasks.append((batch['task{}'.format(i)],batch['genprofile{}'.format(i)]))
-        except: pass
-
-    outputs=[]
-    for task, genprofile in tasks:
-        outputs.append(runtask(task,genprofile(outputs),display))
 
 
 
@@ -599,10 +487,6 @@ def runbatch(batch,display):
 #        if name not in context:
 #            context[name]=val	
 #
-#def providedefault(defs,**kw):
-#    [(name,defaultval)]=list(kw.items())
-#    try: return defs[name]
-#    except: return defaultval
 
 
 #def addparams(**kw):

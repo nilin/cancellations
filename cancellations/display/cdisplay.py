@@ -1,8 +1,6 @@
-import display as disp
-import display
-import config as cfg
+from . import display as disp
+from ..utilities import config as cfg,util
 import curses as cs
-from config import session
 
 
 
@@ -52,7 +50,7 @@ def checkforinput(*args,**kw):
 	a=getscreen().getch()
 	cs.flushinp()
 	cfg.currentprocess().display.draw()
-	return cfg.extractkey_cs(a)
+	return extractkey_cs(a)
 
 cfg.checkforinput=checkforinput
 
@@ -79,10 +77,10 @@ def session_in_display(processfn,profile,nodelay=True,**kw):
 		cfg.screen=screen
 		screen.nodelay(nodelay)
 		cs.use_default_colors()
-		cfg.session.display=disp.CompositeDisplay((0,cs.COLS),(0,cs.LINES))
+		util.session.display=disp.CompositeDisplay((0,cs.COLS),(0,cs.LINES))
 		#try: profile.prepdashboard(profile.dashboard)
 		#except: pass
-		processfn(profile,display=cfg.session.display,**kw)
+		processfn(profile,display=util.session.display,**kw)
 
 	out=cs.wrapper(wrapped)
 	return out

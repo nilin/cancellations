@@ -14,13 +14,11 @@
 
 import jax
 import jax.numpy as jnp
-import util
-import permutations_simple as ps
-import testing
-import config as cfg
+from ..utilities import math as mathutil,util
+from . import permutations_simple as ps
 from jax.lax import collapse
-from functions import multivariate as mv
-import backflow as bf
+from . import multivariate as mv
+from . import backflow as bf
 
 
 
@@ -38,7 +36,7 @@ def gen_Af_simple(n,f):
 
 	@jax.jit
 	def Af(params,X):
-		PX=util.apply_on_n(Ps,X)				# PX:	n!,s,n,d
+		PX=mathutil.apply_on_n(Ps,X)				# PX:	n!,s,n,d
 		fX=f(params,PX)						# fX:	n!,s
 		return jnp.dot(signs,fX)				# s
 
@@ -50,10 +48,10 @@ def gen_Af_simple(n,f):
 #----------------------------------------------------------------------------------------------------
 
 def gen_Af(n,f):
-	return gen_Af_simple(n,f) if n<=cfg.heavy_threshold else gen_Af_heavy(n,f)
+	return gen_Af_simple(n,f) #if n<=cfg.heavy_threshold else gen_Af_heavy(n,f)
 
 def gen_lossgrad_Af(n,f,lossfn):
-	return mv.gen_lossgrad(gen_Af(n,f)) if n<=cfg.heavy_threshold else AS_HEAVY.gen_lossgrad_Af_heavy(n,f,lossfn)
+	return mv.gen_lossgrad(gen_Af(n,f)) #if n<=cfg.heavy_threshold else AS_HEAVY.gen_lossgrad_Af_heavy(n,f,lossfn)
 
 		
 
