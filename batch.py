@@ -1,13 +1,13 @@
-import example
-import cdisplay
-from cdisplay import runtask
-import config as cfg
-import browse
+from cancellations.examples import example
+from cancellations.display import cdisplay
+from cancellations.util import util, browse
 import os
 
-batch=cfg.Profile(name='load and train')
 
 
+
+
+batch=util.Profile(name='load and train')
 
 
 
@@ -24,16 +24,5 @@ batch.genprofile2=lambda prevoutputs: example.getdefaultprofile().butwith(\
 
 
 
-def runbatch(batch,display):
-    tasks=[]
-    for i in range(1,1000):
-        try: tasks.append((batch['task{}'.format(i)],batch['genprofile{}'.format(i)]))
-        except: pass
-
-    outputs=[]
-    for task, genprofile in tasks:
-        outputs.append(runtask(task,genprofile(outputs),display))
-
-
 if __name__=='__main__':
-    cdisplay.session_in_display(runbatch,batch)
+    cdisplay.session_in_display(util.runbatch,batch)

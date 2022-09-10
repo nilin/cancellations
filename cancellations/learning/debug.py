@@ -2,7 +2,7 @@ import jax
 import config as cfg
 import sys
 
-def _print_(*args,**kw):
+def print(*args,**kw):
 	with jax.disable_jit():
 		print(*args,**kw)
 

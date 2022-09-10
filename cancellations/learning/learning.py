@@ -24,7 +24,7 @@ import scipy.stats as st
 import time
 import pdb
 import AS_tools
-import AS_HEAVY
+
 import collections
 import copy
 from collections import deque

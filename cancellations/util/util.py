@@ -131,23 +131,6 @@ class Memory(BasicMemory,Timer,Watched):
         #poke(varname,val)
 
 
-#
-#class ActiveMemory(Memory):
-#
-#	def compute(self,queries,fn,outputname):
-#		inputvals=[self.getcurrentval(q) for q in queries]
-#		self.remember(outputname,fn(*inputvals))
-#
-#	def computefromhist(self,queries,fn,outputname):
-#		inputvals=[self.gethist(q) for q in queries]
-#		self.remember(outputname,fn(*inputvals))
-#
-
-
-
-        #if rawlogprint: print(msg)
-
-
 #----------------------------------------------------------------------------------------------------
 
 class Keychain:
@@ -249,7 +232,6 @@ class Run(Process):
 
 
 #stack
-processes=[]
 
 def loadprocess(process):
     if len(processes)==0 or processes[-1]!=process:
@@ -270,7 +252,6 @@ def act_on_input(inp):
     return processes[-1].act_on_input(inp)
 
 
-session=Process({'name':'session'},display=None,ID='session '+nowstr())
 
 #----------------------------------------------------------------------------------------------------
 def nextkey(): return currentprocess().nextkey()
@@ -286,41 +267,6 @@ def clearcurrenttask(): currentprocess().clearcurrenttask()
 #----------------------------------------------------------------------------------------------------
 
 
-def histpath():
-    return outpath+'hist'
-
-def logpaths():
-    return [outpath+'log','logs/'+session.ID]
-
-def getoutpath():
-    return outpath
-
-def register(*names,sourcedict,savetoglobals=False):
-    cfgcontext=globals() if savetoglobals else params
-    cfgcontext.update({k:sourcedict[k] for k in names})
-
-def retrieve(context,names):
-    context.update({k:params[k] if k in params else globals()[k] for k in names})
-
-
-#
-#def savestate(*paths):
-#	#sessionstate.save(*paths)
-#		
-#def save():
-#	savestate(*histpaths())
-#
-
-
-#----------------------------------------------------------------------------------------------------
-
-def log(msg):
-    session.log(msg)
-    return act_on_input(checkforinput())
-
-
-def LOG(msg):
-    log('\n\n'+msg+'\n\n')
 
 #def dblog(msg):
 #    write(str(msg)+'\n','dblog/'+sessionID)
@@ -456,7 +402,6 @@ class Clockedworker(Stopwatch):
 
 
 
-#====================================================================================================
 
 def makedirs(filepath):
     path='/'.join(filepath.split('/')[:-1])
@@ -505,80 +450,89 @@ def showfile(path):
 
 #====================================================================================================
 
-def formatvars(elements,separator=' ',ignore={}):
-    return separator.join(['{}={}'.format(name,val) for name,val in elements if name not in ignore])
+
+
+def wraptext(msg,style=dash):
+    width=max([len(l) for l in msg.splitlines()])
+    line=dash*width
+    return '{}\n{}\n{}'.format(line,msg,line)
+
+def wraplines(lines,style=dash):
+    width=max([len(l) for l in lines])
+    line=dash*width
+    return [line]+lines+[line]
+
+BOX='\u2588'
+box='\u2592'
+dash='\u2015'
+hour=3600
+day=24*hour
+week=7*day
 
 
 
-def castval(val):
-    for f in [int,cast_str_as_list_(int),float,cast_str_as_list_(float)]:
-        try:
-            return f(val)
-        except:
-            pass
-    return val
-
-
-def cast_str_as_list_(dtype):
-    def cast(s):
-        return [dtype(x) for x in s.split(',')]
-    return cast
-
-
-def parsedef(s):
-    name,val=s.split('=')
-    return name,castval(val)
-        
-
-def parse_cmdln_args(cmdargs=sys.argv[1:]):
-    cmdargs=deque(cmdargs)
-    args=[]
-    while len(cmdargs)>0 and '=' not in cmdargs[0]:
-        args.append(cmdargs.popleft())
-
-    defs=dict([parsedef(_) for _ in cmdargs])
-    return args,defs
-
-
-
-def orderedunion(A,B):
-    A,B=list(A),deque(B)
-    S=set(A)
-    for b in B:
-        if b not in S:
-            A.append(b)
-            S.add(b)
-    return A
-        
-
-def terse(l):
-    return str([round(float(e*1000))/1000 for e in l])
-
-def selectone(options,l):
-    choice=list(options.intersection(l))
-    assert(len(choice)==1)
-    return choice[0]
-
-def selectonefromargs(*options):
-    return selectone(set(options),parse_cmdln_args()[0])
 
 #====================================================================================================
 
 
-def longestduration(folder):
-    def relorder(subfolder):
-        try:
-            with open(folder+'/'+subfolder+'/duration','r') as f:
-                return int(f.read())
-        except:
-            return -1
-    return folder+max([(subfolder,relorder(subfolder)) for subfolder in os.listdir(folder)],key=lambda pair:pair[1])[0]+'/'
-    
-def latest(folder):
-    folders=[f for f in os.listdir(folder) if len(f)==15 and len(re.sub('[^0-9]','',f))==10]
-    def relorder(subfoldername):
-        return int(re.sub('[^0-9]','',subfoldername))
-    return folder+max([(subfolder,relorder(subfolder)) for subfolder in folders],key=lambda pair:pair[1])[0]+'/'
+
+def runbatch(batch,display):
+    tasks=[]
+    for i in range(1,1000):
+        try: tasks.append((batch['task{}'.format(i)],batch['genprofile{}'.format(i)]))
+        except: pass
+
+    outputs=[]
+    for task, genprofile in tasks:
+        outputs.append(runtask(task,genprofile(outputs),display))
+
+
+
+
+
+
+#def conditional(f,do):
+#    if do:
+#        f()
+
+#def orderedunion(A,B):
+#    A,B=list(A),deque(B)
+#    S=set(A)
+#    for b in B:
+#        if b not in S:
+#            A.append(b)
+#            S.add(b)
+#    return A
+#        
+#
+#def terse(l):
+#    return str([round(float(e*1000))/1000 for e in l])
+#
+#def selectone(options,l):
+#    choice=list(options.intersection(l))
+#    assert(len(choice)==1)
+#    return choice[0]
+#
+#def selectonefromargs(*options):
+#    return selectone(set(options),parse_cmdln_args()[0])
+
+#====================================================================================================
+
+
+#def longestduration(folder):
+#    def relorder(subfolder):
+#        try:
+#            with open(folder+'/'+subfolder+'/duration','r') as f:
+#                return int(f.read())
+#        except:
+#            return -1
+#    return folder+max([(subfolder,relorder(subfolder)) for subfolder in os.listdir(folder)],key=lambda pair:pair[1])[0]+'/'
+#    
+#def latest(folder):
+#    folders=[f for f in os.listdir(folder) if len(f)==15 and len(re.sub('[^0-9]','',f))==10]
+#    def relorder(subfoldername):
+#        return int(re.sub('[^0-9]','',subfoldername))
+#    return folder+max([(subfolder,relorder(subfolder)) for subfolder in folders],key=lambda pair:pair[1])[0]+'/'
 
 
 #def memorybatchlimit(n):
@@ -594,8 +548,6 @@ def latest(folder):
         
 
 
-def getlossfn():
-    return lossfn
 
 #setlossfn('sqloss')
 #setlossfn('SI_loss')
@@ -604,29 +556,7 @@ def getlossfn():
 
 
 #lossfn=sqloss
-heavy_threshold=8
-BOX='\u2588'
-box='\u2592'
-dash='\u2015'
-
-t0=time.perf_counter()
-trackedvals=dict()
-eventlisteners=dict()
-
-biasinitsize=.1
-
-hour=3600
-day=24*hour
-week=7*day
-
-cmdparams,cmdredefs=parse_cmdln_args()
-
-def getfromargs(**kw):
-    return kw[selectone(set(kw.keys()),cmdparams)]
-
-fromcmdparams=getfromargs
-getfromcmdparams=getfromargs
-
+#heavy_threshold=8
 
 
 #sessionstate=State()
@@ -638,19 +568,7 @@ getfromcmdparams=getfromargs
 
 
 
-def conditional(f,do):
-    if do:
-        f()
 
-
-def extractkey_cs(a):
-    if a>=97 and a<=122: return chr(a)
-    if a>=48 and a<=57: return str(a-48)
-    match a:
-        case 32: return 'SPACE'
-        case 10: return 'ENTER'
-        case 127: return 'BACKSPACE'
-    return a
     #try: return chr(a)
     #except: return a
     #try: return {259:'UP',258:'DOWN',260:'LEFT',261:'RIGHT'}[a]
@@ -674,43 +592,29 @@ def extractkey_cs(a):
 #			session.getcurrentval('currenttaskcompleteness'))
 #	printonpoke(msgfn)
 
-def indent(s):
-    return '\n'.join(['    '+l for l in s.splitlines()])
 
-def provide(context=None,**kw):
-    if context==None: context=globals()
-    for name,val in kw.items():
-        if name not in context:
-            context[name]=val	
-
-def providedefault(defs,**kw):
-    [(name,defaultval)]=list(kw.items())
-    try: return defs[name]
-    except: return defaultval
+#def provide(context=None,**kw):
+#    if context==None: context=globals()
+#    for name,val in kw.items():
+#        if name not in context:
+#            context[name]=val	
+#
+#def providedefault(defs,**kw):
+#    [(name,defaultval)]=list(kw.items())
+#    try: return defs[name]
+#    except: return defaultval
 
 
-def addparams(**kw):
-    params.update(kw)
+#def addparams(**kw):
+#    params.update(kw)
 
 
-plotfineness=50
-
-dash='\u2015'
-
-def wraptext(msg,style=dash):
-    width=max([len(l) for l in msg.splitlines()])
-    line=dash*width
-    return '{}\n{}\n{}'.format(line,msg,line)
-
-def wraplines(lines,style=dash):
-    width=max([len(l) for l in lines])
-    line=dash*width
-    return [line]+lines+[line]
 
 
-def refreshdisplay(name):
-    try: dashboard.draw(name)
-    except: log('failed to refresh display '+name)
+
+#def refreshdisplay(name):
+#    try: dashboard.draw(name)
+#    except: log('failed to refresh display '+name)
 
 
 ####################################################################################################
@@ -718,29 +622,30 @@ def refreshdisplay(name):
 # testing
 
 
-checkforinput=donothing
+#checkforinput=donothing
 
 
 
-
-
-
-
-
-if __name__=='__main__':
-
-#	print(stepwiseperiodicsched([10,100],[0,60,600]))
-#	for i in range(10):
-#		print(nextkey())
-
-    #print(selectone({'r','t'},[1,4,'r',5,'d']))
-
-#	print(times_to_ordinals([.1,.2,.3,.4,.5,.6,.7,.8],[.3,.7],['a','b']))
-#	print(times_to_ordinals([.1,.2,.3,.4,.5,.6,.7,.8],[.1,.2,.3,.4,.5,.6,.7,.8],[1,2,3,4,5,6,7,8]))
-
-    #print(expsched(.1,100,3))
-
-
-    print(nonsparsesched(1000,10))
-
-    #livekeyboard()
+#
+#
+#
+#
+#
+#if __name__=='__main__':
+#
+##	print(stepwiseperiodicsched([10,100],[0,60,600]))
+##	for i in range(10):
+##		print(nextkey())
+#
+#    #print(selectone({'r','t'},[1,4,'r',5,'d']))
+#
+##	print(times_to_ordinals([.1,.2,.3,.4,.5,.6,.7,.8],[.3,.7],['a','b']))
+##	print(times_to_ordinals([.1,.2,.3,.4,.5,.6,.7,.8],[.1,.2,.3,.4,.5,.6,.7,.8],[1,2,3,4,5,6,7,8]))
+#
+#    #print(expsched(.1,100,3))
+#
+#
+#    print(nonsparsesched(1000,10))
+#
+#    #livekeyboard()
+#

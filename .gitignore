@@ -1,5 +1,11 @@
 **/__pycache__
 **/.DS_Store
+
+.*
+
+!/.gitignore
+
+
 data*
 temp*
 data/*
@@ -14,6 +20,7 @@ hpc*
 sum2*
 sum3*
 scratchwork
+.*
 inputs/*
 local*
 prev*

@@ -18,7 +18,7 @@ import display as disp
 import config as cfg
 from config import session
 import testing
-import functions
+from functions import functions
 import os
 
 

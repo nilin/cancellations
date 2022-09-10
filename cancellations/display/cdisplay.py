@@ -46,12 +46,6 @@ class Pad(disp.CompositeDisplay):
 
 
 
-#	def draw(self):
-#		cfg.screen.clear()
-#		cfg.screen.refresh()
-#		super().draw()
-#		cfg.screen.refresh()
-
 
 
 def checkforinput(*args,**kw):
@@ -61,6 +55,17 @@ def checkforinput(*args,**kw):
 	return cfg.extractkey_cs(a)
 
 cfg.checkforinput=checkforinput
+
+def extractkey_cs(a):
+    if a>=97 and a<=122: return chr(a)
+    if a>=48 and a<=57: return str(a-48)
+    match a:
+        case 32: return 'SPACE'
+        case 10: return 'ENTER'
+        case 127: return 'BACKSPACE'
+    return a
+
+
 
 def getscreen(): return cfg.screen
 
@@ -91,56 +96,3 @@ def runtask(task,profile,display):
 	clearscreen()
 	return output
 
-
-#def run_in_subdisplay(process,processfn,display,*args,**kw):
-#
-#	profile.dashboard=disp.CDashboard(width=cs.COLS,height=cs.LINES)
-#	cfg._currentprofile_=profile
-#	clear()
-#	out=runfn(profile,*args,**kw)
-#	clear()
-#
-#	return out
-#
-#
-#def clear():
-#	cfg.screen.clear()
-#	cfg.screen.refresh()
-
-
-
-
-# test
-#
-#if __name__=='__main__':
-#
-#	import time
-#
-#	def wrapped(screen):
-#		#cs.use_default_colors()
-#		h=cs.LINES
-#		w=cs.COLS
-#
-#		dashboard=CDashboard(50,20)
-#
-#		S=db.StackedDisplay(memory=session,width=w)
-#		C=dashboard.add(S,(0,w-1),(0,10))
-#		S.add(db.StaticText('test\n1\n2'))
-#		S.add(db.Bar('y'))
-#
-#		dashboard.draw_all()
-#
-#		screen.nodelay(True)
-#
-#		for Y in range(100):
-#
-#			c=screen.getch()
-#
-#			screen.addstr(20,0,str(c))
-#
-#			session.remember('y',Y/100)
-#			C.draw()
-#			time.sleep(1)
-#
-#
-#	cs.wrapper(wrapped)

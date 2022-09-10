@@ -12,26 +12,15 @@
 #----------------------------------------------------------------------------------------------------
 
 
-import numpy as np
-import math
-import pickle
-import time
-import copy
 import jax
 import jax.numpy as jnp
-import util
-import sys
-import os
-import shutil
-import permutations_simple as ps
-import typing
+import config.util as util
+import functions.permutations_simple as ps
 import testing
 import config as cfg
 from jax.lax import collapse
-import pdb
-import AS_HEAVY
 from functions import multivariate as mv
-import backflow as bf
+import functions.backflow as bf
 
 
 

@@ -6,22 +6,16 @@
 
 
 from distutils.command.config import config
-from re import I
-import config as cfg
-import functions
-import display as disp
+from config import config as cfg
 import exampletemplate
 import jax
-from functions import ComposedFunction,SingleparticleNN
+from functions.functions import ComposedFunction,SingleparticleNN
 import jax.random as rnd
-#import browse_runs
-import util
-import copy
-import plottools as pt
-import cdisplay
-from config import session
+import config.util as util
+import plotting.plottools as pt
+import display.cdisplay as cdisplay
 import jax.numpy as jnp
-import os
+from functions import functions
 jax.config.update("jax_enable_x64", True)
 
 def getdefaultprofile():

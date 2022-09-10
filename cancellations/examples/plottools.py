@@ -10,7 +10,7 @@ import sys
 import matplotlib.pyplot as plt
 import numpy as np
 import learning
-import AS_HEAVY
+
 import copy
 import pdb
 from config import session
