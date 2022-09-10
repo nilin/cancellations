@@ -1,7 +1,7 @@
 import jax
 import jax.numpy as jnp
 import jax.random as rnd
-from ..utilities import tracking
+from ..utilities import tracking,math as mathutil,config as cfg
 import math
 import numpy as np
 import sys
@@ -22,7 +22,7 @@ def samplepoints(X,Y,nsamples):
 	p=Y**2
 	p=p/jnp.sum(p)
 	#I=jnp.random.choice(,range(len(p)),nsamples,p=p)
-	I=rnd.choice(cfg.nextkey(),jnp.arange(len(p)),(nsamples,),p=p)
+	I=rnd.choice(tracking.nextkey(),jnp.arange(len(p)),(nsamples,),p=p)
 	return X[I]
 	
 
@@ -60,16 +60,16 @@ def slicesthrough(x,I):
 
 #def genCrossSections(X,Y,target):
 def genCrossSections(targetfn):
-	cfg.logcurrenttask('Preparing cross sections for plotting.')	
-	cfg.currentkeychain=4
+	tracking.logcurrenttask('Preparing cross sections for plotting.')	
+	tracking.currentkeychain=4
 
-	X=cfg.currentprocess().genX(1000)
+	X=tracking.currentprocess().genX(1000)
 	Y=targetfn(X)
 	n=X.shape[-1]
 	x0s=samplepoints(X,Y,{1:3,2:3,3:1}[n])
 	CrossSection=globals()['CrossSection{}D'.format(n)]
 	sections=[CrossSection(X,Y,targetfn,x0) for x0 in x0s]
-	cfg.clearcurrenttask()
+	tracking.clearcurrenttask()
 	return sections
 
 class CrossSection:
@@ -78,7 +78,7 @@ class CrossSection:
 		self.X=X
 		self.Y=Y
 	def plot_y_vs_f_SI(self,staticlearner,normalized=True,**kwargs):
-		f=tracking.closest_multiple(staticlearner,self.X[:250],self.Y[:250],normalized=normalized)
+		f=mathutil.closest_multiple(staticlearner,self.X[:250],self.Y[:250],normalized=normalized)
 		return self.plot_y_vs_f(f,normalized_target=normalized,**kwargs)
 
 class CrossSection1D(CrossSection):
@@ -89,7 +89,7 @@ class CrossSection1D(CrossSection):
 
 	def plot_y_vs_f(self,f,normalized_target=False):
 
-		c=1/tracking.norm(self.Y) if normalized_target else 1
+		c=1/mathutil.norm(self.Y) if normalized_target else 1
 
 		fig,ax=plt.subplots()
 		ax.plot(self.interval,c*self.y,'b',label='target')
@@ -102,21 +102,21 @@ class CrossSection2D(CrossSection):
 	def __init__(self,X,Y,target,x0):
 		super().__init__(X,Y,cfg.plotfineness)
 		self.slice=slicethrough(x0,self.interval)
-		self.y=tracking.applyalonglast(target,self.slice,2)
+		self.y=mathutil.applyalonglast(target,self.slice,2)
 
 
 	def plot_y_vs_f(self,f,normalized_target=False):
 
 		I=self.interval
-		c=1/tracking.norm(self.Y) if normalized_target else 1
+		c=1/mathutil.norm(self.Y) if normalized_target else 1
 
 		fig,(ax0,ax1,ax2)=plt.subplots(1,3,figsize=(17,5))
 		yt=c*self.y
-		yl=tracking.applyalonglast(f,self.slice,2)
+		yl=mathutil.applyalonglast(f,self.slice,2)
 
 		#M=jnp.max(jnp.abs(yt))+jnp.max(jnp.abs(yl))
 		#M=jnp.max(jnp.abs(c*self.Y))
-		M=1 if normalized_target else tracking.norm(self.Y)
+		M=1 if normalized_target else mathutil.norm(self.Y)
 		M*=4
 
 		ax0.set_title('target')
@@ -157,18 +157,18 @@ class CrossSection3D(CrossSection):
 	def __init__(self,X,Y,target,x0):
 		super().__init__(X,Y,50)
 		self.slices=slicesthrough(x0,self.interval)
-		self.ys=[tracking.applyalonglast(target,sl,2) for sl in self.slices]
+		self.ys=[mathutil.applyalonglast(target,sl,2) for sl in self.slices]
 
 	def plot_y_vs_f(self,f,normalized_target=False):
-		cfg.logcurrenttask('drawing plots')
+		tracking.logcurrenttask('drawing plots')
 
 		I=self.interval
-		c=1/tracking.norm(self.Y) if normalized_target else 1
+		c=1/mathutil.norm(self.Y) if normalized_target else 1
 
 		fig,axsrows=plt.subplots(len(self.slices),3,figsize=(17,17))
 		for sl,y,(ax0,ax1,ax2) in zip(self.slices,self.ys,axsrows):
 			yt=c*y
-			yl=tracking.applyalonglast(f,sl,2)
+			yl=mathutil.applyalonglast(f,sl,2)
 			M=jnp.max(jnp.abs(yt))
 			#ax.pcolormesh(I,I,yt)
 			im=ax0.pcolormesh(I,I,yl-yt,cmap='seismic',vmin=-M,vmax=M)
@@ -180,7 +180,7 @@ class CrossSection3D(CrossSection):
 			im1=ax1.pcolormesh(I,I,yt,cmap='seismic',vmin=-M,vmax=M)
 			im2=ax2.pcolormesh(I,I,yl,cmap='seismic',vmin=-M,vmax=M)
 
-		cfg.clearcurrenttask()
+		tracking.clearcurrenttask()
 		return fig
 
 
@@ -264,7 +264,7 @@ def fnplot_all_in_one(X,statictarget,staticlearner,Y=None,normalized=True):
 #		timestamps,states=self.hists['weights']['timestamps'],self.hists['weights']['vals']
 #		for i,(t,state) in enumerate(zip(timestamps,states)):
 #
-#			cfg.log('processing snapshot {}/{}'.format(i+1,len(timestamps)))
+#			tracking.log('processing snapshot {}/{}'.format(i+1,len(timestamps)))
 #			self.process_state(self.getlearner(state),t)
 #
 #

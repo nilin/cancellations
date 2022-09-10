@@ -1,6 +1,7 @@
 import os 
 import pickle
 from ..functions import functions
+from . import tracking
 
 
 def makedirs(filepath):
@@ -13,7 +14,7 @@ def save(data,*paths,echo=True):
         makedirs(path)
         with open(path,'wb') as file:
             pickle.dump(data,file)
-    if echo: log('Saved data to {}'.format(paths))
+    if echo: tracking.log('Saved data to {}'.format(paths))
 
 def savefig(*paths,fig=None):
     for path in paths:
@@ -22,7 +23,7 @@ def savefig(*paths,fig=None):
             plt.savefig(path)
         else:
             fig.savefig(path)
-    log('Saved figure to {}'.format(paths))
+    tracking.log('Saved figure to {}'.format(paths))
 
 
 def write(msg,*paths,mode='a'):
@@ -39,7 +40,7 @@ def load(path):
 def showfile(path):
     import os
     import subprocess
-    log('opening path '+path)
+    tracking.log('opening path '+path)
 
     try: subprocess.Popen(['open',path])
     except: pass

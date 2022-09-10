@@ -49,6 +49,9 @@ def getdefaultprofile():
     profile.samples_test=1000
     profile.evalblocksize=10**4
 
+    profile.adjusttargetsamples=10000
+    profile.adjusttargetiterations=250
+
     profile.act_on_input=exampletemplate.act_on_input
     return profile
 
@@ -100,7 +103,7 @@ def pickexample(choice,n,d,**kw):
 def prep_and_run(run:tracking.Run):
 
     run.outpath='outputs/{}/'.format(run.ID)
-    tracking.outpath='outputs/{}/'.format(run.ID)
+    cfg.outpath='outputs/{}/'.format(run.ID)
     tracking.log('imports done')
 
     
@@ -119,14 +122,14 @@ def prep_and_run(run:tracking.Run):
     if 'setupdata_path' in run.keys():
         run.update(sysutil.load(run.setupdata_path))
         run.target.restore()
-        cfg.log('Loaded target and training data from '+run.setupdata_path)
-        info+='target\n\n{}'.format(cfg.indent(run.target.getinfo())); run.trackcurrent('runinfo',info)
+        tracking.log('Loaded target and training data from '+run.setupdata_path)
+        info+='target\n\n{}'.format(disp.indent(run.target.getinfo())); run.trackcurrent('runinfo',info)
 
     else:
         target=pickexample(run.targetchoice,n=run.n,d=run.d,**run.targetparams)
 
         tracking.log('adjusting target weights')
-        exampletemplate.adjustnorms(target,X=run.genX(10000),iterations=250,learning_rate=.01)
+        exampletemplate.adjustnorms(target,X=run.genX(run.adjusttargetsamples),iterations=run.adjusttargetiterations,learning_rate=.01)
         run.target=target.compose(functions.Flatten(sharpness=1))
         tracking.log('target initialized')
 
@@ -140,16 +143,16 @@ def prep_and_run(run:tracking.Run):
         run.sections=pt.genCrossSections(run.target.eval)
 
     run.learner=pickexample(run.learnerchoice,n=run.n,d=run.d,**run.learnerparams)
-    cfg.log('learner initialized')
-    info+=4*'\n'+'learner\n\n{}'.format(cfg.indent(run.learner.getinfo())); run.trackcurrent('runinfo',info)
+    tracking.log('learner initialized')
+    info+=4*'\n'+'learner\n\n{}'.format(disp.indent(run.learner.getinfo())); run.trackcurrent('runinfo',info)
 
 
     setupdata=dict(X_train=run.X_train,Y_train=run.Y_train,X_test=run.X_test,Y_test=run.Y_test,\
         target=run.target.compress(),learner=run.learner.compress(),sections=run.sections)
-    cfg.save(setupdata,run.outpath+'data/setup')
+    sysutil.save(setupdata,run.outpath+'data/setup')
 
     run.trackcurrent('runinfo',info)
-    cfg.write(info,run.outpath+'info.txt',mode='w')
+    sysutil.write(info,run.outpath+'info.txt',mode='w')
 
     exampletemplate.testantisymmetry(run.target,run.learner,run.genX(100))
     exampletemplate.train(run,run.learner,run.X_train,run.Y_train,**run.trainingparams)
@@ -162,7 +165,7 @@ def main(profile,display,*a,**kw):
     run.act_on_input=exampletemplate.act_on_input
     tracking.loadprocess(run)
     prep_and_run(run,*a,**kw)
-    cfg.unloadprocess(run)
+    tracking.unloadprocess(run)
 
 
 

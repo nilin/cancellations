@@ -42,8 +42,8 @@ def _pickfolders_(profile,display):
 	explanation=\
 		disp.wraptext(profile.msg)+'\n\n'\
 		+'Move with arrow keys:\n{}: up\n{}: down\n{}: fast up\n{}: fast down'.format(up,down,left,right)\
-		+'\n\nPress SPACE or a to add (i.e. mark) elements.'\
-		+'\nPress s or c to move between marked elements.'\
+		+('' if profile.onlyone else '\n\nPress SPACE or a to add (i.e. mark) elements.'\
+		+'\nPress s or c to move between marked elements.')\
 		+'\n\nPress ENTER to finish selection'
 	explainpad.addstr(0,0,explanation)
 	explainpad.draw()

@@ -25,7 +25,7 @@ class Sampler:
 		X0=self.X
 		X1=self.proposals(X0)
 		ratios=self.p(X1)/self.p(X0)
-		u=rnd.uniform(cfg.nextkey(),ratios.shape)
+		u=rnd.uniform(tracking.nextkey()(),ratios.shape)
 		accepted=ratios>u
 		rejected=1-accepted
 		self.X=scaleby(rejected,X0)+scaleby(accepted,X1)
@@ -41,7 +41,7 @@ class Sampler:
 		self.hist.append(self.X)
 	
 	def proposals(self,X):
-		return self.proposalfn(cfg.nextkey(),X)
+		return self.proposalfn(tracking.nextkey()(),X)
 
 
 #

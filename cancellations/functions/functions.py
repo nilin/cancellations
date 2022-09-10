@@ -378,7 +378,7 @@ def formatinspection(L):
 
 def inspect(fd,X,formatarrays=None,msg=''):
 
-	cfg.logcurrenttask('inspect function '+msg)
+	tracking.logcurrenttask('inspect function '+msg)
 
 	if formatarrays==None:
 		def formatarrays(name,val):

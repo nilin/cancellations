@@ -5,10 +5,11 @@
 
 import jax.numpy as jnp
 import jax
-from ..utilities import tracking, config as cfg
+from ..utilities import tracking,math as mathutil, config as cfg
 import math
 import jax.random as rnd
 import pdb
+from . import multivariate as mv
 
 jax.config.update("jax_enable_x64", True)
 
@@ -71,8 +72,8 @@ def gen_singleparticleNN(activation):
 
 def initweights_Backflow(widths,*args,**kw):
 	ds=widths
-	Ws=[tracking.initweights((d2,2*d1)) for d1,d2 in zip(ds[:-1],ds[1:])]
-	bs=[rnd.normal(cfg.nextkey(),(d2,))*cfg.biasinitsize for d2 in ds[1:]]
+	Ws=[mathutil.initweights((d2,2*d1)) for d1,d2 in zip(ds[:-1],ds[1:])]
+	bs=[rnd.normal(tracking.nextkey(),(d2,))*cfg.biasinitsize for d2 in ds[1:]]
 
 	return list(zip(Ws,bs))	
 

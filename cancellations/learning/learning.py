@@ -76,8 +76,8 @@ class Trainer():
 
 	def prepnextepoch(self,permute=True):
 		self.memory.log('preparing new epoch')
-		if permute: self.X,self.Y=tracking.randperm(self.X,self.Y)
-		self.minibatches=deque(tracking.chop(self.X,self.Y,blocksize=self.minibatchsize))
+		if permute: self.X,self.Y=mathutil.randperm(self.X,self.Y)
+		self.minibatches=deque(mathutil.chop(self.X,self.Y,blocksize=self.minibatchsize))
 
 		self.memory.log('start new epoch')
 		self.memory.remember('minibatches in epoch',len(self.minibatches))

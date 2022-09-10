@@ -18,7 +18,7 @@ batch.genprofile1=lambda _: browse.getdefaultprofile().butwith(\
 
 batch.task2=example.main
 batch.genprofile2=lambda prevoutputs: example.getdefaultprofile().butwith(\
-    setupdata_path=prevoutputs[0]+'data/setup')
+    setupdata_path=prevoutputs[0]+'data/setup',n=4)
 
 
 

@@ -6,3 +6,4 @@ from collections import deque
 
 
 biasinitsize=.1
+plotfineness=50

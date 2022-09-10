@@ -42,7 +42,7 @@ envelope=exprofile.envelope
 p0=jax.jit(lambda X:envelope(X)*target.eval(X)**2)
 p=jax.jit(lambda X:envelope(X)*learner.eval(X)**2)
 
-sampler=mcmc.Sampler(p0,profile.proposalfn,X0_distr(cfg.nextkey(),profile.nrunners),burnsteps=0)
+sampler=mcmc.Sampler(p0,profile.proposalfn,X0_distr(tracking.nextkey()(),profile.nrunners),burnsteps=0)
 
 @jax.jit
 def Ep(X):

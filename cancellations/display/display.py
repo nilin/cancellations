@@ -1,6 +1,7 @@
 import os
 import math
 from ..utilities import config as cfg, tracking
+from ..utilities.tracking import session
 import collections
 
 #----------------------------------------------------------------------------------------------------
@@ -98,7 +99,7 @@ class SessionText(Display):
 
 class RunText(Display):
 	def _gettext_(self):
-		return cfg.currentprocess().getval(self.query)
+		return tracking.currentprocess().getval(self.query)
 
 class LogDisplay(Display):
 	def __init__(self,**kw):
@@ -168,7 +169,7 @@ class QueryDisplay(Display):
 		super().__init__(query=query,**kw)
 
 	def getval(self):
-		return cfg.currentprocess().getcurrentval(self.query)
+		return tracking.currentprocess().getcurrentval(self.query)
 
 
 class NumberDisplay(QueryDisplay):

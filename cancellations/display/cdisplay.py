@@ -90,7 +90,7 @@ def session_in_display(processfn,profile,nodelay=True,**kw):
 def runtask(task,profile,display):
 	tracking.loadprocess(task)
 	output=task(profile,display)
-	cfg.unloadprocess(task)
+	tracking.unloadprocess(task)
 	clearscreen()
 	return output
 

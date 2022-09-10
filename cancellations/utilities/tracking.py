@@ -3,7 +3,7 @@ import time
 import copy
 import jax.numpy as jnp
 import sys
-from . import sysutil
+from . import sysutil,config as cfg
 import matplotlib.pyplot as plt
 import datetime
 import jax.random as rnd
@@ -462,13 +462,13 @@ def getlossfn():
     return lossfn
 
 def histpath():
-    return outpath+'hist'
+    return cfg.outpath+'hist'
 
 def logpaths():
-    return [outpath+'log','logs/'+session.ID]
+    return [cfg.outpath+'log','logs/'+session.ID]
 
 def getoutpath():
-    return outpath
+    return cfg.outpath
 
 #def register(*names,sourcedict,savetoglobals=False):
 #    cfgcontext=globals() if savetoglobals else params
@@ -516,7 +516,6 @@ def getfromargs(**kw):
 fromcmdparams=getfromargs
 getfromcmdparams=getfromargs
 
-plotfineness=50
 
 dash='\u2015'
 
