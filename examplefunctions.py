@@ -1,7 +1,7 @@
 import jax
 import jax.numpy as jnp
 import numpy as np
-import multivariate as mv
+from functions import multivariate as mv
 import util
 import AS_tools
 import pdb

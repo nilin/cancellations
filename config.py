@@ -3,6 +3,7 @@ import math
 import pickle
 import time
 import copy
+import jax
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import os
@@ -142,28 +143,11 @@ class Memory(BasicMemory,Timer,Watched):
 #		self.remember(outputname,fn(*inputvals))
 #
 
-def timeprint(): return datetime.timedelta(seconds=int(session.time()))
 
-def now(): return str(datetime.datetime.now()).split('.')[0].split(' ')
 
-def nowstr():
-    date,time=now()
-    date='-'.join(date.split('-')[1:])
-    time=''.join([x for pair in zip(time.split(':'),['h','m','s']) for x in pair])
-    return date+'|'+time
-
-sessionID=nowstr()
-
-class Session(Memory):
-    def log(self,msg):
-        msg='{} | {}'.format(timeprint(),msg)
-        write(msg+'\n',*logpaths())
-        super().log(msg)
         #if rawlogprint: print(msg)
 
 
-def donothing(*x,**y):
-    return None
 #----------------------------------------------------------------------------------------------------
 
 class Keychain:
@@ -184,7 +168,16 @@ class Keychain:
 
 #----------------------------------------------------------------------------------------------------
 
-class Profile(dict):
+def donothing(*x,**y):
+    return None
+
+
+class dotdict(dict):
+    __getattr__=dict.get
+    def __setattr__(self,k,v):
+        self[k]=v
+
+class Profile(dotdict):
 
     def __init__(self,*a,**kw):
         super().__init__(*a,**kw)
@@ -192,19 +185,36 @@ class Profile(dict):
         self.keychain=Keychain()
         self.act_on_input=donothing
 
-    __getattr__=dict.get
-
-    def load(self,destinationdict):
-        destinationdict.update(self)
-
-    def __setattr__(self,k,v):
-        self[k]=v
-
     def register(self,*names,sourcedict):
         self.update({k:sourcedict[k] for k in names})
 
-    def retrieveparams(self,destination):
-        destination.update(self)	
+    def load(self,*varnames):
+        return [self[vn] for vn in varnames]
+
+    def butwith(self,**defs):
+        self.update(defs)
+        return self
+
+
+def timeprint(): return datetime.timedelta(seconds=int(session.time()))
+def nowstr():
+    date,time=str(datetime.datetime.now()).split('.')[0].split(' ')
+    date='-'.join(date.split('-')[1:])
+    time=''.join([x for pair in zip(time.split(':'),['h','m','s']) for x in pair])
+    return date+'|'+time
+
+class Process(Profile,Memory):
+    def __init__(self,profile,display,ID=None):
+        super().__init__()
+        Memory.__init__(self)
+        self.update(profile)
+        self.ID='{} {}'.format(profile.name,session.ID) if ID==None else ID
+        self.display=display
+
+    def log(self,msg):
+        msg='{} | {}'.format(timeprint(),msg)
+        write(msg+'\n',*logpaths())
+        super().log(msg)
 
     def nextkey(self):
         return self.keychain.nextkey()
@@ -217,7 +227,7 @@ class Profile(dict):
         if completeness>=1 or stopwatch.tick_after(.05):
             self.run.trackcurrent('currenttask',msg)
             self.run.trackcurrent('currenttaskcompleteness',completeness)
-            return self.act_on_input(checkforinput())
+            return act_on_input(checkforinput())
         else: return None
 
     def getcurrenttask(self):
@@ -229,28 +239,45 @@ class Profile(dict):
         self.run.trackcurrent('currenttaskcompleteness',0)
 
 
-class RunProfile(Profile):
-    def __init__(self,*a,ID,**kw):
+class Run(Process):
+    def __init__(self,*a,**kw):
         super().__init__(*a,**kw)
-        self.runID=ID
+        self.X_distr=lambda key,samples: self._X_distr_(key,samples,self.n,self.d)
 
-    def genX(self,samples):
+    def genX(self,samples:int):
         return self.X_distr(self.nextkey(),samples)
 
 
+#stack
+processes=[]
 
-def currentprofile(): return _currentprofile_
+def loadprocess(process):
+    if len(processes)==0 or processes[-1]!=process:
+        processes.append(process)
 
-session=Session()
-defaultrunprofile=RunProfile(ID=sessionID)
-_currentprofile_=defaultrunprofile
+def unloadprocess(process):
+    if len(processes)>0 and processes[-1]==process:
+        processes.pop()
+
+def currentprocess():
+    return processes[-1]
+
+def pull(*varnames):
+    process=currentprocess()
+    return [process[vn] for vn in varnames]
+
+def act_on_input(inp):
+    return processes[-1].act_on_input(inp)
+
+
+session=Process({'name':'session'},display=None,ID='session '+nowstr())
 
 #----------------------------------------------------------------------------------------------------
-def nextkey(): return currentprofile().nextkey()
-def logcurrenttask(msg): currentprofile().logcurrenttask(msg)
-def trackcurrenttask(msg,completeness): return currentprofile().trackcurrenttask(msg,completeness)
-def getcurrenttask(): return currentprofile().getcurrenttask()
-def clearcurrenttask(): currentprofile().clearcurrenttask()
+def nextkey(): return currentprocess().nextkey()
+def logcurrenttask(msg): currentprocess().logcurrenttask(msg)
+def trackcurrenttask(msg,completeness): return currentprocess().trackcurrenttask(msg,completeness)
+def getcurrenttask(): return currentprocess().getcurrenttask()
+def clearcurrenttask(): currentprocess().clearcurrenttask()
 #----------------------------------------------------------------------------------------------------
 
 
@@ -263,7 +290,7 @@ def histpath():
     return outpath+'hist'
 
 def logpaths():
-    return [outpath+'log','logs/'+sessionID]
+    return [outpath+'log','logs/'+session.ID]
 
 def getoutpath():
     return outpath
@@ -295,9 +322,9 @@ def log(msg):
 def LOG(msg):
     log('\n\n'+msg+'\n\n')
 
-def dblog(msg):
-    write(str(msg)+'\n','dblog/'+sessionID)
-    write(str(msg)+'\n\n',outpath+'dblog')
+#def dblog(msg):
+#    write(str(msg)+'\n','dblog/'+sessionID)
+#    write(str(msg)+'\n\n',outpath+'dblog')
 
 
 
@@ -602,9 +629,6 @@ getfromcmdparams=getfromargs
 
 
 
-def act_on_input(c):
-    return c
-
 #sessionstate=State()
 #params=dict()
 
@@ -620,14 +644,20 @@ def conditional(f,do):
 
 
 def extractkey_cs(a):
-
-    try: return chr(a)
-    except: pass
-    try: return {259:'UP',258:'DOWN',260:'LEFT',261:'RIGHT'}[a]
-    except: pass
-    try: return {27:'ESCAPE',127:'BACKSPACE',10:'ENTER'}[a]
-    except: pass
+    if a>=97 and a<=122: return chr(a)
+    if a>=48 and a<=57: return str(a-48)
+    match a:
+        case 32: return 'SPACE'
+        case 10: return 'ENTER'
+        case 127: return 'BACKSPACE'
     return a
+    #try: return chr(a)
+    #except: return a
+    #try: return {259:'UP',258:'DOWN',260:'LEFT',261:'RIGHT'}[a]
+    #except: pass
+    #try: return {27:'ESCAPE',127:'BACKSPACE',10:'ENTER'}[a]
+    #except: pass
+    #return a
 
 
 
@@ -689,7 +719,6 @@ def refreshdisplay(name):
 
 
 checkforinput=donothing
-defaultrunprofile.act_on_input=donothing
 
 
 

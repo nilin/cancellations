@@ -1,6 +1,6 @@
 from re import I
-from browse_runs import pickfolders,commonanc
-import browse_runs
+from browse import pickfolders,commonanc
+import browse
 import os
 import shutil
 import util
@@ -99,7 +99,7 @@ def plotexamples(paths):
 
 
 
-_,folders=browse_runs.pickfolders_leave_cs()
+_,folders=browse.pickfolders_leave_cs()
 outpath,branches=commonanc(*folders)
 
 

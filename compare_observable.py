@@ -1,4 +1,4 @@
-import browse_runs
+import browse
 import mcmc
 import config as cfg
 import os
@@ -26,7 +26,7 @@ cfg._currentprofile_=profile
 profile.act_on_input=cfg.donothing
 cfg.checkforinput=cfg.donothing
 
-path,_=browse_runs.pickfolders_leave_cs(msg='test',condition=lambda path:os.path.exists(path+'/data/setup'))
+path,_=browse.pickfolders_leave_cs(msg='test',condition=lambda path:os.path.exists(path+'/data/setup'))
 
 
 

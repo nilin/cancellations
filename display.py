@@ -9,6 +9,7 @@ import config as cfg
 from collections import deque
 import time
 import util
+import random
 from config import session
 
 
@@ -86,8 +87,6 @@ class Display:
 	def setwidth(self,width):
 		self.width=width
 
-	def attach(self,container):
-		self.container=container
 	
 
 
@@ -109,8 +108,7 @@ class SessionText(Display):
 
 class RunText(Display):
 	def _gettext_(self):
-		cprof=cfg.currentprofile()
-		return cprof.run.getval(self.query)
+		return cfg.currentprocess().getval(self.query)
 
 class LogDisplay(Display):
 	def __init__(self,**kw):
@@ -125,44 +123,43 @@ class LogDisplay(Display):
 
 
 class CompositeDisplay(Display):
-	def __init__(self,**kw):
-		super().__init__(**kw)
-		self.elements=[]
-		self.names=dict()
+	def __init__(self,xlim,ylim,*a,**kw):
+		x0,x1=xlim
+		y0,y1=ylim
+		
+		super().__init__(*a,\
+			xlim=xlim,ylim=ylim,
+			width=x1-x0,height=y1-y0,
+			elements=cfg.dotdict(),\
+			defaultnames=deque(range(100)), **kw)
+
+	def __getattr__(self,name):
+		try: return super.__getattr__(name)
+		except: return self.elements.__getattr__(name)
 
 	def add(self,e,name=None):
-		self.elements.append(e)
-		if name is not None: self.names[name]=e
-		e.attach(self)
-		return e
+		if name==None:name=self.defaultnames.popleft()
+		self.elements[name]=e
+		return e,name
 
 	def element(self,e):
-		if e in self.names: return self.names[e]
+		if e in self.elements.keys(): return self.elements[e]
 		else: return e
 
-	def delete(self,*elements):
-		for e in elements:
-			self.elements.remove(self.element(e))
+	def delkeys(self,*keys):
+		for k in keys:
+			del self.elements[k]
 
-	def drawelement(self,name):
-		self.elements[self.element(name)].draw()
-
-	def draw(self):
-		for e in self.elements:
-			e.draw()
+	def draw(self,*a,**kw):
+		for e in self.elements.values():
+			e.draw(*a,**kw)
 
 
-class CDashboard(CompositeDisplay):
-
-	def draw(self):
-		cfg.screen.clear()
-		cfg.screen.refresh()
-		super().draw()
 
 
 class StackedDisplay(CompositeDisplay):
 	def _gettext_(self):
-		return '\n'.join([e.gettext() for e in self.elements])
+		return '\n'.join([e.gettext() for e in self.elements.values()])
 
 	def add(self,e):
 		if hasattr(self,'width'): e.setwidth(self.width)
@@ -181,8 +178,7 @@ class QueryDisplay(Display):
 		super().__init__(query=query,**kw)
 
 	def getval(self):
-		cprof=cfg.currentprofile()
-		return cprof.run.getcurrentval(self.query)
+		return cfg.currentprocess().getcurrentval(self.query)
 
 
 class NumberDisplay(QueryDisplay):

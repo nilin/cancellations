@@ -76,7 +76,7 @@ def gen_lossgrad(f,lossfn=None):
 def initweights_NN(widths,*args,**kw):
 	ds=widths
 	Ws=[util.initweights((d2,d1)) for d1,d2 in zip(ds[:-1],ds[1:])]
-	bs=[rnd.normal(cfg.currentprofile().nextkey(),(d2,))*cfg.biasinitsize for d2 in ds[1:]]
+	bs=[rnd.normal(cfg.nextkey(),(d2,))*cfg.biasinitsize for d2 in ds[1:]]
 
 	return list(zip(Ws,bs))
 

@@ -13,24 +13,37 @@ down='\u2193'
 left='\u2190'
 right='\u2192'
 
-def _pickfolders_(profile,msg='select folder',condition=None):
 
-	W=cfg.currentprofile().dashboard.width
-	H=cfg.currentprofile().dashboard.height
+
+def getdefaultprofile():
+	profile=cfg.Profile(name='browsing')
+	profile.parentfolder='outputs'
+	profile.msg='select folder'
+	profile.onlyone=False
+	profile.condition=None
+	return profile
+
+
+def _pickfolders_(profile,display):
+
+	browsing=cfg.Process(profile,display=display)
+
+	W=display.width
+	H=display.height
 	screen=cfg.screen
 	screen.nodelay(False)
-	explainpad=cs.newpad(500,500)
-	listpad=cs.newpad(500,500)
-	matchinfopad=cs.newpad(500,500)
+	explainpad=cdisplay.Pad((0,W//3),(0,H))
+	listpad=cdisplay.Pad((W//3,2*W//3),(0,H),100,1000)
+	matchinfopad=cdisplay.Pad((2*W//3,W),(0,H))
 
 	explanation=\
-		cfg.wraptext(msg)+'\n\n'\
+		cfg.wraptext(profile.msg)+'\n\n'\
 		+'Move with arrow keys:\n{}: up\n{}: down\n{}: fast up\n{}: fast down'.format(up,down,left,right)\
 		+'\n\nPress SPACE or a to add (i.e. mark) elements.'\
 		+'\nPress s or c to move between marked elements.'\
 		+'\n\nPress ENTER to finish selection'
 	explainpad.addstr(0,0,explanation)
-	explainpad.refresh(0,0,3,5,H-3,W//3)
+	explainpad.draw()
 	screen.refresh()
 	
 
@@ -38,64 +51,57 @@ def _pickfolders_(profile,msg='select folder',condition=None):
 		matchinfopad.erase()
 		listpad.erase()
 		for i,match in enumerate(options):
-			#listpad.addstr(i,2,'{}: {} - {}'.format(str(i+1).rjust(3),match,runinfo(match)))
-			listpad.addstr(i,2,'{}: {} - {}'.format(str(i+1),match,runinfo(match)))
+			listpad.addstr(i,2,'{}: {} - {}'.format(str(i+1),match,getmetadata(match)))
 		try:
-			matchinfopad.addstr(0,0,runinfo(options[selection]))
+			matchinfopad.addstr(0,0,getmetadata(options[selection]))
 			matchinfopad.addstr(2,0,getinfo(options[selection]))
 		except:
 			matchinfopad.addstr(0,0,'no folder selected or no info.txt')
 		
-		listpad.addch(selection,0,'>')
-		for s in selections: listpad.addch(s,1,'*')
-		listpad.refresh(max(0,selection-H//2),0,  3,W//3,  H-3,2*W//3)
-		matchinfopad.refresh(0,0,  3,2*W//3,  H-3,W-5)
+		listpad.addstr(selection,0,' *' if profile.onlyone else '>')
+		for s in selections: listpad.addstr(s,1,'*')
+		listpad.refresh(max(0,selection-H//2))
+		matchinfopad.draw()
 
-	paths=[d+'/' for d,_,files in os.walk('outputs') if 'and' not in d and 'data' not in d and '|' in d]
-	if condition!=None: paths=list(filter(condition,paths))
+	paths=[d+'/' for d,_,files in os.walk(profile.parentfolder) if 'and' not in d and 'data' not in d and '|' in d]
+	if profile.condition!=None: paths=list(filter(profile.condition,paths))
 	ls=0
 	choices=[]
 
 	paths.sort(reverse=True,key=lambda s:s[-15:])
 	while True:
 
-		explainpad.refresh(0,0,3,5,H-3,W//3)
+		explainpad.draw()
 		ls=max(0,min(len(paths)-1,ls))
 		displayoptions(paths,ls,choices,listpad,matchinfopad)
 
-		c=screen.getch()
-		if c==97 or c==32: choices.append(ls)
-		elif c==127 and ls in choices: choices.remove(ls)
+		c=cfg.extractkey_cs(screen.getch())
+		if c=='SPACE' and not profile.onlyone: choices.append(ls)
+		elif c=='BACKSPACE' and ls in choices: choices.remove(ls)
 		elif c==259: ls-=1
 		elif c==258: ls+=1
 		elif c==260: ls-=5
 		elif c==261: ls+=5
-		elif c==115:
+		elif c=='s':
 			try: ls=max([c for c in choices if c<ls])
 			except: pass
-		elif c==99:
+		elif c=='c':
 			try: ls=min([c for c in choices if c>ls])
 			except: pass
-		elif c==10: break
-		elif c==113: quit()
+		elif c=='ENTER': break
+		elif c=='q': quit()
 
 	screen.nodelay(True)
-	out=paths[ls],[paths[ls] for ls in choices]
-	cfg.currentprofile().loadedpathandpaths=out
-	return out
+	return paths[ls] if profile.onlyone else [paths[ls] for ls in choices]
 
 
 
-def runinfo(folder):
+def getmetadata(folder):
 	try:
 		with open(folder+'metadata.txt','r') as f:
 			return f.readline()
-	except:pass
-	try:
-		with open(folder+'duration','r') as f:
-			return f.readline()
 	except Exception as e:
-		return ''
+		return 'no info'
 		#return str(e)[10:]
 
 def getinfo(path):
@@ -134,4 +140,4 @@ def pickfolders_leave_cs(**kw):
 #
 if __name__=='__main__':
 	import cdisplay
-	cdisplay.run_in_display(_pickfolders_,cfg.Profile())
+	cdisplay.session_in_display(_pickfolders_,getdefaultprofile())

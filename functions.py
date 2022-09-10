@@ -11,7 +11,7 @@ import math
 import testing
 import AS_tools
 import AS_tools as ASt
-import multivariate as mv
+from functions import multivariate as mv
 import jax.random as rnd
 import backflow as bf
 import copy

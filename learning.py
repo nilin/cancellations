@@ -28,7 +28,7 @@ import AS_HEAVY
 import collections
 import copy
 from collections import deque
-import multivariate as mv
+from functions import multivariate as mv
 
 
 #----------------------------------------------------------------------------------------------------

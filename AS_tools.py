@@ -30,7 +30,7 @@ import config as cfg
 from jax.lax import collapse
 import pdb
 import AS_HEAVY
-import multivariate as mv
+from functions import multivariate as mv
 import backflow as bf
 
 

@@ -11,7 +11,7 @@ import jax.random as rnd
 import config as cfg
 from util import activations
 import pdb
-import multivariate as mv
+from functions import multivariate as mv
 
 jax.config.update("jax_enable_x64", True)
 

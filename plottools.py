@@ -64,11 +64,10 @@ def slicesthrough(x,I):
 
 #def genCrossSections(X,Y,target):
 def genCrossSections(targetfn):
-	cprof=cfg.currentprofile()
 	cfg.logcurrenttask('Preparing cross sections for plotting.')	
 	cfg.currentkeychain=4
 
-	X=cprof.genX(1000)
+	X=cfg.currentprocess().genX(1000)
 	Y=targetfn(X)
 	n=X.shape[-1]
 	x0s=samplepoints(X,Y,{1:3,2:3,3:1}[n])

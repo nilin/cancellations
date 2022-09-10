@@ -1,19 +1,15 @@
 import display as disp
+import display
 import config as cfg
 import curses as cs
+from config import session
 
 
 
 class ConcreteDisplay(disp.StackedDisplay):
-	def __init__(self,xlim,ylim,**kw):
-		super().__init__(**kw)
-		self.xlim=xlim
-		self.ylim=ylim
-		x0,x1=self.xlim
-		y0,y1=self.ylim
-		self.width=x1-x0
-		self.height=y1-y0
-		self.pad=cs.newpad(self.height,self.width)	
+	def __init__(self,*a,**kw):
+		super().__init__(*a,**kw)
+		self.pad=cs.newpad(self.height+1,self.width+1)	
 
 
 	def draw(self):
@@ -29,45 +25,88 @@ class ConcreteDisplay(disp.StackedDisplay):
 	def poke(self,src):
 		self.draw()
 
+
+
+class Pad(disp.CompositeDisplay):
+	def __init__(self,xlim,ylim,WIDTH=None,HEIGHT=None):
+		super().__init__(xlim,ylim)
+		self.pad=cs.newpad(self.height if HEIGHT==None else HEIGHT,self.width if WIDTH==None else WIDTH)
+
+	def refresh(self,y,x=0):
+		x0,x1=self.xlim
+		y0,y1=self.ylim
+		self.pad.refresh(y,x,y0,x0,y1-1,x1-1)
+
+	def draw(self):
+		self.refresh(0,0)
+
+	def addstr(self,*a,**kw): self.pad.addstr(*a,**kw)
+
+	def erase(self): self.pad.erase(); self.pad.clear()
+
+
+
+#	def draw(self):
+#		cfg.screen.clear()
+#		cfg.screen.refresh()
+#		super().draw()
+#		cfg.screen.refresh()
+
+
+
 def checkforinput(*args,**kw):
 	a=getscreen().getch()
 	cs.flushinp()
-	cfg.currentprofile().dashboard.draw()
+	cfg.currentprocess().display.draw()
 	return cfg.extractkey_cs(a)
 
-def getscreen(): return cfg.screen
 cfg.checkforinput=checkforinput
 
-def run_in_display(runfn,profile,*a,nodelay=True,**kw):
-	#peeledprofile=cfg.currentprofile()
-	cfg._currentprofile_=profile
+def getscreen(): return cfg.screen
+
+def clearscreen():
+	getscreen().clear()
+	getscreen().refresh()
+
+def session_in_display(processfn,profile,nodelay=True,**kw):
+
 	def wrapped(screen):
 		cfg.screen=screen
 		screen.nodelay(nodelay)
 		cs.use_default_colors()
-		profile.dashboard=disp.CDashboard(width=cs.COLS,height=cs.LINES)
-		try: profile.prepdashboard(profile.dashboard)
-		except: pass
-		runfn(profile,*a,**kw)
+		cfg.session.display=disp.CompositeDisplay((0,cs.COLS),(0,cs.LINES))
+		#try: profile.prepdashboard(profile.dashboard)
+		#except: pass
+		processfn(profile,display=cfg.session.display,**kw)
+
 	out=cs.wrapper(wrapped)
-	#cfg._currentprofile_=peeledprofile
 	return out
 
-def clear():
-	cfg.screen.clear()
-	cfg.screen.refresh()
 
-def subtask_in_display(runfn,profile,*args,**kw):
-	outerprofile=cfg.currentprofile()
 
-	profile.dashboard=disp.CDashboard(width=cs.COLS,height=cs.LINES)
-	cfg._currentprofile_=profile
-	clear()
-	out=runfn(profile,*args,**kw)
-	clear()
+def runtask(task,profile,display):
+	cfg.loadprocess(task)
+	output=task(profile,display)
+	cfg.unloadprocess(task)
+	clearscreen()
+	return output
 
-	cfg._currentprofile_=outerprofile
-	return out
+
+#def run_in_subdisplay(process,processfn,display,*args,**kw):
+#
+#	profile.dashboard=disp.CDashboard(width=cs.COLS,height=cs.LINES)
+#	cfg._currentprofile_=profile
+#	clear()
+#	out=runfn(profile,*args,**kw)
+#	clear()
+#
+#	return out
+#
+#
+#def clear():
+#	cfg.screen.clear()
+#	cfg.screen.refresh()
+
 
 
 
