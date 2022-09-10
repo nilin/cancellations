@@ -2,10 +2,12 @@ import os
 import re
 import curses as cs
 import pdb
+
+from . import tracking
 from ..display.display import dash
 from ..display import display as disp
 from ..display import cdisplay
-from ..utilities import config as cfg,util
+from ..utilities import config as cfg
 import time
 
 
@@ -17,7 +19,7 @@ right='\u2192'
 
 
 def getdefaultprofile():
-	profile=util.Profile(name='browsing')
+	profile=tracking.Profile(name='browsing')
 	profile.parentfolder='outputs'
 	profile.msg='select folder'
 	profile.onlyone=False
@@ -27,7 +29,7 @@ def getdefaultprofile():
 
 def _pickfolders_(profile,display):
 
-	browsing=util.Process(profile,display=display)
+	browsing=tracking.Process(profile,display=display)
 
 	W=display.width
 	H=display.height
@@ -127,7 +129,7 @@ def commonanc(*fs):
 
 
 
-browsingprofile=util.Profile()
+browsingprofile=tracking.Profile()
 
 def pickfolders(**kw):
 	return cdisplay.subtask_in_display(_pickfolders_,browsingprofile,**kw)

@@ -12,7 +12,7 @@
 import jax
 import jax.numpy as jnp
 import jax.random as rnd
-from ..utilities import math as mathutil, util
+from ..utilities import math as mathutil, tracking
 import optax
 import math
 #import universality
@@ -39,7 +39,7 @@ from ..functions import multivariate as mv
 class Trainer():
 	def __init__(self,learner,X,Y,lossfn=None,learning_rate=.01,memory=None,minibatchsize=100,**kwargs):
 
-		self.memory=util.Memory() if memory==None else memory
+		self.memory=tracking.Memory() if memory==None else memory
 
 		self.learner=learner
 		self.lossgrad=learner.get_lossgrad(lossfn)
@@ -76,8 +76,8 @@ class Trainer():
 
 	def prepnextepoch(self,permute=True):
 		self.memory.log('preparing new epoch')
-		if permute: self.X,self.Y=util.randperm(self.X,self.Y)
-		self.minibatches=deque(util.chop(self.X,self.Y,blocksize=self.minibatchsize))
+		if permute: self.X,self.Y=tracking.randperm(self.X,self.Y)
+		self.minibatches=deque(tracking.chop(self.X,self.Y,blocksize=self.minibatchsize))
 
 		self.memory.log('start new epoch')
 		self.memory.remember('minibatches in epoch',len(self.minibatches))

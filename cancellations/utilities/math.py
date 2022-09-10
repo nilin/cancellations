@@ -3,8 +3,8 @@ import math
 import jax.numpy as jnp
 import jax
 import jax.random as rnd
-from ..utilities import config as cfg
-from ..utilities.util import session
+from ..utilities import config as cfg,tracking
+from .tracking import session
 from collections import deque
 from inspect import signature
 
@@ -211,7 +211,7 @@ def eval_blockwise(f,params,X,blocksize=100000,msg=None):
 		#out.append(f(B))
 		out.append(jnp.squeeze(f(params,B)))
 		if msg!=None and len(Xs)>1:
-			cfg.trackcurrenttask(msg,(i+1)/len(Xs))
+			tracking.trackcurrenttask(msg,(i+1)/len(Xs))
 	return jnp.concatenate(out,axis=0)
 
 #def makeblockwise(f):
@@ -367,7 +367,7 @@ def combinelossgradfns(lossgradfns,nums_inputs,coefficients):
 #	return 1/jnp.max(jnp.triu(1/sqdists))
 
 def initweights(shape):
-	return rnd.normal(cfg.nextkey(),shape)*jnp.sqrt(2/shape[-1])
+	return rnd.normal(tracking.nextkey(),shape)*jnp.sqrt(2/shape[-1])
 
 
 

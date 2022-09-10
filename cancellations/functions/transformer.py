@@ -1,6 +1,6 @@
 import jax
 import math
-from ..utilities import util
+from ..utilities import tracking
 import jax.numpy as jnp
 
 def gen_att(omega):
@@ -18,7 +18,7 @@ def gen_multihead(omega):
         K_=jnp.inner(K,Wks)
         V_=jnp.inner(V,Wvs)
         concatenation=jax.vmap(att,in_axes=(-2,-2,-2),out_axes=-1)(Q_,K_,V_)
-        return jnp.inner(util.collapselast(concatenation,2),WO)
+        return jnp.inner(tracking.collapselast(concatenation,2),WO)
     return jax.jit(multihead)
 
 def gen_simple_SAB(omega):
@@ -33,8 +33,8 @@ def gen_simple_SAB(omega):
 
 def initweights_SimpleSAB(h,d,*args,**kw):
     dq_,dv_=math.ceil(d/h),math.ceil(d/h)
-    Wqs=util.initweights((h,dq_,d))
-    Wks=util.initweights((h,dq_,d))
-    Wvs=util.initweights((h,dv_,d))
-    WO=util.initweights((d,h*dv_))
+    Wqs=tracking.initweights((h,dq_,d))
+    Wks=tracking.initweights((h,dq_,d))
+    Wvs=tracking.initweights((h,dv_,d))
+    WO=tracking.initweights((d,h*dv_))
     return Wqs,Wks,Wvs,WO

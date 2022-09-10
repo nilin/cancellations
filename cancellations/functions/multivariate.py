@@ -5,7 +5,7 @@
 
 import jax.numpy as jnp
 import jax
-from ..utilities import util,math as mathutil,config as cfg
+from ..utilities import tracking,math as mathutil,config as cfg
 
 import math
 import jax.random as rnd
@@ -76,7 +76,7 @@ def gen_lossgrad(f,lossfn=None):
 def initweights_NN(widths,*args,**kw):
 	ds=widths
 	Ws=[mathutil.initweights((d2,d1)) for d1,d2 in zip(ds[:-1],ds[1:])]
-	bs=[rnd.normal(cfg.nextkey(),(d2,))*cfg.biasinitsize for d2 in ds[1:]]
+	bs=[rnd.normal(tracking.nextkey(),(d2,))*cfg.biasinitsize for d2 in ds[1:]]
 
 	return list(zip(Ws,bs))
 

@@ -3,7 +3,7 @@
 import jax
 import jax.numpy as jnp
 import jax.random as rnd
-from cancellations.utilities import util,math as mathutil
+from cancellations.utilities import tracking,math as mathutil
 from cancellations.utilities import config as cfg
 from ..display import display as disp
 #from GPU_sum import sum_perms_multilayer as sumperms
@@ -358,7 +358,7 @@ def formatinspection(L):
 	info,steps=L
 
 	try:
-		s='W.shape {}\n'.format(util.shapestr(info))
+		s='W.shape {}\n'.format(tracking.shapestr(info))
 	except:
 		s=info+'\n' if type(info)==str else ''
 
@@ -384,7 +384,7 @@ def inspect(fd,X,formatarrays=None,msg=''):
 		def formatarrays(name,val):
 			s=name+' '
 			if name in ['weights','X']:
-				try: s+=util.shapestr(val)
+				try: s+=tracking.shapestr(val)
 				except Exception as e: s+='formatting error '+str(e)
 			return s
 

@@ -4,7 +4,7 @@ import browse
 import os
 import shutil
 import util
-import config as cfg
+import config as tracking
 import re
 import curses as cs
 import pdb
@@ -29,7 +29,7 @@ def plotexamples(paths):
 	for i_run,path in enumerate(paths):
 
 		setup=cfg.load(path+'data/setup')
-		unprocessed=cfg.load(path+'data/unprocessed')
+		unprocessed=tracking.load(path+'data/unprocessed')
 
 		learner,X,Y=setup['learner'],setup['X_test'],setup['Y_test']
 		pfunc=learner.restore().getemptyclone()
@@ -41,7 +41,7 @@ def plotexamples(paths):
 		for imgnum,(weights,i) in enumerate(zip(weightslist,i_s)):
 			print('image {} of {}'.format(imgnum+1,len(i_s)),end='\r')
 
-			cfg.trackcurrenttask('processing snapshots for learning plot',(imgnum+1)/len(weightslist))
+			tracking.trackcurrenttask('processing snapshots for learning plot',(imgnum+1)/len(weightslist))
 			process_snapshot(processed,pfunc.f,weights,X,Y,i)		
 
 		processedruns.append(processed)
@@ -73,7 +73,7 @@ def plotexamples(paths):
 
 	print(cfg.outpath)
 
-	cfg.savefig('{}{}'.format(cfg.outpath,'losses.pdf'),fig=fig)
+	tracking.savefig('{}{}'.format(cfg.outpath,'losses.pdf'),fig=fig)
 
 #	try:
 #		fig,ax=plt.subplots(1)
@@ -82,13 +82,13 @@ def plotexamples(paths):
 #		ax.plot(I1,[util.recurseonleaves(ws,max) for ws in weights1],'b-',label=learners[1].richtypename())
 #		ax.plot(I2,[util.recurseonleaves(ws,max) for ws in weights2],'r--',label=learners[2].richtypename())
 #		ax.legend()
-#		cfg.savefig('{}{}'.format(cfg.outpath,'weights.pdf'),fig=fig)
+#		tracking.savefig('{}{}'.format(cfg.outpath,'weights.pdf'),fig=fig)
 #	except:
 #		print('weights plot failed')
 		
 
 
-#cfg.print_task_on_poke()
+#tracking.print_task_on_poke()
 
 
 
@@ -105,11 +105,11 @@ outpath,branches=commonanc(*folders)
 
 clear()
 cfg.outpath=outpath+' and '.join([b[:-1] for b in branches])+'/'
-if os.path.exists(cfg.outpath):
+if os.path.exists(tracking.outpath):
 	for i in range(100):
 		path_i=cfg.outpath[:-1]+' ({})/'.format(i)
 		if not os.path.exists(path_i):
-			cfg.outpath=path_i
+			tracking.outpath=path_i
 			break
 
 os.makedirs(cfg.outpath,exist_ok=True)	

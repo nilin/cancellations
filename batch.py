@@ -1,12 +1,12 @@
 from cancellations.examples import example
 from cancellations.display import cdisplay
-from cancellations.utilities import util, browse, batchjob
+from cancellations.utilities import tracking, browse, batchjob
 import os
 
 
 
 
-batch=util.Profile(name='load and train')
+batch=tracking.Profile(name='load and train')
 
 
 

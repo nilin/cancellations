@@ -10,7 +10,7 @@ import jax.numpy as jnp
 import jax.random as rnd
 from ..functions import functions
 from ..functions.functions import ComposedFunction,SingleparticleNN
-from ..utilities import config as cfg, util, sysutil, math
+from ..utilities import config as cfg, tracking, sysutil, math
 from ..display import cdisplay,display as disp
 from . import plottools as pt
 from . import exampletemplate
@@ -20,7 +20,7 @@ jax.config.update("jax_enable_x64", True)
 
 
 def getdefaultprofile():
-    profile=util.Profile(name='default example')
+    profile=tracking.Profile(name='default example')
     profile.exname='example'
     profile.instructions='To load and run with previously generated target function (including weights), run\
         \n\n>>python {}.py loadtarget'.format(profile.exname)
@@ -56,7 +56,7 @@ def getdefaultprofile():
 
 
 def pickexample(choice,n,d,**kw):
-    n,d=cfg.pull('n','d')
+    n,d=tracking.pull('n','d')
 
     match choice:
         # meant as target
@@ -66,7 +66,7 @@ def pickexample(choice,n,d,**kw):
         case 'gauss':
             return ComposedFunction(functions.Slater('parallelgaussians',n=n,d=d,mode='gen'),functions.Outputscaling())
         case 'ASNN1':
-            m=cfg.providedefault(kw,m=10)
+            m=10
             return ComposedFunction(functions.ASNN(n=n,d=d,widths=['nd',m,m,1],activation='tanh'),functions.Outputscaling())
 
         # meant as learner
@@ -77,8 +77,8 @@ def pickexample(choice,n,d,**kw):
                 functions.OddNN(widths=[1,100,1],activation='leakyrelu'))
 
         case 'ASNN2': 
-            d_=cfg.providedefault(kw,d_=10)
-            m=cfg.providedefault(kw,m=10)
+            d_=10
+            m=10
 
             return ComposedFunction(\
                 SingleparticleNN(widths=[d,10,10,d_],activation='tanh'),\
@@ -86,9 +86,9 @@ def pickexample(choice,n,d,**kw):
                 functions.OddNN(widths=[1,10,1],activation='leakyrelu'))
 
         case 'backflow':
-            d_=cfg.providedefault(kw,d_=100)
-            ndets=cfg.providedefault(kw,ndets=10)
-            activations=cfg.providedefault(kw,activations=['leakyrelu','leakyrelu','leakyrelu'])
+            d_=100
+            ndets=10
+            activations=['leakyrelu','leakyrelu','leakyrelu']
 
             return ComposedFunction(\
                 SingleparticleNN(widths=[d,100,d_],activation=activations[0]),\
@@ -97,14 +97,14 @@ def pickexample(choice,n,d,**kw):
                 functions.OddNN(widths=[1,100,1],activation=activations[2]))
 
 
-def prep_and_run(run:util.Run):
+def prep_and_run(run:tracking.Run):
 
     run.outpath='outputs/{}/'.format(run.ID)
-    cfg.outpath='outputs/{}/'.format(run.ID)
-    cfg.log('imports done')
+    tracking.outpath='outputs/{}/'.format(run.ID)
+    tracking.log('imports done')
 
     
-    run.unprocessed=util.Memory()
+    run.unprocessed=tracking.Memory()
     info='runID: {}\n'.format(run.ID)+'\n'*4; run.trackcurrent('runinfo',info)
 
 #    if 'loadtarget' in cfg.cmdparams:
@@ -125,10 +125,10 @@ def prep_and_run(run:util.Run):
     else:
         target=pickexample(run.targetchoice,n=run.n,d=run.d,**run.targetparams)
 
-        cfg.log('adjusting target weights')
+        tracking.log('adjusting target weights')
         exampletemplate.adjustnorms(target,X=run.genX(10000),iterations=250,learning_rate=.01)
         run.target=target.compose(functions.Flatten(sharpness=1))
-        cfg.log('target initialized')
+        tracking.log('target initialized')
 
         info+='target\n\n{}'.format(disp.indent(target.getinfo())); run.trackcurrent('runinfo',info)
 
@@ -157,10 +157,10 @@ def prep_and_run(run:util.Run):
 
 
 def main(profile,display,*a,**kw):
-    run=util.Run(profile,display=display)
+    run=tracking.Run(profile,display=display)
     exampletemplate.prepdisplay(run)
     run.act_on_input=exampletemplate.act_on_input
-    cfg.loadprocess(run)
+    tracking.loadprocess(run)
     prep_and_run(run,*a,**kw)
     cfg.unloadprocess(run)
 

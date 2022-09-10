@@ -15,7 +15,7 @@ from . import plottools as pt
 import matplotlib.pyplot as plt
 from ..display import cdisplay,display as disp
 
-from ..utilities import util,math as mathutil,config as cfg
+from ..utilities import tracking,math as mathutil,config as cfg
 from ..functions import functions
 import os
 
@@ -77,13 +77,13 @@ def testantisymmetry(target,learner,X):
 
 
 def adjustnorms(Afdescr,X,iterations=500,**learningparams):
-	run=cfg.currentprocess()
+	run=tracking.currentprocess()
 	Af=Afdescr.f
 	f=functions.switchtype(Afdescr).f
 	normratio=jax.jit(lambda weights,X:mathutil.norm(f(weights,X))/mathutil.norm(Af(weights,X)))
 	weights=Afdescr.weights
 
-	cfg.log('|f|/|Af|={:.3f}, |Af|={:.3f} before adjustment'.format(\
+	tracking.log('|f|/|Af|={:.3f}, |Af|={:.3f} before adjustment'.format(\
 		normratio(weights,X[:1000]),mathutil.norm(Af(weights,X[:1000]))))
 
 	@jax.jit
@@ -105,12 +105,12 @@ def adjustnorms(Afdescr,X,iterations=500,**learningparams):
 		trainer.step()
 		run.trackcurrent('target |Af|',mathutil.norm(Af(trainer.learner.weights,X[:100])))
 		run.trackcurrent('target |f|/|Af|',normratio(trainer.learner.weights,X[:100]))
-		if util.stopwatch.tick_after(.05) and cfg.act_on_input(cfg.checkforinput())=='b':break
+		if tracking.stopwatch.tick_after(.05) and tracking.act_on_input(tracking.checkforinput())=='b':break
 
 	run.display.column1.delkeys(key1,key2,key3,key4)
 
 	weights=trainer.learner.weights
-	cfg.log('|f|/|Af|={:.3f}, |Af|={:.3f} after adjustment'.format(\
+	tracking.log('|f|/|Af|={:.3f}, |Af|={:.3f} after adjustment'.format(\
 		normratio(weights,X[:1000]),mathutil.norm(Af(weights,X[:1000]))))
 	return weights
 

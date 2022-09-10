@@ -1,6 +1,6 @@
 import os
 import math
-from ..utilities import config as cfg, util
+from ..utilities import config as cfg, tracking
 import collections
 
 #----------------------------------------------------------------------------------------------------
@@ -120,7 +120,7 @@ class CompositeDisplay(Display):
 		super().__init__(*a, \
 						 xlim=xlim, ylim=ylim,
 						 width=x1-x0, height=y1-y0,
-						 elements=util.dotdict(), \
+						 elements=tracking.dotdict(), \
 						 defaultnames=collections.deque(range(100)), **kw)
 
 	def __getattr__(self,name):
@@ -176,7 +176,7 @@ class NumberDisplay(QueryDisplay):
 		super().__init__(query=query,**kw)
 
 		if 'avg_of' in kw:
-			self.hist=util.History()
+			self.hist=tracking.History()
 			self._gettext_=self._gettext_1
 		else:
 			self._gettext_=self._gettext_0

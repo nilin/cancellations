@@ -1,5 +1,5 @@
 from . import display as disp
-from ..utilities import config as cfg,util
+from ..utilities import config as cfg,tracking
 import curses as cs
 
 
@@ -49,10 +49,10 @@ class Pad(disp.CompositeDisplay):
 def checkforinput(*args,**kw):
 	a=getscreen().getch()
 	cs.flushinp()
-	cfg.currentprocess().display.draw()
+	tracking.currentprocess().display.draw()
 	return extractkey_cs(a)
 
-cfg.checkforinput=checkforinput
+tracking.checkforinput=checkforinput
 
 def extractkey_cs(a):
     if a>=97 and a<=122: return chr(a)
@@ -77,10 +77,10 @@ def session_in_display(processfn,profile,nodelay=True,**kw):
 		cfg.screen=screen
 		screen.nodelay(nodelay)
 		cs.use_default_colors()
-		util.session.display=disp.CompositeDisplay((0,cs.COLS),(0,cs.LINES))
+		tracking.session.display=disp.CompositeDisplay((0,cs.COLS),(0,cs.LINES))
 		#try: profile.prepdashboard(profile.dashboard)
 		#except: pass
-		processfn(profile,display=util.session.display,**kw)
+		processfn(profile,display=tracking.session.display,**kw)
 
 	out=cs.wrapper(wrapped)
 	return out
@@ -88,7 +88,7 @@ def session_in_display(processfn,profile,nodelay=True,**kw):
 
 
 def runtask(task,profile,display):
-	cfg.loadprocess(task)
+	tracking.loadprocess(task)
 	output=task(profile,display)
 	cfg.unloadprocess(task)
 	clearscreen()
