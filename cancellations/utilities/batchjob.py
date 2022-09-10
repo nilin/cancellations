@@ -10,3 +10,5 @@ def runbatch(batch,display):
     outputs=[]
     for task, genprofile in tasks:
         outputs.append(cdisplay.runtask(task,genprofile(outputs),display))
+
+    return outputs

@@ -80,7 +80,7 @@ def session_in_display(processfn,profile,nodelay=True,**kw):
 		tracking.session.display=disp.CompositeDisplay((0,cs.COLS),(0,cs.LINES))
 		#try: profile.prepdashboard(profile.dashboard)
 		#except: pass
-		processfn(profile,display=tracking.session.display,**kw)
+		return processfn(profile,display=tracking.session.display,**kw)
 
 	out=cs.wrapper(wrapped)
 	return out

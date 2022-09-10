@@ -20,7 +20,7 @@ jax.config.update("jax_enable_x64", True)
 
 
 def getdefaultprofile():
-    profile=tracking.Profile(name='default example')
+    profile=tracking.Profile(name='run example')
     profile.exname='example'
     profile.instructions='To load and run with previously generated target function (including weights), run\
         \n\n>>python {}.py loadtarget'.format(profile.exname)

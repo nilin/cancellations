@@ -185,7 +185,7 @@ class Process(Profile,Memory):
         super().__init__()
         Memory.__init__(self)
         self.update(profile)
-        self.ID='{} {}'.format(profile.name,session.ID) if ID==None else ID
+        self.ID='{} {}'.format(session.ID,profile.name) if ID==None else ID
         self.display=display
 
     def log(self,msg):

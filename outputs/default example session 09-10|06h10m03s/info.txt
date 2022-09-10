@@ -1,0 +1,28 @@
+runID: default example session 09-10|06h10m03s
+
+
+
+
+target
+
+    tanh-ASNN -> Outputscaling composition
+    
+        tanh-ASNN
+        n=4, d=2, widths=[8, 10, 10, 1], activation=tanh
+    
+        Outputscaling
+
+
+
+learner
+
+    tanh-SingleparticleNN -> leakyrelu-ASNN -> leakyrelu-OddNN composition
+    
+        tanh-SingleparticleNN
+        widths=[2, 10, 10, 10], activation=tanh
+    
+        leakyrelu-ASNN
+        n=4, d=10, widths=[40, 10, 1], activation=leakyrelu
+    
+        leakyrelu-OddNN
+        widths=[1, 10, 1], activation=leakyrelu

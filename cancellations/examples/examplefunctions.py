@@ -1,7 +1,7 @@
 import jax
 import jax.numpy as jnp
 import numpy as np
-from functions import multivariate as mv
+from ..functions import multivariate as mv
 import util
 import AS_tools
 import pdb
@@ -160,15 +160,15 @@ def n_dtuples_maxdegree(n,d):
 
 if __name__=='__main__':
 
-	print(sumsto(3,2))
-	print()
-	print(gen_n_dtuples(5,2))
-	print()
-	print(n_dtuples_maxdegree(5,2))
-	print()
-	for particle in Hermite_nd_params(5,2):
-		print(particle)
-	print()
+#	print(sumsto(3,2))
+#	print()
+#	print(gen_n_dtuples(5,2))
+#	print()
+#	print(n_dtuples_maxdegree(5,2))
+#	print()
+#	for particle in Hermite_nd_params(5,2):
+#		print(particle)
+#	print()
 	for p in H_coefficients_list[:5]: print(p)
 
 	

@@ -12,7 +12,7 @@ batch=tracking.Profile(name='load and train')
 
 batch.task1=browse._pickfolders_
 batch.genprofile1=lambda _: browse.getdefaultprofile().butwith(\
-    onlyone=True,condition=(lambda path:os.path.exists(path+'/data/setup')))
+    onlyone=True,condition1=(lambda path:os.path.exists(path+'/data/setup')))
 
 
 

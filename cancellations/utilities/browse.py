@@ -23,7 +23,8 @@ def getdefaultprofile():
 	profile.parentfolder='outputs'
 	profile.msg='select folder'
 	profile.onlyone=False
-	profile.condition=None
+	profile.regex='(./)?outputs/.*'
+	profile.condition1=lambda path:os.path.exists(path+'/data/setup')
 	return profile
 
 
@@ -35,9 +36,9 @@ def _pickfolders_(profile,display):
 	H=display.height
 	screen=cfg.screen
 	screen.nodelay(False)
-	explainpad=cdisplay.Pad((0,W//3),(0,H))
-	listpad=cdisplay.Pad((W//3,2*W//3),(0,H),100,1000)
-	matchinfopad=cdisplay.Pad((2*W//3,W),(0,H))
+	explainpad=cdisplay.Pad((0,round(.2*W)),(0,H))
+	listpad=cdisplay.Pad((round(.2*W),round(.6*W)),(0,H),100,1000)
+	matchinfopad=cdisplay.Pad((round(.7*W),W),(0,H))
 
 	explanation=\
 		disp.wraptext(profile.msg)+'\n\n'\
@@ -54,7 +55,7 @@ def _pickfolders_(profile,display):
 		matchinfopad.erase()
 		listpad.erase()
 		for i,match in enumerate(options):
-			listpad.addstr(i,2,'{}: {} - {}'.format(str(i+1),match,getmetadata(match)))
+			listpad.addstr(i,2,'{}: {}{}'.format(str(i+1),match,getmetadata(match)))
 		try:
 			matchinfopad.addstr(0,0,getmetadata(options[selection]))
 			matchinfopad.addstr(2,0,getinfo(options[selection]))
@@ -66,8 +67,14 @@ def _pickfolders_(profile,display):
 		listpad.refresh(max(0,selection-H//2))
 		matchinfopad.draw()
 
-	paths=[d+'/' for d,_,files in os.walk(profile.parentfolder) if 'and' not in d and 'data' not in d and '|' in d]
-	if profile.condition!=None: paths=list(filter(profile.condition,paths))
+	
+	#if profile.matchtype=='dir': paths=[d+'/' for d,_,files in os.walk(profile.parentfolder)]
+	#else: paths=['{}/{}/{}'.format(r,d,f) for r,D,F in os.walk(profile.parentfolder) for d in D for f in F]
+	#['{}/{}{}'.format(r,'' if len(_d_)==0 else _d_[0]+'/',f) for r,_d_,F in os.walk(profile.parentfolder) for f in F+['']]
+	paths=getpaths(profile.parentfolder)
+	pattern=re.compile(profile.regex)
+	paths=list(filter(pattern.fullmatch,paths))
+	paths=list(filter(combineconditions(profile),paths))
 	ls=0
 	choices=[]
 
@@ -97,14 +104,36 @@ def _pickfolders_(profile,display):
 	screen.nodelay(True)
 	return paths[ls] if profile.onlyone else [paths[ls] for ls in choices]
 
+def combineconditions(profile):
+	conditions=[]
+	for i in range(1,10):
+		cname='condition'+str(i)
+		if cname in profile.keys(): conditions.append(profile[cname])
+		else: break
+	def CONDITION(d):
+		try: return all([True if c==None else c(d) for c in conditions])
+		except: False
+	return CONDITION 	
 
+def getpaths(root):
+	scan=os.scandir(root)
+	out=[]
+	for d in scan:
+		if d.is_file(): out.append(root+'/'+d.name)
+		if d.is_dir():
+			out.append(root+'/'+d.name+'/')
+			out+=getpaths(root+'/'+d.name)
+			#out+=[root+'/'+d.name+'/'+f for f in getpaths(root+'/'+d.name)]
+		#else: out.append(root)
+	return out
+	#return [getpaths(root+'/'+d.name) if d.is_dir() else d.name for d in scan]# if scan.is_dir() else str(scan)
 
 def getmetadata(folder):
 	try:
 		with open(folder+'metadata.txt','r') as f:
-			return f.readline()
+			return ' - '+f.readline()
 	except Exception as e:
-		return 'no info'
+		return ''
 		#return str(e)[10:]
 
 def getinfo(path):
