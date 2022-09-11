@@ -1,0 +1,1 @@
+loss 0.178, iterations: 300

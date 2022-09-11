@@ -3,7 +3,7 @@ import math
 import jax.numpy as jnp
 import jax
 import jax.random as rnd
-from ..utilities import config as cfg,tracking
+from . import config as cfg,tracking
 from .tracking import session
 from collections import deque
 from inspect import signature

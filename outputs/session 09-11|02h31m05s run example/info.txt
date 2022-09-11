@@ -1,0 +1,19 @@
+runID: session 09-11|02h31m05s run example
+
+
+
+
+target
+
+    psi0...-SeparateFunctionSlater
+        
+        
+        
+        
+
+
+
+learner
+
+    N(0,1.00I) X leakyrelu-SingleparticleNN -> leakyrelu-Backflow -> DetSum -> leakyrelu-OddNN composition
+    elements=(<cancellations.functions.functions.IsoGaussian object at 0x1733d7c40>, <cancellations.functions.functions.ComposedFunction object at 0x173603220>)

@@ -1,0 +1,29 @@
+runID: session 09-11|03h58m01s run example
+
+
+
+
+target
+
+    psi0 ^ psi1 ^ psi2 ^ psi3 ^ psi4-Slater
+    basisfunctions=[<cancellations.functions.functions.Wrappedfunction object at 0x1664fd7b0>, <cancellations.functions.functions.Wrappedfunction object at 0x1664fd810>, <cancellations.functions.functions.Wrappedfunction object at 0x1664fd870>, <cancellations.functions.functions.Wrappedfunction object at 0x1664fd930>, <cancellations.functions.functions.Wrappedfunction object at 0x1664fd9f0>]
+
+
+
+learner
+
+    N(0,1e+00I) X leakyrelu-SingleparticleNN -> leakyrelu-Backflow -> DetSum -> leakyrelu-OddNN composition
+    
+                        leakyrelu-SingleparticleNN -> leakyrelu-Backflow -> DetSum -> leakyrelu-OddNN composition
+                                                                                                                 
+                                                                                                                 
+                            leakyrelu-SingleparticleNN                                                           
+                            widths=[1, 50, 50], activation=leakyrelu                                             
+                                                                                                                 
+    N(0,1e+00I)  times      leakyrelu-Backflow                                                                   
+                            widths=[50, 50], activation=leakyrelu                                                
+                                                                                                                 
+                            DetSum                                                                               
+                            n=5, d=50, ndets=10                                                                  
+                                                                                                                 
+                            leakyrelu-OddNN                                                                      

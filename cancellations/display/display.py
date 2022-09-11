@@ -1,6 +1,6 @@
 import os
 import math
-from ..utilities import config as cfg, tracking
+from ..utilities import config as cfg, tracking,textutil
 from ..utilities.tracking import session
 import collections
 
@@ -54,22 +54,23 @@ class Display:
 		return '\n'.join(lines)
 
 	def getwrapped(self,text):
-		Lines=text.splitlines()
-		if hasattr(self,'width'):
-			lines=[]
-			for Line in Lines:
-
-				indent=len(Line)
-				Line=Line.lstrip()
-				indent-=len(Line)
-				indent=indent*' '
-
-				while True:
-					lines.append(indent+Line[:self.width])
-					Line=Line[self.width:]
-					if Line=='':break
-			return '\n'.join(lines)
 		return text
+#		Lines=text.splitlines()
+#		if hasattr(self,'width'):
+#			lines=[]
+#			for Line in Lines:
+#
+#				indent=len(Line)
+#				Line=Line.lstrip()
+#				indent-=len(Line)
+#				indent=indent*' '
+#
+#				while True:
+#					lines.append(indent+Line[:self.width])
+#					Line=Line[self.width:]
+#					if Line=='':break
+#			return '\n'.join(lines)
+#		return text
 
 
 	def _gettext_(self):
@@ -234,6 +235,3 @@ def wraplines(lines,style=dash):
     width=max([len(l) for l in lines])
     line=dash*width
     return [line]+lines+[line]
-
-def indent(s):
-    return '\n'.join(['    '+l for l in s.splitlines()])

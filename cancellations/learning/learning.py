@@ -12,7 +12,7 @@
 import jax
 import jax.numpy as jnp
 import jax.random as rnd
-from ..utilities import math as mathutil, tracking
+from ..utilities import arrayutil as mathutil, tracking
 import optax
 import math
 #import universality

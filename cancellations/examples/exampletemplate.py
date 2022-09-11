@@ -15,7 +15,7 @@ from . import plottools as pt
 import matplotlib.pyplot as plt
 from ..display import cdisplay,display as disp
 
-from ..utilities import tracking,math as mathutil,config as cfg,sysutil
+from ..utilities import arrayutil as mathutil, tracking,config as cfg,sysutil,textutil
 from ..functions import functions
 from ..learning import testing
 import os
@@ -127,8 +127,8 @@ def info(separator=' | '):
 
 def INFO(separator='\n\n',width=100):
 	run=tracking.currentprocess()
-	targetinfo='target\n\n{}'.format(disp.indent(run.target.getinfo()))
-	learnerinfo='learner\n\n{}'.format(disp.indent(run.learner.getinfo()))
+	targetinfo='target\n\n{}'.format(textutil.indent(run.target.getinfo()))
+	learnerinfo='learner\n\n{}'.format(textutil.indent(run.learner.getinfo()))
 	return disp.wraptext(targetinfo+'\n'*4+learnerinfo)
 
 

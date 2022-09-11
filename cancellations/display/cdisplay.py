@@ -1,5 +1,5 @@
 from . import display as disp
-from ..utilities import config as cfg,tracking
+from ..utilities import config as cfg,tracking,textutil
 import curses as cs
 
 

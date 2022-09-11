@@ -1,0 +1,26 @@
+runID: session 09-11|04h10m14s run example
+
+
+
+
+target
+
+    psi0 ^ psi1 ^ psi2 ^ psi3 ^ psi4-Slater
+    basisfunctions=[<cancellations.functions.functions.Wrappedfunction object at 0x134efd7b0>, <cancellations.functions.functions.Wrappedfunction object at 0x134efd810>, <cancellations.functions.functions.Wrappedfunction object at 0x134efd870>, <cancellations.functions.functions.Wrappedfunction object at 0x134efd930>, <cancellations.functions.functions.Wrappedfunction object at 0x134efd9f0>]
+
+
+
+learner
+
+    N(0,1e+00I) X leakyrelu-SingleparticleNN -> leakyrelu-Backflow -> DetSum -> leakyrelu-OddNN composition
+    
+                            leakyrelu-SingleparticleNN              
+                            widths=[1, 50, 50], activation=leakyrelu
+                                                                    
+                            leakyrelu-Backflow                      
+                            widths=[50, 50], activation=leakyrelu   
+    N(0,1e+00I)  times                                              
+                            DetSum                                  
+                            n=5, d=50, ndets=10                     
+                                                                    
+                            leakyrelu-OddNN                         

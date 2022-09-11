@@ -10,7 +10,7 @@ import jax.numpy as jnp
 import jax.random as rnd
 from ..functions import functions
 from ..functions.functions import ComposedFunction,SingleparticleNN
-from ..utilities import config as cfg, tracking, sysutil, math
+from ..utilities import arrayutil, config as cfg, tracking, sysutil, textutil
 from ..display import cdisplay,display as disp
 from . import plottools as pt
 from . import exampletemplate
@@ -22,8 +22,7 @@ jax.config.update("jax_enable_x64", True)
 def getdefaultprofile():
     profile=tracking.Profile(name='run example')
     profile.exname='example'
-    profile.instructions='To load and run with previously generated target function (including weights), run\
-        \n\n>>python {}.py loadtarget'.format(profile.exname)
+    profile.instructions=''
 
     profile.targetparams={}
     profile.targetchoice='ASNN1'
@@ -38,13 +37,13 @@ def getdefaultprofile():
     profile._X_distr_=lambda key,samples,n,d:rnd.uniform(key,(samples,n,d),minval=-1,maxval=1)
     profile.envelope=jax.jit(lambda X:jnp.all(X**2<1,axis=(-2,-1)))
 
-    profile.trainingparams=dict\
-    (
-    weight_decay=0,
-    lossfn=math.SI_loss,
-    iterations=25000,
-    minibatchsize=None
-    )
+    # training params
+
+    profile.weight_decay=0,
+    profile.lossfn=arrayutil.SI_loss,
+    profile.iterations=25000,
+    profile.minibatchsize=None
+    
     profile.samples_train=10**5
     profile.samples_test=1000
     profile.evalblocksize=10**4
@@ -123,7 +122,7 @@ def prep_and_run(run:tracking.Run):
         run.update(sysutil.load(run.setupdata_path))
         run.target.restore()
         tracking.log('Loaded target and training data from '+run.setupdata_path)
-        info+='target\n\n{}'.format(disp.indent(run.target.getinfo())); run.trackcurrent('runinfo',info)
+        info+='target\n\n{}'.format(textutil.indent(run.target.getinfo())); run.trackcurrent('runinfo',info)
 
     else:
         target=pickexample(run.targetchoice,n=run.n,d=run.d,**run.targetparams)
@@ -133,7 +132,7 @@ def prep_and_run(run:tracking.Run):
         run.target=target.compose(functions.Flatten(sharpness=1))
         tracking.log('target initialized')
 
-        info+='target\n\n{}'.format(disp.indent(target.getinfo())); run.trackcurrent('runinfo',info)
+        info+='target\n\n{}'.format(textutil.indent(target.getinfo())); run.trackcurrent('runinfo',info)
 
         run.X_train=run.genX(run.samples_train)
         run.logcurrenttask('preparing training data')
@@ -144,7 +143,7 @@ def prep_and_run(run:tracking.Run):
 
     run.learner=pickexample(run.learnerchoice,n=run.n,d=run.d,**run.learnerparams)
     tracking.log('learner initialized')
-    info+=4*'\n'+'learner\n\n{}'.format(disp.indent(run.learner.getinfo())); run.trackcurrent('runinfo',info)
+    info+=4*'\n'+'learner\n\n{}'.format(textutil.indent(run.learner.getinfo())); run.trackcurrent('runinfo',info)
 
 
     setupdata=dict(X_train=run.X_train,Y_train=run.Y_train,X_test=run.X_test,Y_test=run.Y_test,\
@@ -155,16 +154,17 @@ def prep_and_run(run:tracking.Run):
     sysutil.write(info,run.outpath+'info.txt',mode='w')
 
     exampletemplate.testantisymmetry(run.target,run.learner,run.genX(100))
-    exampletemplate.train(run,run.learner,run.X_train,run.Y_train,**run.trainingparams)
+    exampletemplate.train(run,run.learner,run.X_train,run.Y_train,\
+        **{k:run[k] for k in ['weight_decay','lossfn','iteractions','minibatchsize']})
 
 
 
-def main(profile,display,*a,**kw):
+def main(profile,display):
     run=tracking.Run(profile,display=display)
     exampletemplate.prepdisplay(run)
     run.act_on_input=exampletemplate.act_on_input
     tracking.loadprocess(run)
-    prep_and_run(run,*a,**kw)
+    prep_and_run(run)
     tracking.unloadprocess(run)
 
 

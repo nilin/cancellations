@@ -51,21 +51,6 @@ def _pickfolders_(profile,display):
 	screen.refresh()
 	
 
-	def displayoptions(options,selection,selections,listpad,matchinfopad):
-		matchinfopad.erase()
-		listpad.erase()
-		for i,match in enumerate(options):
-			listpad.addstr(i,2,'{}: {}{}'.format(str(i+1),match,getmetadata(match)))
-		try:
-			matchinfopad.addstr(0,0,getmetadata(options[selection]))
-			matchinfopad.addstr(2,0,getinfo(options[selection]))
-		except:
-			matchinfopad.addstr(0,0,'no folder selected or no info.txt')
-		
-		listpad.addstr(selection,0,' *' if profile.onlyone else '>')
-		for s in selections: listpad.addstr(s,1,'*')
-		listpad.refresh(max(0,selection-H//2))
-		matchinfopad.draw()
 
 	
 	#if profile.matchtype=='dir': paths=[d+'/' for d,_,files in os.walk(profile.parentfolder)]
@@ -76,18 +61,22 @@ def _pickfolders_(profile,display):
 	paths=list(filter(pattern.fullmatch,paths))
 	paths=list(filter(combineconditions(profile),paths))
 	ls=0
-	choices=[]
+	
+	filterword=''	# onlyone case
+	choices=[]		# multiple case
 
 	paths.sort(reverse=True,key=lambda s:s[-15:])
 	while True:
 
 		explainpad.draw()
 		ls=max(0,min(len(paths)-1,ls))
-		displayoptions(paths,ls,choices,listpad,matchinfopad)
+		displayoptions(paths,ls,choices,listpad,matchinfopad,profile,H)
 
 		c=cdisplay.extractkey_cs(screen.getch())
 		if c=='SPACE' and not profile.onlyone: choices.append(ls)
-		elif c=='BACKSPACE' and ls in choices: choices.remove(ls)
+		elif c=='BACKSPACE':
+			if profile.onlyone and len(filterword)>0: filterword=filterword[:-1]
+			if not profile.onlyone and ls in choices: choices.remove(ls)
 		elif c==259: ls-=1
 		elif c==258: ls+=1
 		elif c==260: ls-=5
@@ -103,6 +92,26 @@ def _pickfolders_(profile,display):
 
 	screen.nodelay(True)
 	return paths[ls] if profile.onlyone else [paths[ls] for ls in choices]
+
+
+
+def displayoptions(options,selection,selections,listpad,matchinfopad,profile,H):
+	matchinfopad.erase()
+	listpad.erase()
+	for i,match in enumerate(options):
+		listpad.addstr(i,2,'{}: {}{}'.format(str(i+1),match,getmetadata(match)))
+	try:
+		matchinfopad.addstr(0,0,getmetadata(options[selection]))
+		matchinfopad.addstr(2,0,getinfo(options[selection]))
+	except:
+		matchinfopad.addstr(0,0,'no folder selected or no info.txt')
+	
+	listpad.addstr(selection,0,' *' if profile.onlyone else '>')
+	for s in selections: listpad.addstr(s,1,'*')
+	listpad.refresh(max(0,selection-H//2))
+	matchinfopad.draw()
+
+
 
 def combineconditions(profile):
 	conditions=[]
@@ -123,10 +132,7 @@ def getpaths(root):
 		if d.is_dir():
 			out.append(root+'/'+d.name+'/')
 			out+=getpaths(root+'/'+d.name)
-			#out+=[root+'/'+d.name+'/'+f for f in getpaths(root+'/'+d.name)]
-		#else: out.append(root)
 	return out
-	#return [getpaths(root+'/'+d.name) if d.is_dir() else d.name for d in scan]# if scan.is_dir() else str(scan)
 
 def getmetadata(folder):
 	try:
@@ -134,7 +140,6 @@ def getmetadata(folder):
 			return ' - '+f.readline()
 	except Exception as e:
 		return ''
-		#return str(e)[10:]
 
 def getinfo(path):
 	try:

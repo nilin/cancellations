@@ -2,6 +2,7 @@ from cancellations.examples import example
 from cancellations.display import cdisplay
 from cancellations.utilities import tracking, browse, batchjob
 import os
+import sys
 import importlib
 
 
@@ -29,4 +30,5 @@ if __name__=='__main__':
     mname=path.replace('/','.')[:-3]
     print('todo: use importlib to run')
     print(mname)
-    importlib.import_module(mname)
+    m=importlib.import_module(mname)
+    getattr(m,'test')()

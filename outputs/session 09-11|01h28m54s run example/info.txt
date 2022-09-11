@@ -1,0 +1,31 @@
+runID: session 09-11|01h28m54s run example
+
+
+
+
+target
+
+    tanh-ASNN -> Outputscaling composition
+    
+        tanh-ASNN
+        n=5, d=2, widths=[10, 10, 10, 1], activation=tanh
+    
+        Outputscaling
+
+
+
+learner
+
+    leakyrelu-SingleparticleNN -> leakyrelu-Backflow -> DetSum -> leakyrelu-OddNN composition
+    
+        leakyrelu-SingleparticleNN
+        widths=[2, 100, 100], activation=leakyrelu
+    
+        leakyrelu-Backflow
+        widths=[100, 100], activation=leakyrelu
+    
+        DetSum
+        n=5, d=100, ndets=10
+    
+        leakyrelu-OddNN
+        widths=[1, 100, 1], activation=leakyrelu

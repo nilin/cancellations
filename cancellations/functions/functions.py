@@ -3,7 +3,7 @@
 import jax
 import jax.numpy as jnp
 import jax.random as rnd
-from cancellations.utilities import tracking,math as mathutil
+from ..utilities import arrayutil as mathutil, tracking,textutil
 from cancellations.utilities import config as cfg
 from ..display import display as disp
 #from GPU_sum import sum_perms_multilayer as sumperms
@@ -16,7 +16,7 @@ import copy
 from .backflow import gen_backflow,initweights_Backflow
 from .AS_tools import detsum #,initweights_detsum
 from jax.numpy import tanh
-from ..utilities.math import drelu
+from ..utilities.arrayutil import drelu
 
 
 class FunctionDescription:
@@ -45,10 +45,11 @@ class FunctionDescription:
 		return self.typename()
 
 	def info(self):
-		return ', '.join(['{}={}'.format(k,v) for k,v in self.kw.items()])
+		return self.richtypename()+'\n'+', '.join(['{}={}'.format(k,v) for k,v in self.kw.items()])
 
 	def getinfo(self):
-		return '{}\n{}'.format(self.richtypename(),self.info())
+		return self.info()
+		#return '{}\n{}'.format(self.richtypename(),self.info())
 
 	def compress(self):
 		c=copy.deepcopy(self)
@@ -100,13 +101,15 @@ class FunctionDescription:
 #			case 2: params,X=args
 #		return (self.typename(),self._inspect_(params,X))
 
+class Composite(FunctionDescription):
+	def getinfo(self):
+		return '{}\n\n{}'.format(self.richtypename(),self.info())
+
+#def initweights(*functions):
+#	for f in functions: f.initweights()
 
 
-def initweights(*functions):
-	for f in functions: f.initweights()
-
-
-class ComposedFunction(FunctionDescription):
+class ComposedFunction(Composite):
 	def __init__(self,*nestedelements):
 		elements=[e for E in nestedelements for e in (E.elements if isinstance(E,ComposedFunction) else [E])]
 		weights=[w for E in nestedelements for w in (E.popweights() if isinstance(E,ComposedFunction) else [cast(E).popweights()])]
@@ -127,12 +130,11 @@ class ComposedFunction(FunctionDescription):
 		return ' -> '.join([e.richtypename() for e in self.elements])+' composition'
 
 	def info(self):
-		return '\n'+'\n\n'.join([disp.indent(e.getinfo()) for e in self.elements])
+		return '\n\n'.join([textutil.indent(e.getinfo()) for e in self.elements])
 
 	def compress(self):
 		c=super().compress()
-		new_c_elements=[e.compress() for e in c.elements]
-		c.elements=new_c_elements
+		c.elements=[e.compress() for e in c.elements]
 		return c
 
 	def _inspect_(self,params,X):
@@ -150,6 +152,33 @@ class ComposedFunction(FunctionDescription):
 			#	break
 		return self.typename(),subprocs,Xhist
 
+
+
+class Product(Composite):
+	def __init__(self,*elements):
+		super().__init__(elements=elements,initweights=False)
+		self.weights=[e.weights for e in elements]
+
+	def gen_f(self):
+		fs=[e._gen_f_() for e in self.elements]
+		def f(params,X):
+			out=jnp.ones((X.shape[0],))
+			for e,ps in zip(fs,params):
+				out=out*e(ps,X)
+			return out
+		return jax.jit(f)
+
+	def typename(self):
+		return ' X '.join([e.richtypename() for e in self.elements])
+
+	def info(self):
+		return textutil.sidebyside(*[x for e in self.elements\
+			 for x in [e.getinfo(),' times ']][:-1],separator=' ')
+
+	def compress(self):
+		c=super().compress()
+		c.elements=[e.compress() for e in c.elements]
+		return c
 
 #=======================================================================================================
 class NNfunction(FunctionDescription):
@@ -233,18 +262,18 @@ class ProdSum(Nonsym):
 class ProdState(Nonsym):
 	antisymtype='Slater'
 	def __init__(self,basisfunctions,**kw):
-		super().__init__(basisfunctions=cast(basisfunctions,**kw).compress())
+		super().__init__(basisfunctions=[cast(phi,**kw).compress() for phi in basisfunctions])
 
 	def gen_f(self):
-		parallel=jax.vmap(self.basisfunctions._gen_f_(),in_axes=(None,-2),out_axes=-2)
-		return jax.jit(lambda params,X: ASt.diagprods(parallel(params,X)))
+		return jax.jit(lambda params,X:jnp.product(jnp.stack([\
+			phi(params,X[:,i,:]) for i,phi in enumerate(self.basisfunctions)])))
 
 	@staticmethod
 	def _initweights_(basisfunctions):
-		return basisfunctions._initweights_(**basisfunctions.kw)
+		return [phi._initweights_(**phi.kw) for phi in basisfunctions]
 
-	def richtypename(self): return self.basisfunctions.richtypename()+dash+self.typename()
-	def info(self): return cfg.indent(self.basisfunctions.info())
+	def richtypename(self): return self.basisfunctions[0].richtypename()+'...'+'-'+self.typename()
+	def info(self): return cfg.indent('\n'.join([phi.info() for phi in self.basisfunctions]))
 
 #=======================================================================================================
 
@@ -269,28 +298,35 @@ class DetSum(Antisymmetric):
 	@staticmethod
 	def translation(name):return 'ndets' if name=='k' else name
 
-	#def _inspect_(self,params,X): return AS_tools.inspectdetsum(params,X)
+#class BatchFunctionSlater(Antisymmetric):
+#	nonsym=BatchFunctionProdState
+#	def __init__(self,basisfunctions,**kw):
+#		super().__init__(basisfunctions=cast(basisfunctions,**kw).compress())
+#
+#	def gen_f(self):
+#		parallel=jax.vmap(self.basisfunctions._gen_f_(),in_axes=(None,-2),out_axes=-2)
+#		return jax.jit(lambda params,X: jnp.linalg.det(parallel(params,X)))
+#
+#	def richtypename(self): return self.basisfunctions.richtypename()+'-'+self.typename()
+#	def info(self): return cfg.indent(self.basisfunctions.info())
 
 class Slater(Antisymmetric):
 	nonsym=ProdState
 	def __init__(self,basisfunctions,**kw):
-		super().__init__(basisfunctions=cast(basisfunctions,**kw).compress())
+		super().__init__(basisfunctions=[cast(phi,**kw).compress() for phi in basisfunctions])
 
 	def gen_f(self):
-		parallel=jax.vmap(self.basisfunctions._gen_f_(),in_axes=(None,-2),out_axes=-2)
-		return jax.jit(lambda params,X: jnp.linalg.det(parallel(params,X)))
+		phis=[jax.vmap(phi._gen_f_(),in_axes=(None,-2),out_axes=-1) for phi in self.basisfunctions]
+		return jax.jit(lambda params,X: jnp.linalg.det(jnp.stack([phi(params,X)for phi in phis],axis=-1)))
 
-	def richtypename(self): return self.basisfunctions.richtypename()+dash+self.typename()
-	def info(self): return cfg.indent(self.basisfunctions.info())
+	def richtypename(self): return ' ^ '.join([phi.richtypename() for phi in self.basisfunctions])+'-'+self.typename()
+	#def info(self): return textutil.indent('\n'.join([phi.getinfo() for phi in self.basisfunctions]))
 
 
 #=======================================================================================================
 
-class Scalarfunction(FunctionDescription):
-	pass
-
-class Oddfunction(FunctionDescription):
-	pass
+class Scalarfunction(FunctionDescription): pass
+class Oddfunction(FunctionDescription): pass
 
 class OddNN(NNfunction,Scalarfunction,Oddfunction):
 	def gen_f(self):
@@ -318,13 +354,22 @@ class Wrappedfunction(FunctionDescription):
 		super().__init__(**kw)
 
 	def gen_f(self):
-		if self.mode=='gen':
-			return globals()['gen_'+self.fname](**self.kw)
-		else: return globals()[self.fname]
+		return globals()[self.fname]
 
 	def typename(self):
 		return self.fname
 
+
+class IsoGaussian(FunctionDescription):
+	def __init__(self,var):
+		self.var=var
+		super().__init__()
+
+	def gen_f(self):
+		return jax.jit(lambda X: jnp.sum(jnp.exp(-X**2/(2*self.var)),axis=(-2,-1)))
+
+	def typename(self):
+		return 'N(0,{:.0}I)'.format(self.var)
 
 #=======================================================================================================
 

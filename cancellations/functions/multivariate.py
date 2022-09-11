@@ -5,13 +5,13 @@
 
 import jax.numpy as jnp
 import jax
-from ..utilities import tracking,math as mathutil,config as cfg
+from ..utilities import arrayutil, tracking,config as cfg
 
 import math
 import jax.random as rnd
 
-from ..utilities.math import activations
-from ..utilities import math as mathutil
+from ..utilities.arrayutil import activations
+from ..utilities import arrayutil
 import pdb
 
 from inspect import signature
@@ -43,7 +43,7 @@ def gen_NN_wideoutput(ac):
 
 
 def gen_NN(activation):
-	return mathutil.scalarfunction(gen_NN_wideoutput(activation))
+	return arrayutil.scalarfunction(gen_NN_wideoutput(activation))
 
 
 def gen_NN_NS(activation):
@@ -51,7 +51,7 @@ def gen_NN_NS(activation):
 
 	@jax.jit
 	def NN_NS(params,X):
-		X=mathutil.collapselast(X,2)
+		X=arrayutil.collapselast(X,2)
 		return NN(params,X)
 
 	return NN_NS
@@ -75,7 +75,7 @@ def gen_lossgrad(f,lossfn=None):
 
 def initweights_NN(widths,*args,**kw):
 	ds=widths
-	Ws=[mathutil.initweights((d2,d1)) for d1,d2 in zip(ds[:-1],ds[1:])]
+	Ws=[arrayutil.initweights((d2,d1)) for d1,d2 in zip(ds[:-1],ds[1:])]
 	bs=[rnd.normal(tracking.nextkey(),(d2,))*cfg.biasinitsize for d2 in ds[1:]]
 
 	return list(zip(Ws,bs))
@@ -86,11 +86,11 @@ def initweights_NN(widths,*args,**kw):
 #----------------------------------------------------------------------------------------------------
 
 def multiply(*fs):
-	if max([mathutil.takesparams(f) for f in fs]):
+	if max([arrayutil.takesparams(f) for f in fs]):
 		def F(paramsbundle,X):
 			out=1
 			for f,params in zip(fs,paramsbundle):
-				out*=mathutil.pad(f)(params,X)
+				out*=arrayutil.pad(f)(params,X)
 			return out
 	else:
 		def F(X):
