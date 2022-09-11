@@ -21,7 +21,6 @@ warnings.filterwarnings('ignore')
 def samplepoints(X,Y,nsamples):
 	p=Y**2
 	p=p/jnp.sum(p)
-	#I=jnp.random.choice(,range(len(p)),nsamples,p=p)
 	I=rnd.choice(tracking.nextkey(),jnp.arange(len(p)),(nsamples,),p=p)
 	return X[I]
 	
@@ -33,61 +32,34 @@ def linethrough(x,interval):
 	X=interval[:,None,None]*corner[None,:,:]+x_rest[None,:,:]
 	return X
 
-def slicethrough(x,I):
-	S,T=np.meshgrid(I,I)
-	X=np.array(x)[None,None,:,:]+np.zeros_like(S)[:,:,None,None]
-	X[:,:,0,0]=S
-	X[:,:,0,1]=T
-	return X
 
-def slicesthrough(x,I):
 
-	S,T=np.meshgrid(I,I)
-
-	X=np.array(x)[None,None,:,:]+np.zeros_like(S)[:,:,None,None]
-	X1=copy.deepcopy(X)
-	X2=copy.deepcopy(X)
-	X3=copy.deepcopy(X)
-
-	for X_,i,j in [(X1,0,1),(X2,0,2),(X3,1,2)]:
-		X_[:,:,0,i]=S
-		X_[:,:,0,j]=T
-
-	return X1,X2,X3
 
 
 
 
 #def genCrossSections(X,Y,target):
-def genCrossSections(targetfn):
-	tracking.logcurrenttask('Preparing cross sections for plotting.')	
-	tracking.currentkeychain=4
-
-	X=tracking.currentprocess().genX(1000)
-	Y=targetfn(X)
-	n=X.shape[-1]
-	x0s=samplepoints(X,Y,{1:3,2:3,3:1}[n])
-	CrossSection=globals()['CrossSection{}D'.format(n)]
-	sections=[CrossSection(X,Y,targetfn,x0) for x0 in x0s]
-	tracking.clearcurrenttask()
-	return sections
 
 class CrossSection:
-	def __init__(self,X,Y,fineness):
-		self.interval=jnp.arange(-1,1,2/fineness)
+	info=''
+	#def __init__(self,X,Y,interval):
+	def __init__(self,X,Y,interval=jnp.arange(-1,1,2/100)):
+		self.interval=interval
 		self.X=X
 		self.Y=Y
-	def plot_y_vs_f_SI(self,staticlearner,normalized=True,**kwargs):
+		self.n=X.shape[-2]
+	def plot(self,staticlearner,normalized=True,**kwargs):
 		f=mathutil.closest_multiple(staticlearner,self.X[:250],self.Y[:250],normalized=normalized)
 		return self.plot_y_vs_f(f,normalized_target=normalized,**kwargs)
 
-class CrossSection1D(CrossSection):
-	def __init__(self,X,Y,target,x0):
-		super().__init__(X,Y,100)
+
+class Line_1particle(CrossSection):
+	def __init__(self,X,Y,target,x0,**kw):
+		super().__init__(X,Y,**kw)
 		self.line=linethrough(x0,self.interval)
 		self.y=target(self.line)
 
-	def plot_y_vs_f(self,f,normalized_target=False):
+	def plot(self,f,normalized_target=False):
 
 		c=1/mathutil.norm(self.Y) if normalized_target else 1
 
@@ -97,113 +69,163 @@ class CrossSection1D(CrossSection):
 		ax.legend()
 		return fig
 
+	
+class Slice(CrossSection):
 
-class CrossSection2D(CrossSection):
-	def __init__(self,X,Y,target,x0):
-		super().__init__(X,Y,cfg.plotfineness)
-		self.slice=slicethrough(x0,self.interval)
+	def __init__(self,X,Y,target,x0,**kw):
+		super().__init__(X,Y,**kw)
+		self.slice=self.slicethrough(x0,self.interval)
 		self.y=mathutil.applyalonglast(target,self.slice,2)
 
 
-	def plot_y_vs_f(self,f,normalized_target=False):
-
+	def plot(self,f,normalized_target=False):
 		I=self.interval
 		c=1/mathutil.norm(self.Y) if normalized_target else 1
 
-		fig,(ax0,ax1,ax2)=plt.subplots(1,3,figsize=(17,5))
+		fig,(ax0,ax1,ax2)=plt.subplots(1,3,figsize=(15,6))
 		yt=c*self.y
 		yl=mathutil.applyalonglast(f,self.slice,2)
 
-		#M=jnp.max(jnp.abs(yt))+jnp.max(jnp.abs(yl))
-		#M=jnp.max(jnp.abs(c*self.Y))
-		M=1 if normalized_target else mathutil.norm(self.Y)
-		M*=4
+		#M=1 if normalized_target else mathutil.norm(self.Y)
+		#M*=4
 
 		ax0.set_title('target')
 		ax1.set_title('learner')
 		ax2.set_title('both')
 
-		mt=ax0.pcolormesh(I,I,yt,cmap='seismic',vmin=-M,vmax=M)
+		mt=ax0.pcolormesh(I,I,yt,cmap='seismic')#,vmin=-M,vmax=M)
 		ct=ax0.contour(I,I,yt,levels=[0],colors='k',linewidths=1)
 		cl=ax0.contour(I,I,yl,levels=[0],colors='k',linewidths=.1,alpha=.5)
 		plt.clabel(cl,inline=True,fmt=lambda x:'learner')
 
-		ml=ax1.pcolormesh(I,I,yl,cmap='seismic',vmin=-M,vmax=M)
+		ml=ax1.pcolormesh(I,I,yl,cmap='seismic')#,vmin=-M,vmax=M)
 		cl=ax1.contour(I,I,yl,levels=[0],colors='k',linewidths=1)
 		ct=ax1.contour(I,I,yt,levels=[0],colors='k',linewidths=.1,alpha=.5)
 		plt.clabel(ct,inline=True,fmt=lambda x:'target')
 
 		for m in [mt,ml]: m.set_edgecolor('face')
 
-		#ax2.pcolormesh(I,I,yl-yt,cmap='seismic',vmin=-M,vmax=M)
-		#ax2.contour(I,I,yt,colors='b',linewidths=.5)
-		#ax2.contour(I,I,yl,colors='r',linewidths=.5)
 		c0=ax2.contour(I,I,yt,levels=[0],colors='b',linewidths=2)
 		c1=ax2.contour(I,I,yl,levels=[0],colors='r',linewidths=2)
 		plt.clabel(c0,inline=True,fmt=lambda x:'target')
-		#plt.clabel(c1,inline=True,fmt=lambda x:'learner')
 
-#		c0.collections[0].set_label('target')
-#		c1.collections[0].set_label('learner')
-#		ax2.legend()
+		for ax in (ax0,ax1,ax2): ax.set_aspect('equal')
 
-		#fig.colorbar(im)
-		#fig.colorbar(im1)
-		#fig.colorbar(im2)
-		return fig
-
-
-class CrossSection3D(CrossSection):
-	def __init__(self,X,Y,target,x0):
-		super().__init__(X,Y,50)
-		self.slices=slicesthrough(x0,self.interval)
-		self.ys=[mathutil.applyalonglast(target,sl,2) for sl in self.slices]
-
-	def plot_y_vs_f(self,f,normalized_target=False):
-		tracking.logcurrenttask('drawing plots')
-
-		I=self.interval
-		c=1/mathutil.norm(self.Y) if normalized_target else 1
-
-		fig,axsrows=plt.subplots(len(self.slices),3,figsize=(17,17))
-		for sl,y,(ax0,ax1,ax2) in zip(self.slices,self.ys,axsrows):
-			yt=c*y
-			yl=mathutil.applyalonglast(f,sl,2)
-			M=jnp.max(jnp.abs(yt))
-			#ax.pcolormesh(I,I,yt)
-			im=ax0.pcolormesh(I,I,yl-yt,cmap='seismic',vmin=-M,vmax=M)
-			ax0.contour(I,I,yt,colors='b',linewidths=.5)
-			ax0.contour(I,I,yl,colors='r',linewidths=.5)
-			ax0.contour(I,I,yt,levels=[0],colors='b',linewidths=3)
-			ax0.contour(I,I,yl,levels=[0],colors='r',linewidths=3)
-
-			im1=ax1.pcolormesh(I,I,yt,cmap='seismic',vmin=-M,vmax=M)
-			im2=ax2.pcolormesh(I,I,yl,cmap='seismic',vmin=-M,vmax=M)
-
-		tracking.clearcurrenttask()
 		return fig
 
 
 
-def singlefnplot_all_in_one(X,statictarget,Y=None):
+class Slice_1particle(Slice):
+	def __init__(self,*a,**kw):
+		super().__init__(*a,**kw)
+		self.info='one particle free, {} particles fixed'.format(self.n-1)
 
-	if Y==None:
-		Y=statictarget(X)
-	sections=CrossSections(X,Y,statictarget,3,fineness=200)	
-	fig=sections.plot_y()
-	del sections
-	return fig
-
-def fnplot_all_in_one(X,statictarget,staticlearner,Y=None,normalized=True):
-
-	if Y==None:
-		Y=statictarget(X)
-	sections=CrossSections(X,Y,statictarget,3,fineness=200)	
-	fig=sections.plot_SI(staticlearner,normalized)
-	del sections
-	return fig
+	@staticmethod
+	def slicethrough(x,I):
+		S,T=np.meshgrid(I,I)
+		X=np.array(x)[None,None,:,:]+np.zeros_like(S)[:,:,None,None]
+		X[:,:,0,0]=S
+		X[:,:,0,1]=T
+		return X
 
 
+class Slice_2particles(Slice):
+	def __init__(self,*a,**kw):
+		super().__init__(*a,**kw)
+		self.info='two particles free, {} particles fixed'.format(self.n-2)
+
+	@staticmethod
+	def slicethrough(x,I):
+		S,T=np.meshgrid(I,I)
+		X=np.array(x)[None,None,:,:]+np.zeros_like(S)[:,:,None,None]
+		X[:,:,0,0]=S
+		X[:,:,1,0]=T
+		return X
+
+
+
+############
+
+def genCrossSections(targetfn,**kw):
+	tracking.logcurrenttask('Preparing cross sections for plotting.')	
+	tracking.currentkeychain=4
+
+	X=tracking.currentprocess().genX(1000)
+	Y=targetfn(X)
+	n=X.shape[-1]
+	x0s=samplepoints(X,Y,{1:3,2:3,3:1}[n])
+	sections1p=[Slice_1particle(X,Y,targetfn,x0,**kw) for x0 in x0s] if n>1 else []
+	sections2p=[Slice_2particles(X,Y,targetfn,x0,**kw) for x0 in x0s]
+	tracking.clearcurrenttask()
+	return *sections2p,*sections1p
+
+#
+#
+#def slicesthrough3D(x,I):
+#	S,T=np.meshgrid(I,I)
+#
+#	X=np.array(x)[None,None,:,:]+np.zeros_like(S)[:,:,None,None]
+#	X1=copy.deepcopy(X)
+#	X2=copy.deepcopy(X)
+#	X3=copy.deepcopy(X)
+#
+#	for X_,i,j in [(X1,0,1),(X2,0,2),(X3,1,2)]:
+#		X_[:,:,0,i]=S
+#		X_[:,:,0,j]=T
+#
+#	return X1,X2,X3
+#
+#class CrossSection3D(CrossSection):
+#	def __init__(self,X,Y,target,x0):
+#		super().__init__(X,Y,50)
+#		self.slices=slicesthrough(x0,self.interval)
+#		self.ys=[mathutil.applyalonglast(target,sl,2) for sl in self.slices]
+#
+#	def plot_y_vs_f(self,f,normalized_target=False):
+#		tracking.logcurrenttask('drawing plots')
+#
+#		I=self.interval
+#		c=1/mathutil.norm(self.Y) if normalized_target else 1
+#
+#		fig,axsrows=plt.subplots(len(self.slices),3,figsize=(17,17))
+#		for sl,y,(ax0,ax1,ax2) in zip(self.slices,self.ys,axsrows):
+#			yt=c*y
+#			yl=mathutil.applyalonglast(f,sl,2)
+#			M=jnp.max(jnp.abs(yt))
+#			#ax.pcolormesh(I,I,yt)
+#			im=ax0.pcolormesh(I,I,yl-yt,cmap='seismic',vmin=-M,vmax=M)
+#			ax0.contour(I,I,yt,colors='b',linewidths=.5)
+#			ax0.contour(I,I,yl,colors='r',linewidths=.5)
+#			ax0.contour(I,I,yt,levels=[0],colors='b',linewidths=3)
+#			ax0.contour(I,I,yl,levels=[0],colors='r',linewidths=3)
+#
+#			im1=ax1.pcolormesh(I,I,yt,cmap='seismic',vmin=-M,vmax=M)
+#			im2=ax2.pcolormesh(I,I,yl,cmap='seismic',vmin=-M,vmax=M)
+#
+#		tracking.clearcurrenttask()
+#		return fig
+#
+
+#
+#def singlefnplot_all_in_one(X,statictarget,Y=None):
+#
+#	if Y==None:
+#		Y=statictarget(X)
+#	sections=CrossSections(X,Y,statictarget,3,fineness=200)	
+#	fig=sections.plot_y()
+#	del sections
+#	return fig
+#
+#def fnplot_all_in_one(X,statictarget,staticlearner,Y=None,normalized=True):
+#
+#	if Y==None:
+#		Y=statictarget(X)
+#	sections=CrossSections(X,Y,statictarget,3,fineness=200)	
+#	fig=sections.plot_SI(staticlearner,normalized)
+#	del sections
+#	return fig
+#
+#
 
 
 

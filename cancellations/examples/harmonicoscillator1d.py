@@ -94,7 +94,7 @@ def prep_and_run(run:tracking.Run):
         run.Y_train=run.target.eval(run.X_train,msg='preparing training data',blocksize=run.evalblocksize)
         run.X_test=run.genX(run.samples_test)
         run.Y_test=run.target.eval(run.X_test,msg='preparing test data',blocksize=run.evalblocksize)
-        run.sections=pt.genCrossSections(run.target.eval)
+        run.sections=pt.genCrossSections(run.target.eval,interval=jnp.arange(-3,3,6/100))
 
     setlearner(run)
     info+=4*'\n'+'learner\n\n{}'.format(textutil.indent(run.learner.getinfo())); run.trackcurrent('runinfo',info)

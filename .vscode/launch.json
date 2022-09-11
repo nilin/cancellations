@@ -8,7 +8,7 @@
             "name": "Python: Module",
             "type": "python",
             "request": "launch",
-            "module": "testosc",
+            "module": "run_harmonicoscillator1d",
             "justMyCode": true
         }
     ]

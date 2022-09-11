@@ -2,6 +2,8 @@ import os
 import pickle
 from ..functions import functions
 from . import tracking
+from collections import deque
+import sys
 
 
 def makedirs(filepath):
@@ -51,3 +53,36 @@ def showfile(path):
 
 #====================================================================================================
 
+
+def castval(val):
+    for f in [int,cast_str_as_list_(int),float,cast_str_as_list_(float)]:
+        try:
+            return f(val)
+        except:
+            pass
+    return val
+
+
+def cast_str_as_list_(dtype):
+    def cast(s):
+        return [dtype(x) for x in s.split(',')]
+    return cast
+
+
+def parsedef(s):
+    name,val=s.split('=')
+    return name,castval(val)
+        
+
+def parse_args(cmdargs=sys.argv[1:]):
+    cmdargs=deque(cmdargs)
+    args=[]
+    while len(cmdargs)>0 and '=' not in cmdargs[0]:
+        args.append(cmdargs.popleft())
+
+    defs=dict([parsedef(_) for _ in cmdargs])
+    return args,defs
+
+def parse_metadata(path):
+    with open(path+'metadata.txt','r') as f:
+        return parse_args(f.readline())[1]

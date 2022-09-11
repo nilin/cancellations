@@ -31,7 +31,7 @@ def getdefaultprofile():
     profile.learnerchoice='backflow' 
 
 
-    profile.n=5
+    profile.n=3
     profile.d=2
 
     profile._X_distr_=lambda key,samples,n,d:rnd.uniform(key,(samples,n,d),minval=-1,maxval=1)
@@ -39,9 +39,9 @@ def getdefaultprofile():
 
     # training params
 
-    profile.weight_decay=0,
-    profile.lossfn=arrayutil.SI_loss,
-    profile.iterations=25000,
+    profile.weight_decay=0
+    profile.lossfn=arrayutil.SI_loss
+    profile.iterations=25000
     profile.minibatchsize=None
     
     profile.samples_train=10**5
@@ -155,7 +155,7 @@ def prep_and_run(run:tracking.Run):
 
     exampletemplate.testantisymmetry(run.target,run.learner,run.genX(100))
     exampletemplate.train(run,run.learner,run.X_train,run.Y_train,\
-        **{k:run[k] for k in ['weight_decay','lossfn','iteractions','minibatchsize']})
+        **{k:run[k] for k in ['weight_decay','lossfn','iterations','minibatchsize']})
 
 
 

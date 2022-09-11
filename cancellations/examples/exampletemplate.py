@@ -45,7 +45,7 @@ def train(run,learner,X_train,Y_train,**kw):
 		if regsched.activate(i):
 			run.unprocessed.remember('weights',learner.weights)
 			sysutil.save(run.unprocessed,run.outpath+'data/unprocessed',echo=False)
-			sysutil.write('loss {:.3f}, iterations: {}'.format(loss,i),run.outpath+'metadata.txt',mode='w')	
+			sysutil.write('loss={:.3f} iterations={} n={} d={}'.format(loss,i,run.n,run.d),run.outpath+'metadata.txt',mode='w')	
 
 		if plotsched.activate(i):
 			fplot()
@@ -209,9 +209,9 @@ def lplot():
 def plotfunctions(sections,f,figtitle,path):
 	plt.close('all')
 	for fignum,section in enumerate(sections):
-		fig=section.plot_y_vs_f_SI(f)
+		fig=section.plot(f)
 		if tracking.trackcurrenttask('generating function plots',(fignum+1)/len(sections))=='b': break
-		fig.suptitle(figtitle)
+		fig.suptitle(figtitle+'\n\n'+section.info)
 		sysutil.savefig('{} {}.pdf'.format(path,fignum),fig=fig)
 	tracking.clearcurrenttask()
 

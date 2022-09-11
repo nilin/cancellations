@@ -45,11 +45,10 @@ class FunctionDescription:
 		return self.typename()
 
 	def info(self):
-		return self.richtypename()+'\n'+', '.join(['{}={}'.format(k,v) for k,v in self.kw.items()])
+		return ', '.join(['{}={}'.format(k,v) for k,v in self.kw.items()])
 
 	def getinfo(self):
-		return self.info()
-		#return '{}\n{}'.format(self.richtypename(),self.info())
+		return '{}\n{}'.format(self.richtypename(),self.info())
 
 	def compress(self):
 		c=copy.deepcopy(self)
@@ -320,7 +319,7 @@ class Slater(Antisymmetric):
 		return jax.jit(lambda params,X: jnp.linalg.det(jnp.stack([phi(params,X)for phi in phis],axis=-1)))
 
 	def richtypename(self): return ' ^ '.join([phi.richtypename() for phi in self.basisfunctions])+'-'+self.typename()
-	#def info(self): return textutil.indent('\n'.join([phi.getinfo() for phi in self.basisfunctions]))
+	def info(self): return textutil.indent('\n'.join([phi.info() for phi in self.basisfunctions]))
 
 
 #=======================================================================================================
