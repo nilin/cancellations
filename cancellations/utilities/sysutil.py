@@ -86,3 +86,8 @@ def parse_args(cmdargs=sys.argv[1:]):
 def parse_metadata(path):
     with open(path+'metadata.txt','r') as f:
         return parse_args(f.readline())[1]
+
+
+
+
+cmdparams,cmdredefs=parse_args()

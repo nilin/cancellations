@@ -480,7 +480,6 @@ eventlisteners=dict()
 
 
 
-cmdparams,cmdredefs=parse_cmdln_args()
 
 def getfromargs(**kw):
     return kw[selectone(set(kw.keys()),cmdparams)]
