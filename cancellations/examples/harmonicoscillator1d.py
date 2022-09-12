@@ -69,7 +69,10 @@ def setlearner(profile):
 
 
 
-def prep_and_run(run:tracking.Run):
+def execprocess(run:tracking.Run):
+
+    run.act_on_input=exampletemplate.act_on_input
+    exampletemplate.prepdisplay(run)
 
     run.outpath='outputs/{}/'.format(run.ID)
     cfg.outpath='outputs/{}/'.format(run.ID)
@@ -112,15 +115,19 @@ def prep_and_run(run:tracking.Run):
         **{k:run[k] for k in ['weight_decay','lossfn','iterations','minibatchsize']})
 
 
+class Run(tracking.Run):
+    execprocess=execprocess
+#    def execprocess(self):
+#        return execprocess(self)
 
-def main(profile,display):
-    run=tracking.Run(profile,display=display)
-    exampletemplate.prepdisplay(run)
-    run.act_on_input=exampletemplate.act_on_input
-    tracking.loadprocess(run)
-    prep_and_run(run)
-    tracking.unloadprocess(run)
 
+
+#
+#def main(profile,display):
+#    run=tracking.loadprocess(Run(profile,display=display))
+#    run.execprocess()
+#    tracking.unloadprocess(run)
+#
 
 
 if __name__=='__main__':

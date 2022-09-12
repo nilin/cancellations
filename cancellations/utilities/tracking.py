@@ -391,10 +391,12 @@ processes=[]
 def loadprocess(process):
     if len(processes)==0 or processes[-1]!=process:
         processes.append(process)
+    return process
 
 def unloadprocess(process):
     if len(processes)>0 and processes[-1]==process:
         processes.pop()
+    return process
 
 def currentprocess():
     return processes[-1]

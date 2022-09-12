@@ -94,6 +94,17 @@ def readtextfile(path):
 
 cmdparams,cmdredefs=parse_args()
 
+def commonanc(*fs):
+	levels=list(zip(*[f.split('/') for f in fs]))
+	
+	path=''
+	difflevel=[]
+	for l in levels:
+		if all([li==l[0] for li in l]):
+			path+=l[0]+'/'
+		else:
+			break
+	return path,[f[len(path):] for f in fs]
 
 
 def test():

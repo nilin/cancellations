@@ -71,7 +71,7 @@ def clearscreen():
 	getscreen().clear()
 	getscreen().refresh()
 
-def session_in_display(processfn,profile,nodelay=True,**kw):
+def session_in_display(processfn,profile,nodelay=True):
 
 	def wrapped(screen):
 		cfg.screen=screen
@@ -80,7 +80,7 @@ def session_in_display(processfn,profile,nodelay=True,**kw):
 		tracking.session.display=disp.CompositeDisplay((0,cs.COLS),(0,cs.LINES))
 		#try: profile.prepdashboard(profile.dashboard)
 		#except: pass
-		return processfn(profile,display=tracking.session.display,**kw)
+		return runtask(processfn,profile,display=tracking.session.display)
 
 	out=cs.wrapper(wrapped)
 	return out
@@ -88,9 +88,9 @@ def session_in_display(processfn,profile,nodelay=True,**kw):
 
 
 def runtask(task,profile,display):
-	tracking.loadprocess(task)
-	output=task(profile,display)
-	tracking.unloadprocess(task)
+	process=tracking.loadprocess(task(profile,display))
+	output=process.execprocess()
+	tracking.unloadprocess(process)
 	clearscreen()
 	return output
 

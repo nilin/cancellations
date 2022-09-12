@@ -7,8 +7,10 @@ from . import tracking
 from ..display.display import dash
 from ..display import display as disp
 from ..display import cdisplay
-from ..utilities import config as cfg,sysutil
+from ..utilities import config as cfg,sysutil,tracking
 import time
+
+from cancellations import utilities
 
 
 up='\u2191'
@@ -29,9 +31,9 @@ def getdefaultprofile():
 	return profile
 
 
-def _pickfolders_(profile,display):
-
-	browsing=tracking.Process(profile,display=display)
+def _pickfolders_(process):
+	profile,display=process,process.display
+	#browsing=tracking.Process(profile,display=display)
 
 	W=display.width
 	H=display.height
@@ -145,32 +147,26 @@ def getinfo(readinfo,path):
 	try: return readinfo(path)
 	except: return 'no info'
 
-def commonanc(*fs):
-	levels=list(zip(*[f.split('/') for f in fs]))
-	
-	path=''
-	difflevel=[]
-	for l in levels:
-		if all([li==l[0] for li in l]):
-			path+=l[0]+'/'
-		else:
-			break
-	return path,[f[len(path):] for f in fs]
 
 
 
-browsingprofile=tracking.Profile()
-
-def pickfolders(**kw):
-	return cdisplay.subtask_in_display(_pickfolders_,browsingprofile,**kw)
-
-def pickfolders_leave_cs(**kw):
-	cdisplay.run_in_display(_pickfolders_,browsingprofile,nodelay=False,**kw)
-	return browsingprofile.loadedpathandpaths
+class Process(tracking.Process):
+	execprocess=_pickfolders_
 
 
 
+#browsingprofile=tracking.Profile()
 #
-if __name__=='__main__':
-	import cdisplay
-	cdisplay.session_in_display(_pickfolders_,getdefaultprofile())
+#def pickfolders(**kw):
+#	return cdisplay.subtask_in_display(_pickfolders_,browsingprofile,**kw)
+#
+#def pickfolders_leave_cs(**kw):
+#	cdisplay.run_in_display(_pickfolders_,browsingprofile,nodelay=False,**kw)
+#	return browsingprofile.loadedpathandpaths
+#
+#
+#
+##
+#if __name__=='__main__':
+#	import cdisplay
+#	cdisplay.session_in_display(_pickfolders_,getdefaultprofile())
