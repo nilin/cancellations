@@ -54,7 +54,7 @@ def execprocess(run):
 
 def burn(run,sampler):
 
-    estimates10={name:tracking.RunningAvg(1000) for name in run.observables.keys()}
+    estimates100={name:tracking.RunningAvg(100) for name in run.observables.keys()}
 
     for i in range(run.maxburnsteps):
         run.trackcurrent('timeslices',i)
@@ -63,7 +63,7 @@ def burn(run,sampler):
             sampler.step()
 
             newest=jnp.average(O(sampler.X))
-            run.trackcurrent('estimate 1000 '+name,estimates10[name].update(newest))
+            run.trackcurrent('estimate 100 '+name,estimates100[name].update(newest))
 
         run.display.draw()
         if act_on_input(tracking.checkforinput())=='b': break
@@ -127,7 +127,7 @@ def prepdisplay1(display:disp.CompositeDisplay,run):
     for name in run.observables:
         tv=run.trueenergy
 
-        cd.add(disp.FlexDisplay('estimate 1000 '+name,parse=lambda _,x:\
+        cd.add(disp.FlexDisplay('estimate 100 '+name,parse=lambda _,x:\
             'Avg of last {:,} steps, {:,} samples:\n\n{:.4f}, relative error {:.1%}'.\
                 format(x[1],x[1]*run.nrunners,x[0],jnp.log(x[0]/tv))))
 
@@ -137,7 +137,7 @@ def prepdisplay1(display:disp.CompositeDisplay,run):
         I=list(jnp.arange(tv-2.25,tv+2,.5)); L=['{:.2}'.format(l) for l in I]
         cd.add(disp.Ticks(transform,I+[tv],L+['{:.2} (true value)'.format(tv)]))
         cd.add(disp.Ticks(transform,I+[tv]))
-        cd.add(disp.FlexDisplay('estimate 1000 '+name,parse=\
+        cd.add(disp.FlexDisplay('estimate 100 '+name,parse=\
             lambda D,x:transform(x[0],D.width)*textutil.dash+textutil.BOX+D.width*textutil.dash))
         cd.add(disp.Ticks(transform,I+[tv]))
 
