@@ -55,7 +55,7 @@ def psi(n):
 	psi_n=jax.jit(lambda x: jnp.exp(-x**2/2)*p(x))
 	return psi_n
 
-
+def totalenergy(n): return sum([i+1/2 for i in range(n)])
 
 
 

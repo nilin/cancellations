@@ -24,6 +24,7 @@ def getdefaultprofile():
         n=5,\
         d=1,\
         wavefunction='not set',\
+        trueenergy='not set',\
         minburnsteps=100,\
         maxburnsteps=1000,\
         maxiterations=100000,\
@@ -124,7 +125,7 @@ def prepdisplay1(display:disp.CompositeDisplay,run):
     cd.add(disp.VSpace(5))
 
     for name in run.observables:
-        tv=6.25
+        tv=run.trueenergy
 
         cd.add(disp.FlexDisplay('estimate 1000 '+name,parse=lambda _,x:\
             'Avg of last {:,} steps, {:,} samples:\n\n{:.4f}, relative error {:.1%}'.\
@@ -133,8 +134,8 @@ def prepdisplay1(display:disp.CompositeDisplay,run):
         cd.add(disp.VSpace(3))
 
         transform=disp.R_to_I_formatter(tv,1.0)
-        I=list(jnp.arange(5,8.5,.5)); L=['{:.2}'.format(l) for l in I]
-        cd.add(disp.Ticks(transform,I+[tv],L+['6.25 (true value)']))
+        I=list(jnp.arange(tv-2.25,tv+2,.5)); L=['{:.2}'.format(l) for l in I]
+        cd.add(disp.Ticks(transform,I+[tv],L+['{:.2} (true value)'.format(tv)]))
         cd.add(disp.Ticks(transform,I+[tv]))
         cd.add(disp.FlexDisplay('estimate 1000 '+name,parse=\
             lambda D,x:transform(x[0],D.width)*textutil.dash+textutil.BOX+D.width*textutil.dash))
@@ -150,7 +151,7 @@ def prepdisplay2(display:disp.CompositeDisplay,run):
     cd.add(disp.VSpace(3))
 
     for name in run.observables:
-        tv=6.25
+        tv=run.trueenergy
 
         cd.add(disp.FlexDisplay('estimate '+name,parse=lambda _,x:\
             'Estimate \n{:.4f}, relative error {:.2%}'.\
@@ -163,7 +164,7 @@ def prepdisplay2(display:disp.CompositeDisplay,run):
             T=lambda x: transform(x,displaywidth=display.width)
             return T(I[0])*' '+'['+(T(I[1])-T(I[0]))*textutil.dash+']'
         cd.add(disp.FlexDisplay('confinterval '+name,parse=showinterval))
-        I=list(jnp.arange(6,6.51,.1)); L=['{:.2}'.format(l) for l in I]
+        I=list(jnp.arange(tv-.25,tv+.26,.1)); L=['{:.2}'.format(l) for l in I]
         cd.add(disp.Ticks(transform,I+[tv]))
         cd.add(disp.Ticks(transform,I+[tv],L+['6.25 (true value)']))
         cd.add(disp.Ticks(transform,I+[tv]))

@@ -1,5 +1,6 @@
 from statistics import harmonic_mean
 from cancellations.examples import example, harmonicoscillator1d, estimateobservables
+from cancellations.functions import examplefunctions as ef
 from cancellations.display import cdisplay
 from cancellations.utilities import tracking, browse, batchjob
 import os
@@ -17,7 +18,9 @@ batch.genprofile1=lambda _: harmonicoscillator1d.getdefaultprofile()
 
 batch.task2=estimateobservables.Run
 batch.genprofile2=lambda prevoutputs: estimateobservables.getdefaultprofile().butwith(\
-    wavefunction=prevoutputs[0].eval)
+    wavefunction=prevoutputs[0].eval,\
+    trueenergy=ef.totalenergy(5)/2,\
+    maxburnsteps=2500)
 
 
 if __name__=='__main__':

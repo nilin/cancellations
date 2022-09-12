@@ -95,7 +95,7 @@ def execprocess(run:tracking.Run):
         run.Y_train=run.target.eval(run.X_train,msg='preparing training data',blocksize=run.evalblocksize)
         run.X_test=run.genX(run.samples_test)
         run.Y_test=run.target.eval(run.X_test,msg='preparing test data',blocksize=run.evalblocksize)
-        r=10
+        r=5
         run.sections=pt.genCrossSections(run.target.eval,interval=jnp.arange(-r,r,r/50))
 
     run.learner=getlearner(run)
