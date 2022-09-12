@@ -99,7 +99,10 @@ def pickexample(choice,n,d,**kw):
                 functions.OddNN(widths=[1,100,1],activation=activations[2]))
 
 
-def prep_and_run(run:tracking.Run):
+def runexample(run:tracking.Run):
+
+    exampletemplate.prepdisplay(run)
+    run.act_on_input=exampletemplate.act_on_input
 
     run.outpath='outputs/{}/'.format(run.ID)
     cfg.outpath='outputs/{}/'.format(run.ID)
@@ -159,13 +162,16 @@ def prep_and_run(run:tracking.Run):
 
 
 
-def main(profile,display):
-    run=tracking.Run(profile,display=display)
-    exampletemplate.prepdisplay(run)
-    run.act_on_input=exampletemplate.act_on_input
-    tracking.loadprocess(run)
-    prep_and_run(run)
-    tracking.unloadprocess(run)
+class Run(tracking.Run):
+    execprocess=runexample
+#def main(profile,display):
+#    run=tracking.Run(profile,display=display)
+#    tracking.loadprocess(run)
+#    prep_and_run(run)
+#    tracking.unloadprocess(run)
+
+
+
 
 
 

@@ -150,7 +150,7 @@ def getinfo(readinfo,path):
 
 
 
-class Process(tracking.Process):
+class Browse(tracking.Process):
 	execprocess=_pickfolders_
 
 

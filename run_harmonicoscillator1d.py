@@ -17,4 +17,4 @@ batch.genprofile1=lambda prevoutputs: harmonicoscillator1d.getdefaultprofile()
 
 
 if __name__=='__main__':
-    cdisplay.session_in_display(batchjob.runbatch,batch)
+    cdisplay.session_in_display(batchjob.Batchjob,batch)
