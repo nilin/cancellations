@@ -53,15 +53,15 @@ def getdefaultprofile():
 
 
 
-def settarget(profile):
+def gettarget(profile):
     for i in range(profile.n): setattr(functions,'psi'+str(i),ef.psi(i))
-    profile.target=functions.Slater(['psi'+str(i) for i in range(profile.n)])
+    return functions.Slater(['psi'+str(i) for i in range(profile.n)])
 
-def setlearner(profile):
+def getlearner(profile):
     d_=profile.d_
     ndets=profile.ndets
     activations=['leakyrelu','leakyrelu','leakyrelu']; d_=50; ndets=10
-    profile.learner=Product(functions.IsoGaussian(1.0),ComposedFunction(\
+    return Product(functions.IsoGaussian(1.0),ComposedFunction(\
         SingleparticleNN(widths=[profile.d,50,d_],activation=activations[0]),\
         functions.Backflow(widths=[d_,d_],activation=activations[1]),\
         functions.DetSum(n=profile.n,d=d_,ndets=ndets),\
@@ -89,7 +89,7 @@ def execprocess(run:tracking.Run):
         info+='target\n\n{}'.format(textutil.indent(run.target.getinfo())); run.trackcurrent('runinfo',info)
 
     else:
-        settarget(run)
+        run.target=gettarget(run)
         info+='target\n\n{}'.format(textutil.indent(run.target.getinfo())); run.trackcurrent('runinfo',info)
 
         run.X_train=run.genX(run.samples_train)
@@ -99,7 +99,7 @@ def execprocess(run:tracking.Run):
         run.Y_test=run.target.eval(run.X_test,msg='preparing test data',blocksize=run.evalblocksize)
         run.sections=pt.genCrossSections(run.target.eval,interval=jnp.arange(-3,3,6/100))
 
-    setlearner(run)
+    run.learner=getlearner(run)
     info+=4*'\n'+'learner\n\n{}'.format(textutil.indent(run.learner.getinfo())); run.trackcurrent('runinfo',info)
 
 

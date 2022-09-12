@@ -18,10 +18,17 @@ class ConcreteDisplay(disp.StackedDisplay):
 		for i,line in enumerate(lines):
 			self.pad.addstr(i,0,line)
 
-		self.pad.refresh(0,0,y1,x1,y2,x2)
+		self.pad.refresh(0,0,y1,x1,y2-1,x2-1)
 
 	def poke(self,src):
 		self.draw()
+
+
+
+class Dashboard(disp.CompositeDisplay):
+	def draw(self,*a,**kw):
+		for e in self.elements.values():
+			e.draw(*a,**kw)
 
 
 
@@ -77,7 +84,7 @@ def session_in_display(task,profile,nodelay=True):
 		cfg.screen=screen
 		screen.nodelay(nodelay)
 		cs.use_default_colors()
-		tracking.session.display=disp.CompositeDisplay((0,cs.COLS),(0,cs.LINES))
+		tracking.session.display=Dashboard((0,cs.COLS),(0,cs.LINES))
 		#try: profile.prepdashboard(profile.dashboard)
 		#except: pass
 		return runtask(task,profile,display=tracking.session.display)

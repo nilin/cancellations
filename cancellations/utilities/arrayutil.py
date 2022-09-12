@@ -373,6 +373,9 @@ def initweights(shape):
 
 
 
+def squarefn(f):
+	return jax.jit(lambda X:X**2)
+
 
 def compose(*functions):
 

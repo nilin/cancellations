@@ -12,7 +12,7 @@ batch=tracking.Profile(name='harmonic oscillator n=5 d=1')
 
 
 batch.task1=harmonicoscillator1d.Run
-batch.genprofile1=lambda prevoutputs: harmonicoscillator1d.getdefaultprofile()
+batch.genprofile1=lambda _: harmonicoscillator1d.getdefaultprofile()
 
 
 

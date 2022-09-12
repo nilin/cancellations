@@ -211,16 +211,6 @@ class Backflow(NNfunction,Equivariant):
 		return bf.initweights_Backflow(widths)
 
 
-from . import transformer
-from .transformer import initweights_SimpleSAB
-from jax.nn import softmax
-
-class SimpleSAB(Equivariant):
-	def gen_f(self):
-		d=self.d
-		omega=lambda X:softmax(X/jnp.sqrt(d),axis=-1)
-		return transformer.gen_simple_SAB(omega=omega)
-
 
 #=======================================================================================================
 

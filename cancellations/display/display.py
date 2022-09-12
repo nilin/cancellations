@@ -139,10 +139,6 @@ class CompositeDisplay(Display):
 		for k in keys:
 			del self.elements[k]
 
-	def draw(self,*a,**kw):
-		for e in self.elements.values():
-			e.draw(*a,**kw)
-
 
 
 
