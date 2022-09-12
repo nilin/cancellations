@@ -13,6 +13,7 @@ class ConcreteDisplay(disp.StackedDisplay):
 		self.pad.erase()
 		x1,x2=self.xlim
 		y1,y2=self.ylim
+		
 		lines=self.getlines()
 		for i,line in enumerate(lines):
 			self.pad.addstr(i,0,line)
@@ -86,10 +87,10 @@ def session_in_display(task,profile,nodelay=True):
 		cfg.screen=screen
 		screen.nodelay(nodelay)
 		cs.use_default_colors()
-		tracking.session.display=Dashboard((0,cs.COLS),(0,cs.LINES))
+		tracking.session.dashboard=Dashboard((0,cs.COLS),(0,cs.LINES))
 		#try: profile.prepdashboard(profile.dashboard)
 		#except: pass
-		return runtask(task,profile,display=tracking.session.display)
+		return runtask(task,profile,display=tracking.session.dashboard)
 
 	out=cs.wrapper(wrapped)
 	return out

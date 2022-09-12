@@ -1,16 +1,24 @@
-from ..display import cdisplay
+from cancellations.utilities import textutil, config as cfg
+from ..display import cdisplay,display as disp
 from . import tracking
 
 def runbatch(batchprocess):
-    batchprofile,display=batchprocess,batchprocess.display
+    batchprofile,dashboard=batchprocess,batchprocess.display
+    tasklistcdisplay,_=dashboard.add(cdisplay.ConcreteDisplay(dashboard.xlim,(0,2)))
+    tasklisttextdisplay,_=tasklistcdisplay.add(disp.StaticText(msg=''))
+    display,_=dashboard.add(cdisplay.Dashboard(dashboard.xlim,(2,dashboard.ylim[1])))
 
     tasks=[]
     for i in range(1,1000):
-        try: tasks.append((batchprofile['task{}'.format(i)],batchprofile['genprofile{}'.format(i)]))
+        try: tasks.append((batchprofile['name{}'.format(i)],batchprofile['task{}'.format(i)],batchprofile['genprofile{}'.format(i)]))
         except: pass
 
+    tasknames=[name for name,_,_ in tasks]
     outputs=[]
-    for task, genprofile in tasks:
+    for i, (name, task, genprofile) in enumerate(tasks):
+        tasklisttextdisplay.msg='tasks:        '+'        '.join(tasknames[:i]+['> '+name+' <']+tasknames[i+1:])+\
+            '\n'+dashboard.width*textutil.dash; cfg.screen.getch(); tasklistcdisplay.draw(); cfg.screen.refresh()
+
         outputs.append(cdisplay.runtask(task,genprofile(outputs),display))
 
     return outputs

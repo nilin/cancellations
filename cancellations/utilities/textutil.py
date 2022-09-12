@@ -43,7 +43,8 @@ def addborder(S,border):
     return '\n'.join([border+l+border for l in lines])
 
     
-
+def overwrite(s1,s2):
+    return ''.join([a if b==' ' else b for (a,b) in zip(s1,s2+' '*len(s1))])
     
 
 ######

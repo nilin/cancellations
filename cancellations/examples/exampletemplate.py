@@ -245,15 +245,17 @@ def prepdisplay(run):
 
 	# columndisplay
 
-	instructions=run.instructions+'\n\n\nPress [l] (lowercase L) to generate learning plots.\n'+\
+	instructions=run.name+'\n\n\nPress [l] (lowercase L) to generate learning plots.\n'+\
 		'Press [f] to generate functions plot.\nPress [o] to open output folder.\
 		\n\nPress [b] to break from current task.\nPress [q] to quit. '
+	
+	x0,x2=display.xlim
+	x1=(x0+x2)//2
+	y0,y2=display.ylim
+	y1=(y0+3*y2)//4
 
-	a,b,c,d=5,display.width//2-5,display.width//2+5,display.width-5
-	y0=3
 
-
-	column1=cdisplay.ConcreteDisplay(xlim=(a,b),ylim=(y0,3*display.height//4),memory=run)
+	column1=cdisplay.ConcreteDisplay(xlim=(x0+2,x1-5),ylim=(y0+1,y1-1),memory=run)
 	column1.add(disp.StaticText(msg=instructions))
 	column1.add(disp.VSpace(2))
 	column1.add(disp.Hline())
@@ -268,7 +270,7 @@ def prepdisplay(run):
 #	run.addlistener(column1,'target |Af|')
 
 
-	column2=cdisplay.ConcreteDisplay(xlim=(c,d),ylim=(y0,3*display.height//4))
+	column2=cdisplay.ConcreteDisplay(xlim=(x1+5,x2-2),ylim=(y0+1,y1-1))
 	run.infodisplay,_=column2.add(disp.StaticText(msg='',wrap=True))
 
 #	run.addlistener(column2,'runinfo')
@@ -285,7 +287,7 @@ def prepdisplay(run):
 def addlearningdisplay(run,display):
 	from ..display import cdisplay
 
-	a,b=5,display.width-5
+	a,b=display.xlim[0]+2,display.xlim[1]-2
 
 	ld=cdisplay.ConcreteDisplay((a,b),(display.height-10,display.height-1))
 	ld.add(disp.NumberPrint('minibatch loss',msg='training loss {:.3}'))

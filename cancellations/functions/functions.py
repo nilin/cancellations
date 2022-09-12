@@ -63,12 +63,15 @@ class FunctionDescription:
 			return mathutil.pad(self.gen_f())
 
 	# parameters
-
 	def initweights(self):
 		self.weights=self._initweights_(**self.kw)
 
+	# remove this
 	def eval(self,X,blocksize=10**5,**kw):
 		return mathutil.eval_blockwise(self.f,self.weights,X,blocksize=blocksize,**kw)
+
+	def _eval_(self,X):
+		return self.f(self.weights,X)
 
 	@staticmethod	
 	def _initweights_(**kw):

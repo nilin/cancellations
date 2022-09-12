@@ -205,6 +205,10 @@ def takesparams(f):
 def pad(f):
 	return f if takesparams(f) else dummyparams(f)
 
+def fixed_f_Op(A):
+	return lambda f: noparams(A(pad(f))) 
+
+
 
 def eval_blockwise(f,params,X,blocksize=100000,msg=None):
 	f=pad(f)

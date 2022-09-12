@@ -30,7 +30,7 @@ def getdefaultprofile():
     profile.d_=50
     profile.ndets=10
 
-    profile._X_distr_=lambda key,samples,n,d:rnd.normal(key,(samples,n,d))*2
+    profile._X_distr_=lambda key,samples,n,d:rnd.normal(key,(samples,n,d))*3
 
     # training params
 
