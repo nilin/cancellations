@@ -30,7 +30,9 @@ def getdefaultprofile():
     profile.d_=50
     profile.ndets=10
 
-    profile._X_distr_=lambda key,samples,n,d:rnd.normal(key,(samples,n,d))*3
+    profile._var_X_distr_=4
+    profile._X_distr_=lambda key,samples,n,d:rnd.normal(key,(samples,n,d))*jnp.sqrt(profile._var_X_distr_)
+    profile._X_distr_density_=lambda X:jnp.exp(-jnp.sum(X**2/(2*profile._var_X_distr_),axis=(-2,-1)))
 
     # training params
 
