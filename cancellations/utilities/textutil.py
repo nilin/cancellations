@@ -1,3 +1,6 @@
+import re
+
+
 
 BOX='\u2588'
 box='\u2592'
@@ -39,7 +42,9 @@ def addborder(S,border):
     lines=[border*len(lines[0])]+lines+[border*len(lines[0])]+[border*len(lines[0])]
     return '\n'.join([border+l+border for l in lines])
 
+    
 
+    
 
 ######
 

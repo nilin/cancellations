@@ -28,7 +28,7 @@ def train(run,learner,X_train,Y_train,**kw):
 	iterations=kw['iterations']
 	trainer=learning.Trainer(learner,X_train,Y_train,memory=run,**kw) 
 	regsched=tracking.Scheduler(tracking.nonsparsesched(iterations,start=100))
-	plotsched=tracking.Scheduler(tracking.sparsesched(iterations,start=500))
+	plotsched=tracking.Scheduler(tracking.sparsesched(iterations,start=1000))
 	trainer.prepnextepoch(permute=False)
 	ld,_=addlearningdisplay(run,tracking.currentprocess().display)
 
@@ -56,6 +56,8 @@ def train(run,learner,X_train,Y_train,**kw):
 
 		if stopwatch2.tick_after(.5):
 			if tracking.act_on_input(tracking.checkforinput())=='b': break
+
+	return trainer
 
 
 
@@ -257,19 +259,19 @@ def prepdisplay(run):
 	column1.add(disp.Hline())
 	column1.add(disp.LogDisplay(height=10))
 	column1.add(disp.Hline())
-	column1.add(disp.RunText(query='currenttask',msgtransform=lambda msg:msg if run.getcurrenttask()!=None else ''))
-	column1.add(disp.Bar('currenttaskcompleteness',msgtransform=lambda msg:msg if run.getcurrenttask()!=None else ''))
+#	column1.add(disp.RunText(query='currenttask',msgtransform=lambda msg:msg if run.getcurrenttask()!=None else ''))
+#	column1.add(disp.Bar('currenttaskcompleteness',msgtransform=lambda msg:msg if run.getcurrenttask()!=None else ''))
 	column1.draw()
 
 	run.addlistener(column1,'recentlog')
-	run.addlistener(column1,'currenttaskcompleteness')
-	run.addlistener(column1,'target |Af|')
+#	run.addlistener(column1,'currenttaskcompleteness')
+#	run.addlistener(column1,'target |Af|')
 
 
 	column2=cdisplay.ConcreteDisplay(xlim=(c,d),ylim=(y0,3*display.height//4))
-	column2.add(disp.RunText(query='runinfo',wrap=True))
+	run.infodisplay,_=column2.add(disp.StaticText(msg='',wrap=True))
 
-	run.addlistener(column2,'runinfo')
+#	run.addlistener(column2,'runinfo')
 
 
 	display.add(column1,'column1')
@@ -287,8 +289,9 @@ def addlearningdisplay(run,display):
 
 	ld=cdisplay.ConcreteDisplay((a,b),(display.height-10,display.height-1))
 	ld.add(disp.NumberPrint('minibatch loss',msg='training loss {:.3}'))
-	ld.add(disp.Bar('minibatch loss',style='.',emptystyle=' '))
-	ld.add(disp.Bar('minibatch loss',style=disp.BOX,avg_of=25))
+	ld.add(disp.Bar('minibatch loss',style=textutil.dash,emptystyle=' ',avg_of=1))
+	ld.add(disp.Bar('minibatch loss',style=disp.BOX,emptystyle=' ',avg_of=10))
+	ld.add(disp.Bar('minibatch loss',style=disp.BOX,emptystyle='_',avg_of=100))
 	ld.add(disp.VSpace(1))
 	ld.add(disp.NumberPrint('minibatchnumber',msg='minibatch number {:.0f}'))
 

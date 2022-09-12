@@ -24,8 +24,8 @@ def getdefaultprofile():
         n=5,\
         d=1,\
         wavefunction='not set',\
-        minburnsteps=1000,\
-        maxburnsteps=5000,\
+        minburnsteps=100,\
+        maxburnsteps=1000,\
         maxiterations=100000,\
         thinningratio=10
         )

@@ -90,6 +90,10 @@ class FunctionDescription:
 	def compose(self,fd):
 		return ComposedFunction(self,fd)
 
+#	def withweights(self,weights):
+#		self.weights=weights
+#		return self
+
 	# debug
 
 	def _inspect_(self,params,X):
@@ -355,7 +359,8 @@ class IsoGaussian(FunctionDescription):
 		super().__init__()
 
 	def gen_f(self):
-		return jax.jit(lambda X: jnp.sum(jnp.exp(-X**2/(2*self.var)),axis=(-2,-1)))
+		f=lambda X: jnp.exp(  jnp.sum( -X**2/(2*self.var) ,axis=(-2,-1))  )
+		return jax.jit(f)
 
 	def typename(self):
 		return 'N(0,{:.0}I)'.format(self.var)

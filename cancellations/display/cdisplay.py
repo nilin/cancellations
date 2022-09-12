@@ -9,7 +9,6 @@ class ConcreteDisplay(disp.StackedDisplay):
 		super().__init__(*a,**kw)
 		self.pad=cs.newpad(self.height+1,self.width+1)	
 
-
 	def draw(self):
 		self.pad.erase()
 		x1,x2=self.xlim
@@ -23,6 +22,9 @@ class ConcreteDisplay(disp.StackedDisplay):
 	def poke(self,src):
 		self.draw()
 
+	def remove(self):
+		del self.pad
+		super().remove()
 
 
 class Dashboard(disp.CompositeDisplay):
@@ -98,6 +100,7 @@ def runtask(task,profile,display):
 	process=tracking.loadprocess(task(profile,display))
 	output=process.execprocess()
 	tracking.unloadprocess(process)
+	display.remove()
 	clearscreen()
 	return output
 

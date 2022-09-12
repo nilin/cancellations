@@ -139,7 +139,13 @@ class CompositeDisplay(Display):
 
 	def delkeys(self,*keys):
 		for k in keys:
+			if isinstance(self.elements[k],CompositeDisplay):
+				self.elements[k].remove() 
 			del self.elements[k]
+
+	def remove(self):
+		self.delkeys(*self.elements.keys())
+
 
 
 
@@ -170,24 +176,12 @@ class QueryDisplay(Display):
 
 
 class NumberDisplay(QueryDisplay):
-	def __init__(self,query,**kw):
-		super().__init__(query=query,**kw)
+	def __init__(self,query,avg_of=1,**kw):
+		super().__init__(query=query,avg_of=avg_of,**kw)
+		self.runningavg=tracking.RunningAvg(k=avg_of)
 
-		if 'avg_of' in kw:
-			self.hist=tracking.History()
-			self._gettext_=self._gettext_1
-		else:
-			self._gettext_=self._gettext_0
-
-	def _gettext_0(self):
-		out=self.getval()
-		return self.formatnumber(out)
-
-	def _gettext_1(self):
-		out=self.getval()
-		self.hist.remember(out,membound=self.avg_of)
-		histvals=self.hist.gethist()
-		return self.formatnumber(sum(histvals)/len(histvals))
+	def _gettext_(self):
+		return self.formatnumber(self.runningavg.update(self.getval())[0])
 
 	def formatnumber(self,x): raise NotImplementedError
 

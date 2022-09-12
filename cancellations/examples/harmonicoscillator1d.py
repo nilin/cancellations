@@ -8,8 +8,7 @@
 import jax
 import jax.numpy as jnp
 import jax.random as rnd
-from . import examplefunctions as ef
-from ..functions import functions
+from ..functions import examplefunctions as ef, functions
 from ..functions.functions import ComposedFunction,SingleparticleNN,Product
 from ..utilities import arrayutil, config as cfg, tracking, sysutil, textutil
 from ..display import cdisplay,display as disp
@@ -31,7 +30,7 @@ def getdefaultprofile():
     profile.d_=50
     profile.ndets=10
 
-    profile._X_distr_=lambda key,samples,n,d:rnd.normal(key,(samples,n,d))
+    profile._X_distr_=lambda key,samples,n,d:rnd.normal(key,(samples,n,d))*2
 
     # training params
 
@@ -40,7 +39,7 @@ def getdefaultprofile():
     profile.iterations=25000
     profile.minibatchsize=None
 
-    profile.samples_train=10**5
+    profile.samples_train=10**4
     profile.samples_test=1000
     profile.evalblocksize=10**4
 
@@ -79,7 +78,7 @@ def execprocess(run:tracking.Run):
 
     
     run.unprocessed=tracking.Memory()
-    info='runID: {}\n'.format(run.ID)+'\n'*4; run.trackcurrent('runinfo',info)
+    info='runID: {}\n'.format(run.ID)+'\n'*4; run.infodisplay.msg=info
 
     if 'setupdata_path' in run.keys():
         run.update(sysutil.load(run.setupdata_path))
@@ -96,10 +95,11 @@ def execprocess(run:tracking.Run):
         run.Y_train=run.target.eval(run.X_train,msg='preparing training data',blocksize=run.evalblocksize)
         run.X_test=run.genX(run.samples_test)
         run.Y_test=run.target.eval(run.X_test,msg='preparing test data',blocksize=run.evalblocksize)
-        run.sections=pt.genCrossSections(run.target.eval,interval=jnp.arange(-3,3,6/100))
+        r=10
+        run.sections=pt.genCrossSections(run.target.eval,interval=jnp.arange(-r,r,r/50))
 
     run.learner=getlearner(run)
-    info+=4*'\n'+'learner\n\n{}'.format(textutil.indent(run.learner.getinfo())); run.trackcurrent('runinfo',info)
+    info+=4*'\n'+'learner\n\n{}'.format(textutil.indent(run.learner.getinfo())); run.infodisplay.msg=info
 
 
     setupdata=dict(X_train=run.X_train,Y_train=run.Y_train,X_test=run.X_test,Y_test=run.Y_test,\
@@ -109,9 +109,11 @@ def execprocess(run:tracking.Run):
     run.trackcurrent('runinfo',info)
     sysutil.write(info,run.outpath+'info.txt',mode='w')
 
-    exampletemplate.testantisymmetry(run.target,run.learner,run.genX(100))
-    exampletemplate.train(run,run.learner,run.X_train,run.Y_train,\
+    #exampletemplate.testantisymmetry(run.target,run.learner,run.genX(100))
+    trainer=exampletemplate.train(run,run.learner,run.X_train,run.Y_train,\
         **{k:run[k] for k in ['weight_decay','lossfn','iterations','minibatchsize']})
+
+    return trainer.learner
 
 
 class Run(tracking.Run):
