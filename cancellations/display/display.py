@@ -1,8 +1,10 @@
 import os
 import math
-from ..utilities import config as cfg, tracking,textutil
+from ..utilities import config as cfg, tracking,textutil,arrayutil
 from ..utilities.tracking import session
 import collections
+from collections import deque
+import jax
 from ..utilities.textutil import BOX,box,dash,infty
 
 #----------------------------------------------------------------------------------------------------
@@ -142,6 +144,7 @@ class CompositeDisplay(Display):
 
 
 
+
 class StackedDisplay(CompositeDisplay):
 	def _gettext_(self):
 		return '\n'.join([e.gettext() for e in self.elements.values()])
@@ -215,7 +218,49 @@ class NumberPrint(NumberDisplay):
 	def formatnumber(self,x):
 		return self.msg.format(x)
 
+#----------------------------------------------------------------------------------------------------
 
+def R_to_I_formatter(center,dynamicwidth):
+
+	@jax.jit
+	def parse_continuous(x):
+		t=(x-center)/dynamicwidth
+		return arrayutil.slowsigmoid_01(t)
+
+	def parse(x,displaywidth):
+		return math.floor(parse_continuous(x)*displaywidth)
+
+	return parse
+
+class Ticks(StaticText):
+	def __init__(self,transform,ticks,labels=None,lstyle=' ',**kw):
+		if labels==None: labels='|'*len(ticks)
+		ticks,labels=zip(*sorted(zip(ticks,labels)))
+		super().__init__(ticks=deque(ticks),\
+			labels=deque(labels),transform=transform,lstyle=lstyle,**kw)
+
+	def setwidth(self, width):
+		super().setwidth(width)
+		self.msg=''
+		for i in range(width):
+			if len(self.ticks)>0 and len(self.msg)>=self.transform(self.ticks[0],displaywidth=width):
+				self.msg+=str(self.labels.popleft())
+				self.ticks.popleft()
+			else: self.msg+=self.lstyle
+
+
+#----------------------------------------------------------------------------------------------------
+
+class FlexDisplay(Display):
+	def __init__(self,*queries,parse):
+		super().__init__(queries=queries,parse=parse)
+
+	def getvals(self):
+		process=tracking.currentprocess()
+		return [process.getcurrentval(q) for q in self.queries]
+
+	def _gettext_(self):
+		return self.parse(self,*self.getvals())
 
 #----------------------------------------------------------------------------------------------------
 

@@ -73,6 +73,10 @@ def leaky_ReLU(x):
 
 
 sigmoid=jax.jit(lambda x:(jnp.tanh(x)+1)/2)
+slowsigmoid_odd=jax.jit(lambda x: x/jnp.sqrt(1+x**2))
+slowsigmoid_01=jax.jit(lambda x: (slowsigmoid_odd(x)+1)/2)
+
+
 
 
 ac_aliases={\

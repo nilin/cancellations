@@ -31,8 +31,7 @@ def getdefaultprofile():
     profile.d_=50
     profile.ndets=10
 
-    profile._X_distr_=lambda key,samples,n,d:rnd.uniform(key,(samples,n,d),minval=-3,maxval=3)
-    profile.envelope=jax.jit(lambda X:jnp.all(X**2<1,axis=(-2,-1)))
+    profile._X_distr_=lambda key,samples,n,d:rnd.normal(key,(samples,n,d))
 
     # training params
 

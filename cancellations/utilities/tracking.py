@@ -127,6 +127,32 @@ class Memory(BasicMemory,Timer,Watched):
 
 #----------------------------------------------------------------------------------------------------
 
+class RunningAvg:
+    def __init__(self,k):
+        self.k=k
+        self.recenthist=deque([])
+        self.sum=0
+
+    def update(self,val):
+        self.sum+=val
+        self.recenthist.append(val)
+
+        if len(self.recenthist)>self.k:
+            self.sum-=self.recenthist.popleft()
+
+        return self.avg_and_k()
+
+    def avg_and_k(self):
+        return self.sum/len(self.recenthist),len(self.recenthist)
+
+    def avg(self):
+        return self.sum/len(self.recenthist)
+    
+
+
+
+#----------------------------------------------------------------------------------------------------
+
 class Keychain:
 
     def __init__(self,seed=0):

@@ -12,8 +12,7 @@ batch=tracking.Profile(name='harmonic oscillator n=5 d=1')
 
 batch.task1=estimateobservables.Run
 batch.genprofile1=lambda _: estimateobservables.getdefaultprofile().butwith(\
-    densitynames=['oscillator'],\
-    wavefunctions=[harmonicoscillator1d.gettarget(estimateobservables.getdefaultprofile()).eval])
+    wavefunction=harmonicoscillator1d.gettarget(estimateobservables.getdefaultprofile()).eval)
 #batch.task2=harmonicoscillator1d.Run
 #batch.genprofile2=lambda prevoutputs: harmonicoscillator1d.getdefaultprofile()
 

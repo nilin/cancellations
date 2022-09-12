@@ -33,6 +33,20 @@ class Sampler:
 		return self.proposalfn(tracking.nextkey(),X)
 
 
+
+
+
+def bootstrap_confinterval(samples,nresamples=100,q=jnp.array([.05,.95])):
+	(N,)=samples.shape
+	resampledaverages=jnp.average(rnd.choice(tracking.nextkey(),samples,(nresamples,N)),axis=-1)
+	return jnp.quantile(resampledaverages,q)
+
+
+
+
+
+
+
 #
 #
 #class PotentialExpectation:
