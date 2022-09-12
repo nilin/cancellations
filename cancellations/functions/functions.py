@@ -363,7 +363,7 @@ class IsoGaussian(FunctionDescription):
 		return jax.jit(f)
 
 	def typename(self):
-		return 'N(0,{:.0}I)'.format(self.var)
+		return 'N(0,{:.1f}I)'.format(self.var)
 
 #=======================================================================================================
 

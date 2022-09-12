@@ -135,7 +135,7 @@ def prepdisplay1(display:disp.CompositeDisplay,run):
 
         transform=disp.R_to_I_formatter(tv,1.0)
         I=list(jnp.arange(tv-2.25,tv+2,.5)); L=['{:.2}'.format(l) for l in I]
-        cd.add(disp.Ticks(transform,I+[tv],L+['{:.2} (true value)'.format(tv)]))
+        cd.add(disp.Ticks(transform,I+[tv],L+['{:.2f} (true value)'.format(tv)]))
         cd.add(disp.Ticks(transform,I+[tv]))
         cd.add(disp.FlexDisplay('estimate 100 '+name,parse=\
             lambda D,x:transform(x[0],D.width)*textutil.dash+textutil.BOX+D.width*textutil.dash))
