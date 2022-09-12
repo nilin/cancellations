@@ -15,7 +15,7 @@ from . import backflow as bf
 import textwrap
 import copy
 from .backflow import gen_backflow,initweights_Backflow
-from .AS_tools import detsum #,initweights_detsum
+from .AS_tools import dets #,initweights_detsum
 from jax.numpy import tanh
 from ..utilities.arrayutil import drelu
 
@@ -246,12 +246,14 @@ class NN(NNfunction,Nonsym):
 		widths[0]=n*d
 		return mv.initweights_NN(widths)
 
-class ProdSum(Nonsym):
-	antisymtype='DetSum'
-	def gen_f(self): return AS_tools.prodsum
+class Prods(Nonsym):
+	antisymtype='Dets'
+	def gen_f(self): return AS_tools.prods
+
 	@staticmethod
 	def _initweights_(k,n,d,**kw):
 		return mathutil.initweights((k,n,d))
+
 	@staticmethod
 	def translation(name):return 'k' if name=='ndets' else name
 
@@ -288,9 +290,10 @@ class ASNN(Antisymmetric,NNfunction):
 		NN_NS=mv.gen_NN_NS(self.activation)
 		return ASt.gen_Af(self.n,NN_NS)
 
-class DetSum(Antisymmetric):
-	nonsym=ProdSum
-	def gen_f(self): return AS_tools.detsum
+class Dets(Antisymmetric):
+	nonsym=Prods
+	def gen_f(self): return AS_tools.dets
+
 	@staticmethod
 	def translation(name):return 'ndets' if name=='k' else name
 
@@ -321,23 +324,22 @@ class Slater(Antisymmetric):
 
 #=======================================================================================================
 
-class Scalarfunction(FunctionDescription): pass
 class Oddfunction(FunctionDescription): pass
 
-class OddNN(NNfunction,Scalarfunction,Oddfunction):
+class OddNN(NNfunction,Oddfunction):
 	def gen_f(self):
 		NN=mv.gen_NN(self.activation)
-		scalarNN=lambda params,X:NN(params,jnp.expand_dims(X,axis=-1))
+		scalarNN=lambda params,X:NN(params,X)
 		return jax.jit(lambda params,X:scalarNN(params,X)-scalarNN(params,-X))
 
-class Outputscaling(Scalarfunction,Oddfunction):
+class Outputscaling(Oddfunction):
 	def gen_f(self):
 		return jax.jit(lambda c,X:c*X)
 	@staticmethod
 	def _initweights_():
 		return 1.0
 
-class Flatten(Scalarfunction,Oddfunction):
+class Flatten(Oddfunction):
 	def gen_f(self):
 		return jax.jit(lambda _,Y:jnp.tanh(self.sharpness*Y))
 

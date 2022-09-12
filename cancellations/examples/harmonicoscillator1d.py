@@ -64,8 +64,8 @@ def getlearner(profile):
     return Product(functions.IsoGaussian(1.0),ComposedFunction(\
         SingleparticleNN(widths=[profile.d,50,d_],activation=activations[0]),\
         functions.Backflow(widths=[d_,d_],activation=activations[1]),\
-        functions.DetSum(n=profile.n,d=d_,ndets=ndets),\
-        functions.OddNN(widths=[1,100,1],activation=activations[2])))
+        functions.Dets(n=profile.n,d=d_,ndets=ndets),\
+        functions.OddNN(widths=[ndets,100,1],activation=activations[2])))
 
 
 
@@ -120,20 +120,3 @@ def execprocess(run:tracking.Run):
 
 class Run(tracking.Run):
     execprocess=execprocess
-#    def execprocess(self):
-#        return execprocess(self)
-
-
-
-#
-#def main(profile,display):
-#    run=tracking.loadprocess(Run(profile,display=display))
-#    run.execprocess()
-#    tracking.unloadprocess(run)
-#
-
-
-if __name__=='__main__':
-    #main(getdefaultprofile(),cfg.session.ID+' default')
-
-    cdisplay.session_in_display(main,getdefaultprofile())

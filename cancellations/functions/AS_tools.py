@@ -63,10 +63,10 @@ def gen_lossgrad_Af(n,f,lossfn):
 
 
 @jax.jit
-def detsum(A,Y):
+def dets(A,Y):
 	snkn=jnp.inner(Y,A)
 	sknn=jnp.swapaxes(snkn,-3,-2)
-	return jnp.sum(jnp.linalg.det(sknn),axis=-1)
+	return jnp.linalg.det(sknn)
 
 
 def inspectdetsum(A,Y):
@@ -81,10 +81,10 @@ def inspectdetsum(A,Y):
 def diagprods(A):
 	return jnp.product(jnp.diagonal(A,axis1=-2,axis2=-1),axis=-1)
 
-def prodsum(A,Y):
+def prods(A,Y):
 	snkn=jnp.inner(Y,A)
 	sknn=jnp.swapaxes(snkn,-3,-2)
-	return jnp.sum(diagprods(sknn),axis=-1)
+	return diagprods(sknn)
 
 
 #=======================================================================================================
