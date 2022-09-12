@@ -9,7 +9,7 @@ import importlib
 batch = tracking.Profile(name='run a single script')
 
 
-batch.task1 = browse._pickfolders_
+batch.task1 = browse.Browse
 batch.genprofile1 = lambda _: browse.getdefaultprofile().butwith(
     msg='select a file to run test(*args,**kwargs) with the args just provided to singlescript.py',
     parentfolder='cancellations',
@@ -21,7 +21,7 @@ batch.genprofile1 = lambda _: browse.getdefaultprofile().butwith(
 
 
 if __name__ == '__main__':
-    [path] = cdisplay.session_in_display(batchjob.runbatch, batch)
+    [path] = cdisplay.session_in_display(batchjob.Batchjob, batch)
     mname = path.replace('/', '.')[:-3]
     print('todo: use importlib to run')
     print(mname)
