@@ -7,7 +7,7 @@ from . import tracking
 from ..display.display import dash
 from ..display import display as disp
 from ..display import cdisplay
-from ..utilities import config as cfg
+from ..utilities import config as cfg,sysutil
 import time
 
 
@@ -25,6 +25,7 @@ def getdefaultprofile():
 	profile.onlyone=False
 	profile.regex='(./)?outputs/.*'
 	profile.condition1=lambda path:os.path.exists(path+'/data/setup')
+	profile.readinfo=lambda path: sysutil.readtextfile(path+'info.txt')
 	return profile
 
 
@@ -37,12 +38,13 @@ def _pickfolders_(profile,display):
 	screen=cfg.screen
 	screen.nodelay(False)
 	explainpad=cdisplay.Pad((0,round(.2*W)),(0,H))
-	listpad=cdisplay.Pad((round(.2*W),round(.6*W)),(0,H),100,1000)
+	listpad=cdisplay.Pad((round(.25*W),round(.6*W)),(0,H),100,1000)
 	matchinfopad=cdisplay.Pad((round(.7*W),W),(0,H))
 
 	explanation=\
-		disp.wraptext(profile.msg)+'\n\n'\
+		profile.msg+'\n\n'\
 		+'Move with arrow keys:\n{}: up\n{}: down\n{}: fast up\n{}: fast down'.format(up,down,left,right)\
+		+'\n\nYou may be able to scroll\nwith the touchpad.'\
 		+('' if profile.onlyone else '\n\nPress SPACE or a to add (i.e. mark) elements.'\
 		+'\nPress s or c to move between marked elements.')\
 		+'\n\nPress ENTER to finish selection'
@@ -102,7 +104,7 @@ def displayoptions(options,selection,selections,listpad,matchinfopad,profile,H):
 		listpad.addstr(i,2,'{}: {}{}'.format(str(i+1),match,getmetadata(match)))
 	try:
 		matchinfopad.addstr(0,0,getmetadata(options[selection]))
-		matchinfopad.addstr(2,0,getinfo(options[selection]))
+		matchinfopad.addstr(2,0,getinfo(profile.readinfo,options[selection]))
 	except:
 		matchinfopad.addstr(0,0,'no folder selected or no info.txt')
 	
@@ -136,18 +138,12 @@ def getpaths(root):
 
 def getmetadata(folder):
 	try:
-		with open(folder+'metadata.txt','r') as f:
-			return ' - '+f.readline()
-	except Exception as e:
-		return ''
+		with open(folder+'metadata.txt','r') as f: return ' - '+f.readline()
+	except Exception as e: return ''
 
-def getinfo(path):
-	try:
-		with open(path+'info.txt','r') as info:
-			infostr=''.join(info.readlines())
-	except:
-		infostr='no info.txt'
-	return infostr
+def getinfo(readinfo,path):
+	try: return readinfo(path)
+	except: return 'no info'
 
 def commonanc(*fs):
 	levels=list(zip(*[f.split('/') for f in fs]))

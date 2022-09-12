@@ -12,6 +12,7 @@ from . import AS_tools
 from . import AS_tools as ASt
 import jax.random as rnd
 from . import backflow as bf
+import textwrap
 import copy
 from .backflow import gen_backflow,initweights_Backflow
 from .AS_tools import detsum #,initweights_detsum
@@ -102,7 +103,7 @@ class FunctionDescription:
 
 class Composite(FunctionDescription):
 	def getinfo(self):
-		return '{}\n\n{}'.format(self.richtypename(),self.info())
+		return '{}\n\n{}'.format('\n'.join(textwrap.wrap(self.richtypename(),width=50)),self.info())
 
 #def initweights(*functions):
 #	for f in functions: f.initweights()
@@ -168,11 +169,10 @@ class Product(Composite):
 		return jax.jit(f)
 
 	def typename(self):
-		return ' X '.join([e.richtypename() for e in self.elements])
+		return ' X '.join(['({})'.format(e.richtypename()) for e in self.elements])
 
 	def info(self):
-		return textutil.sidebyside(*[x for e in self.elements\
-			 for x in [e.getinfo(),' times ']][:-1],separator=' ')
+		return textutil.sidebyside(*[e.getinfo() for e in self.elements],separator=' X ')
 
 	def compress(self):
 		c=super().compress()

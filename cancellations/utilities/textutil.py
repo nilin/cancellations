@@ -1,25 +1,43 @@
+
+BOX='\u2588'
+box='\u2592'
+dash='\u2015'
+infty='\u221E'
+
+
+
 def indent(s):
     return '\n'.join(['    '+l for l in s.splitlines()])
+
 
 ####
 
 
 def sidebyside(*elements,separator=''):
     height=max([len(e.splitlines()) for e in elements])
-    Es=[box_in(e,height).splitlines() for e in elements]
-    return '\n'.join([separator.join(line) for line in zip(*Es)])
+    Es=[makebox(e,height=height,border=box) for e in elements]
+    if separator!='':
+        sepbox=makebox(separator,height=height,border=' ')
+        Es=('NEXTBOX'+sepbox+'NEXTBOX').join(Es).split('NEXTBOX')
+    return '\n'.join([''.join(line) for line in zip(*[E.splitlines() for E in Es])])
 
-def padwidth(S,W=None,fillstyle=' ',border=''):
-    if W==None: W=max([len(l) for l in S.splitlines()])
-    return '\n'.join([border+l+(W-len(l))*fillstyle+border for l in S.splitlines()])
+def padwidth(S,width,fillstyle=' ',border=''):
+    return '\n'.join([border+l+(width-len(l))*fillstyle+border for l in S.splitlines()])
 
-def padheight(S,H):
-    h=len(S.splitlines()); d=H-h
+def padheight(S,height):
+    h=len(S.splitlines()); d=height-h
     a=d//2; b=d-a;
     return a*'\n'+S+b*'\n'
 
-def box_in(S,height,vborder='',hborder=''):
-    return padwidth(padheight(S,height),border=vborder)
+def makebox(S,width=None,height=None,border=' '):
+    if height==None: height=len(S.splitlines())
+    if width==None: width=max([len(l) for l in S.splitlines()])
+    return addborder(addborder(padwidth(padheight(S,height),width),' '),border)
+
+def addborder(S,border):
+    lines=S.splitlines()    
+    lines=[border*len(lines[0])]+lines+[border*len(lines[0])]+[border*len(lines[0])]
+    return '\n'.join([border+l+border for l in lines])
 
 
 

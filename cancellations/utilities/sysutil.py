@@ -87,7 +87,14 @@ def parse_metadata(path):
     with open(path+'metadata.txt','r') as f:
         return parse_args(f.readline())[1]
 
-
+def readtextfile(path):
+    with open(path,'r') as f:
+        return ''.join(f.readlines())
 
 
 cmdparams,cmdredefs=parse_args()
+
+
+
+def test():
+    print(readtextfile('batch1.py'))

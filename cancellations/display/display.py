@@ -3,14 +3,11 @@ import math
 from ..utilities import config as cfg, tracking,textutil
 from ..utilities.tracking import session
 import collections
+from ..utilities.textutil import BOX,box,dash,infty
 
 #----------------------------------------------------------------------------------------------------
 
 
-BOX='\u2588'
-box='\u2592'
-dash='\u2015'
-infty='\u221E'
 
 def clear():
 	os.system('cls' if os.name == 'nt' else 'clear')
