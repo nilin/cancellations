@@ -119,6 +119,7 @@ def sample(run,sampler,returnsamples=True):
         ax.plot(estimatesforplot[name])
         ax.plot([0,len(estimatesforplot[name])],2*[tv])
         ax.set_title('potential energy')
+        ax.set_ylim(bottom=0,top=tv*1.2)
         fig.savefig('outputs/'+run.ID+'.pdf')
 
 
