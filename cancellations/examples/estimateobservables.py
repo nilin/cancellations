@@ -5,11 +5,12 @@
 import profile
 from cancellations.utilities import textutil
 from ..display import cdisplay
-from ..utilities import tracking,arrayutil,sampling
+from ..utilities import tracking,arrayutil,sampling,config as cfg
 from ..display import display as disp
 import jax
 import jax.random as rnd
 from collections import deque
+import matplotlib.pyplot as plt
 import jax.numpy as jnp
 import math
 
@@ -17,6 +18,7 @@ import math
 
 def getdefaultprofile():
     return tracking.Profile(\
+        name='sampling',\
         nrunners=1000,\
         _X0_distr_=lambda key,samples,n,d: rnd.normal(key,(samples,n,d)),\
         proposalfn=gaussianstepproposal(.1),\
@@ -80,6 +82,8 @@ def sample(run,sampler,returnsamples=True):
     samples=None # these will have dimensions (runners,time,n,d)
     timeslices=0
 
+    estimatesforplot={name:[] for name in run.observables}
+
     for i in range(run.maxiterations):
         sampler.step()
         if i%run.thinningratio==0:
@@ -103,11 +107,20 @@ def sample(run,sampler,returnsamples=True):
             for name in run.observables:
                 run.trackcurrent('estimate '+name,estimates[name])
                 run.trackcurrent('confinterval '+name,confintervals[name])
+                estimatesforplot[name].append(estimates[name])
 
         run.trackcurrent('estimate '+name,estimates[name])
         run.display.draw()
 
         if act_on_input(tracking.checkforinput())=='b': break# and i>profile.minburnsteps: break
+
+    for name,tv in zip(run.observables,run.trueenergies):
+        fig,ax=plt.subplots()
+        ax.plot(estimatesforplot[name])
+        ax.plot([0,len(estimatesforplot[name])],2*[tv])
+        ax.set_title('potential energy')
+        fig.savefig('outputs/'+run.ID+'.pdf')
+
 
     return samples
 
