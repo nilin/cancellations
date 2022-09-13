@@ -10,8 +10,9 @@ def runbatch(batchprocess):
 
     tasks=[]
     for i in range(1,1000):
+        if 'skip{}'.format(i) in batchprofile.keys(): continue
         try: tasks.append((batchprofile['name{}'.format(i)],batchprofile['task{}'.format(i)],batchprofile['genprofile{}'.format(i)]))
-        except: pass
+        except: break
 
     tasknames=[name for name,_,_ in tasks]
     outputs=[]

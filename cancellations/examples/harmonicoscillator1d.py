@@ -5,10 +5,12 @@
 #
 
 
+from re import I
 import jax
 import jax.numpy as jnp
 import jax.random as rnd
 from ..functions import examplefunctions as ef, functions
+from ..learning import learning
 from ..functions.functions import ComposedFunction,SingleparticleNN,Product
 from ..utilities import arrayutil, config as cfg, tracking, sysutil, textutil
 from ..display import cdisplay,display as disp
@@ -27,8 +29,12 @@ def getdefaultprofile():
     profile.n=5
     profile.d=1
 
-    profile.d_=50
-    profile.ndets=10
+    profile.learnerparams={\
+        'SPNN':dict(widths=[profile.d,25,25],activation='sp'),
+        'backflow':dict(widths=[],activation='sp'),
+        'dets':dict(d=25,ndets=25),
+        'OddNN':dict(widths=[25,1],activation='sp')
+    }
 
     profile._var_X_distr_=4
     profile._X_distr_=lambda key,samples,n,d:rnd.normal(key,(samples,n,d))*jnp.sqrt(profile._var_X_distr_)
@@ -37,11 +43,10 @@ def getdefaultprofile():
     # training params
 
     profile.weight_decay=0
-    profile.lossfn=arrayutil.SI_loss
     profile.iterations=25000
-    profile.minibatchsize=None
+    profile.minibatchsize=100
 
-    profile.samples_train=10**4
+    profile.samples_train=5*10**4
     profile.samples_test=1000
     profile.evalblocksize=10**4
 
@@ -58,14 +63,13 @@ def gettarget(profile):
     return functions.Slater(['psi'+str(i) for i in range(profile.n)])
 
 def getlearner(profile):
-    d_=profile.d_
-    ndets=profile.ndets
-    activations=['leakyrelu','leakyrelu','leakyrelu']; d_=50; ndets=10
+
     return Product(functions.IsoGaussian(1.0),ComposedFunction(\
-        SingleparticleNN(widths=[profile.d,50,d_],activation=activations[0]),\
-        functions.Backflow(widths=[d_,d_],activation=activations[1]),\
-        functions.Dets(n=profile.n,d=d_,ndets=ndets),\
-        functions.OddNN(widths=[ndets,100,1],activation=activations[2])))
+        SingleparticleNN(**profile.learnerparams['SPNN']),\
+        #functions.Backflow(**profile.learnerparams['backflow']),\
+        functions.Dets(n=profile.n,**profile.learnerparams['dets']),\
+        functions.OddNN(**profile.learnerparams['OddNN'])))
+
 
 
 
@@ -111,11 +115,52 @@ def execprocess(run:tracking.Run):
     run.trackcurrent('runinfo',info)
     sysutil.write(info,run.outpath+'info.txt',mode='w')
 
-    #exampletemplate.testantisymmetry(run.target,run.learner,run.genX(100))
-    trainer=exampletemplate.train(run,run.learner,run.X_train,run.Y_train,\
-        **{k:run[k] for k in ['weight_decay','lossfn','iterations','minibatchsize']})
+    #train
+    run.lossgrad=gen_lossgrad(run.learner.f,run._X_distr_density_)
 
-    return trainer.learner
+    run.trainer=learning.Trainer(run.lossgrad,run.learner,run.X_train,run.Y_train,\
+        memory=run,**{k:run[k] for k in ['weight_decay','iterations','minibatchsize']}) 
+
+    regsched=tracking.Scheduler(tracking.nonsparsesched(run.iterations,start=100))
+    plotsched=tracking.Scheduler(tracking.sparsesched(run.iterations,start=1000))
+    run.trainer.prepnextepoch(permute=False)
+    ld,_=exampletemplate.addlearningdisplay(run,tracking.currentprocess().display)
+
+    stopwatch1=tracking.Stopwatch()
+    stopwatch2=tracking.Stopwatch()
+
+    for i in range(run.iterations+1):
+
+        loss=run.trainer.step()
+        for mem in [run.unprocessed,run]:
+            mem.addcontext('minibatchnumber',i)
+            mem.remember('minibatch loss',loss)
+
+        if regsched.activate(i):
+            run.unprocessed.remember('weights',run.trainer.learner.weights)
+            sysutil.save(run.unprocessed,run.outpath+'data/unprocessed',echo=False)
+            sysutil.write('loss={:.3f} iterations={} n={} d={}'.format(loss,i,run.n,run.d),run.outpath+'metadata.txt',mode='w')	
+
+        if plotsched.activate(i):
+            exampletemplate.fplot()
+            exampletemplate.lplot()
+
+        if stopwatch1.tick_after(.05):
+            ld.draw()
+
+        if stopwatch2.tick_after(.5):
+            if tracking.act_on_input(tracking.checkforinput())=='b': break
+
+    return run.learner
+
+def gen_lossgrad(f,_X_distr_density_):
+    gainfn=lambda X,Y1,Y2: jnp.sum(Y1*Y2/_X_distr_density_(X))
+    lossfn1=lambda X,Y1,Y2: 1-gainfn(X,Y1,Y2)**2/(gainfn(X,Y1,Y1)*gainfn(X,Y2,Y2))
+    lossfn2=lambda params,X,Y: lossfn1(X,f(params,X),Y)
+    return jax.jit(jax.value_and_grad(lossfn2))
+
+#from inspect import signature
+
 
 
 class Run(tracking.Run):

@@ -20,6 +20,8 @@ batch.genprofile1=lambda _: harmonicoscillator1d.getdefaultprofile().butwith(ite
 psi0=harmonicoscillator1d.gettarget(estimateobservables.getdefaultprofile()).eval
 p0=lambda X:psi0(X)**2
 
+batch.skip2=True
+
 batch.name2='E[V] of learned psi~, indirect method (X~p0)'
 batch.task2=estimateobservables.Run
 batch.genprofile2=lambda prevoutputs: estimateobservables.getdefaultprofile().butwith(\

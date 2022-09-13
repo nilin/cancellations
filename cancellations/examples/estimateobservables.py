@@ -29,7 +29,7 @@ def getdefaultprofile():
         minburnsteps=100,\
         maxburnsteps=1000,\
         maxiterations=10000,\
-        thinningratio=10,\
+        thinningratio=5,\
         burn_avg_of=100
         )
 
@@ -97,7 +97,7 @@ def sample(run,sampler,returnsamples=True):
                 independentestimates[name]=independentnumsums[name]/independentdenomsums[name]
 
             confintervals={name:sampling.bootstrap_confinterval(\
-                independentestimates[name],nresamples=250,q=jnp.array([2.5/100,97.5/100])) for name in run.observables}
+                independentestimates[name],nresamples=500,q=jnp.array([2.5/100,97.5/100])) for name in run.observables}
             estimates={name:jnp.average(independentestimates[name]) for name in run.observables}
 
             for name in run.observables:
@@ -132,7 +132,7 @@ def prepdisplay1(display:disp.CompositeDisplay,run):
     for name,tv in zip(run.observables,run.trueenergies):
 
         cd.add(disp.FlexDisplay('estimate k '+name,parse=lambda _,x:\
-            'Avg of last {:,} steps, {:,} samples:\n\n{:.4f}, relative error {:.1%}'.\
+            'Avg of last {:,} steps, {:,} samples:\n\n{:.4f}, relative error {:.2E}'.\
                 format(x[1],x[1]*run.nrunners,x[0],jnp.log(x[0]/tv))))
 
         cd.add(disp.VSpace(3))
@@ -157,7 +157,7 @@ def prepdisplay2(display:disp.CompositeDisplay,run):
     for name,tv in zip(run.observables,run.trueenergies):
 
         cd.add(disp.FlexDisplay('estimate '+name,parse=lambda _,x:\
-            'Estimate \n{:.4f}, relative error {:.2%}'.\
+            'Estimate \n{:.4f}, relative error {:.2E}'.\
             format(x,jnp.log(x/tv))))
         cd.add(disp.VSpace(5))
 

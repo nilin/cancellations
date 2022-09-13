@@ -34,24 +34,19 @@ from ..functions import multivariate as mv
 # training object
 #----------------------------------------------------------------------------------------------------
 
-
 	
 class Trainer():
-	def __init__(self,learner,X,Y,lossfn=None,learning_rate=.01,memory=None,minibatchsize=100,**kwargs):
+	def __init__(self,lossgrad,learner,X,*Y,learning_rate=.01,memory=None,minibatchsize=100,**kwargs):
 
+		self.lossgrad=lossgrad
+		self.learner=learner
+		self.X,*self.Y=X,*Y
 		self.memory=tracking.Memory() if memory==None else memory
 
-		self.learner=learner
-		self.lossgrad=learner.get_lossgrad(lossfn)
-
-		self.X,self.Y=X,Y
 		self.samples,self.n,self.d=X.shape
-
 		self.opt=optax.adamw(learning_rate,**{k:val for k,val in kwargs.items() if k in ['weight_decay','mask']})
 		self.state=self.opt.init(self.learner.weights)
-
-		self.minibatchsize=100
-		#self.set_default_batchsizes(**kwargs)
+		self.minibatchsize=minibatchsize
 		self.minibatches=deque([])
 
 		
@@ -68,30 +63,35 @@ class Trainer():
 	def step(self):
 		if len(self.minibatches)==0:
 			self.prepnextepoch()
-		(X_mini,Y_mini)=self.minibatches.popleft()
+		(X_mini,*Y_mini)=self.minibatches.popleft()
 
 		self.memory.addcontext('minibatches left in epoch',len(self.minibatches))
-		return self.minibatch_step(X_mini,Y_mini)	
+		return self.minibatch_step(X_mini,*Y_mini)	
 
 
 	def prepnextepoch(self,permute=True):
 		self.memory.log('preparing new epoch')
-		if permute: self.X,self.Y=mathutil.randperm(self.X,self.Y)
-		self.minibatches=deque(mathutil.chop(self.X,self.Y,blocksize=self.minibatchsize))
+		if permute: self.X,*self.Y=mathutil.randperm(self.X,*self.Y)
+		self.minibatches=deque(mathutil.chop(self.X,*self.Y,blocksize=self.minibatchsize))
 
 		self.memory.log('start new epoch')
 		self.memory.remember('minibatches in epoch',len(self.minibatches))
 
 
+
+
+
+
+
 #	def set_default_batchsizes(self,minibatchsize=None,**kwargs):
 #		self.minibatchsize=min(self.X.shape[0],cfg.memorybatchlimit(self.n),1000) if minibatchsize==None else minibatchsize
 #		self.memory.log('minibatch size set to '+str(self.minibatchsize))
-
-	def checkpoint(self):
-		self.memory.remember('weights',copy.deepcopy(self.learner.weights))
-		self.memory.log('learner checkpoint')
-
-
+#
+#	def checkpoint(self):
+#		self.memory.remember('weights',copy.deepcopy(self.learner.weights))
+#		self.memory.log('learner checkpoint')
+#
+#
 #	def compilegrad(self):
 #		self.memory.log('compiling learning gradient')	
 #		X_dummy=jnp.zeros_like(self.X[:self.minibatchsize])
