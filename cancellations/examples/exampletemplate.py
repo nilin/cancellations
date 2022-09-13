@@ -255,7 +255,7 @@ def prepdisplay(run):
 	y1=(y0+3*y2)//4
 
 
-	column1=cdisplay.ConcreteDisplay(xlim=(x0+2,x1-5),ylim=(y0+1,y1-1),memory=run)
+	column1=cdisplay.ConcreteDisplay(xlim=(x0,x1-5),ylim=(y0,y1),memory=run)
 	column1.add(disp.StaticText(msg=instructions))
 	column1.add(disp.VSpace(2))
 	column1.add(disp.Hline())
@@ -270,7 +270,7 @@ def prepdisplay(run):
 #	run.addlistener(column1,'target |Af|')
 
 
-	column2=cdisplay.ConcreteDisplay(xlim=(x1+5,x2-2),ylim=(y0+1,y1-1))
+	column2=cdisplay.ConcreteDisplay(xlim=(x1+5,x2),ylim=(y0,y1))
 	run.infodisplay,_=column2.add(disp.StaticText(msg='',wrap=True))
 
 #	run.addlistener(column2,'runinfo')

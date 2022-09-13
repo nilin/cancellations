@@ -6,7 +6,7 @@ def runbatch(batchprocess):
     batchprofile,dashboard=batchprocess,batchprocess.display
     tasklistcdisplay,_=dashboard.add(cdisplay.ConcreteDisplay(dashboard.xlim,(0,2)))
     tasklisttextdisplay,_=tasklistcdisplay.add(disp.StaticText(msg=''))
-    display,_=dashboard.add(cdisplay.Dashboard(dashboard.xlim,(2,dashboard.ylim[1])))
+    display,_=dashboard.add(cdisplay.Dashboard((3,dashboard.xlim[1]-3),(2+2,dashboard.ylim[1]-2)))
 
     tasks=[]
     for i in range(1,1000):

@@ -140,16 +140,21 @@ class RunningAvg:
         if len(self.recenthist)>self.k:
             self.sum-=self.recenthist.popleft()
 
-        return self.avg_and_k()
-
-    def avg_and_k(self):
-        return self.sum/len(self.recenthist),len(self.recenthist)
+        return self.avg()
 
     def avg(self):
-        return self.sum/len(self.recenthist)
-    
+        return self.sum/len(self.recenthist)    
 
+    def actualk(self):
+        return len(self.recenthist)
 
+class NoRunningAvg(RunningAvg):
+    def update(self,val): self.val=val; return val
+    def avg(self): return self.val
+    def actualk(self): return 1
+
+def RunningAvgOrIden(k):
+    return NoRunningAvg(1) if k==None else RunningAvg(k)
 
 #----------------------------------------------------------------------------------------------------
 

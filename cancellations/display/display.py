@@ -113,16 +113,9 @@ class LogDisplay(Display):
 #----------------------------------------------------------------------------------------------------
 
 
-class CompositeDisplay(Display):
-	def __init__(self,xlim,ylim,*a,**kw):
-		x0,x1=xlim
-		y0,y1=ylim
-		
-		super().__init__(*a, \
-						 xlim=xlim, ylim=ylim,
-						 width=x1-x0, height=y1-y0,
-						 elements=tracking.dotdict(), \
-						 defaultnames=collections.deque(range(100)), **kw)
+class AbstractCompositeDisplay(Display):
+	def __init__(self,*a,**kw):
+		super().__init__(*a, elements=tracking.dotdict(), defaultnames=collections.deque(range(100)), **kw)
 
 	def __getattr__(self,name):
 		try: return super.__getattr__(name)
@@ -147,7 +140,12 @@ class CompositeDisplay(Display):
 		self.delkeys(*self.elements.keys())
 
 
-
+class CompositeDisplay(AbstractCompositeDisplay):
+	def __init__(self,xlim,ylim,*a,**kw):
+		x0,x1=xlim
+		y0,y1=ylim
+		
+		super().__init__(*a, xlim=xlim, ylim=ylim, width=x1-x0, height=y1-y0, **kw)
 
 
 
@@ -163,6 +161,14 @@ class StackedDisplay(CompositeDisplay):
 		self.width=width
 		for e in self.elements: e.setwidth(width)
 
+
+
+class SwitchDisplay(AbstractCompositeDisplay):
+	def pickdisplay(self,name):
+		self.activedisplay=name
+
+	def _gettext_(self):
+		return self.elements[self.activedisplay]._gettext_()
 
 #----------------------------------------------------------------------------------------------------
 
@@ -181,7 +187,7 @@ class NumberDisplay(QueryDisplay):
 		self.runningavg=tracking.RunningAvg(k=avg_of)
 
 	def _gettext_(self):
-		return self.formatnumber(self.runningavg.update(self.getval())[0])
+		return self.formatnumber(self.runningavg.update(self.getval()))
 
 	def formatnumber(self,x): raise NotImplementedError
 
@@ -246,12 +252,16 @@ class Ticks(StaticText):
 #----------------------------------------------------------------------------------------------------
 
 class FlexDisplay(Display):
-	def __init__(self,*queries,parse):
-		super().__init__(queries=queries,parse=parse)
+	def __init__(self,*queries,smoothing=None,parse):
+		if smoothing==None: smoothing=[None for q in queries]
+		super().__init__(queries=queries,smoothing=smoothing,parse=parse)
+		self.reset()
+
+	def reset(self):
+		self.smoothers=[tracking.RunningAvgOrIden(s) for q,s in zip(self.queries,self.smoothing)]
 
 	def getvals(self):
-		process=tracking.currentprocess()
-		return [process.getcurrentval(q) for q in self.queries]
+		return [s.update(tracking.currentprocess().getcurrentval(q)) for q,s in zip(self.queries,self.smoothers)]
 
 	def _gettext_(self):
 		return self.parse(self,*self.getvals())

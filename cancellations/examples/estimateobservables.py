@@ -42,27 +42,25 @@ def gaussianstepproposal(var):
 
 def execprocess(run):
     profile,display=run,run.display
-    prepdisplay1(display,profile)
+    prepdisplay(display,profile)
 
     genX0=lambda samples: profile._X0_distr_(tracking.nextkey(),samples,profile.n,profile.d)
     X0=genX0(profile.nrunners)
 
     sampler=sampling.Sampler(run.p,profile.proposalfn,X0)
-    #sampler=sampling.Sampler(jax.jit(lambda X:profile.wavefunction(X)**2),profile.proposalfn,X0)
-    burn(run,sampler)
-
-    display.delkeys('cd1')
-    prepdisplay2(display,profile)
-    sample(run,sampler,returnsamples=False)
+    sample(run,sampler)
+    display.sd.pickdisplay('sd2'); display.fd.reset()
+    sample(run,sampler,saveevery=run.thinningratio)
 
 
 
-def burn(run,sampler):
+def sample(run,sampler,saveevery=None):
 
     estimates100={name:tracking.RunningAvg(run.burn_avg_of) for name in run.observables.keys()}
+    Xs=[]
 
     for i in range(run.maxburnsteps):
-        run.trackcurrent('timeslices',i)
+        run.trackcurrent('steps',i)
         for name,O in run.observables.items():
 
             sampler.step()
@@ -70,61 +68,12 @@ def burn(run,sampler):
             newest=jnp.sum(run.qpratio(sampler.X)*O(sampler.X))/jnp.sum(run.qpratio(sampler.X))
             run.trackcurrent('estimate k '+name,estimates100[name].update(newest))
 
+        if saveevery!=None and i%saveevery==0:
+            Xs.append(sampler.X)
+            run.trackcurrent('timeslices',len(Xs))
+
         run.display.draw()
         if act_on_input(tracking.checkforinput())=='b': break
-
-
-def sample(run,sampler,returnsamples=True):
-    independentnumsums={name:jnp.zeros((run.nrunners,)) for name in run.observables.keys()}
-    independentdenomsums={name:jnp.zeros((run.nrunners,)) for name in run.observables.keys()}
-    independentestimates=dict()
-
-    samples=None # these will have dimensions (runners,time,n,d)
-    timeslices=0
-
-    estimatesforplot={name:[] for name in run.observables}
-
-    for i in range(run.maxiterations):
-        sampler.step()
-        if i%run.thinningratio==0:
-            timeslices+=1
-            run.trackcurrent('timeslices',timeslices)
-            run.trackcurrent('steps',i+1)
-
-            if returnsamples:
-                newsamples=jnp.expand_dims(sampler.X,axis=1)
-                samples=jnp.concatenate([samples,newsamples],axis=1) if samples!=None else newsamples
-
-            for name,O in run.observables.items():
-                independentnumsums[name]+=run.qpratio(sampler.X)*O(sampler.X)
-                independentdenomsums[name]+=run.qpratio(sampler.X)
-                independentestimates[name]=independentnumsums[name]/independentdenomsums[name]
-
-            confintervals={name:sampling.bootstrap_confinterval(\
-                independentestimates[name],nresamples=500,q=jnp.array([2.5/100,97.5/100])) for name in run.observables}
-            estimates={name:jnp.average(independentestimates[name]) for name in run.observables}
-
-            for name in run.observables:
-                run.trackcurrent('estimate '+name,estimates[name])
-                run.trackcurrent('confinterval '+name,confintervals[name])
-                estimatesforplot[name].append(estimates[name])
-
-        run.trackcurrent('estimate '+name,estimates[name])
-        run.display.draw()
-
-        if act_on_input(tracking.checkforinput())=='b': break# and i>profile.minburnsteps: break
-
-    for name,tv in zip(run.observables,run.trueenergies):
-        fig,ax=plt.subplots()
-        ax.plot(estimatesforplot[name])
-        ax.plot([0,len(estimatesforplot[name])],2*[tv])
-        ax.set_title('potential energy')
-        ax.set_ylim(bottom=0,top=tv*1.2)
-        fig.savefig('outputs/'+run.ID+'.pdf')
-
-
-    return samples
-
 
             
 
@@ -135,19 +84,27 @@ def act_on_input(i):
 
             
 
-def prepdisplay1(display:disp.CompositeDisplay,run):
+def prepdisplay(display:disp.CompositeDisplay,run):
     cd,_=display.add(cdisplay.ConcreteDisplay(display.xlim,display.ylim),name='cd1')
-    cd.add(disp.VSpace(3))
-    cd.add(disp.FlexDisplay('timeslices',parse=lambda _,i:\
+
+    display.sd,_=cd.add(disp.SwitchDisplay())
+
+    display.sd.add(disp.FlexDisplay('steps',parse=lambda _,i:\
         'Burning samples. \n\nPress [b] to finish burning and begin registering samples.\n\n'+
-        '{:,} steps and {:,} samples burned'.format(i,i*run.nrunners)))
+        '{:,} steps and {:,} samples burned'.format(i,i*run.nrunners)),name='sd1')
+
+    display.sd.add(disp.FlexDisplay('steps','timeslices',parse=lambda _,s,sl:\
+        'Saved {:,} samples from {:,} time slices, every {}th out of {} steps.'\
+        .format(sl*run.nrunners,sl,run.thinningratio,s)),name='sd2')
+
+    display.sd.pickdisplay('sd1')
     cd.add(disp.VSpace(5))
 
     for name,tv in zip(run.observables,run.trueenergies):
 
-        cd.add(disp.FlexDisplay('estimate k '+name,parse=lambda _,x:\
+        display.fd,_=cd.add(disp.FlexDisplay('estimate k '+name,parse=lambda d,x:\
             'Avg of last {:,} steps, {:,} samples:\n\n{:.4f}, relative error {:.2E}'.\
-                format(x[1],x[1]*run.nrunners,x[0],jnp.log(x[0]/tv))))
+                format(d.smoothers[0].actualk(),d.smoothers[0].actualk()*run.nrunners,x,jnp.log(x/tv))))
 
         cd.add(disp.VSpace(3))
 
@@ -156,35 +113,7 @@ def prepdisplay1(display:disp.CompositeDisplay,run):
         cd.add(disp.Ticks(transform,I+[tv],L+['{:.2f} (true value)'.format(tv)]))
         cd.add(disp.Ticks(transform,I+[tv]))
         cd.add(disp.FlexDisplay('estimate k '+name,parse=\
-            lambda D,x:transform(x[0],D.width)*textutil.dash+textutil.BOX+D.width*textutil.dash))
-        cd.add(disp.Ticks(transform,I+[tv]))
-
-
-def prepdisplay2(display:disp.CompositeDisplay,run):
-    cd,_=display.add(cdisplay.ConcreteDisplay(display.xlim,display.ylim))
-    cd.add(disp.VSpace(3))
-    cd.add(disp.FlexDisplay('timeslices','steps',parse=lambda _,s,i:\
-        'Saved {:,} samples from {:,} time slices, every {}th out of {} steps.'\
-        .format(s*run.nrunners,s,run.thinningratio,i)))
-    cd.add(disp.VSpace(3))
-
-    for name,tv in zip(run.observables,run.trueenergies):
-
-        cd.add(disp.FlexDisplay('estimate '+name,parse=lambda _,x:\
-            'Estimate \n{:.4f}, relative error {:.2E}'.\
-            format(x,jnp.log(x/tv))))
-        cd.add(disp.VSpace(5))
-
-
-        transform=disp.R_to_I_formatter(tv,0.2)
-        def showinterval(display,t,I):
-            T=lambda x: transform(x,displaywidth=display.width)
-            interval=T(I[0])*' '+'['+(T(I[1])-T(I[0]))*textutil.dash+']'
-            return textutil.overwrite(interval,T(t)*' '+textutil.BOX)
-        cd.add(disp.FlexDisplay('estimate '+name,'confinterval '+name,parse=showinterval))
-        I=list(jnp.arange(tv-.25,tv+.26,.1)); L=['{:.2f}'.format(l) for l in I]
-        cd.add(disp.Ticks(transform,I+[tv]))
-        cd.add(disp.Ticks(transform,I+[tv],L+['{:.2f} (true value)'.format(tv)]))
+            lambda D,x:transform(x,D.width)*textutil.dash+textutil.BOX+D.width*textutil.dash))
         cd.add(disp.Ticks(transform,I+[tv]))
 
 

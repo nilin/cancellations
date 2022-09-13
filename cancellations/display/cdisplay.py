@@ -88,8 +88,6 @@ def session_in_display(task,profile,nodelay=True):
 		screen.nodelay(nodelay)
 		cs.use_default_colors()
 		tracking.session.dashboard=Dashboard((0,cs.COLS),(0,cs.LINES))
-		#try: profile.prepdashboard(profile.dashboard)
-		#except: pass
 		return runtask(task,profile,display=tracking.session.dashboard)
 
 	out=cs.wrapper(wrapped)
