@@ -253,7 +253,7 @@ class DynamicRange(Display,tracking.Stopwatch):
 			textutil.layer(self.width*textutil.dash,tickstr1,tickstr2,moving)+'\n'+\
 			textutil.layer(tickstr2,labelstr1)+'\n'+\
 			tickstr2+'\n'+\
-			labelstr2
+			labelstr2+'\n '
 
 		#return textutil.overwrite(textutil.placelabels([T(t) for t in ticks],ticks),textutil.placelabels([T(self.getval())])
 

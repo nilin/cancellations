@@ -29,7 +29,7 @@ def getdefaultprofile():
         qpratio='not set',\
         trueenergies='not set',\
         minburnsteps=100,\
-        maxburnsteps=1000,\
+        maxburnsteps=2000,\
         maxiterations=10000,\
         thinningratio=5,\
         )
@@ -48,22 +48,22 @@ def execprocess(run):
 
     sampler=sampling.Sampler(run.p,profile.proposalfn,X0)
 
-    _,burnests=sample(run,sampler,avg_of=100)
+    _,burnests=sample(run,sampler,avg_of=100,iterations=run.maxburnsteps)
 
     display.sd.pickdisplay('sd2'); display.fd.reset()
-    Xs,ests=sample(run,sampler,saveevery=run.thinningratio,avg_of=None)
+    Xs,ests=sample(run,sampler,saveevery=run.thinningratio,avg_of=None,iterations=run.maxiterations)
 
     plot(run,burnests,ests)
     return Xs
 
 
 
-def sample(run,sampler,saveevery=None,avg_of=None):
+def sample(run,sampler,iterations,saveevery=None,avg_of=None):
 
     estimates100={name:tracking.RunningAvgOrIden(avg_of) for name in run.observables.keys()}
     Xs=[]; estimates={k:[] for k in run.observables}
 
-    for i in range(run.maxburnsteps):
+    for i in range(iterations):
         run.trackcurrent('steps',i)
         for name,O in run.observables.items():
 
@@ -98,6 +98,7 @@ def plot(run,burnests,ests):
         ax.plot(list(range(len(burn))),burn,'r:')
         ax.plot(list(len(burn)+jnp.arange(len(est))),est,'b:')
         ax.plot([0,len(burn)+len(est)],[tv,tv])
+        ax.set_ylim([0,tv*1.2])
     sysutil.savefig(run.outpath+'plot.pdf',fig=fig)
 
 def prepdisplay(display:disp.CompositeDisplay,run:tracking.Run):
@@ -120,7 +121,7 @@ def prepdisplay(display:disp.CompositeDisplay,run:tracking.Run):
 
         display.fd,_=cd.add(disp.FlexDisplay('estimate k '+name,parse=lambda d,x:\
             'Avg of last {:,} steps, {:,} samples:\n\n{:.4f}, relative error {:.2E}'.\
-                format(d.smoothers[0].actualk(),d.smoothers[0].actualk()*run.nrunners,x,jnp.log(x/tv))))
+            format(d.smoothers[0].actualk(),d.smoothers[0].actualk()*run.nrunners,x,jnp.log(x/tv))))
 
         cd.add(disp.VSpace(3))
 
@@ -134,10 +135,9 @@ def prepdisplay(display:disp.CompositeDisplay,run:tracking.Run):
 #
 #        cd.add(disp.VSpace(3))
 
+        T=lambda t: disp.R_to_I_formatter(tv,1)(t,display.width)
         class Range(disp.DynamicRange):
-            def gettransform(self):
-                self.center=tv; self.rangewidth=1
-                self.T=lambda t: disp.R_to_I_formatter(self.center,self.rangewidth)(t,self.width)
+            def gettransform(self): self.center=tv; self.rangewidth=1; self.T=T
 
         dr,_=cd.add(Range(run.getqueryfn('estimate k '+name),customticks=[tv],customlabels='true value'))
 
