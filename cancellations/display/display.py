@@ -207,7 +207,7 @@ class Ticks(StaticText):
 
 class FlexDisplay(Display):
 	def __init__(self,*queries,smoothing=None,parse):
-		if smoothing==None: smoothing=[None for q in queries]
+		if smoothing==None: smoothing=[1 for q in queries]
 		super().__init__(queries=queries,smoothing=smoothing,parse=parse)
 		self.reset()
 

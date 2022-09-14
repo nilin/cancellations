@@ -156,22 +156,38 @@ class RunningAvg:
             self.sum-=self.recenthist.popleft()
 
     def avg(self):
-        return self.sum/len(self.recenthist)    
+        return self.sum/self.actualk()    
 
     def var(self,val=None,**kw):
         if val!=None: self.update(val,**kw)
-        return self.sqsum/len(self.recenthist)-self.avg()**2
+        return self.sqsum/self.actualk()-self.avg()**2
 
     def actualk(self):
         return len(self.recenthist)
 
+class InfiniteRunningAvg(RunningAvg):
+    def __init__(self):
+        self.sum=0
+        self.sqsum=0
+        self.i=0
+
+    def do_update(self,val):    
+        self.i+=1
+        self.sum+=val
+        self.sqsum+=val**2
+
+    def actualk(self): return self.i
+
 class NoRunningAvg(RunningAvg):
+    def __init__(self): pass
     def update(self,val): self.val=val; return val
     def avg(self): return self.val
     def actualk(self): return 1
 
 def RunningAvgOrIden(k):
-    return NoRunningAvg(1) if k==None else RunningAvg(k)
+    if k==1: return NoRunningAvg()
+    if k==None: return InfiniteRunningAvg()
+    return RunningAvg(k)
 
 #----------------------------------------------------------------------------------------------------
 
@@ -233,7 +249,8 @@ class Process(Profile,Memory):
         super().__init__()
         Memory.__init__(self)
         self.update(profile)
-        self.ID='{} {}'.format(session.ID,profile.name) if ID==None else ID
+        self.ID='{}/{}'.format(session.ID,profile.name) if ID==None else ID
+        self.outpath='outputs/'+self.ID+'/'
         self.display=display
 
     def log(self,msg):
@@ -283,8 +300,8 @@ def getprocess(execfn):
 
 def log(msg):
     session.log(msg)
-    sysutil.write(msg+'\n',*logpaths())
-    return act_on_input(checkforinput())
+    sysutil.write(msg+'\n',currentprocess().outpath+'log')
+    return currentprocess().act_on_input(checkforinput())
 
 
 def LOG(msg):
@@ -338,6 +355,7 @@ class Breaker:
         return out
 
 
+breaker=Breaker()
 #----------------------------------------------------------------------------------------------------
 
 
@@ -503,14 +521,14 @@ week=7*day
 #def getlossfn():
 #    return lossfn
 
-def histpath():
-    return cfg.outpath+'hist'
-
-def logpaths():
-    return [cfg.outpath+'log','logs/'+session.ID]
-
-def getoutpath():
-    return cfg.outpath
+#def histpath():
+#    return cfg.outpath+'hist'
+#
+#def logpaths():
+#    return [cfg.outpath+'log','logs/'+session.ID]
+#
+#def getoutpath():
+#    return cfg.outpath
 
 #def register(*names,sourcedict,savetoglobals=False):
 #    cfgcontext=globals() if savetoglobals else params

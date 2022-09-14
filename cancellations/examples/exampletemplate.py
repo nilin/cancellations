@@ -229,9 +229,10 @@ def fplot():
 
 def act_on_input(key):
 	if key=='q': quit()
+	#if key=='b': tracking.breaker.breaknow()
 	if key=='l': lplot()
 	if key=='f': fplot()
-	if key=='o': sysutil.showfile(tracking.getoutpath())
+	if key=='o': sysutil.showfile(tracking.currentprocess().outpath)
 	return key
 
 
@@ -289,7 +290,7 @@ def addlearningdisplay(run,display):
 
 	a,b=display.xlim[0]+2,display.xlim[1]-2
 
-	ld=cdisplay.ConcreteDisplay((a,b),(display.height-6,display.height-1))
+	ld=cdisplay.ConcreteDisplay((a,b),(display.height-10,display.height-1))
 	ld.add(disp.NumberPrint('minibatch loss',msg='training loss {:.2E}',avg_of=100))
 	ld.add(disp.Bar('minibatch loss',style=textutil.dash,emptystyle=' ',avg_of=1))
 	ld.add(disp.Bar('minibatch loss',style=disp.BOX,emptystyle=' ',avg_of=10))

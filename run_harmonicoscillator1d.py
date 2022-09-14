@@ -15,7 +15,7 @@ batch=tracking.Profile(name='harmonic oscillator n=5 d=1')
 
 batch.name1='learning'
 batch.task1=harmonicoscillator1d.Run
-batch.genprofile1=lambda _: harmonicoscillator1d.getdefaultprofile().butwith(iterations=5000)
+batch.genprofile1=lambda _: harmonicoscillator1d.getdefaultprofile().butwith(iterations=2500)
 
 psi0=harmonicoscillator1d.gettarget(estimateobservables.getdefaultprofile()).eval
 p0=lambda X:psi0(X)**2

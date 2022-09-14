@@ -3,7 +3,7 @@
 
 
 import profile
-from cancellations.utilities import textutil
+from cancellations.utilities import textutil,sysutil
 from ..display import cdisplay
 from ..utilities import tracking,arrayutil,sampling,config as cfg
 from ..display import display as disp
@@ -32,7 +32,6 @@ def getdefaultprofile():
         maxburnsteps=1000,\
         maxiterations=10000,\
         thinningratio=5,\
-        burn_avg_of=100
         )
 
 def gaussianstepproposal(var):
@@ -48,16 +47,21 @@ def execprocess(run):
     X0=genX0(profile.nrunners)
 
     sampler=sampling.Sampler(run.p,profile.proposalfn,X0)
-    sample(run,sampler)
+
+    _,burnests=sample(run,sampler,avg_of=100)
+
     display.sd.pickdisplay('sd2'); display.fd.reset()
-    sample(run,sampler,saveevery=run.thinningratio)
+    Xs,ests=sample(run,sampler,saveevery=run.thinningratio,avg_of=None)
+
+    plot(run,burnests,ests)
+    return Xs
 
 
 
-def sample(run,sampler,saveevery=None):
+def sample(run,sampler,saveevery=None,avg_of=None):
 
-    estimates100={name:tracking.RunningAvg(run.burn_avg_of) for name in run.observables.keys()}
-    Xs=[]
+    estimates100={name:tracking.RunningAvgOrIden(avg_of) for name in run.observables.keys()}
+    Xs=[]; estimates={k:[] for k in run.observables}
 
     for i in range(run.maxburnsteps):
         run.trackcurrent('steps',i)
@@ -65,24 +69,36 @@ def sample(run,sampler,saveevery=None):
 
             sampler.step()
 
-            newest=jnp.sum(run.qpratio(sampler.X)*O(sampler.X))/jnp.sum(run.qpratio(sampler.X))
-            run.trackcurrent('estimate k '+name,estimates100[name].update(newest))
+            newest=estimates100[name].update(\
+                jnp.sum(run.qpratio(sampler.X)*O(sampler.X))/jnp.sum(run.qpratio(sampler.X)))
+            run.trackcurrent('estimate k '+name,newest)
+            estimates[name].append(newest)
 
         if saveevery!=None and i%saveevery==0:
             Xs.append(sampler.X)
             run.trackcurrent('timeslices',len(Xs))
 
         run.display.draw()
+
         if act_on_input(tracking.checkforinput())=='b': break
 
+    return Xs,estimates
             
 
 
 def act_on_input(i):
     if i=='q': quit()
+    if i=='o': sysutil.showfile(tracking.currentprocess().outpath)
+    #if i=='b': tracking.breaker.breaknow()
     return i
 
-            
+def plot(run,burnests,ests):
+    fig,ax=plt.subplots()
+    for obs,tv,burn,est in zip(run.observables,run.trueenergies,burnests.values(),ests.values()):
+        ax.plot(list(range(len(burn))),burn,'r:')
+        ax.plot(list(len(burn)+jnp.arange(len(est))),est,'b:')
+        ax.plot([0,len(burn)+len(est)],[tv,tv])
+    sysutil.savefig(run.outpath+'plot.pdf',fig=fig)
 
 def prepdisplay(display:disp.CompositeDisplay,run:tracking.Run):
     cd,_=display.add(cdisplay.ConcreteDisplay(display.xlim,display.ylim),name='cd1')
