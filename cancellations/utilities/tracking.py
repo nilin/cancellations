@@ -77,6 +77,14 @@ class BasicMemory:
     def getval(self,name):
         return self.getcurrentval(name)
 
+    def getqueryfn(self,*names):
+        if len(names)==1:
+            [name]=names
+            def queryfn(): return self.getcurrentval(name)
+        else:
+            def queryfn(): return [self.getcurrentval(name) for name in names]
+        return queryfn
+
 
 class Timer:
     def __init__(self,*x,**y):
@@ -132,18 +140,27 @@ class RunningAvg:
         self.k=k
         self.recenthist=deque([])
         self.sum=0
+        self.sqsum=0
+        self.i=0
 
-    def update(self,val):
+    def update(self,val,thinning=1):
+        if self.i%thinning==0: self.do_update(val)
+        return self.avg()
+
+    def do_update(self,val):    
+        self.i+=1
         self.sum+=val
+        self.sqsum+=val**2
         self.recenthist.append(val)
-
         if len(self.recenthist)>self.k:
             self.sum-=self.recenthist.popleft()
 
-        return self.avg()
-
     def avg(self):
         return self.sum/len(self.recenthist)    
+
+    def var(self,val=None,**kw):
+        if val!=None: self.update(val,**kw)
+        return self.sqsum/len(self.recenthist)-self.avg()**2
 
     def actualk(self):
         return len(self.recenthist)
@@ -255,6 +272,10 @@ class Run(Process):
         return self.X_distr(self.nextkey(),samples)
 
 
+def getprocess(execfn):
+    class CustomProcess(Process):
+        execprocess=execfn
+    return CustomProcess
 #stack
 
 
@@ -292,13 +313,29 @@ class Stopwatch:
         return self.t-t0
 
     def tick_after(self,dt):
-        if self.elapsed()>dt:
+        if self.elapsed()>=dt:
             self.tick()
             return True
         else:
             return False
 
+    def do_after(self,dt,fn,*args,**kwargs):
+        if self.tick_after(dt):
+            fn(*args,**kwargs)
 
+
+
+class Breaker:
+    def __init__(self):
+        self.wantbreak=False
+
+    def breaknow(self):
+        self.wantbreak=True
+
+    def wantsbreak(self):
+        out=self.wantbreak
+        self.wantbreak=False
+        return out
 
 
 #----------------------------------------------------------------------------------------------------
@@ -522,6 +559,20 @@ getfromcmdparams=getfromargs
 
 
 dash='\u2015'
+
+
+
+
+
+
+
+
+
+def test():
+    import time
+    s=Stopwatch()
+    for i in range(100): print(s.tick_after(.1)); time.sleep(.01)
+
 
 #def conditional(f,do):
 #    if do:

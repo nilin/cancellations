@@ -84,7 +84,7 @@ def act_on_input(i):
 
             
 
-def prepdisplay(display:disp.CompositeDisplay,run):
+def prepdisplay(display:disp.CompositeDisplay,run:tracking.Run):
     cd,_=display.add(cdisplay.ConcreteDisplay(display.xlim,display.ylim),name='cd1')
 
     display.sd,_=cd.add(disp.SwitchDisplay())
@@ -108,13 +108,22 @@ def prepdisplay(display:disp.CompositeDisplay,run):
 
         cd.add(disp.VSpace(3))
 
-        transform=disp.R_to_I_formatter(tv,1.0)
-        I=list(jnp.arange(tv-2.25,tv+2,.5)); L=['{:.2f}'.format(l) for l in I]
-        cd.add(disp.Ticks(transform,I+[tv],L+['{:.2f} (true value)'.format(tv)]))
-        cd.add(disp.Ticks(transform,I+[tv]))
-        cd.add(disp.FlexDisplay('estimate k '+name,parse=\
-            lambda D,x:transform(x,D.width)*textutil.dash+textutil.BOX+D.width*textutil.dash))
-        cd.add(disp.Ticks(transform,I+[tv]))
+#        transform=disp.R_to_I_formatter(tv,1.0)
+#        I=list(jnp.arange(tv-2.25,tv+2,.5)); L=['{:.2f}'.format(l) for l in I]
+#        cd.add(disp.Ticks(transform,I+[tv],L+['{:.2f} (true value)'.format(tv)]))
+#        cd.add(disp.Ticks(transform,I+[tv]))
+#        cd.add(disp.FlexDisplay('estimate k '+name,parse=\
+#            lambda D,x:transform(x,D.width)*textutil.dash+textutil.BOX+D.width*textutil.dash))
+#        cd.add(disp.Ticks(transform,I+[tv]))
+#
+#        cd.add(disp.VSpace(3))
+
+        class Range(disp.DynamicRange):
+            def gettransform(self):
+                self.center=tv; self.rangewidth=1
+                self.T=lambda t: disp.R_to_I_formatter(self.center,self.rangewidth)(t,self.width)
+
+        dr,_=cd.add(Range(run.getqueryfn('estimate k '+name),customticks=[tv],customlabels='true value'))
 
 
 

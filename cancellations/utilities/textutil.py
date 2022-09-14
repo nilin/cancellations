@@ -1,5 +1,7 @@
 import re
-
+from collections import deque
+import jax.numpy as jnp
+import math
 
 
 BOX='\u2588'
@@ -44,14 +46,46 @@ def addborder(S,border):
 
     
 def overwrite(s1,s2):
-    '\n'.join([''.join([a if b==' ' else b for (a,b) in zip(l1,l2+' '*len(l1))])\
+    return '\n'.join([''.join([a if b==' ' else b for (a,b) in zip(l1+' '*len(l2),l2+' '*len(l1))])\
     for l1,l2 in zip(s1.splitlines(),s2.splitlines())])
     
+def layer(*strings):
+    out=strings[0]
+    for s in strings[1:]: out=overwrite(out,s)
+    return out
 
 ######
 
 def breakat(s,b):
     return (b+'\n').join(s.split('b'))
+
+
+def placelabels(positions,labels):
+
+    if type(labels)!=list: labels=len(positions)*[labels]
+    positions,labels=[deque(_) for _ in zip(*sorted(zip(positions,labels)))]
+    s=''
+
+    for i in range(positions[-1]+1):
+        while positions[0]<=i:
+            s=s[:i]+str(labels.popleft())
+            positions.popleft()
+            if len(positions)==0: return s
+        s+=' '
+
+    return s
+
+
+
+def roundspacingandprecision(spacing,levels=None):
+    if levels==None: levels=[1,2.5,5,10]
+    precision=math.floor(jnp.log10(spacing))
+    roundedspacing=max([t for t in [10**precision*s for s in levels] if t<=spacing])
+    return roundedspacing,max(0,-precision+1)
+
+def roundrangeandprecision(center,r,nticks):
+	spacing,prec=roundspacingandprecision(2*r/nticks)
+	return [spacing*(center//spacing+i) for i in range(round(-nticks//2),round(nticks//2))],prec
 
 
 

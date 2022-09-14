@@ -1,10 +1,12 @@
 import os
 import math
+from re import L
 from ..utilities import config as cfg, tracking,textutil,arrayutil
-from ..utilities.tracking import session
+from ..utilities.tracking import Stopwatch, session
 import collections
 from collections import deque
 import jax
+import jax.numpy as jnp
 from ..utilities.textutil import BOX,box,dash,infty
 
 #----------------------------------------------------------------------------------------------------
@@ -42,6 +44,11 @@ class Display:
 			return self.getcropped(text)
 		except Exception as e:
 			return 'pending '+str(e)
+
+		#for debug
+		#text=self.msgtransform(self._gettext_()) if 'msgtransform' in vars(self) else self._gettext_()
+		#if self.wrap: text=self.getwrapped(text)
+		#return self.getcropped(text)
 
 	def getcropped(self,text):
 		lines=text.splitlines()
@@ -93,13 +100,9 @@ class VSpace(StaticText):
 class Hline(StaticText):
 	msg=line	
 
-class SessionText(Display):
-	def _gettext_(self):
-		return session.getval(self.query)
-
-class RunText(Display):
-	def _gettext_(self):
-		return tracking.currentprocess().getval(self.query)
+#class Runtext(Display):
+#	def _gettext_(self):
+#		return tracking.currentprocess().getval(self.query)
 
 class LogDisplay(Display):
 	def __init__(self,**kw):
@@ -172,6 +175,93 @@ class SwitchDisplay(AbstractCompositeDisplay):
 
 #----------------------------------------------------------------------------------------------------
 
+def R_to_I_formatter(center,dynamicwidth):
+
+	def parse_continuous(x):
+		t=(x-center)/dynamicwidth
+		return arrayutil.slowsigmoid_01(t)
+
+	def parse(x,displaywidth):
+		return math.floor(parse_continuous(x)*displaywidth)
+
+	return parse
+
+class Ticks(StaticText):
+	def __init__(self,transform,ticks,labels=None,lstyle=' ',**kw):
+		if labels==None: labels='|'*len(ticks)
+		ticks,labels=zip(*sorted(zip(ticks,labels)))
+		super().__init__(ticks=deque(ticks),\
+			labels=deque(labels),transform=transform,lstyle=lstyle,**kw)
+
+	def setwidth(self, width):
+		super().setwidth(width)
+		self.msg=''
+		for i in range(width):
+			if len(self.ticks)>0 and len(self.msg)>=self.transform(self.ticks[0],displaywidth=width):
+				self.msg+=str(self.labels.popleft())
+				self.ticks.popleft()
+			else: self.msg+=self.lstyle
+
+
+#----------------------------------------------------------------------------------------------------
+
+class FlexDisplay(Display):
+	def __init__(self,*queries,smoothing=None,parse):
+		if smoothing==None: smoothing=[None for q in queries]
+		super().__init__(queries=queries,smoothing=smoothing,parse=parse)
+		self.reset()
+
+	def reset(self):
+		self.smoothers=[tracking.RunningAvgOrIden(s) for q,s in zip(self.queries,self.smoothing)]
+
+	def getvals(self):
+		return [s.update(tracking.currentprocess().getcurrentval(q)) for q,s in zip(self.queries,self.smoothers)]
+
+	def _gettext_(self):
+		return self.parse(self,*self.getvals())
+
+
+
+
+class DynamicRange(Display,tracking.Stopwatch):
+	def __init__(self,queryfn,customticks=None,customlabels=None):
+		Display.__init__(self,queryfn=queryfn,customticks=customticks,customlabels=customlabels)
+		Stopwatch.__init__(self)
+		self.smoother=tracking.RunningAvg(100)
+
+	def gettransform(self): 
+		if not hasattr(self,'T') or self.tick_after(5):
+			self.center=float(self.smoother.update(self.queryfn()))
+			self.rangewidth=3*max([abs(self.smoother.avg()-t) for t in self.customticks])
+			self.T=lambda t: R_to_I_formatter(self.center,self.rangewidth)(t,self.width)
+
+	def _gettext_(self):
+		self.gettransform()
+		x=self.smoother.update(self.queryfn())
+
+		moving=textutil.placelabels([self.T(x)],'|')
+
+		ticks,prec=textutil.roundrangeandprecision(self.center,2*self.rangewidth,10)
+		tickstr1=textutil.placelabels([self.T(t) for t in ticks],'|')
+		labelstr1=textutil.placelabels([self.T(t) for t in ticks],['{:0.{}f}'.format(t,prec) for t in ticks])
+
+		screenpos2=[self.T(t) for t in self.customticks]
+		tickstr2=textutil.placelabels(screenpos2,'|')
+		labelstr2=textutil.placelabels(screenpos2,self.customlabels)
+
+		return moving.replace('|',textutil.BOX)+'\n'+\
+			textutil.layer(self.width*textutil.dash,tickstr1,tickstr2,moving)+'\n'+\
+			textutil.layer(tickstr2,labelstr1)+'\n'+\
+			tickstr2+'\n'+\
+			labelstr2
+
+		#return textutil.overwrite(textutil.placelabels([T(t) for t in ticks],ticks),textutil.placelabels([T(self.getval())])
+
+
+
+
+#----------------------------------------------------------------------------------------------------
+
 
 class QueryDisplay(Display):
 	def __init__(self,query,**kw):
@@ -220,53 +310,14 @@ class NumberPrint(NumberDisplay):
 
 #----------------------------------------------------------------------------------------------------
 
-def R_to_I_formatter(center,dynamicwidth):
-
-	@jax.jit
-	def parse_continuous(x):
-		t=(x-center)/dynamicwidth
-		return arrayutil.slowsigmoid_01(t)
-
-	def parse(x,displaywidth):
-		return math.floor(parse_continuous(x)*displaywidth)
-
-	return parse
-
-class Ticks(StaticText):
-	def __init__(self,transform,ticks,labels=None,lstyle=' ',**kw):
-		if labels==None: labels='|'*len(ticks)
-		ticks,labels=zip(*sorted(zip(ticks,labels)))
-		super().__init__(ticks=deque(ticks),\
-			labels=deque(labels),transform=transform,lstyle=lstyle,**kw)
-
-	def setwidth(self, width):
-		super().setwidth(width)
-		self.msg=''
-		for i in range(width):
-			if len(self.ticks)>0 and len(self.msg)>=self.transform(self.ticks[0],displaywidth=width):
-				self.msg+=str(self.labels.popleft())
-				self.ticks.popleft()
-			else: self.msg+=self.lstyle
 
 
-#----------------------------------------------------------------------------------------------------
 
-class FlexDisplay(Display):
-	def __init__(self,*queries,smoothing=None,parse):
-		if smoothing==None: smoothing=[None for q in queries]
-		super().__init__(queries=queries,smoothing=smoothing,parse=parse)
-		self.reset()
 
-	def reset(self):
-		self.smoothers=[tracking.RunningAvgOrIden(s) for q,s in zip(self.queries,self.smoothing)]
 
-	def getvals(self):
-		return [s.update(tracking.currentprocess().getcurrentval(q)) for q,s in zip(self.queries,self.smoothers)]
 
-	def _gettext_(self):
-		return self.parse(self,*self.getvals())
 
-#----------------------------------------------------------------------------------------------------
+
 
 def wraptext(msg,style=dash):
     width=max([len(l) for l in msg.splitlines()])

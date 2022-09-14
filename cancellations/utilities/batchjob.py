@@ -18,7 +18,8 @@ def runbatch(batchprocess):
     outputs=[]
     for i, (name, task, genprofile) in enumerate(tasks):
         tasklisttextdisplay.msg='tasks:        '+'        '.join(tasknames[:i]+['> '+name+' <']+tasknames[i+1:])+\
-            '\n'+dashboard.width*textutil.dash; cfg.screen.getch(); tasklistcdisplay.draw(); cfg.screen.refresh()
+        '\n'+dashboard.width*textutil.dash #+'current task: '+task.ID
+        cfg.screen.getch(); tasklistcdisplay.draw(); cfg.screen.refresh()
 
         outputs.append(cdisplay.runtask(task,genprofile(outputs),display))
 
@@ -28,3 +29,5 @@ def runbatch(batchprocess):
 
 class Batchjob(tracking.Process):
     execprocess=runbatch
+
+

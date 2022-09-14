@@ -60,7 +60,7 @@ def getdefaultprofile():
 
 def gettarget(profile):
     for i in range(profile.n): setattr(functions,'psi'+str(i),ef.psi(i))
-    return functions.Slater(['psi'+str(i) for i in range(profile.n)])
+    return functions.Slater(*['psi'+str(i) for i in range(profile.n)])
 
 def getlearner(profile):
 
@@ -83,7 +83,6 @@ def execprocess(run:tracking.Run):
     tracking.log('imports done')
 
     
-    run.unprocessed=tracking.Memory()
     info='runID: {}\n'.format(run.ID)+'\n'*4; run.infodisplay.msg=info
 
     if 'setupdata_path' in run.keys():
@@ -108,9 +107,15 @@ def execprocess(run:tracking.Run):
     info+=4*'\n'+'learner\n\n{}'.format(textutil.indent(run.learner.getinfo())); run.infodisplay.msg=info
 
 
+
     setupdata=dict(X_train=run.X_train,Y_train=run.Y_train,X_test=run.X_test,Y_test=run.Y_test,\
-        target=run.target.compress(),learner=run.learner.compress(),sections=run.sections)
-    #sysutil.save(setupdata,run.outpath+'data/setup')
+        target=run.target.compress(),
+        learner=run.learner.compress(),
+        sections=run.sections)
+    sysutil.save(setupdata,run.outpath+'data/setup')
+
+    run.unprocessed=tracking.Memory()
+    run.unprocessed.target=run.target.compress()
 
     run.trackcurrent('runinfo',info)
     sysutil.write(info,run.outpath+'info.txt',mode='w')
@@ -137,7 +142,8 @@ def execprocess(run:tracking.Run):
             mem.remember('minibatch loss',loss)
 
         if regsched.activate(i):
-            run.unprocessed.remember('weights',run.trainer.learner.weights)
+            run.unprocessed.remember('weights',run.learner.weights)
+            run.unprocessed.learner=run.learner.compress()
             sysutil.save(run.unprocessed,run.outpath+'data/unprocessed',echo=False)
             sysutil.write('loss={:.3f} iterations={} n={} d={}'.format(loss,i,run.n,run.d),run.outpath+'metadata.txt',mode='w')	
 

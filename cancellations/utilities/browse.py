@@ -37,11 +37,14 @@ def _pickfolders_(process):
 
 	W=display.width
 	H=display.height
+	x0,x3=display.xlim
+	y0,y1=display.ylim
+	x1,x2=round(x0*.8+x3*.2), round(.4*x0+.6*x3)
 	screen=cfg.screen
 	screen.nodelay(False)
-	explainpad=cdisplay.Pad((0,round(.2*W)),(0,H))
-	listpad=cdisplay.Pad((round(.25*W),round(.6*W)),(0,H),100,1000)
-	matchinfopad=cdisplay.Pad((round(.7*W),W),(0,H))
+	explainpad=cdisplay.Pad((x0,x1-5),(y0,y1))
+	listpad=cdisplay.Pad((x1,x2-10),(y0,y1),100,1000)
+	matchinfopad=cdisplay.Pad((x2,x3),(y0,y1))
 
 	explanation=\
 		profile.msg+'\n\n'\

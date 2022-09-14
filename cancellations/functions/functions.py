@@ -109,8 +109,19 @@ class FunctionDescription:
 #		return (self.typename(),self._inspect_(params,X))
 
 class Composite(FunctionDescription):
+
+	def __init__(self, *elements):
+		elements=[cast(e).compress() for e in elements]
+		super().__init__(elements=elements, initweights=False)
+		self.weights=[e.weights for e in elements]
+
 	def getinfo(self):
 		return '{}\n\n{}'.format('\n'.join(textwrap.wrap(self.richtypename(),width=50)),self.info())
+
+	def compress(self):
+		c=super().compress()
+		c.elements=[e.compress() for e in c.elements]
+		return c
 
 #def initweights(*functions):
 #	for f in functions: f.initweights()
@@ -119,9 +130,10 @@ class Composite(FunctionDescription):
 class ComposedFunction(Composite):
 	def __init__(self,*nestedelements):
 		elements=[e for E in nestedelements for e in (E.elements if isinstance(E,ComposedFunction) else [E])]
-		weights=[w for E in nestedelements for w in (E.popweights() if isinstance(E,ComposedFunction) else [cast(E).popweights()])]
-		super().__init__(elements=[cast(e).compress() for e in elements],initweights=False)
-		self.weights=weights
+		super().__init__(*elements)
+		#weights=[w for E in nestedelements for w in (E.popweights() if isinstance(E,ComposedFunction) else [cast(E).popweights()])]
+		#super().__init__(elements=[cast(e).compress() for e in elements],initweights=False)
+		#self.weights=weights
 
 	def gen_f(self):
 		return mathutil.compose(*[e._gen_f_() for e in self.elements])
@@ -138,11 +150,6 @@ class ComposedFunction(Composite):
 
 	def info(self):
 		return '\n\n'.join([textutil.indent(e.getinfo()) for e in self.elements])
-
-	def compress(self):
-		c=super().compress()
-		c.elements=[e.compress() for e in c.elements]
-		return c
 
 	def _inspect_(self,params,X):
 		subprocs=['input']
@@ -162,9 +169,9 @@ class ComposedFunction(Composite):
 
 
 class Product(Composite):
-	def __init__(self,*elements):
-		super().__init__(elements=elements,initweights=False)
-		self.weights=[e.weights for e in elements]
+#	def __init__(self,*elements):
+#		super().__init__(elements=elements,initweights=False)
+#		self.weights=[e.weights for e in elements]
 
 	def gen_f(self):
 		fs=[e._gen_f_() for e in self.elements]
@@ -180,11 +187,6 @@ class Product(Composite):
 
 	def info(self):
 		return textutil.sidebyside(*[e.getinfo() for e in self.elements],separator=' X ')
-
-	def compress(self):
-		c=super().compress()
-		c.elements=[e.compress() for e in c.elements]
-		return c
 
 #=======================================================================================================
 class NNfunction(FunctionDescription):
@@ -257,21 +259,21 @@ class Prods(Nonsym):
 	@staticmethod
 	def translation(name):return 'k' if name=='ndets' else name
 
-class ProdState(Nonsym):
+class ProdState(Composite,Nonsym):
 	antisymtype='Slater'
-	def __init__(self,basisfunctions,**kw):
-		super().__init__(basisfunctions=[cast(phi,**kw).compress() for phi in basisfunctions])
+#	def __init__(self,basisfunctions,**kw):
+#		super().__init__(elements=[cast(phi,**kw).compress() for phi in basisfunctions])
 
 	def gen_f(self):
 		return jax.jit(lambda params,X:jnp.product(jnp.stack([\
-			phi(params,X[:,i,:]) for i,phi in enumerate(self.basisfunctions)])))
+			phi(params,X[:,i,:]) for i,phi in enumerate(self.elements)])))
 
 	@staticmethod
-	def _initweights_(basisfunctions):
-		return [phi._initweights_(**phi.kw) for phi in basisfunctions]
+	def _initweights_(elements):
+		return [phi._initweights_(**phi.kw) for phi in elements]
 
-	def richtypename(self): return self.basisfunctions[0].richtypename()+'...'+'-'+self.typename()
-	def info(self): return cfg.indent('\n'.join([phi.info() for phi in self.basisfunctions]))
+	def richtypename(self): return self.elements[0].richtypename()+'...'+'-'+self.typename()
+	def info(self): return cfg.indent('\n'.join([phi.info() for phi in self.elements]))
 
 #=======================================================================================================
 
@@ -309,17 +311,17 @@ class Dets(Antisymmetric):
 #	def richtypename(self): return self.basisfunctions.richtypename()+'-'+self.typename()
 #	def info(self): return cfg.indent(self.basisfunctions.info())
 
-class Slater(Antisymmetric):
+class Slater(Composite,Antisymmetric):
 	nonsym=ProdState
-	def __init__(self,basisfunctions,**kw):
-		super().__init__(basisfunctions=[cast(phi,**kw).compress() for phi in basisfunctions])
+#	def __init__(self,basisfunctions,**kw):
+#		super().__init__(elements=[cast(phi,**kw).compress() for phi in basisfunctions])
 
 	def gen_f(self):
-		phis=[jax.vmap(phi._gen_f_(),in_axes=(None,-2),out_axes=-1) for phi in self.basisfunctions]
+		phis=[jax.vmap(phi._gen_f_(),in_axes=(None,-2),out_axes=-1) for phi in self.elements]
 		return jax.jit(lambda params,X: jnp.linalg.det(jnp.stack([phi(params,X)for phi in phis],axis=-1)))
 
-	def richtypename(self): return ' ^ '.join([phi.richtypename() for phi in self.basisfunctions])+'-'+self.typename()
-	def info(self): return textutil.indent('\n'.join([phi.info() for phi in self.basisfunctions]))
+	def richtypename(self): return ' ^ '.join([phi.richtypename() for phi in self.elements])+'-'+self.typename()
+	def info(self): return textutil.indent('\n'.join([phi.info() for phi in self.elements]))
 
 
 #=======================================================================================================

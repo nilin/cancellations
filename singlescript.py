@@ -8,7 +8,7 @@ import importlib
 
 batch = tracking.Profile(name='run a single script')
 
-
+batch.name1='browse'
 batch.task1 = browse.Browse
 batch.genprofile1 = lambda _: browse.getdefaultprofile().butwith(
     msg='select a file to run test(*args,**kwargs) with the args just provided to singlescript.py',
