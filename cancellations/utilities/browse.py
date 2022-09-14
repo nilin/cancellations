@@ -72,7 +72,9 @@ def _pickfolders_(process):
 	filterword=''	# onlyone case
 	choices=[]		# multiple case
 
-	paths.sort(reverse=True,key=lambda s:s[-15:])
+	try: paths.sort(reverse=True,key=lambda path:os.path.getmtime(path))
+	except: pass
+
 	while True:
 
 		explainpad.draw()
