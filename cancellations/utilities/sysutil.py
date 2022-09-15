@@ -39,6 +39,9 @@ def load(path):
     with open(path,"rb") as file:
         return pickle.load(file)
 
+def read(path):
+    with open(path,'r') as f:
+        return f.readlines()
         
 def showfile(path):
     import os

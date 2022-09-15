@@ -70,6 +70,9 @@ class FunctionDescription:
 	def eval(self,X,blocksize=10**5,**kw):
 		return mathutil.eval_blockwise(self.f,self.weights,X,blocksize=blocksize,**kw)
 
+#	def eval(self,X,**kw):
+#		return mathutil.pad(self._eval_)(X)
+
 	def _eval_(self,X):
 		return self.f(self.weights,X)
 
@@ -110,7 +113,8 @@ class FunctionDescription:
 
 class Composite(FunctionDescription):
 
-	def __init__(self, *elements):
+	def __init__(self, *elements_as_args, elements=None):
+		elements=elements_as_args if elements==None else elements
 		elements=[cast(e).compress() for e in elements]
 		super().__init__(elements=elements, initweights=False)
 		self.weights=[e.weights for e in elements]
@@ -265,8 +269,9 @@ class ProdState(Composite,Nonsym):
 #		super().__init__(elements=[cast(phi,**kw).compress() for phi in basisfunctions])
 
 	def gen_f(self):
+		phis=[phi._gen_f_() for phi in self.elements]
 		return jax.jit(lambda params,X:jnp.product(jnp.stack([\
-			phi(params,X[:,i,:]) for i,phi in enumerate(self.elements)])))
+			phi(params,X[:,i,:]) for i,phi in enumerate(phis)])))
 
 	@staticmethod
 	def _initweights_(elements):

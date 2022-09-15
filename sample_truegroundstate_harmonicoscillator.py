@@ -24,7 +24,8 @@ batch.task1=estimateobservables.Run
 batch.genprofile1=lambda _: estimateobservables.getdefaultprofile().butwith(\
     p=lambda X:psi(X)**2,\
     qpratio=lambda X:jnp.ones(X.shape[0],),\
-    maxburnsteps=10000,\
+    maxburnsteps=2500,\
+    maxiterations=10**6,\
     observables={'E':jax.jit(lambda X:jnp.sum(X**2/2,axis=(-2,-1))+E_kin_local(X))},\
     trueenergies=[ef.totalenergy(5)],\
     burn_avg_of=1000)

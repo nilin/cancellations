@@ -21,7 +21,7 @@ batch.genprofile1=lambda _: browse.getdefaultprofile().butwith(onlyone=True)
 
 
 batch.name2='extract learner'
-batch.task2=tracking.getprocess(lambda process: sysutil.load(process.path).learner.restore())
+batch.task2=tracking.newprocess(lambda process: sysutil.load(process.path).learner.restore())
 batch.genprofile2=lambda prevoutputs: tracking.Profile(path=prevoutputs[0]+'data/unprocessed')
 
 
@@ -36,6 +36,22 @@ batch.genprofile3=lambda prevoutputs: estimateobservables.getdefaultprofile().bu
     trueenergies=[ef.totalenergy(5)/2])
 
 
+#batch.skip4=True
+
+batch.name4='Total energy K+V for learned state'
+batch.task4=estimateobservables.Run
+def genprofile4(prevoutputs):
+    psi=prevoutputs[1].f
+    E_kin_local=energy.genlocalkinetic(psi)
+    total_localenergy=jax.jit(lambda X:jnp.sum(X**2/2,axis=(-2,-1))+E_kin_local(prevoutputs[1].weights,X))
+
+    return estimateobservables.getdefaultprofile().butwith(\
+    p=jax.jit(lambda X:prevoutputs[1].eval(X)**2),\
+    qpratio=lambda X:jnp.ones(X.shape[0],),\
+    observables={'E':total_localenergy},\
+    trueenergies=[ef.totalenergy(5)],\
+    maxiterations=100000)
+batch.genprofile4=genprofile4
 
 if __name__=='__main__':
     cdisplay.session_in_display(batchjob.Batchjob,batch)

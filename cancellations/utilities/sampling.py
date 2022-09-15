@@ -5,6 +5,8 @@ import jax
 import jax.numpy as jnp
 import jax.random as rnd
 
+from cancellations.utilities import sysutil
+
 from ..utilities import tracking
 
 
@@ -28,9 +30,27 @@ class Sampler:
 		accepted=ratios>u
 		rejected=1-accepted
 		self.X=scaleby(rejected,X0)+scaleby(accepted,X1)
+		return self.X
 	
 	def proposals(self,X):
 		return self.proposalfn(tracking.nextkey(),X)
+
+
+
+
+class LoadedSamplesPipe(Sampler):
+
+	def __init__(self,path):
+		self.i=0
+		self.blocksize=1000 # modify to read from filename "path/block 0-blockize"
+		self.path=path
+
+	def step(self):
+		if self.i%self.blocksize==0:
+			self.currentblock=sysutil.load(self.path+'block {}-{}'.format(self.i,self.i+self.blocksize))
+		self.X=self.currentblock[self.i%self.blocksize]
+		self.i+=1
+		return self.X
 
 
 

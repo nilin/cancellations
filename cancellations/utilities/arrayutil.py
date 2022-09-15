@@ -337,6 +337,16 @@ def applyalonglast(f,X,last):
 
 
 
+def appendtoeach(listdict,elementdict):
+	for name,val in elementdict.items():
+		if name not in listdict.keys(): listdict[name]=[]
+		listdict[name].append(val)
+
+
+def trycomp(fn,*args):
+	try: return fn(*args)
+	except: return None
+
 #	if type(l)==list:
 #		return [dimlist(e) for e in l]
 #	else:

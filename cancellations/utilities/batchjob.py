@@ -21,7 +21,7 @@ def runbatch(batchprocess):
         '\n'+dashboard.width*textutil.dash #+'current task: '+task.ID
         cfg.screen.getch(); tasklistcdisplay.draw(); cfg.screen.refresh()
 
-        outputs.append(cdisplay.runtask(task,genprofile(outputs),display))
+        outputs.append(cdisplay.runtask(task,genprofile(outputs).butwith(taskname=name),display))
 
     return outputs
 

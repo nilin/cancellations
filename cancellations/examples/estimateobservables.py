@@ -3,6 +3,7 @@
 
 
 import profile
+from re import I
 from cancellations.utilities import textutil,sysutil
 from ..display import cdisplay
 from ..utilities import tracking,arrayutil,sampling,config as cfg
@@ -25,13 +26,16 @@ def getdefaultprofile():
         observables={'squarepotentialwell':lambda X:jnp.sum(X**2/2,axis=(-2,-1))},\
         n=5,\
         d=1,\
+        sampler=None,\
         p='not set',\
         qpratio='not set',\
-        trueenergies='not set',\
+        trueenergies=[6.25],\
         minburnsteps=100,\
         maxburnsteps=2000,\
         maxiterations=10000,\
         thinningratio=5,\
+        blocksize=1000,\
+        estevery=10
         )
 
 def gaussianstepproposal(var):
@@ -46,58 +50,69 @@ def execprocess(run):
     genX0=lambda samples: profile._X0_distr_(tracking.nextkey(),samples,profile.n,profile.d)
     X0=genX0(profile.nrunners)
 
-    sampler=sampling.Sampler(run.p,profile.proposalfn,X0)
-
-    _,burnests=sample(run,sampler,avg_of=100,iterations=run.maxburnsteps)
+    sampler=sampling.Sampler(run.p,profile.proposalfn,X0) if run.sampler==None else run.sampler
 
     display.sd.pickdisplay('sd2'); display.fd.reset()
-    Xs,ests=sample(run,sampler,saveevery=run.thinningratio,avg_of=None,iterations=run.maxiterations)
+    Xblock=[]
+    run.obsestimator=ObsEstimator(run.observables,run.qpratio)
+    run.obsestimates=dict()
 
-    plot(run,burnests,ests)
-    return Xs
+    for i in range(run.maxiterations):
+        X=sampler.step()
 
+        if run.blocksize!=None and i%(run.thinningratio*run.blocksize)==0 and i!=0:
+            sysutil.save(Xblock,run.outpath+'block {}-{}'.format(i//run.thinningratio-len(Xblock),i//run.thinningratio))
+            sysutil.write(run.taskname+'\n{} slices'.format(i//run.thinningratio),run.outpath+'metadata.txt',mode='w')
+            Xblock=[]
 
+        if run.thinningratio!=None and i%run.thinningratio==0: Xblock.append(X)
 
-def sample(run,sampler,iterations,saveevery=None,avg_of=None):
+        if i%run.estevery==0:
+            arrayutil.appendtoeach(run.obsestimates,run.obsestimator.update(X))
+            for name,est in run.obsestimator.estimates().items():
+                run.trackcurrent('estimate '+name,est)
 
-    estimates100={name:tracking.RunningAvgOrIden(avg_of) for name in run.observables.keys()}
-    Xs=[]; estimates={k:[] for k in run.observables}
-
-    for i in range(iterations):
         run.trackcurrent('steps',i)
-        for name,O in run.observables.items():
-
-            sampler.step()
-
-            newest=estimates100[name].update(\
-                jnp.sum(run.qpratio(sampler.X)*O(sampler.X))/jnp.sum(run.qpratio(sampler.X)))
-            run.trackcurrent('estimate k '+name,newest)
-            estimates[name].append(newest)
-
-        if saveevery!=None and i%saveevery==0:
-            Xs.append(sampler.X)
-            run.trackcurrent('timeslices',len(Xs))
-
+        run.trackcurrent('timeslices',i//run.thinningratio)
         run.display.draw()
-
-        if act_on_input(tracking.checkforinput())=='b': break
-
-    return Xs,estimates
-            
+        if act_on_input(tracking.checkforinput(),run)=='b': break
 
 
-def act_on_input(i):
+
+
+class ObsEstimator:
+    def __init__(self,observables,qpratio,**kw):
+        self.qpratio=qpratio
+        self.observables=observables
+        self.estimators={name:tracking.ExpRunningAverage(**kw) for name in observables.keys()}
+        self.denomestimator=tracking.ExpRunningAverage(**kw)
+
+    def update(self,X):
+        for name,O in self.observables.items():
+            self.estimators[name].update(jnp.sum(self.qpratio(X)*O(X)))
+            self.denomestimator.update(jnp.sum(self.qpratio(X)))
+        return self.estimates()
+        
+    def estimates(self):
+        denomavg=self.denomestimator.avg()
+        return {name:arrayutil.trycomp(lambda x,y:x/y,num.avg(),denomavg) for name,num in self.estimators.items()}
+
+
+
+
+
+
+def act_on_input(i,run):
     if i=='q': quit()
     if i=='o': sysutil.showfile(tracking.currentprocess().outpath)
-    #if i=='b': tracking.breaker.breaknow()
+    if i=='p': plot(run,ests)
     return i
 
-def plot(run,burnests,ests):
+def plot(run,ests):
     fig,ax=plt.subplots()
-    for obs,tv,burn,est in zip(run.observables,run.trueenergies,burnests.values(),ests.values()):
-        ax.plot(list(range(len(burn))),burn,'r:')
-        ax.plot(list(len(burn)+jnp.arange(len(est))),est,'b:')
-        ax.plot([0,len(burn)+len(est)],[tv,tv])
+    for obs,tv,est in zip(run.observables,run.trueenergies,ests.values()):
+        ax.plot(est,'b:')
+        ax.plot([0,len(est)],[tv,tv])
         ax.set_ylim([0,tv*1.2])
     sysutil.savefig(run.outpath+'plot.pdf',fig=fig)
 
@@ -119,9 +134,9 @@ def prepdisplay(display:disp.CompositeDisplay,run:tracking.Run):
 
     for name,tv in zip(run.observables,run.trueenergies):
 
-        display.fd,_=cd.add(disp.FlexDisplay('estimate k '+name,parse=lambda d,x:\
-            'Avg of last {:,} steps, {:,} samples:\n\n{:.4f}, relative error {:.2E}'.\
-            format(d.smoothers[0].actualk(),d.smoothers[0].actualk()*run.nrunners,x,jnp.log(x/tv))))
+        display.fd,_=cd.add(disp.FlexDisplay('estimate '+name,parse=lambda d,x:\
+            'estimate {:.4f}, relative error {:.2E}'.\
+            format(x,jnp.log(x/tv))))
 
         cd.add(disp.VSpace(3))
 
@@ -139,7 +154,7 @@ def prepdisplay(display:disp.CompositeDisplay,run:tracking.Run):
         class Range(disp.DynamicRange):
             def gettransform(self): self.center=tv; self.rangewidth=1; self.T=T
 
-        dr,_=cd.add(Range(run.getqueryfn('estimate k '+name),customticks=[tv],customlabels='true value'))
+        dr,_=cd.add(Range(run.getqueryfn('estimate '+name),customticks=[tv],customlabels='true value'))
 
 
 

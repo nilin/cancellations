@@ -60,6 +60,7 @@ def getdefaultprofile():
 
 def gettarget(profile):
     for i in range(profile.n): setattr(functions,'psi'+str(i),ef.psi(i))
+    #return ComposedFunction(functions.Slater(*['psi'+str(i) for i in range(profile.n)]),functions.Outputscaling())
     return functions.Slater(*['psi'+str(i) for i in range(profile.n)])
 
 def getlearner(profile):
@@ -93,6 +94,8 @@ def execprocess(run:tracking.Run):
 
     else:
         run.target=gettarget(run)
+        #exampletemplate.adjustnorms(run.target,run.genX(1000))
+
         info+='target\n\n{}'.format(textutil.indent(run.target.getinfo())); run.trackcurrent('runinfo',info)
 
         run.X_train=run.genX(run.samples_train)

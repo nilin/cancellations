@@ -39,22 +39,21 @@ batch.genprofile3=lambda prevoutputs: estimateobservables.getdefaultprofile().bu
     trueenergies=[ef.totalenergy(5)/2])
 
 
-batch.skip4=True
 
-#batch.name4='Total energy K+V for learned state'
-#batch.task4=estimateobservables.Run
-#def genprofile4(prevoutputs):
-#    psi=prevoutputs[0].f
-#    E_kin_local=energy.genlocalkinetic(psi)
-#    total_localenergy=jax.jit(lambda X:jnp.sum(X**2/2,axis=(-2,-1))+E_kin_local(prevoutputs[0].weights,X))
-#
-#    return estimateobservables.getdefaultprofile().butwith(\
-#    p=jax.jit(lambda X:prevoutputs[0].eval(X)**2),\
-#    qpratio=lambda X:jnp.ones(X.shape[0],),\
-#    observables={'E':total_localenergy},\
-#    trueenergies=[ef.totalenergy(5)],\
-#    maxiterations=100000)
-#batch.genprofile4=genprofile4
+batch.name4='Total energy K+V for learned state'
+batch.task4=estimateobservables.Run
+def genprofile4(prevoutputs):
+    psi=prevoutputs[0].f
+    E_kin_local=energy.genlocalkinetic(psi)
+    total_localenergy=jax.jit(lambda X:jnp.sum(X**2/2,axis=(-2,-1))+E_kin_local(prevoutputs[0].weights,X))
+
+    return estimateobservables.getdefaultprofile().butwith(\
+    p=jax.jit(lambda X:prevoutputs[0].eval(X)**2),\
+    qpratio=lambda X:jnp.ones(X.shape[0],),\
+    observables={'E':total_localenergy},\
+    trueenergies=[ef.totalenergy(5)],\
+    maxiterations=100000)
+batch.genprofile4=genprofile4
 
 
 

@@ -97,7 +97,7 @@ def adjustnorms(Afdescr,X,iterations=500,**learningparams):
 		ratioloss=jnp.log(f_norm/Af_norm)
 		return normloss+ratioloss
 
-	trainer=learning.DirectlossTrainer(directloss,weights,X,**learningparams)
+	trainer=learning.Trainer(jax.value_and_grad(directloss),Afdescr,X,**learningparams)
 
 	_,key1=run.display.column1.add(disp.NumberPrint('target |f|/|Af|',msg='\n\n|f|/|Af|={:.3f} (objective: decrease)'))
 	_,key2=run.display.column1.add(disp.RplusBar('target |f|/|Af|'))
@@ -115,7 +115,8 @@ def adjustnorms(Afdescr,X,iterations=500,**learningparams):
 	weights=trainer.learner.weights
 	tracking.log('|f|/|Af|={:.3f}, |Af|={:.3f} after adjustment'.format(\
 		normratio(weights,X[:1000]),mathutil.norm(Af(weights,X[:1000]))))
-	return weights
+	#Afdescr.weights=weights
+	#return weights
 
 
 # info
