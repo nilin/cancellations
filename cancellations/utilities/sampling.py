@@ -4,6 +4,10 @@
 import jax
 import jax.numpy as jnp
 import jax.random as rnd
+import re
+import os
+import math
+from collections import deque
 
 from cancellations.utilities import sysutil
 
@@ -37,17 +41,34 @@ class Sampler:
 
 
 
+class InputExhausted(Exception): pass
 
 class LoadedSamplesPipe(Sampler):
 
-	def __init__(self,path):
+	def __init__(self,path,burnfraction=.25,cycle=False):
 		self.i=0
-		self.blocksize=1000 # modify to read from filename "path/block 0-blockize"
-		self.path=path
+		self.cycle=cycle
+
+		pattern=re.compile('block (.*)-(.*)')
+
+		filenames=[fn for fn in os.listdir(path) if pattern.match(fn)!=None]
+		intervals=[pattern.match(fn).groups() for fn in filenames]
+
+		intervals,filenames=zip(*sorted(zip(intervals,filenames)))
+
+		self.blocksize=int(intervals[0][1])-int(intervals[0][0])
+		self.n_intervals=math.floor(len(intervals)*(1-burnfraction))
+
+		self.filepaths=deque([path+fn for fn in filenames[-self.n_intervals:]])
 
 	def step(self):
 		if self.i%self.blocksize==0:
-			self.currentblock=sysutil.load(self.path+'block {}-{}'.format(self.i,self.i+self.blocksize))
+			if len(self.filepaths)==0: raise InputExhausted('')
+			else: filepath=self.filepaths.popleft()
+			if self.cycle: self.filepaths.append(filepath)
+
+			self.currentblock=sysutil.load(filepath)
+
 		self.X=self.currentblock[self.i%self.blocksize]
 		self.i+=1
 		return self.X

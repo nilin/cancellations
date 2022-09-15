@@ -27,6 +27,7 @@ def getdefaultprofile():
         n=5,\
         d=1,\
         sampler=None,\
+        preburnt=False,\
         p='not set',\
         qpratio='not set',\
         trueenergies=[6.25],\
@@ -35,7 +36,7 @@ def getdefaultprofile():
         maxiterations=10000,\
         thinningratio=5,\
         blocksize=1000,\
-        estevery=10
+        estevery=10,\
         )
 
 def gaussianstepproposal(var):
@@ -54,7 +55,7 @@ def execprocess(run):
 
     display.sd.pickdisplay('sd2'); display.fd.reset()
     Xblock=[]
-    run.obsestimator=ObsEstimator(run.observables,run.qpratio)
+    run.obsestimator=ObsEstimator(run.observables,run.qpratio,run.preburnt)
     run.obsestimates=dict()
 
     for i in range(run.maxiterations):
@@ -81,11 +82,13 @@ def execprocess(run):
 
 
 class ObsEstimator:
-    def __init__(self,observables,qpratio,**kw):
+    def __init__(self,observables,qpratio,preburnt=False,**kw):
         self.qpratio=qpratio
         self.observables=observables
-        self.estimators={name:tracking.ExpRunningAverage(**kw) for name in observables.keys()}
-        self.denomestimator=tracking.ExpRunningAverage(**kw)
+
+        RunningAvgClass=tracking.InfiniteRunningAvg if preburnt else tracking.ExpRunningAverage
+        self.estimators={name:RunningAvgClass(**kw) for name in observables.keys()}
+        self.denomestimator=RunningAvgClass(**kw)
 
     def update(self,X):
         for name,O in self.observables.items():
