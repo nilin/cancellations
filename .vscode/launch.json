@@ -8,7 +8,7 @@
             "name": "Python: Module",
             "type": "python",
             "request": "launch",
-            "module": "load_and_inspect_learned_harmonicoscillator1d_precomputedsamples",
+            "module": "sample_truegroundstate_harmonicoscillator",
             "justMyCode": true
         }
     ]

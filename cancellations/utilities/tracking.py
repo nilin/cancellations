@@ -262,6 +262,7 @@ class dotdict(dict):
 class Profile(dotdict):
 
     def __init__(self,*a,**kw):
+        self.name=''
         super().__init__(*a,**kw)
         self.run=Memory()
         self.keychain=Keychain()

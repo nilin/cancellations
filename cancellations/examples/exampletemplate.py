@@ -15,7 +15,7 @@ from . import plottools as pt
 import matplotlib.pyplot as plt
 from ..display import cdisplay,display as disp
 
-from ..utilities import arrayutil as mathutil, tracking,config as cfg,sysutil,textutil
+from ..utilities import numutil as mathutil, tracking,config as cfg,sysutil,textutil
 from ..functions import functions
 from ..learning import testing
 import os
@@ -81,8 +81,8 @@ def testantisymmetry(target,learner,X):
 
 def adjustnorms(Afdescr,X,iterations=500,**learningparams):
 	run=tracking.currentprocess()
-	Af=Afdescr.f
-	f=functions.switchtype(Afdescr).f
+	Af=Afdescr._eval_
+	f=functions.switchtype(Afdescr)._eval_
 	normratio=jax.jit(lambda weights,X:mathutil.norm(f(weights,X))/mathutil.norm(Af(weights,X)))
 	weights=Afdescr.weights
 
@@ -196,7 +196,7 @@ def processandplot(unprocessed,pfunc,X,Y,process_snapshot_fn=None,plotexample_fn
 	for imgnum,(weights,i) in enumerate(zip(weightslist,i_s)):
 
 		if tracking.trackcurrenttask('processing snapshots for learning plot',(imgnum+1)/len(weightslist))=='b': break
-		process_snapshot(processed,mathutil.fixparams(pfunc.f,weights),X,Y,i)		
+		process_snapshot(processed,mathutil.fixparams(pfunc._eval_,weights),X,Y,i)		
 
 	plotexample(unprocessed,processed)
 	tracking.clearcurrenttask()

@@ -52,12 +52,12 @@ class LoadedSamplesPipe(Sampler):
 		pattern=re.compile('block (.*)-(.*)')
 
 		filenames=[fn for fn in os.listdir(path) if pattern.match(fn)!=None]
-		intervals=[pattern.match(fn).groups() for fn in filenames]
+		intervals=[tuple(int(a) for a in pattern.match(fn).groups()) for fn in filenames]
 
 		intervals,filenames=zip(*sorted(zip(intervals,filenames)))
 
 		self.blocksize=int(intervals[0][1])-int(intervals[0][0])
-		self.n_intervals=math.floor(len(intervals)*(1-burnfraction))
+		self.n_intervals=round(len(intervals)*(1-burnfraction))
 
 		self.filepaths=deque([path+fn for fn in filenames[-self.n_intervals:]])
 

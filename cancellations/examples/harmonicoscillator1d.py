@@ -12,7 +12,7 @@ import jax.random as rnd
 from ..functions import examplefunctions as ef, functions
 from ..learning import learning
 from ..functions.functions import ComposedFunction,SingleparticleNN,Product
-from ..utilities import arrayutil, config as cfg, tracking, sysutil, textutil
+from ..utilities import config as cfg, numutil, tracking, sysutil, textutil
 from ..display import cdisplay,display as disp
 from . import plottools as pt
 from . import exampletemplate
@@ -59,7 +59,7 @@ def getdefaultprofile():
 
 
 def gettarget(profile):
-    for i in range(profile.n): setattr(functions,'psi'+str(i),ef.psi(i))
+    #for i in range(profile.n): setattr(functions,'psi'+str(i),ef.psi(i))
     #return ComposedFunction(functions.Slater(*['psi'+str(i) for i in range(profile.n)]),functions.Outputscaling())
     return functions.Slater(*['psi'+str(i) for i in range(profile.n)])
 
@@ -100,11 +100,11 @@ def execprocess(run:tracking.Run):
 
         run.X_train=run.genX(run.samples_train)
         run.logcurrenttask('preparing training data')
-        run.Y_train=run.target.eval(run.X_train,msg='preparing training data',blocksize=run.evalblocksize)
+        run.Y_train=numutil.blockwise_eval(run.target,blocksize=run.evalblocksize,msg='preparing training data')(run.X_train)
         run.X_test=run.genX(run.samples_test)
-        run.Y_test=run.target.eval(run.X_test,msg='preparing test data',blocksize=run.evalblocksize)
+        run.Y_test=numutil.blockwise_eval(run.target,blocksize=run.evalblocksize,msg='preparing test data')(run.X_test)
         r=5
-        run.sections=pt.genCrossSections(run.target.eval,interval=jnp.arange(-r,r,r/50))
+        run.sections=pt.genCrossSections(numutil.blockwise_eval(run.target,blocksize=run.evalblocksize),interval=jnp.arange(-r,r,r/50))
 
     run.learner=getlearner(run)
     info+=4*'\n'+'learner\n\n{}'.format(textutil.indent(run.learner.getinfo())); run.infodisplay.msg=info
@@ -124,7 +124,7 @@ def execprocess(run:tracking.Run):
     sysutil.write(info,run.outpath+'info.txt',mode='w')
 
     #train
-    run.lossgrad=gen_lossgrad(run.learner.f,run._X_distr_density_)
+    run.lossgrad=gen_lossgrad(run.learner._eval_,run._X_distr_density_)
 
     run.trainer=learning.Trainer(run.lossgrad,run.learner,run.X_train,run.Y_train,\
         memory=run,**{k:run[k] for k in ['weight_decay','iterations','minibatchsize']}) 

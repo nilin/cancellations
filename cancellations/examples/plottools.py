@@ -1,7 +1,7 @@
 import jax
 import jax.numpy as jnp
 import jax.random as rnd
-from ..utilities import arrayutil as mathutil, tracking,config as cfg
+from ..utilities import numutil as mathutil, tracking,config as cfg
 import math
 import numpy as np
 import sys

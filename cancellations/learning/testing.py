@@ -2,7 +2,7 @@ import jax.numpy as jnp
 import jax
 import math
 import itertools
-from ..utilities import arrayutil as mathutil
+from ..utilities import numutil as mathutil
 import numpy as np
 import jax.random as rnd
 import pdb

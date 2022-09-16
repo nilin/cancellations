@@ -2,7 +2,7 @@ from statistics import harmonic_mean
 from cancellations.examples import example, harmonicoscillator1d, estimateobservables
 from cancellations.functions import examplefunctions as ef
 from cancellations.display import cdisplay
-from cancellations.utilities import tracking, arrayutil, browse, batchjob, energy, sysutil
+from cancellations.utilities import numutil, tracking, browse, batchjob, energy, sysutil
 import jax
 import jax.numpy as jnp
 import os

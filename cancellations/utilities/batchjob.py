@@ -15,7 +15,7 @@ def runbatch(batchprocess):
         except: break
 
     tasknames=[name for name,_,_ in tasks]
-    outputs=[]
+    outputs=[None]
     for i, (name, task, genprofile) in enumerate(tasks):
         tasklisttextdisplay.msg='tasks:        '+'        '.join(tasknames[:i]+['> '+name+' <']+tasknames[i+1:])+\
         '\n'+dashboard.width*textutil.dash #+'current task: '+task.ID

@@ -3,7 +3,7 @@
 import jax
 import jax.numpy as jnp
 import jax.random as rnd
-from ..utilities import arrayutil as mathutil, tracking,textutil
+from ..utilities import numutil as mathutil, tracking,textutil
 from cancellations.utilities import config as cfg
 from ..display import display as disp
 #from GPU_sum import sum_perms_multilayer as sumperms
@@ -17,7 +17,7 @@ import copy
 from .backflow import gen_backflow,initweights_Backflow
 from .AS_tools import dets #,initweights_detsum
 from jax.numpy import tanh
-from ..utilities.arrayutil import drelu
+from ..utilities.numutil import drelu
 
 
 class FunctionDescription:
@@ -30,13 +30,13 @@ class FunctionDescription:
 		if initweights: self.initweights()
 
 	def get_lossgrad(self,lossfn=None):
-		return mv.gen_lossgrad(self.f,lossfn=lossfn)
+		return mv.gen_lossgrad(self._eval_,lossfn=lossfn)
 
-	def fwithparams(self,params):
-		return mathutil.fixparams(self.f,params)
+	def evalwithnewparams(self,params):
+		return mathutil.fixparams(self._eval_,params)
 
 	def restore(self):
-		self.f=self._gen_f_()
+		self._eval_=self.compiled()
 		return self
 
 	def typename(self):
@@ -53,32 +53,21 @@ class FunctionDescription:
 
 	def compress(self):
 		c=copy.deepcopy(self)
-		c.f=None
+		c._eval_=None
 		return c
 
-	def _gen_f_(self):
-		if 'f' in vars(self) and self.f!=None:
-			return self.f
-		else:
-			return mathutil.pad(self.gen_f())
+	def compiled(self):
+		if '_eval_' in vars(self) and self._eval_!=None: return self._eval_
+		else: return mathutil.pad(self.compile())
 
 	# parameters
 	def initweights(self):
 		self.weights=self._initweights_(**self.kw)
 
-	# remove this
-	def eval(self,X,blocksize=10**5,**kw):
-		return mathutil.eval_blockwise(self.f,self.weights,X,blocksize=blocksize,**kw)
-
-#	def eval(self,X,**kw):
-#		return mathutil.pad(self._eval_)(X)
-
-	def _eval_(self,X):
-		return self.f(self.weights,X)
+	def eval(self,X): return self._eval_(self.weights,X)
 
 	@staticmethod	
-	def _initweights_(**kw):
-		return None
+	def _initweights_(**kw): return None
 
 	def rinse(self):
 		self.weights=None
@@ -96,14 +85,10 @@ class FunctionDescription:
 	def compose(self,fd):
 		return ComposedFunction(self,fd)
 
-#	def withweights(self,weights):
-#		self.weights=weights
-#		return self
-
 	# debug
 
 	def _inspect_(self,params,X):
-		return self.typename(),['input',params],[X,self._gen_f_()(params,X)]
+		return self.typename(),['input',params],[X,self.compile()(params,X)]
 #
 #	def inspect(self,*args):
 #		match len(args):
@@ -115,6 +100,7 @@ class Composite(FunctionDescription):
 
 	def __init__(self, *elements_as_args, elements=None):
 		elements=elements_as_args if elements==None else elements
+
 		elements=[cast(e).compress() for e in elements]
 		super().__init__(elements=elements, initweights=False)
 		self.weights=[e.weights for e in elements]
@@ -127,23 +113,13 @@ class Composite(FunctionDescription):
 		c.elements=[e.compress() for e in c.elements]
 		return c
 
-#def initweights(*functions):
-#	for f in functions: f.initweights()
-
-
 class ComposedFunction(Composite):
 	def __init__(self,*nestedelements):
 		elements=[e for E in nestedelements for e in (E.elements if isinstance(E,ComposedFunction) else [E])]
 		super().__init__(*elements)
-		#weights=[w for E in nestedelements for w in (E.popweights() if isinstance(E,ComposedFunction) else [cast(E).popweights()])]
-		#super().__init__(elements=[cast(e).compress() for e in elements],initweights=False)
-		#self.weights=weights
 
-	def gen_f(self):
-		return mathutil.compose(*[e._gen_f_() for e in self.elements])
-
-#	def inheritweights(self):
-#		self.weights=[e.popweights() for e in self.elements]
+	def compile(self):
+		return mathutil.compose(*[e.compiled() for e in self.elements])
 
 	@staticmethod
 	def _initweights_(elements):
@@ -173,12 +149,9 @@ class ComposedFunction(Composite):
 
 
 class Product(Composite):
-#	def __init__(self,*elements):
-#		super().__init__(elements=elements,initweights=False)
-#		self.weights=[e.weights for e in elements]
 
-	def gen_f(self):
-		fs=[e._gen_f_() for e in self.elements]
+	def compile(self):
+		fs=[e.compiled() for e in self.elements]
 		def f(params,X):
 			out=jnp.ones((X.shape[0],))
 			for e,ps in zip(fs,params):
@@ -207,7 +180,7 @@ class Equivariant(FunctionDescription):
 	pass
 
 class SingleparticleNN(NNfunction,Equivariant):
-	def gen_f(self):
+	def compile(self):
 		return bf.gen_singleparticleNN(activation=self.activation)
 
 	@staticmethod
@@ -216,7 +189,7 @@ class SingleparticleNN(NNfunction,Equivariant):
 
 
 class Backflow(NNfunction,Equivariant):
-	def gen_f(self):	
+	def compile(self):	
 		return bf.gen_backflow(self.activation)
 
 	@staticmethod
@@ -245,7 +218,7 @@ class Nonsym(FunctionDescription,Switchable):
 
 class NN(NNfunction,Nonsym):
 	antisymtype='ASNN'
-	def gen_f(self): return mv.gen_NN_NS(self.activation)
+	def compile(self): return mv.gen_NN_NS(self.activation)
 
 	@staticmethod
 	def _initweights_(n,d,widths,**kw):
@@ -254,7 +227,7 @@ class NN(NNfunction,Nonsym):
 
 class Prods(Nonsym):
 	antisymtype='Dets'
-	def gen_f(self): return AS_tools.prods
+	def compile(self): return AS_tools.prods
 
 	@staticmethod
 	def _initweights_(k,n,d,**kw):
@@ -268,8 +241,8 @@ class ProdState(Composite,Nonsym):
 #	def __init__(self,basisfunctions,**kw):
 #		super().__init__(elements=[cast(phi,**kw).compress() for phi in basisfunctions])
 
-	def gen_f(self):
-		phis=[phi._gen_f_() for phi in self.elements]
+	def compile(self):
+		phis=[phi.compiled() for phi in self.elements]
 		return jax.jit(lambda params,X:jnp.product(jnp.stack([\
 			phi(params,X[:,i,:]) for i,phi in enumerate(phis)])))
 
@@ -293,36 +266,23 @@ class Antisymmetric(FunctionDescription,Switchable):
 
 class ASNN(Antisymmetric,NNfunction):
 	nonsym=NN
-	def gen_f(self):
+	def compile(self):
 		NN_NS=mv.gen_NN_NS(self.activation)
 		return ASt.gen_Af(self.n,NN_NS)
 
 class Dets(Antisymmetric):
 	nonsym=Prods
-	def gen_f(self): return AS_tools.dets
+	def compile(self): return AS_tools.dets
 
 	@staticmethod
 	def translation(name):return 'ndets' if name=='k' else name
 
-#class BatchFunctionSlater(Antisymmetric):
-#	nonsym=BatchFunctionProdState
-#	def __init__(self,basisfunctions,**kw):
-#		super().__init__(basisfunctions=cast(basisfunctions,**kw).compress())
-#
-#	def gen_f(self):
-#		parallel=jax.vmap(self.basisfunctions._gen_f_(),in_axes=(None,-2),out_axes=-2)
-#		return jax.jit(lambda params,X: jnp.linalg.det(parallel(params,X)))
-#
-#	def richtypename(self): return self.basisfunctions.richtypename()+'-'+self.typename()
-#	def info(self): return cfg.indent(self.basisfunctions.info())
 
 class Slater(Composite,Antisymmetric):
 	nonsym=ProdState
-#	def __init__(self,basisfunctions,**kw):
-#		super().__init__(elements=[cast(phi,**kw).compress() for phi in basisfunctions])
 
-	def gen_f(self):
-		phis=[jax.vmap(phi._gen_f_(),in_axes=(None,-2),out_axes=-1) for phi in self.elements]
+	def compile(self):
+		phis=[jax.vmap(phi.compiled(),in_axes=(None,-2),out_axes=-1) for phi in self.elements]
 		return jax.jit(lambda params,X: jnp.linalg.det(jnp.stack([phi(params,X)for phi in phis],axis=-1)))
 
 	def richtypename(self): return ' ^ '.join([phi.richtypename() for phi in self.elements])+'-'+self.typename()
@@ -334,20 +294,20 @@ class Slater(Composite,Antisymmetric):
 class Oddfunction(FunctionDescription): pass
 
 class OddNN(NNfunction,Oddfunction):
-	def gen_f(self):
+	def compile(self):
 		NN=mv.gen_NN(self.activation)
 		scalarNN=lambda params,X:NN(params,X)
 		return jax.jit(lambda params,X:scalarNN(params,X)-scalarNN(params,-X))
 
 class Outputscaling(Oddfunction):
-	def gen_f(self):
+	def compile(self):
 		return jax.jit(lambda c,X:c*X)
 	@staticmethod
 	def _initweights_():
 		return 1.0
 
 class Flatten(Oddfunction):
-	def gen_f(self):
+	def compile(self):
 		return jax.jit(lambda _,Y:jnp.tanh(self.sharpness*Y))
 
 #=======================================================================================================
@@ -358,7 +318,7 @@ class Wrappedfunction(FunctionDescription):
 		self.mode=mode
 		super().__init__(**kw)
 
-	def gen_f(self):
+	def compile(self):
 		return globals()[self.fname]
 
 	def typename(self):
@@ -370,7 +330,7 @@ class IsoGaussian(FunctionDescription):
 		self.var=var
 		super().__init__()
 
-	def gen_f(self):
+	def compile(self):
 		f=lambda X: jnp.exp(  jnp.sum( -X**2/(2*self.var) ,axis=(-2,-1))  )
 		return jax.jit(f)
 

@@ -1,7 +1,7 @@
 import os
 import math
 from re import L
-from ..utilities import config as cfg, tracking,textutil,arrayutil
+from ..utilities import config as cfg, numutil, tracking,textutil
 from ..utilities.tracking import Stopwatch, session
 import collections
 from collections import deque
@@ -179,7 +179,7 @@ def R_to_I_formatter(center,dynamicwidth):
 
 	def parse_continuous(x):
 		t=(x-center)/dynamicwidth
-		return arrayutil.slowsigmoid_01(t)
+		return numutil.slowsigmoid_01(t)
 
 	def parse(x,displaywidth):
 		return math.floor(parse_continuous(x)*displaywidth)
@@ -208,7 +208,8 @@ class Ticks(StaticText):
 class FlexDisplay(Display):
 	def __init__(self,*queries,smoothing=None,parse):
 		if smoothing==None: smoothing=[1 for q in queries]
-		super().__init__(queries=queries,smoothing=smoothing,parse=parse)
+		super().__init__(queries=queries,smoothing=smoothing)
+		self.parse=parse
 		self.reset()
 
 	def reset(self):

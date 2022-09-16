@@ -10,7 +10,7 @@ import jax.numpy as jnp
 import jax.random as rnd
 from ..functions import functions
 from ..functions.functions import ComposedFunction,SingleparticleNN
-from ..utilities import arrayutil, config as cfg, tracking, sysutil, textutil
+from ..utilities import config as cfg, numutil, tracking, sysutil, textutil
 from ..display import cdisplay,display as disp
 from . import plottools as pt
 from . import exampletemplate
@@ -40,7 +40,7 @@ def getdefaultprofile():
     # training params
 
     profile.weight_decay=0
-    profile.lossfn=arrayutil.SI_loss
+    profile.lossfn=numutil.SI_loss
     profile.iterations=25000
     profile.minibatchsize=None
     

@@ -216,11 +216,16 @@ def eval_blockwise(f,params,X,blocksize=100000,msg=None):
 	Xs=chop(X,blocksize=blocksize)
 	out=[]
 	for i,(B,) in enumerate(Xs):
-		#out.append(f(B))
 		out.append(jnp.squeeze(f(params,B)))
 		if msg!=None and len(Xs)>1:
 			tracking.trackcurrenttask(msg,(i+1)/len(Xs))
 	return jnp.concatenate(out,axis=0)
+
+
+def blockwise_eval(fdescr,**kw):
+	def b_eval(X):
+		return eval_blockwise(fdescr.eval,fdescr.weights,X,**kw)
+	return b_eval
 
 #def makeblockwise(f):
 #	if takesparams(f):
@@ -415,4 +420,8 @@ def recompose(ffff,h):
 
 
 
+def forfixedparams(_op_):
+	return lambda f: noparams(_op_(dummyparams(f)))
 
+def forcurrentparams(op):
+	return lambda f_descr: fixparams(op(f_descr._eval_),f_descr.weights)
