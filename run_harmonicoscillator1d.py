@@ -23,12 +23,6 @@ p0=lambda X:psi0(X)**2
 
 batch.skip2=True
 
-#batch.name2='E[V] of learned psi~, indirect method (X~p0)'
-#batch.task2=estimateobservables.Run
-#batch.genprofile2=lambda prevoutputs: estimateobservables.getdefaultprofile().butwith(\
-#    p=p0,\
-#    qpratio=jax.jit(lambda X: prevoutputs[0].eval(X)**2/p0(X)),\
-#    trueenergies=[ef.totalenergy(5)/2])
 
 
 batch.name3='E[V] of learned psi~, direct method (X~q)'
@@ -52,18 +46,6 @@ batch.genprofile3=genprofile3
 
 
 #
-#batch.name4='Total energy K+V for learned state'
-#batch.task4=estimateobservables.Run
-#def genprofile4(prevoutputs):
-#    total_localenergy=jax.jit(lambda X:jnp.sum(X**2/2,axis=(-2,-1))+E_kin_local(psi_descr.weights,X))
-#
-#    return estimateobservables.getdefaultprofile().butwith(\
-#    p=jax.jit(lambda X:psi_descr.eval(X)**2),\
-#    qpratio=lambda X:jnp.ones(X.shape[0],),\
-#    observables={'E':total_localenergy},\
-#    trueenergies=[ef.totalenergy(5)],\
-#    maxiterations=100000)
-#batch.genprofile4=genprofile4
 #
 
 
