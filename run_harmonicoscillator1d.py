@@ -41,8 +41,10 @@ def genprofile3(prevoutputs):
     profile=estimateobservables.getdefaultprofile().butwith(\
     p=jax.jit(lambda X: prevoutputs[1].eval(X)**2),\
     qpratio=lambda X: jnp.ones(X.shape[0],),\
-    observables={'V':lambda X:jnp.sum(X**2,axis=(-2,-1))/2,'K':E_kin_local},\
-    trueenergies={k:ef.totalenergy(5)/2 for k in ['V','K']},\
+#    observables={'V':lambda X:jnp.sum(X**2,axis=(-2,-1))/2,'K':E_kin_local},\
+#    trueenergies={k:ef.totalenergy(5)/2 for k in ['V','K']},\
+    observables={'V':jax.jit(lambda X:jnp.sum(X**2/2,axis=(-2,-1)))},\
+    trueenergies={'V':ef.totalenergy(5)/2},\
     maxiterations=10**5)
     return profile
 

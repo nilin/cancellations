@@ -58,8 +58,10 @@ def genprofile(prevoutputs):
 
     return estimateobservables.getdefaultprofile().butwith(\
         qpratio=jax.jit(lambda X: jnp.squeeze(q(X))/jnp.squeeze(p(X))),\
-        observables={'V':jax.jit(lambda X:jnp.sum(X**2/2,axis=(-2,-1))),'K':E_kin_local},\
-        trueenergies={k:ef.totalenergy(5)/2 for k in ['V','K']},\
+        observables={'V':jax.jit(lambda X:jnp.sum(X**2/2,axis=(-2,-1)))},\
+        trueenergies={'V':ef.totalenergy(5)/2},\
+        #observables={'V':jax.jit(lambda X:jnp.sum(X**2/2,axis=(-2,-1))),'K':E_kin_local},\
+        #trueenergies={k:ef.totalenergy(5)/2 for k in ['V','K']},\
         thinningratio=1,\
         #p=p,\
         sampler=sampler,\
