@@ -287,13 +287,13 @@ def nowstr():
     return date+'|'+time
 
 class Process(Profile,Memory):
-    def __init__(self,profile,display,ID=None):
+    def __init__(self,**profile):
         super().__init__()
         Memory.__init__(self)
         self.update(profile)
-        self.ID='{}/{}'.format(session.ID,profile.name) if ID==None else ID
+        if 'name' not in profile.keys(): self.name=''
+        if 'ID' not in profile.keys(): self.ID='{}/{}'.format(session.ID,self.name)
         self.outpath='outputs/'+self.ID+'/'
-        self.display=display
 
     def log(self,msg):
         msg='{} | {}'.format(timeprint(),msg)
@@ -320,6 +320,10 @@ class Process(Profile,Memory):
     def clearcurrenttask(self):
         self.run.trackcurrent('currenttask',None)
         self.run.trackcurrent('currenttaskcompleteness',0)
+
+    @staticmethod
+    def getdefaultprofile():
+        return Profile()
 
 
 class Run(Process):
@@ -502,7 +506,7 @@ class Clockedworker(Stopwatch):
 
 
 stopwatch=Stopwatch()
-session=Process({'name':'session'},display=None,ID='session '+nowstr())
+session=Process(name='session',ID='session '+nowstr())
 
 
 

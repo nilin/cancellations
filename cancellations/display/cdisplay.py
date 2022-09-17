@@ -4,6 +4,9 @@ import curses as cs
 
 
 
+
+
+
 class ConcreteDisplay(disp.StackedDisplay):
 	def __init__(self,*a,**kw):
 		super().__init__(*a,**kw)
@@ -75,31 +78,65 @@ def extractkey_cs(a):
 
 
 
+
+
+
+
 def getscreen(): return cfg.screen
 
 def clearscreen():
 	getscreen().clear()
 	getscreen().refresh()
 
-def session_in_display(task,profile,nodelay=True):
+#def session_in_display(task,profile,nodelay=True):
+#
+#	def wrapped(screen):
+#		cfg.screen=screen
+#		screen.nodelay(nodelay)
+#		cs.use_default_colors()
+#		tracking.session.dashboard=Dashboard((0,cs.COLS),(0,cs.LINES))
+#		return runtask(task,profile,display=tracking.session.dashboard)
+#
+#	out=cs.wrapper(wrapped)
+#	return out
+#
+#
+#
+#def runtask(task,profile,display):
+#	process=tracking.loadprocess(task(profile,display))
+#	output=process.execprocess()
+#	tracking.unloadprocess(process)
+#	display.remove()
+#	clearscreen()
+#	return output
 
-	def wrapped(screen):
-		cfg.screen=screen
-		screen.nodelay(nodelay)
-		cs.use_default_colors()
-		tracking.session.dashboard=Dashboard((0,cs.COLS),(0,cs.LINES))
-		return runtask(task,profile,display=tracking.session.dashboard)
-
-	out=cs.wrapper(wrapped)
-	return out
 
 
 
-def runtask(task,profile,display):
-	process=tracking.loadprocess(task(profile,display))
-	output=process.execprocess()
-	tracking.unloadprocess(process)
-	display.remove()
-	clearscreen()
-	return output
 
+class Process(tracking.Process):
+
+	def run_in_display(self,display):
+		tracking.loadprocess(self)
+		self.display=display
+		self.prepdisplay()
+		output=self.execprocess()
+		tracking.unloadprocess(self)
+		self.display.remove()
+		clearscreen()
+		return output
+
+	def run_as_main(self):
+		def wrapped(screen):
+			cfg.screen=screen
+			screen.nodelay(True)
+			cs.use_default_colors()
+			tracking.session.dashboard=Dashboard((0,cs.COLS),(0,cs.LINES))
+			return self.run_in_display(tracking.session.dashboard)
+
+		return cs.wrapper(wrapped)
+
+	def prepdisplay(self): pass
+
+class Run(Process,tracking.Run):
+	pass

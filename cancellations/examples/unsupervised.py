@@ -74,7 +74,7 @@ def getlearner(profile):
 
 
 
-def execprocess(run:tracking.Run):
+def execprocess(run:cdisplay.Run):
 
     run.act_on_input=exampletemplate.act_on_input
     exampletemplate.prepdisplay(run)
@@ -155,5 +155,5 @@ def gen_lossgrad(psi):
 
 
 
-class Run(tracking.Run):
+class Run(cdisplay.Run):
     execprocess=execprocess

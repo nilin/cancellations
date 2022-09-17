@@ -11,17 +11,14 @@ import os
 
 
 
-
-
-
-psi_descr=harmonicoscillator1d.gettarget(estimateobservables.getdefaultprofile())
+psi_descr=harmonicoscillator1d.gettarget(estimateobservables.Run.getdefaultprofile())
 psi=psi_descr.eval
 E_kin_local=numutil.forfixedparams(energy.genlocalkinetic)(psi)
-
 p_descr=functions.ComposedFunction(psi_descr,'square')
 
 
-profile=estimateobservables.getdefaultprofile().butwith(\
+
+profile=estimateobservables.Run.getdefaultprofile().butwith(\
     name='tgsamples',\
     p=p_descr.eval,\
     qpratio=lambda X:jnp.ones(X.shape[0],),\
@@ -32,11 +29,14 @@ profile=estimateobservables.getdefaultprofile().butwith(\
 profile.trueenergies={k:ef.totalenergy(5)/2 for k in ['V','K']}
 
 
-class Run(tracking.Run):
+
+
+class Run(estimateobservables.Run):
     def execprocess(self):
         sysutil.save(p_descr.compress(),self.outpath+'density')
-        estimateobservables.execprocess(self)
+        super().execprocess()
+
 
 
 if __name__=='__main__':
-    cdisplay.session_in_display(Run,profile)
+    Run(**profile).run_as_main()

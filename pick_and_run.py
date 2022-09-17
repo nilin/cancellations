@@ -5,31 +5,36 @@ import re
 import importlib
 
 
-batch = tracking.Profile(name='run a single script')
 
-batch.name1='browse'
-batch.task1 = browse.Browse
-batch.genprofile1 = lambda _: browse.getdefaultprofile().butwith(
-    msg='select a file to run Run.execprocess(self)',
-    parentfolder='cancellations',
-    onlyone=True,
-    regex='(./)?cancellations/examples.*[a-z].py',
-    condition1=lambda path: re.search('class Run', sysutil.readtextfile(path)),
-    readinfo=lambda path: sysutil.readtextfile(path)
-)
+profile=tracking.Profile(tasks=['pick script','run script'])
+
+class Run(batchjob.Batchjob):
+
+    def runbatch(self):
+
+        # task 1
+
+        bprofile=browse.getdefaultprofile().butwith(
+            msg='select a file to run Run.execprocess(self)',
+            #parentfolder='cancellations',
+            parentfolder='.',
+            onlyone=True,
+            #regex='(./)?cancellations.*[a-z].py',
+            regex='.*[a-z].py',
+            condition1=lambda path: re.search('class Run', sysutil.readtextfile(path)),
+            readinfo=lambda path: sysutil.readtextfile(path)
+        )
+        path=self.runsubprocess(browse.Browse(**bprofile),name='pick script')
 
 
-def execprocess(process):
-    mname = process.path.replace('/', '.')[:-3]
-    m = importlib.import_module(mname)
-    run=m.Run(m.getdefaultprofile(),process.display)
-    tracking.loadprocess(run)
-    run.execprocess()
-    tracking.unloadprocess(run)
+        # task 2
 
-batch.name2='run script'
-batch.task2=tracking.newprocess(execprocess)
-batch.genprofile2=lambda prevoutputs: tracking.Profile(path=prevoutputs[1])
+        path=re.search('([a-z].*)',path).group()
+        mname = path.replace('/', '.')[:-3]
+        m = importlib.import_module(mname)
+        self.runsubprocess(m.Run(**m.profile),name='run script')
 
-cdisplay.session_in_display(batchjob.Batchjob, batch)
-
+#
+#if __name__=='__main__':
+#    Run(**profile).run_as_main()
+#

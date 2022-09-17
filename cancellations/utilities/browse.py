@@ -22,7 +22,7 @@ right='\u2192'
 
 def getdefaultprofile():
 	profile=tracking.Profile(name='browsing')
-	profile.parentfolder='outputs'
+	profile.parentfolder='outputs/'
 	profile.msg='select folder'
 	profile.onlyone=False
 	profile.regex='(./)?outputs/.*'
@@ -31,76 +31,77 @@ def getdefaultprofile():
 	return profile
 
 
-def _pickfolders_(process):
-	profile,display=process,process.display
-	#browsing=tracking.Process(profile,display=display)
+class Browse(cdisplay.Process):
+	def execprocess(process):
+		profile,display=process,process.display
+		#browsing=tracking.Process(profile,display=display)
 
-	W=display.width
-	H=display.height
-	x0,x3=display.xlim
-	y0,y1=display.ylim
-	x1,x2=round(x0*.8+x3*.2), round(.4*x0+.6*x3)
-	screen=cfg.screen
-	screen.nodelay(False)
-	explainpad=cdisplay.Pad((x0,x1-5),(y0,y1))
-	listpad=cdisplay.Pad((x1,x2-10),(y0,y1),100,1000)
-	matchinfopad=cdisplay.Pad((x2,x3),(y0,y1))
+		W=display.width
+		H=display.height
+		x0,x3=display.xlim
+		y0,y1=display.ylim
+		x1,x2=round(x0*.8+x3*.2), round(.4*x0+.6*x3)
+		screen=cfg.screen
+		screen.nodelay(False)
+		explainpad=cdisplay.Pad((x0,x1-5),(y0,y1))
+		listpad=cdisplay.Pad((x1,x2-10),(y0,y1),100,1000)
+		matchinfopad=cdisplay.Pad((x2,x3),(y0,y1))
 
-	explanation=\
-		profile.msg+'\n\n'\
-		+'Move with arrow keys:\n{}: up\n{}: down\n{}: fast up\n{}: fast down'.format(up,down,left,right)\
-		+'\n\nYou may be able to scroll\nwith the touchpad.'\
-		+('' if profile.onlyone else '\n\nPress SPACE or a to add (i.e. mark) elements.'\
-		+'\nPress s or c to move between marked elements.')\
-		+'\n\nPress ENTER to finish selection'
-	explainpad.addstr(0,0,explanation)
-	explainpad.draw()
-	screen.refresh()
-	
-
-
-	
-	#if profile.matchtype=='dir': paths=[d+'/' for d,_,files in os.walk(profile.parentfolder)]
-	#else: paths=['{}/{}/{}'.format(r,d,f) for r,D,F in os.walk(profile.parentfolder) for d in D for f in F]
-	#['{}/{}{}'.format(r,'' if len(_d_)==0 else _d_[0]+'/',f) for r,_d_,F in os.walk(profile.parentfolder) for f in F+['']]
-	paths=getpaths(profile.parentfolder)
-	pattern=re.compile(profile.regex)
-	paths=list(filter(pattern.fullmatch,paths))
-	paths=list(filter(combineconditions(profile),paths))
-	ls=0
-	
-	filterword=''	# onlyone case
-	choices=[]		# multiple case
-
-	try: paths.sort(reverse=True,key=lambda path:os.path.getmtime(path))
-	except: pass
-
-	while True:
-
+		explanation=\
+			profile.msg+'\n\n'\
+			+'Move with arrow keys:\n{}: up\n{}: down\n{}: fast up\n{}: fast down'.format(up,down,left,right)\
+			+'\n\nYou may be able to scroll\nwith the touchpad.'\
+			+('' if profile.onlyone else '\n\nPress SPACE or a to add (i.e. mark) elements.'\
+			+'\nPress s or c to move between marked elements.')\
+			+'\n\nPress ENTER to finish selection'
+		explainpad.addstr(0,0,explanation)
 		explainpad.draw()
-		ls=max(0,min(len(paths)-1,ls))
-		displayoptions(paths,ls,choices,listpad,matchinfopad,profile,H)
+		screen.refresh()
+		
 
-		c=cdisplay.extractkey_cs(screen.getch())
-		if c=='SPACE' and not profile.onlyone: choices.append(ls)
-		elif c=='BACKSPACE':
-			if profile.onlyone and len(filterword)>0: filterword=filterword[:-1]
-			if not profile.onlyone and ls in choices: choices.remove(ls)
-		elif c==259: ls-=1
-		elif c==258: ls+=1
-		elif c==260: ls-=5
-		elif c==261: ls+=5
-		elif c=='s':
-			try: ls=max([c for c in choices if c<ls])
-			except: pass
-		elif c=='c':
-			try: ls=min([c for c in choices if c>ls])
-			except: pass
-		elif c=='ENTER': break
-		elif c=='q': quit()
 
-	screen.nodelay(True)
-	return paths[ls] if profile.onlyone else [paths[ls] for ls in choices]
+		
+		#if profile.matchtype=='dir': paths=[d+'/' for d,_,files in os.walk(profile.parentfolder)]
+		#else: paths=['{}/{}/{}'.format(r,d,f) for r,D,F in os.walk(profile.parentfolder) for d in D for f in F]
+		#['{}/{}{}'.format(r,'' if len(_d_)==0 else _d_[0]+'/',f) for r,_d_,F in os.walk(profile.parentfolder) for f in F+['']]
+		paths=getpaths(profile.parentfolder)
+		pattern=re.compile(profile.regex)
+		paths=list(filter(pattern.fullmatch,paths))
+		paths=list(filter(combineconditions(profile),paths))
+		ls=0
+		
+		filterword=''	# onlyone case
+		choices=[]		# multiple case
+
+		try: paths.sort(reverse=True,key=lambda path:os.path.getmtime(path))
+		except: pass
+
+		while True:
+
+			explainpad.draw()
+			ls=max(0,min(len(paths)-1,ls))
+			displayoptions(paths,ls,choices,listpad,matchinfopad,profile,H)
+
+			c=cdisplay.extractkey_cs(screen.getch())
+			if c=='SPACE' and not profile.onlyone: choices.append(ls)
+			elif c=='BACKSPACE':
+				if profile.onlyone and len(filterword)>0: filterword=filterword[:-1]
+				if not profile.onlyone and ls in choices: choices.remove(ls)
+			elif c==259: ls-=1
+			elif c==258: ls+=1
+			elif c==260: ls-=5
+			elif c==261: ls+=5
+			elif c=='s':
+				try: ls=max([c for c in choices if c<ls])
+				except: pass
+			elif c=='c':
+				try: ls=min([c for c in choices if c>ls])
+				except: pass
+			elif c=='ENTER': break
+			elif c=='q': quit()
+
+		screen.nodelay(True)
+		return paths[ls] if profile.onlyone else [paths[ls] for ls in choices]
 
 
 
@@ -155,8 +156,6 @@ def getinfo(readinfo,path):
 
 
 
-class Browse(tracking.Process):
-	execprocess=_pickfolders_
 
 
 

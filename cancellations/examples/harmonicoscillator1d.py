@@ -21,51 +21,16 @@ jax.config.update("jax_enable_x64", True)
 
 
 
-def getdefaultprofile():
-    profile=tracking.Profile(name='run example')
-    profile.exname='example'
-    profile.instructions=''
-
-    profile.n=5
-    profile.d=1
-
-    profile.learnerparams={\
-        'SPNN':dict(widths=[profile.d,25,25],activation='sp'),
-        'backflow':dict(widths=[],activation='sp'),
-        'dets':dict(d=25,ndets=25),
-        'OddNN':dict(widths=[25,1],activation='sp')
-    }
-
-    profile._var_X_distr_=4
-    profile._X_distr_=lambda key,samples,n,d:rnd.normal(key,(samples,n,d))*jnp.sqrt(profile._var_X_distr_)
-    profile._X_distr_density_=lambda X:jnp.exp(-jnp.sum(X**2/(2*profile._var_X_distr_),axis=(-2,-1)))
-
-    # training params
-
-    profile.weight_decay=0
-    profile.iterations=25000
-    profile.minibatchsize=100
-
-    profile.samples_train=5*10**4
-    profile.samples_test=1000
-    profile.evalblocksize=10**4
-
-    profile.adjusttargetsamples=10000
-    profile.adjusttargetiterations=250
-
-    profile.act_on_input=exampletemplate.act_on_input
-    return profile
 
 
 
 
 
-class Run(tracking.Run):
+class Run(cdisplay.Run):
 
-    def execprocess(run:tracking.Run):
+    def execprocess(run:cdisplay.Run):
 
         run.act_on_input=exampletemplate.act_on_input
-        exampletemplate.prepdisplay(run)
 
         run.outpath='outputs/{}/'.format(run.ID)
         cfg.outpath='outputs/{}/'.format(run.ID)
@@ -151,7 +116,43 @@ class Run(tracking.Run):
         return run.learner
 
 
+    prepdisplay=exampletemplate.prepdisplay
 
+    @staticmethod
+    def getdefaultprofile():
+        profile=tracking.Profile(name='run example')
+        profile.exname='example'
+        profile.instructions=''
+
+        profile.n=5
+        profile.d=1
+
+        profile.learnerparams={\
+            'SPNN':dict(widths=[profile.d,25,25],activation='sp'),
+            'backflow':dict(widths=[],activation='sp'),
+            'dets':dict(d=25,ndets=25),
+            'OddNN':dict(widths=[25,1],activation='sp')
+        }
+
+        profile._var_X_distr_=4
+        profile._X_distr_=lambda key,samples,n,d:rnd.normal(key,(samples,n,d))*jnp.sqrt(profile._var_X_distr_)
+        profile._X_distr_density_=lambda X:jnp.exp(-jnp.sum(X**2/(2*profile._var_X_distr_),axis=(-2,-1)))
+
+        # training params
+
+        profile.weight_decay=0
+        profile.iterations=25000
+        profile.minibatchsize=100
+
+        profile.samples_train=5*10**4
+        profile.samples_test=1000
+        profile.evalblocksize=10**4
+
+        profile.adjusttargetsamples=10000
+        profile.adjusttargetiterations=250
+
+        profile.act_on_input=exampletemplate.act_on_input
+        return profile
 
 
 def gen_lossgrad(f,_X_distr_density_):

@@ -19,7 +19,7 @@ profile=unsupervised.getdefaultprofile()
 
 
 
-class Run(tracking.Run):
+class Run(cdisplay.Run):
     def execprocess(self):
         unsupervised.execprocess(self)
 
