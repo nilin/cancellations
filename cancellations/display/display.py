@@ -156,9 +156,9 @@ class StackedDisplay(CompositeDisplay):
 	def _gettext_(self):
 		return '\n'.join([e.gettext() for e in self.elements.values()])
 
-	def add(self,e):
+	def add(self,e,**kw):
 		if hasattr(self,'width'): e.setwidth(self.width)
-		return super().add(e)
+		return super().add(e,**kw)
 
 	def setwidth(self,width):
 		self.width=width
