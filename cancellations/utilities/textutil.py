@@ -89,6 +89,11 @@ def roundrangeandprecision(center,r,nticks):
 
 
 
+def startingfrom(s,start):
+    return re.search(start+'.*',s).group()
+
+
+
 
 def test():
     a='Lorem ipsum dolor sit amet, \nconsectetur adipiscing elit,'

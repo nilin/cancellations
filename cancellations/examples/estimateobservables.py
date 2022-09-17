@@ -22,6 +22,9 @@ import math
 
 
 class Run(cdisplay.Run):
+
+    exname='estimateobservables'
+
     def execprocess(run):
         profile,display=run,run.display
 

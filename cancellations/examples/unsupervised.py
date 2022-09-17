@@ -57,7 +57,6 @@ def getdefaultprofile():
     return profile
 
 
-
 #def gettarget(profile):
 #    #for i in range(profile.n): setattr(functions,'psi'+str(i),ef.psi(i))
 #    #return ComposedFunction(functions.Slater(*['psi'+str(i) for i in range(profile.n)]),functions.Outputscaling())
@@ -73,87 +72,89 @@ def getlearner(profile):
 
 
 
+class Run(cdisplay.Run):
 
-def execprocess(run:cdisplay.Run):
+    exname='unsupervised'
 
-    run.act_on_input=exampletemplate.act_on_input
-    exampletemplate.prepdisplay(run)
+    def execprocess(run:cdisplay.Run):
 
-    run.outpath='outputs/{}/'.format(run.ID)
-    cfg.outpath='outputs/{}/'.format(run.ID)
-    tracking.log('imports done')
+        run.act_on_input=exampletemplate.act_on_input
+        exampletemplate.prepdisplay(run)
 
-    
-    info='runID: {}\n'.format(run.ID)+'\n'*4; run.infodisplay.msg=info
+        run.outpath='outputs/{}/'.format(run.ID)
+        cfg.outpath='outputs/{}/'.format(run.ID)
+        tracking.log('imports done')
 
-    run.X_train=run.genX(run.samples_train)
-    run.logcurrenttask('preparing training data')
-    run.X_test=run.genX(run.samples_test)
-    #r=5
-    #run.sections=pt.genCrossSections(numutil.blockwise_eval(run.target,blocksize=run.evalblocksize),interval=jnp.arange(-r,r,r/50))
+        
+        info='runID: {}\n'.format(run.ID)+'\n'*4; run.infodisplay.msg=info
 
-    run.learner=getlearner(run)
-    info+=4*'\n'+'learner\n\n{}'.format(textutil.indent(run.learner.getinfo())); run.infodisplay.msg=info
+        run.X_train=run.genX(run.samples_train)
+        run.logcurrenttask('preparing training data')
+        run.X_test=run.genX(run.samples_test)
+        #r=5
+        #run.sections=pt.genCrossSections(numutil.blockwise_eval(run.target,blocksize=run.evalblocksize),interval=jnp.arange(-r,r,r/50))
+
+        run.learner=getlearner(run)
+        info+=4*'\n'+'learner\n\n{}'.format(textutil.indent(run.learner.getinfo())); run.infodisplay.msg=info
 
 
 
-    setupdata=dict(X_train=run.X_train,X_test=run.X_test,\
-        learner=run.learner.compress(),
-        sections=run.sections)
-    sysutil.save(setupdata,run.outpath+'data/setup')
+        setupdata=dict(X_train=run.X_train,X_test=run.X_test,\
+            learner=run.learner.compress(),
+            sections=run.sections)
+        sysutil.save(setupdata,run.outpath+'data/setup')
 
-    run.unprocessed=tracking.Memory()
+        run.unprocessed=tracking.Memory()
 
-    run.trackcurrent('runinfo',info)
-    sysutil.write(info,run.outpath+'info.txt',mode='w')
+        run.trackcurrent('runinfo',info)
+        sysutil.write(info,run.outpath+'info.txt',mode='w')
 
-    #train
-    run.lossgrad=gen_lossgrad(run.learner._eval_)
+        #train
+        run.lossgrad=gen_lossgrad(run.learner._eval_)
 
-    run.trainer=learning.Trainer(run.lossgrad,run.learner,run.X_train,\
-        memory=run,**{k:run[k] for k in ['weight_decay','iterations','minibatchsize']}) 
+        run.trainer=learning.Trainer(run.lossgrad,run.learner,run.X_train,\
+            memory=run,**{k:run[k] for k in ['weight_decay','iterations','minibatchsize']}) 
 
-    regsched=tracking.Scheduler(tracking.nonsparsesched(run.iterations,start=100))
-    plotsched=tracking.Scheduler(tracking.sparsesched(run.iterations,start=1000))
-    run.trainer.prepnextepoch(permute=False)
-    ld,_=exampletemplate.addlearningdisplay(run,tracking.currentprocess().display)
+        regsched=tracking.Scheduler(tracking.nonsparsesched(run.iterations,start=100))
+        plotsched=tracking.Scheduler(tracking.sparsesched(run.iterations,start=1000))
+        run.trainer.prepnextepoch(permute=False)
+        ld,_=exampletemplate.addlearningdisplay(run,tracking.currentprocess().display)
 
-    stopwatch1=tracking.Stopwatch()
-    stopwatch2=tracking.Stopwatch()
+        stopwatch1=tracking.Stopwatch()
+        stopwatch2=tracking.Stopwatch()
 
-    for i in range(run.iterations+1):
+        for i in range(run.iterations+1):
 
-        run.trainer.step()
-        for mem in [run.unprocessed,run]:
-            mem.addcontext('minibatchnumber',i)
-            mem.remember('minibatch loss',loss)
+            run.trainer.step()
+            for mem in [run.unprocessed,run]:
+                mem.addcontext('minibatchnumber',i)
+                mem.remember('minibatch loss',loss)
 
-        if regsched.activate(i):
-            run.unprocessed.remember('weights',run.learner.weights)
-            run.unprocessed.learner=run.learner.compress()
-            sysutil.save(run.unprocessed,run.outpath+'data/unprocessed',echo=False)
-            sysutil.write('loss={:.3f} iterations={} n={} d={}'.format(loss,i,run.n,run.d),run.outpath+'metadata.txt',mode='w')	
+            if regsched.activate(i):
+                run.unprocessed.remember('weights',run.learner.weights)
+                run.unprocessed.learner=run.learner.compress()
+                sysutil.save(run.unprocessed,run.outpath+'data/unprocessed',echo=False)
+                sysutil.write('loss={:.3f} iterations={} n={} d={}'.format(loss,i,run.n,run.d),run.outpath+'metadata.txt',mode='w')	
 
-#        if plotsched.activate(i):
-#            exampletemplate.fplot()
-#            exampletemplate.lplot()
+    #        if plotsched.activate(i):
+    #            exampletemplate.fplot()
+    #            exampletemplate.lplot()
 
-        if stopwatch1.tick_after(.05):
-            ld.draw()
+            if stopwatch1.tick_after(.05):
+                ld.draw()
 
-        if stopwatch2.tick_after(.5):
-            if tracking.act_on_input(tracking.checkforinput())=='b': break
+            if stopwatch2.tick_after(.5):
+                if tracking.act_on_input(tracking.checkforinput())=='b': break
 
-    return run.learner
+        return run.learner
+
+    getdefaultprofile=getdefaultprofile
 
 
 def gen_lossgrad(psi):
     V=lambda X:jnp.sum(X**2/2,axis=(-2,-1))
     return energy.gen_logenergy_grad(energy.genlocalenergy(psi,V),lambda params,X:psi(params,X)**2)
 
-#from inspect import signature
 
 
 
-class Run(cdisplay.Run):
-    execprocess=execprocess

@@ -20,20 +20,18 @@ right='\u2192'
 
 
 
-def getdefaultprofile():
-	profile=tracking.Profile(name='browsing')
-	profile.parentfolder='outputs/'
-	profile.msg='select folder'
-	profile.onlyone=False
-	profile.regex='(./)?outputs/.*'
-	profile.condition1=lambda path:os.path.exists(path+'/data/setup')
-	profile.readinfo=lambda path: sysutil.readtextfile(path+'info.txt')
-	return profile
+
+def defaultpathprofile():
+	return tracking.Profile(name='filterpaths',\
+	parentfolder='outputs/',\
+	regex='(./)?outputs/.*',\
+	condition1=lambda path:os.path.exists(path+'/data/setup') )
 
 
 class Browse(cdisplay.Process):
 	def execprocess(process):
 		profile,display=process,process.display
+		matches=profile.options
 		#browsing=tracking.Process(profile,display=display)
 
 		W=display.width
@@ -64,28 +62,19 @@ class Browse(cdisplay.Process):
 		#if profile.matchtype=='dir': paths=[d+'/' for d,_,files in os.walk(profile.parentfolder)]
 		#else: paths=['{}/{}/{}'.format(r,d,f) for r,D,F in os.walk(profile.parentfolder) for d in D for f in F]
 		#['{}/{}{}'.format(r,'' if len(_d_)==0 else _d_[0]+'/',f) for r,_d_,F in os.walk(profile.parentfolder) for f in F+['']]
-		paths=getpaths(profile.parentfolder)
-		pattern=re.compile(profile.regex)
-		paths=list(filter(pattern.fullmatch,paths))
-		paths=list(filter(combineconditions(profile),paths))
 		ls=0
-		
-		filterword=''	# onlyone case
 		choices=[]		# multiple case
 
-		try: paths.sort(reverse=True,key=lambda path:os.path.getmtime(path))
-		except: pass
 
 		while True:
 
 			explainpad.draw()
-			ls=max(0,min(len(paths)-1,ls))
-			displayoptions(paths,ls,choices,listpad,matchinfopad,profile,H)
+			ls=max(0,min(len(matches)-1,ls))
+			displayoptions(matches,ls,choices,listpad,matchinfopad,profile,H)
 
 			c=cdisplay.extractkey_cs(screen.getch())
 			if c=='SPACE' and not profile.onlyone: choices.append(ls)
 			elif c=='BACKSPACE':
-				if profile.onlyone and len(filterword)>0: filterword=filterword[:-1]
 				if not profile.onlyone and ls in choices: choices.remove(ls)
 			elif c==259: ls-=1
 			elif c==258: ls+=1
@@ -101,9 +90,16 @@ class Browse(cdisplay.Process):
 			elif c=='q': quit()
 
 		screen.nodelay(True)
-		return paths[ls] if profile.onlyone else [paths[ls] for ls in choices]
+		return matches[ls] if profile.onlyone else [matches[ls] for ls in choices]
 
-
+	@staticmethod
+	def getdefaultprofile():
+		profile=tracking.Profile(name='browsing')
+		profile.msg='select folder'
+		profile.onlyone=False
+		profile.readinfo=lambda path: sysutil.readtextfile(path+'info.txt')
+		profile.options=getpaths(defaultpathprofile())
+		return profile
 
 def displayoptions(options,selection,selections,listpad,matchinfopad,profile,H):
 	matchinfopad.erase()
@@ -134,14 +130,19 @@ def combineconditions(profile):
 		except: False
 	return CONDITION 	
 
-def getpaths(root):
+
+
+# for path browsing
+
+
+def allpaths(root):
 	scan=os.scandir(root)
 	out=[]
 	for d in scan:
 		if d.is_file(): out.append(root+'/'+d.name)
 		if d.is_dir():
 			out.append(root+'/'+d.name+'/')
-			out+=getpaths(root+'/'+d.name)
+			out+=allpaths(root+'/'+d.name)
 	return out
 
 def getmetadata(folder):
@@ -154,6 +155,17 @@ def getinfo(readinfo,path):
 	except: return 'no info'
 
 
+
+def getpaths(profile):
+	paths=allpaths(profile.parentfolder)
+	pattern=re.compile(profile.regex)
+	paths=list(filter(pattern.fullmatch,paths))
+	paths=list(filter(combineconditions(profile),paths))
+
+	try: paths.sort(reverse=True,key=lambda path:os.path.getmtime(path))
+	except: pass
+
+	return paths
 
 
 

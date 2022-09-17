@@ -49,6 +49,13 @@ def gen_logenergy_grad(localenergy,_p_):
 
     return jax.jit(gradlog)
 
+
+#def gen_logenergy_grad(localenergy,_p_):
+#
+#    def gradlog(params,X):
+#
+
+
     # numerator:    I L(params,X)*p(params,X) dx
     # denominator:  I p(params,X) dx
 

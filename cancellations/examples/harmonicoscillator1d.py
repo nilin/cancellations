@@ -28,6 +28,8 @@ jax.config.update("jax_enable_x64", True)
 
 class Run(cdisplay.Run):
 
+    exname='harmonicoscillator1d'
+
     def execprocess(run:cdisplay.Run):
 
         run.act_on_input=exampletemplate.act_on_input

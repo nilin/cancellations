@@ -3,28 +3,26 @@ from cancellations.utilities import tracking, browse, batchjob, sysutil
 import os
 import re
 import importlib
+import sys
 
 
-fname='test'
+fname=sys.argv[1]
 
-batch = tracking.Profile(name='run a single script')
+pathprofile=browse.defaultpathprofile().butwith(
+    regex='(./)?cancellations.*[a-z].py',\
+    condition1=lambda path: re.search('def '+fname, sysutil.readtextfile(path)),\
+    readinfo=lambda path: sysutil.readtextfile(path))
 
-batch.name1='browse'
-batch.task1 = browse.Browse
-batch.genprofile1 = lambda _: browse.getdefaultprofile().butwith(
+bprofile=browse.Browse.getdefaultprofile().butwith(
     msg='select a file to run "{}(*args,**kwargs)" with the args just provided to singlescript.py'.format(fname),
     parentfolder='cancellations',
     onlyone=True,
-    regex='(./)?cancellations.*[a-z].py',
-    condition1=lambda path: re.search('def run', sysutil.readtextfile(path)),
-    readinfo=lambda path: sysutil.readtextfile(path)
+    options=browse.getpaths(pathprofile)
 )
 
-
-
-
 if __name__=='__main__':
-    [path] = cdisplay.session_in_display(batchjob.Batchjob, batch)
+    path=browse.Browse(**bprofile).run_as_main()
+
     mname = path.replace('/', '.')[:-3]
     print('todo: use importlib to run')
     print(mname)
@@ -32,3 +30,4 @@ if __name__=='__main__':
     #importlib.import_module(mname)
     m = importlib.import_module(mname)
     getattr(m, fname)(*sysutil.cmdparams, **sysutil.cmdredefs)
+

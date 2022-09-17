@@ -1,5 +1,6 @@
 from cancellations.display import cdisplay
 from cancellations.utilities import tracking, browse, batchjob, sysutil
+from cancellations.examples import profiles as P
 import os
 import re
 import importlib
@@ -14,28 +15,46 @@ class Run(batchjob.Batchjob):
 
         # task 1
 
-        bprofile=browse.getdefaultprofile().butwith(
-            msg='select a file to run Run.execprocess(self)',
-            #parentfolder='cancellations',
-            parentfolder='.',
-            onlyone=True,
-            #regex='(./)?cancellations.*[a-z].py',
-            #regex='.*[a-z].py',
-            regex='(.?/?[^/]*|.*cancellations/examples/.*)[a-z].py',
-            condition1=lambda path: re.search('class Run', sysutil.readtextfile(path)),
-            readinfo=lambda path: sysutil.readtextfile(path)
-        )
+        pathprofile=browse.defaultpathprofile().butwith(\
+            parentfolder='.',\
+            #regex='(.?/?[^/]*|.*cancellations/examples/.*)[a-z].py',\
+            regex='(.*cancellations/examples/.*)[a-z].py',\
+            condition1=lambda path: re.search('class Run', sysutil.readtextfile(path)),\
+            )
+        bprofile=browse.Browse.getdefaultprofile().butwith(\
+            msg='select a file to run Run.execprocess(self)',\
+            onlyone=True,\
+            readinfo=lambda path: sysutil.readtextfile(path),\
+            options=browse.getpaths(pathprofile)
+            )
         path=self.runsubprocess(browse.Browse(**bprofile),name='pick script')
 
-
-        # task 2
+        # postprocess
 
         path=re.search('([a-z].*)',path).group()
         mname = path.replace('/', '.')[:-3]
         m = importlib.import_module(mname)
-        self.runsubprocess(m.Run(**m.profile),name='run script')
 
-#
-#if __name__=='__main__':
-#    Run(**profile).run_as_main()
-#
+
+        # task 2
+
+        profilegenerators=P.getprofiles(m.Run.exname)
+        bprofile=browse.Browse.getdefaultprofile().butwith(\
+            msg='select a profile',\
+            onlyone=True,\
+            readinfo=lambda : sysutil.readtextfile('cancellations/examples/profiles.py'),\
+            options=list(profilegenerators.keys())
+            )
+        profilename=self.runsubprocess(browse.Browse(**bprofile),name='pick profile')
+        profile=profilegenerators[profilename]()
+
+
+
+        # task 3
+
+        self.runsubprocess(m.Run(**profile),name='run script')
+
+
+if __name__=='__main__':
+    Run(**profile).run_as_main()
+

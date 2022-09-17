@@ -22,14 +22,15 @@ class Run(batchjob.Batchjob):
 
         # task 1
 
-        bprofile=browse.getdefaultprofile().butwith(onlyone=True, regex='.*tgsamples/?',condition1=None,\
+        pathprofile=browse.defaultpathprofile().butwith(regex='.*tgsamples/?',condition1=None)
+        bprofile=browse.Browse.getdefaultprofile().butwith(options=browse.getpaths(pathprofile),onlyone=True,\
             readinfo=lambda path: '\n'.join(sorted(list(os.listdir(path)),key=lambda p:os.path.getmtime(path+p))))
         samplepath=batch.runsubprocess(browse.Browse(**bprofile),name='pick samples')
 
 
         # task 2
 
-        runpath=batch.runsubprocess(browse.Browse(**browse.getdefaultprofile().butwith(onlyone=True)),name='pick training run')
+        runpath=batch.runsubprocess(browse.Browse(**browse.Browse.getdefaultprofile().butwith(onlyone=True)),name='pick training run')
 
 
         # task 3
