@@ -20,7 +20,8 @@ class Run(batchjob.Batchjob):
             parentfolder='.',
             onlyone=True,
             #regex='(./)?cancellations.*[a-z].py',
-            regex='.*[a-z].py',
+            #regex='.*[a-z].py',
+            regex='(.?/?[^/]*|.*cancellations/examples/.*)[a-z].py',
             condition1=lambda path: re.search('class Run', sysutil.readtextfile(path)),
             readinfo=lambda path: sysutil.readtextfile(path)
         )
