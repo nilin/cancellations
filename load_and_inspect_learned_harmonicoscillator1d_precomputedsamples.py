@@ -1,5 +1,5 @@
 from statistics import harmonic_mean
-from cancellations.examples import example, harmonicoscillator1d, estimateobservables
+from cancellations.examples import harmonicoscillator1d, estimateobservables
 from cancellations.functions import examplefunctions as ef, functions
 from cancellations.display import cdisplay
 from cancellations.utilities import numutil, sampling, tracking, browse, batchjob, energy, sysutil

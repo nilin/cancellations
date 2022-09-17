@@ -53,7 +53,7 @@ class Trainer():
 
 	def minibatch_step(self,X_mini,*Y_mini):
 	
-		loss,grad=self.lossgrad(self.learner.weights,X_mini,*Y_mini)
+		*loss,grad=self.lossgrad(self.learner.weights,X_mini,*Y_mini)
 		updates,self.state=self.opt.update(grad,self.state,self.learner.weights)
 		self.learner.weights=optax.apply_updates(self.learner.weights,updates)
 		self.memory.remember('minibatch loss',loss)
