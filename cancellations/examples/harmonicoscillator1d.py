@@ -94,7 +94,7 @@ class Run(cdisplay.Run):
 
         for i in range(run.iterations+1):
 
-            [loss]=run.trainer.step()
+            loss=run.trainer.step()
             for mem in [run.unprocessed,run]:
                 mem.addcontext('minibatchnumber',i)
                 mem.remember('minibatch loss',loss)

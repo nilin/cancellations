@@ -73,7 +73,6 @@ def getlearner(profile):
 
 
 class Run(cdisplay.Run):
-
     exname='unsupervised'
 
     def execprocess(run:cdisplay.Run):
@@ -112,8 +111,10 @@ class Run(cdisplay.Run):
         #train
         run.lossgrad=gen_lossgrad(run.learner._eval_)
 
-        run.trainer=learning.Trainer(run.lossgrad,run.learner,run.X_train,\
+        run.trainer=TestTrainer(run.lossgrad,run.learner,run.X_train,\
             memory=run,**{k:run[k] for k in ['weight_decay','iterations','minibatchsize']}) 
+        #run.trainer=learning.Trainer(run.lossgrad,run.learner,run.X_train,\
+        #    memory=run,**{k:run[k] for k in ['weight_decay','iterations','minibatchsize']}) 
 
         regsched=tracking.Scheduler(tracking.nonsparsesched(run.iterations,start=100))
         plotsched=tracking.Scheduler(tracking.sparsesched(run.iterations,start=1000))
@@ -125,7 +126,7 @@ class Run(cdisplay.Run):
 
         for i in range(run.iterations+1):
 
-            run.trainer.step()
+            loss=run.trainer.step()
             for mem in [run.unprocessed,run]:
                 mem.addcontext('minibatchnumber',i)
                 mem.remember('minibatch loss',loss)
@@ -157,4 +158,13 @@ def gen_lossgrad(psi):
 
 
 
+class TestTrainer(learning.Trainer):
 
+    def minibatch_step(self,X_mini,*Y_mini):
+
+        loss,grad=self.lossgrad(self.learner.weights,X_mini,*Y_mini)
+        #updates,self.state=self.opt.update(grad,self.state,self.learner.weights)
+        #self.learner.weights=optax.apply_updates(self.learner.weights,updates)
+        self.learner.weight=numutil.leafwise(lambda x,y:x-.01*y,self.learner.weights,grad)
+        self.memory.remember('minibatch loss',loss)
+        return loss

@@ -77,7 +77,10 @@ def gen_logenergy_grad(localenergy,_p_):
         S2=lambda params,X:jnp.sum(_logp_(params,X))
         n2=jax.grad(S2)(params,X)
 
-        return numutil.leafwise(lambda A,B,C: (A+B)/d1-C/X.shape[0], n11,n12,n2)
+        grad=numutil.leafwise(lambda A,B,C: (A+B)/d1-C/X.shape[0], n11,n12,n2)
+
+        logloss=jnp.log(d1)-jnp.log(X.shape[0])
+        return logloss,grad
 
     return jax.jit(gradlog)
 
