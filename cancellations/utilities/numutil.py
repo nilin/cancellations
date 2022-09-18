@@ -236,14 +236,24 @@ def blockwise_eval(fdescr,**kw):
 
 
 
-
-def addgrads(G1,G2):
+def leafwise(op,*Gs):
+	G1=Gs[0]
 	if G1==None:
-		return G2
-	elif type(G2)==list:
-		return [addgrads(g1,g2) for g1,g2 in zip(G1,G2)]
+		return None
+	elif type(G1)==list or type(G1)==tuple:
+		return [leafwise(op,*gs) for gs in zip(*Gs)]
 	else:
-		return G1+G2
+		return op(*Gs)
+
+#def addgrads(G1,G2):
+#	if G1==None:
+#		return G2
+#	elif type(G2)==list or type(G2)==tuple:
+#		return [addgrads(g1,g2) for g1,g2 in zip(G1,G2)]
+#	else:
+#		return G1+G2
+def addgrads(G1,G2):
+	return leafwise(jnp.add,G1,G2)
 		
 def scalegrad(G,r):
 	if type(G)==list:
@@ -313,7 +323,9 @@ def keyfromstr(s):
 
 
 def applyonleaves(T,fn):
-	if type(T)==list or type(T)==tuple:
+	if T==None:
+		return None
+	elif type(T)==list or type(T)==tuple:
 		return [applyonleaves(e,fn) for e in T]
 	else:
 		return fn(T)

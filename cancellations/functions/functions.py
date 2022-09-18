@@ -163,7 +163,7 @@ class Product(Composite):
 		return ' X '.join(['({})'.format(e.richtypename()) for e in self.elements])
 
 	def info(self):
-		return textutil.sidebyside(*[e.getinfo() for e in self.elements],separator=' X ')
+		return textutil.boxedsidebyside(*[e.getinfo() for e in self.elements],separator=' X ')
 
 #=======================================================================================================
 class NNfunction(FunctionDescription):

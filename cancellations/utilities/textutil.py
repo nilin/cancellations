@@ -18,33 +18,95 @@ def indent(s):
 ####
 
 
-def sidebyside(*elements,separator=''):
+def boxedsidebyside(*elements,separator=''):
+    elements=[vsqueeze(e) for e in elements]
     height=max([len(e.splitlines()) for e in elements])
-    Es=[makebox(e,height=height,border=box) for e in elements]
+    Es=[makeBOX(e,height=height,border=box) for e in elements]
     if separator!='':
-        sepbox=makebox(separator,height=height,border=' ')
+        sepbox=makeBOX(separator,height=height,border=' ')
         Es=('NEXTBOX'+sepbox+'NEXTBOX').join(Es).split('NEXTBOX')
     return '\n'.join([''.join(line) for line in zip(*[E.splitlines() for E in Es])])
 
-def padwidth(S,width,fillstyle=' ',border=''):
+def vsqueeze(S):
+    lines=S.splitlines()
+    while lines[-1]=='': lines.pop()
+    return '\n'.join(lines)
+
+def padwidth(S,width,fillstyle=' ',border='',**kw):
     return '\n'.join([border+l+(width-len(l))*fillstyle+border for l in S.splitlines()])
 
-def padheight(S,height):
+def padheight(S,height,align='center',**kw):
     h=len(S.splitlines()); d=height-h
-    a=d//2; b=d-a;
-    return a*'\n'+S+b*'\n'
+    match align:
+        case 'center': a=d//2
+        case 'top': a=0
+        case 'bottom': a=d
+    b=d-a
+    return a*'\n'+S+b*'\n'+' '
 
-def makebox(S,width=None,height=None,border=' '):
+def makebox(S,width=None,height=None,**kw):
     if height==None: height=len(S.splitlines())
     if width==None: width=max([len(l) for l in S.splitlines()])
-    return addborder(addborder(padwidth(padheight(S,height),width),' '),border)
+    return padwidth(padheight(S,height,**kw),width,**kw)
+
+def makeBOX(S,width=None,height=None,border=' '):
+    return addborder(addborder(makebox(S,width,height),' '),border)
+
 
 def addborder(S,border):
     lines=S.splitlines()    
-    lines=[border*len(lines[0])]+lines+[border*len(lines[0])]+[border*len(lines[0])]
-    return '\n'.join([border+l+border for l in lines])
+    lines=[border*len(lines[0])]+lines+[border*len(lines[0])]
+    return '\n'.join([border+border+l+border+border for l in lines])
 
-    
+
+
+
+def sidebyside(*elements,separator=' ',**kw):
+    height=max([len(e.splitlines()) for e in elements])
+    Es=[makebox(e,height=height,**kw) for e in elements]
+    return '\n'.join([separator.join(line) for line in zip(*[E.splitlines() for E in Es])])
+
+def drawtree(tree,parseleaf=None):
+    if parseleaf==None: parseleaf=lambda l: '--'+str(l)+'--'
+    if isinstance(tree,list) or isinstance(tree,tuple):
+        style=BOX if isinstance(tree,list) else box
+
+        branches=[drawtree(branch,parseleaf) for branch in tree]
+        tbranches=sidebyside(*branches,align='top')
+
+        bars=tbranches.splitlines()[0]
+        return fillspan(midpoints(bars),style=style)+'\n'+midpoints(bars,style=style)+'\n'+tbranches
+    else:
+        leaf=parseleaf(tree)
+        return len(leaf)*BOX+'\n'+leaf
+
+
+def midpoints(s,style=BOX):
+    def midpoint(B):
+        if B=='': return ''
+        l=len(B)
+        a=l//2
+        return a*' '+style+(l-a-1)*' '
+    return ' '.join([midpoint(B) for B in s.split(' ')])
+
+
+def fillspan(points,style=BOX):
+    l,c,r=re.fullmatch('( *)([^ ].*?)( *)',points).groups()
+    return l+len(c)*style+r
+
+######
+
+def draw_weightdims_tree(weights):
+    def parsearray(w):
+        if w==None: return 'None'
+        try: return str(w.shape)
+        except: return type(w).__name__
+    return drawtree(weights,parseleaf=parsearray)
+
+
+######
+
+
 def overwrite(s1,s2):
     return '\n'.join([''.join([a if b==' ' else b for (a,b) in zip(l1+' '*len(l2),l2+' '*len(l1))])\
     for l1,l2 in zip(s1.splitlines(),s2.splitlines())])
@@ -100,10 +162,23 @@ def startingfrom(s,*starts):
 
 
 
+####################################
+
+
+def treetest():
+    t=[[[1],[1,[1]]],[1],[1]]
+    print(t)
+    print(drawtree(t))
+
+    t=[[1],[1,[1]]]
+    print(t)
+    print(drawtree(t))
+
+
 def test():
     a='Lorem ipsum dolor sit amet, \nconsectetur adipiscing elit,'
     b='sed do eiusmod \ntempor incididunt \nut labore et dolore \nmagna aliqua'
     print(a)
     print(b)
-    print(sidebyside(a,b))
+    print(boxedsidebyside(a,b))
     

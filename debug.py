@@ -1,9 +1,15 @@
 import jax
+from cancellations.utilities import sysutil
 
+sysutil.clearscreen()
 
+#rs=input('debug Run or a single function? (r/s) + ENTER')
+rs='r'
 
-mode='Run'
-#mode='singlefunction'
+print(rs)
+match rs:
+	case 'r': mode='Run'
+	case 's': mode='singlefunction'
 
 
 if __name__=='__main__':
