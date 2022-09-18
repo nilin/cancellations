@@ -7,7 +7,7 @@ import curses as cs
 
 
 
-class ConcreteDisplay(disp.StackedDisplay):
+class ConcreteDisplay(disp.DisplayWithDimensions):
 	def __init__(self,*a,**kw):
 		super().__init__(*a,**kw)
 		self.pad=cs.newpad(self.height+1,self.width+1)	
@@ -31,6 +31,9 @@ class ConcreteDisplay(disp.StackedDisplay):
 		super().remove()
 
 
+class ConcreteStaticTextDisplay(ConcreteDisplay,disp.StaticText): pass
+
+class ConcreteStackedDisplay(ConcreteDisplay,disp.StackedDisplay): pass
 
 
 class Dashboard(disp.CompositeDisplay):

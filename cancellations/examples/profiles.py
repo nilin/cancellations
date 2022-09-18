@@ -1,7 +1,7 @@
 
 from . import harmonicoscillator1d, estimateobservables, unsupervised
 from ..functions import examplefunctions as ef, functions
-from ..utilities import numutil, energy
+from ..utilities import numutil, energy, tracking
 import jax.numpy as jnp
 
 def getprofiles(exname):
@@ -44,3 +44,17 @@ def getprofiles(exname):
             pgens['this example is under development']=harmonicoscillator1d.Run.getdefaultprofile
 
     return pgens
+
+
+
+
+
+
+
+def get_test_fn_inputs():
+    inputgenerators=dict()
+    ig=inputgenerators
+
+    ig['no inputs']=lambda: tracking.dotdict(args=[],kwargs=dict())
+
+    return ig

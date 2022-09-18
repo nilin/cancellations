@@ -26,7 +26,7 @@ def defaultpathprofile():
 	parentfolder='outputs/',\
 	regex='(./)?outputs/.*',\
 	condition1=lambda path:os.path.exists(path+'/data/setup'),\
-	dynamiccondition=None
+	dynamiccondition=None,\
 	)
 
 
@@ -39,27 +39,22 @@ class Browse(cdisplay.Process):
 		H=display.height
 		x0,x3=display.xlim
 		y0,y1=display.ylim
-		x1,x2=round(x0*.8+x3*.2), round(.4*x0+.6*x3)
+		x1,x2=round(x0*.7+x3*.3), round(.4*x0+.6*x3)
 		screen=cfg.screen
 		screen.nodelay(False)
-		#explainpad=cdisplay.Pad((x0,x1-5),(y0,y1))
-		cd1,_=display.add(cdisplay.ConcreteDisplay((x0,x1-5),(y0,y1)),name='explanation')
-		listpad=cdisplay.Pad((x1,x2-10),(y0,y1),100,1000)
-		#matchinfopad=cdisplay.Pad((x2,x3),(y0,y1))
-		cd3,_=display.add(cdisplay.ConcreteDisplay((x2,x3),(y0,y1)),name='matchinfo')
 
-		explanation=\
-			profile.msg+'\n\n'\
-			+'Move with arrow keys:\n{}: up\n{}: down\n{}: fast up\n{}: fast down'.format(up,down,left,right)\
-			+'\n\nYou may be able to scroll\nwith the touchpad.'\
-			+('' if profile.onlyone else '\n\nPress SPACE or a to add (i.e. mark) elements.'\
-			+'\nPress s or c to move between marked elements.')\
-			+'\n\nPress ENTER to finish selection'
+		explanation=profile.msg
 		#explainpad.addstr(0,0,explanation)
 		#explainpad.draw()
 
-		explanationtextdisp,_=cd1.add(StaticText(msg=explanation))
-		matchinfotextdisp,_=cd3.add(StaticText(msg=''))
+
+		#explainpad=cdisplay.Pad((x0,x1-5),(y0,y1))
+		explanationtextdisp,_=display.add(cdisplay.ConcreteStaticTextDisplay((x0,x1-5),(y0,y1),msg=explanation),name='explanation')
+		#explanationtextdisp.draw()
+
+		listpad=cdisplay.Pad((x1,x2-10),(y0,y1),100,1000)
+		#matchinfopad=cdisplay.Pad((x2,x3),(y0,y1))
+		matchinfotextdisp,_=display.add(cdisplay.ConcreteStaticTextDisplay((x2,x3),(y0,y1),msg=''),name='matchinfo')
 
 		screen.refresh()
 		
@@ -77,18 +72,17 @@ class Browse(cdisplay.Process):
 		allowtextinput=True if 'dynamiccondition' in profile.keys() else False
 
 		while True:
-			matches=filter(profile.options,lambda option: profile.dynamiccondition(option,inputtext))\
+			#matches=filter(profile.options,lambda option: profile.dynamiccondition(option,inputtext))\
+			matches=[option for option in profile.options if profile.dynamiccondition(option,inputtext) not in [None,False]]\
 				if allowtextinput else profile.options
 
 			#explainpad.draw()
-			cd1.draw()
 			ls=max(0,min(len(matches)-1,ls))
 			displayoptions(matches,ls,choices,listpad,matchinfotextdisp,profile,H)
+			explanationtextdisp.msg=explanation.format(mode,inputtext)
+			explanationtextdisp.draw()
 
 			c=cdisplay.extractkey_cs(screen.getch())
-
-			if c=='ENTER': break
-			elif c=='q': quit()
 
 			match mode:
 				case 'browse':
@@ -109,14 +103,21 @@ class Browse(cdisplay.Process):
 							except: pass
 						case 'i':
 							if allowtextinput: mode='input'
+						case 'q':
+							quit()
+						case 'b':
+							return None
+						case 'ENTER':
+							break
 
 				case 'input':
 					if c=='BACKSPACE': inputtext=inputtext[:-1]
-					if c=='SPACE': inputtext+=' '
-					if c==27: mode='browse'
-					else: inputtext+=c
+					elif c=='SPACE': inputtext+=' '
+					elif c=='ENTER' or c==27: mode='browse'
+					else:
+						try: inputtext+=c
+						except: mode='browse'
 
-					process.trackcurrent('inputtext',inputtext)
 
 		screen.nodelay(True)
 		return matches[ls] if profile.onlyone else [matches[ls] for ls in choices]
@@ -125,9 +126,26 @@ class Browse(cdisplay.Process):
 	def getdefaultprofile():
 		profile=tracking.Profile(name='browsing')
 		profile.msg='select folder'
-		profile.onlyone=False
+		profile.onlyone=True
 		profile.readinfo=lambda path: sysutil.readtextfile(path+'info.txt')
 		profile.options=getpaths(defaultpathprofile())
+		profile.msg0='\n\n'\
+				+'Move with arrow keys:\n{}: up\n{}: down\n{}: fast up\n{}: fast down'.format(up,down,left,right)\
+				+'\n\nYou may be able to scroll\nwith the touchpad.'\
+				+'\n\nPress ENTER to finish selection.'
+		profile.msg1='\n\n'\
+				+'Move with arrow keys:\n{}: up\n{}: down\n{}: fast up\n{}: fast down'.format(up,down,left,right)\
+				+'\n\nYou may be able to scroll\nwith the touchpad.'\
+				+'\n\nPress b to continue without selection.'\
+				+'\n\nPress ENTER to finish selection.'
+		profile.msg2='\n\n'\
+				+'Move with arrow keys:\n{}: up\n{}: down\n{}: fast up\n{}: fast down'.format(up,down,left,right)\
+				+'\n\nYou may be able to scroll\nwith the touchpad.'\
+				+'\n\nPress SPACE or a to add (i.e. mark) elements.'\
+				+'\nPress s or c to move between marked elements.'\
+				+'\n\nPress b to continue without selection.'\
+				+'\n\nPress ENTER to finish selection'
+		profile.msg=profile.msg1
 		return profile
 
 def displayoptions(options,selection,selections,listpad,matchinfotextdisp,profile,H):
@@ -146,7 +164,7 @@ def displayoptions(options,selection,selections,listpad,matchinfotextdisp,profil
 	listpad.addstr(selection,0,' *' if profile.onlyone else '>')
 	for s in selections: listpad.addstr(s,1,'*')
 	listpad.refresh(max(0,selection-H//2))
-	#matchinfopad.draw()
+	matchinfotextdisp.draw()
 
 
 
@@ -170,10 +188,10 @@ def allpaths(root):
 	scan=os.scandir(root)
 	out=[]
 	for d in scan:
-		if d.is_file(): out.append(root+'/'+d.name)
+		if d.is_file(): out.append(d.name)
 		if d.is_dir():
-			out.append(root+'/'+d.name+'/')
-			out+=allpaths(root+'/'+d.name)
+			out.append(d.name+'/')
+			out+=[d.name+'/'+branch for branch in allpaths(root+'/'+d.name)]
 	return out
 
 def getmetadata(folder):

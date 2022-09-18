@@ -110,5 +110,8 @@ def commonanc(*fs):
 	return path,[f[len(path):] for f in fs]
 
 
+def clearscreen():
+	os.system('cls' if os.name == 'nt' else 'clear')
+
 def test():
     print(readtextfile('batch1.py'))

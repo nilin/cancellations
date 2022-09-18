@@ -257,7 +257,7 @@ def prepdisplay(run):
 	y1=(y0+3*y2)//4
 
 
-	column1=cdisplay.ConcreteDisplay(xlim=(x0,x1-5),ylim=(y0,y1),memory=run)
+	column1=cdisplay.ConcreteStackedDisplay(xlim=(x0,x1-5),ylim=(y0,y1),memory=run)
 	column1.add(disp.StaticText(msg=instructions))
 	column1.add(disp.VSpace(2))
 	column1.add(disp.Hline())
@@ -272,7 +272,7 @@ def prepdisplay(run):
 #	run.addlistener(column1,'target |Af|')
 
 
-	column2=cdisplay.ConcreteDisplay(xlim=(x1+5,x2),ylim=(y0,y1))
+	column2=cdisplay.ConcreteStackedDisplay(xlim=(x1+5,x2),ylim=(y0,y1))
 	run.infodisplay,_=column2.add(disp.StaticText(msg='',wrap=True))
 
 #	run.addlistener(column2,'runinfo')
@@ -291,7 +291,7 @@ def addlearningdisplay(run,display):
 
 	a,b=display.xlim[0]+2,display.xlim[1]-2
 
-	ld=cdisplay.ConcreteDisplay((a,b),(display.height-10,display.height-1))
+	ld=cdisplay.ConcreteStackedDisplay((a,b),(display.height-10,display.height-1))
 	ld.add(disp.NumberPrint('minibatch loss',msg='training loss {:.2E}',avg_of=100))
 	ld.add(disp.Bar('minibatch loss',style=textutil.dash,emptystyle=' ',avg_of=1))
 	ld.add(disp.Bar('minibatch loss',style=disp.BOX,emptystyle=' ',avg_of=10))

@@ -42,7 +42,7 @@ class Batchjob(cdisplay.Process):
 
     def prepdisplay(self):
         dashboard=self.display
-        self.tasklistcdisplay,_=dashboard.add(cdisplay.ConcreteDisplay(dashboard.xlim,(dashboard.ylim[0],dashboard.ylim[0]+2)))
+        self.tasklistcdisplay,_=dashboard.add(cdisplay.ConcreteStackedDisplay(dashboard.xlim,(dashboard.ylim[0],dashboard.ylim[0]+2)))
         self.tasklistcdisplay.add(disp.StaticText(msg=''),name='textdisplay')
         self.subdisplay,_=dashboard.add(cdisplay.Dashboard(\
             (dashboard.xlim[0]+3,dashboard.xlim[1]-3),(dashboard.ylim[0]+4,dashboard.ylim[1]-2)))

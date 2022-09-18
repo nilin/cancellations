@@ -60,7 +60,7 @@ class Run(cdisplay.Run):
 
     def prepdisplay(run):
         display=run.display
-        cd,_=display.add(cdisplay.ConcreteDisplay(display.xlim,display.ylim))
+        cd,_=display.add(cdisplay.ConcreteStackedDisplay(display.xlim,display.ylim))
 
         cd.add(disp.FlexDisplay('steps','timeslices',parse=lambda _,s,sl:\
             'Saved {:,} samples from {:,} time slices, every {}th out of {} steps.'\

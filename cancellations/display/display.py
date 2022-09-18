@@ -143,13 +143,15 @@ class AbstractCompositeDisplay(Display):
 		self.delkeys(*self.elements.keys())
 
 
-class CompositeDisplay(AbstractCompositeDisplay):
+class DisplayWithDimensions(Display):
 	def __init__(self,xlim,ylim,*a,**kw):
 		x0,x1=xlim
 		y0,y1=ylim
 		
 		super().__init__(*a, xlim=xlim, ylim=ylim, width=x1-x0, height=y1-y0, **kw)
 
+
+class CompositeDisplay(DisplayWithDimensions,AbstractCompositeDisplay): pass
 
 
 class StackedDisplay(CompositeDisplay):
