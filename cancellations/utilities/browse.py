@@ -40,7 +40,7 @@ class Browse(cdisplay.Process):
 		H=display.height
 		x0,x3=display.xlim
 		y0,y1=display.ylim
-		x1,x2=round(x0*.7+x3*.3), round(.4*x0+.6*x3)
+		x1,x2=round(x0*.75+x3*.25), round(.4*x0+.6*x3)
 		screen=cfg.screen
 		screen.nodelay(False)
 
