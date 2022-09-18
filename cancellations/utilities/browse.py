@@ -22,10 +22,11 @@ right='\u2192'
 
 
 def defaultpathprofile():
+	parentfolder='outputs/'
 	return tracking.Profile(name='filterpaths',\
-	parentfolder='outputs/',\
-	regex='(./)?outputs/.*',\
-	condition1=lambda path:os.path.exists(path+'/data/setup'),\
+	parentfolder=parentfolder,\
+	regex='.*',\
+	condition1=lambda path:os.path.exists(parentfolder+path+'/data/setup'),\
 	dynamiccondition=None,\
 	)
 
@@ -73,8 +74,10 @@ class Browse(cdisplay.Process):
 
 		while True:
 			#matches=filter(profile.options,lambda option: profile.dynamiccondition(option,inputtext))\
-			matches=[option for option in profile.options if profile.dynamiccondition(option,inputtext) not in [None,False]]\
-				if allowtextinput else profile.options
+			if allowtextinput:
+				matches=[option for option in profile.options\
+						if profile.dynamiccondition(profile.displayoption(option),inputtext) not in [None,False]]
+			else: matches=profile.options
 
 			#explainpad.draw()
 			ls=max(0,min(len(matches)-1,ls))
@@ -83,6 +86,8 @@ class Browse(cdisplay.Process):
 			explanationtextdisp.draw()
 
 			c=cdisplay.extractkey_cs(screen.getch())
+
+			if c=='ENTER': break
 
 			match mode:
 				case 'browse':
@@ -107,13 +112,11 @@ class Browse(cdisplay.Process):
 							quit()
 						case 'b':
 							return None
-						case 'ENTER':
-							break
 
 				case 'input':
 					if c=='BACKSPACE': inputtext=inputtext[:-1]
 					elif c=='SPACE': inputtext+=' '
-					elif c=='ENTER' or c==27: mode='browse'
+					elif c==27: mode='browse'
 					else:
 						try: inputtext+=c
 						except: mode='browse'
@@ -146,13 +149,14 @@ class Browse(cdisplay.Process):
 				+'\n\nPress b to continue without selection.'\
 				+'\n\nPress ENTER to finish selection'
 		profile.msg=profile.msg1
+		profile.displayoption=lambda option:option
 		return profile
 
 def displayoptions(options,selection,selections,listpad,matchinfotextdisp,profile,H):
 	#matchinfopad.erase()
 	listpad.erase()
 	for i,match in enumerate(options):
-		listpad.addstr(i,2,'{}: {}{}'.format(str(i+1),match,getmetadata(match)))
+		listpad.addstr(i,2,'{}: {}'.format(str(i+1),profile.displayoption(match)))
 	try:
 		#matchinfopad.addstr(0,0,getmetadata(options[selection]))
 		#matchinfopad.addstr(2,0,getinfo(profile.readinfo,options[selection]))

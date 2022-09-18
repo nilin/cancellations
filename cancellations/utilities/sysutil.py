@@ -113,5 +113,15 @@ def commonanc(*fs):
 def clearscreen():
 	os.system('cls' if os.name == 'nt' else 'clear')
 
+
+def maybe(f,ifnot=None):
+    def F(*args,**kwargs):
+        try:
+            return f(*args,**kwargs)
+        except:
+            return ifnot
+    return F
+
+
 def test():
     print(readtextfile('batch1.py'))

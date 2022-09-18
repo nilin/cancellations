@@ -89,8 +89,13 @@ def roundrangeandprecision(center,r,nticks):
 
 
 
-def startingfrom(s,start):
-    return re.search(start+'.*',s).group()
+def startingfrom(s,*starts):
+    if len(starts)==0: return s
+    else:
+        starts=deque(starts)
+        start=starts.popleft()
+        s=re.search(start+'.*',s,re.DOTALL).group()
+        return startingfrom(s,*starts)
 
 
 

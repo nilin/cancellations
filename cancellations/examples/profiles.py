@@ -55,6 +55,15 @@ def get_test_fn_inputs():
     inputgenerators=dict()
     ig=inputgenerators
 
+
     ig['no inputs']=lambda: tracking.dotdict(args=[],kwargs=dict())
+
+
+    def _():
+        a='Lorem ipsum dolor sit amet, \nconsectetur adipiscing elit,'
+        b='sed do eiusmod \ntempor incididunt \nut labore et dolore \nmagna aliqua'
+        return tracking.dotdict(args=[a+b,'do','p'],kwargs=dict())
+
+    ig['lipsum, do, p']=_
 
     return ig

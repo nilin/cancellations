@@ -7,7 +7,7 @@ import importlib
 
 
 
-profile=tracking.Profile(tasks=['pick script','run script'])
+profile=tracking.Profile(tasks=['pick script','pick profile','run script'])
 
 class Run(batchjob.Batchjob):
 
@@ -20,10 +20,16 @@ class Run(batchjob.Batchjob):
             regex='.*[a-z].py',\
             condition1=lambda path: re.search('class Run', sysutil.readtextfile(pf+path)),\
             )
+
+        relpaths=browse.getpaths(pathprofile)
+        fullpaths=[pf+relpath for relpath in relpaths]
+        rels={full:rel for full,rel in zip(fullpaths,relpaths)}
+
         bprofile=browse.Browse.getdefaultprofile().butwith(\
             onlyone=True,\
-            readinfo=lambda path: sysutil.readtextfile(path),\
-            options=browse.getpaths(pathprofile)
+            readinfo=lambda path: textutil.startingfrom(sysutil.readtextfile(path),'class Run'),\
+            options=fullpaths,\
+            displayoption=lambda full:rels[full]
             )
         bprofile.msg='select a file to run Run(profile).execprocess().\n\n'\
             +'Press [b] to run a single function instead.\n'+50*textutil.dash\
@@ -33,7 +39,7 @@ class Run(batchjob.Batchjob):
 
         # postprocess
 
-        path=re.search('([a-z].*)',pf+path).group()
+        path=re.search('([a-z].*)',path).group()
         mname = path.replace('/', '.')[:-3]
         m = importlib.import_module(mname)
 
@@ -43,7 +49,7 @@ class Run(batchjob.Batchjob):
         profilegenerators=P.getprofiles(m.Run.exname)
         bprofile=browse.Browse.getdefaultprofile().butwith(\
             onlyone=True,\
-            readinfo=lambda : sysutil.readtextfile('cancellations/examples/profiles.py'),\
+            #readinfo=lambda pname: textutil.startingfrom(sysutil.readtextfile('cancellations/examples/profiles.py'),m.Run.exname,pname),\
             options=list(profilegenerators.keys())
             )
         bprofile.msg='select a profile\n'+bprofile.msg

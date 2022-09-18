@@ -3,6 +3,7 @@ from cancellations.examples import harmonicoscillator1d, estimateobservables
 from cancellations.functions import examplefunctions as ef, functions
 from cancellations.display import cdisplay
 from cancellations.utilities import numutil, sampling, tracking, browse, batchjob, energy, sysutil
+from cancellations.utilities.sysutil import maybe as maybe
 import jax
 import jax.numpy as jnp
 import os
@@ -23,20 +24,38 @@ class Run(batchjob.Batchjob):
         # task 1
 
         pathprofile=browse.defaultpathprofile().butwith(regex='.*tgsamples/?',condition1=None)
-        bprofile=browse.Browse.getdefaultprofile().butwith(options=browse.getpaths(pathprofile),onlyone=True,\
-            readinfo=lambda path: '\n'.join(sorted(list(os.listdir(path)),key=lambda p:os.path.getmtime(path+p))))
+        relpaths=browse.getpaths(pathprofile)
+        fullpaths=['outputs/'+relpath for relpath in relpaths]
+        rels={full:rel for full,rel in zip(fullpaths,relpaths)}
+
+        bprofile=browse.Browse.getdefaultprofile().butwith(
+            options=fullpaths,\
+            onlyone=True,\
+            readinfo=lambda path: '\n'.join(sorted(list(os.listdir(path)),key=lambda p:os.path.getmtime(path+p))),\
+            displayoption=lambda full: rels[full]+' '+maybe(sysutil.readtextfile,'')(full+'/metadata.txt')
+            )
         samplepath=batch.runsubprocess(browse.Browse(**bprofile),name='pick samples')
 
 
         # task 2
 
-        runpath=batch.runsubprocess(browse.Browse(**browse.Browse.getdefaultprofile().butwith(onlyone=True)),name='pick training run')
+        pathprofile=browse.defaultpathprofile()
+        fullpaths=['outputs/'+relpath for relpath in browse.getpaths(pathprofile)]
+        fullpaths=sorted(fullpaths,key=lambda full: os.path.getmtime(full))
+
+
+        bprofile=browse.Browse.getdefaultprofile().butwith(\
+                onlyone=True,\
+                options=fullpaths,\
+                readinfo=lambda full: sysutil.readtextfile(full+'/info.txt'),\
+                displayoption=lambda full: full[8:]+' '+maybe(sysutil.readtextfile,'')(full+'/metadata.txt') )
+
+        runpath=batch.runsubprocess(browse.Browse(**bprofile),name='pick training run')
 
 
         # task 3
 
         psi_descr=sysutil.load(runpath+'data/unprocessed').learner.restore()
-
         psi=psi_descr.eval
         E_kin_local=numutil.forfixedparams(energy.genlocalkinetic)(psi)
 

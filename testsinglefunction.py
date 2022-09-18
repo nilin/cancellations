@@ -6,34 +6,6 @@ import re
 import importlib
 import sys
 
-#
-#fname=sys.argv[1]
-#
-#pathprofile=browse.defaultpathprofile().butwith(
-#    regex='(./)?cancellations.*[a-z].py',\
-#    condition1=lambda path: re.search('def '+fname, sysutil.readtextfile(path)),\
-#    readinfo=lambda path: sysutil.readtextfile(path))
-#
-#bprofile=browse.Browse.getdefaultprofile().butwith(
-#    msg='select a file to run "{}(*args,**kwargs)" with the args just provided to singlescript.py'.format(fname),
-#    parentfolder='cancellations',
-#    onlyone=True,
-#    options=browse.getpaths(pathprofile)
-#)
-#
-#if __name__=='__main__':
-#    path=browse.Browse(**bprofile).run_as_main()
-#
-#    mname = path.replace('/', '.')[:-3]
-#    print('todo: use importlib to run')
-#    print(mname)
-#
-#    #importlib.import_module(mname)
-#    m = importlib.import_module(mname)
-#    getattr(m, fname)(*sysutil.cmdparams, **sysutil.cmdredefs)
-#
-#
-
 
 selections=tracking.dotdict()
 
@@ -52,26 +24,41 @@ class Run(batchjob.Batchjob):
             condition1=None
             #condition1=lambda path: re.search('class Run', sysutil.readtextfile(path)),\
             )
-        allpaths=browse.getpaths(pathprofile)
-        pattern=re.compile('^def (.*)\(',re.MULTILINE)
-        paths,functions=zip(*[(path,f) for path in allpaths for f in pattern.findall(sysutil.readtextfile(pf+path))])
-        dotpaths=[path[:-3].replace('/','.') for path in paths]
+        allrelpaths=browse.getpaths(pathprofile)
+        allfullpaths=[pf+relpath for relpath in browse.getpaths(pathprofile)]
+        rels={full:rel for full,rel in zip(allfullpaths,allrelpaths)}
 
-        options={'{}.{}'.format(path,function):(path,function) for path,function in zip(dotpaths,functions)}
+        pattern=re.compile('^def (.*)\(',re.MULTILINE)
+
+        fullfnpaths=[(fullpath,f) for fullpath in allfullpaths for f in pattern.findall(sysutil.readtextfile(fullpath))]
+#        reldotpaths=[(fullpath.replace('/','.'),f) for fullpath in allfullpaths for f in pattern.findall(sysutil.readtextfile(fullpath))]
+#        fulldotpaths=[full[:-3].replace('/','.') for full in fullpaths]
+#        reldotpaths=[rels[full][:-3].replace('/','.') for full in fullpaths]
+#
+#        options={'{}.{}'.format(dotpath,function):(dotpath,function) for dotpath,function in zip(dotpaths,functions)}
+#        slashoptions={'{}.{}'.format(dotpath,function):(slashpath,function) for dotpath,function,slashpath in zip(dotpaths,functions,paths)}
+#
+        def readinfo(pair):
+            full,fn=pair
+            return textutil.startingfrom(sysutil.readtextfile(full),'def '+fn)
+
+        def displayoption(pair):
+            full,fn=pair
+            out=rels[full].replace('/','.')[:-3]+'.'+fn
+            return out
 
         bprofile=browse.Browse.getdefaultprofile().butwith(\
             onlyone=True,\
-            readinfo=lambda path: sysutil.readtextfile(path),\
-            options=list(options.keys()),\
-            dynamiccondition=lambda path,phrase: re.search(phrase,path)
+            options=fullfnpaths,\
+            displayoption=displayoption,\
+            dynamiccondition=lambda fulldotpath,phrase: re.search(phrase,fulldotpath),\
+            readinfo=readinfo\
             )
-        bprofile.msg='Press [i] to input filter phrase,\nescape input mode with [ENTER/ESC/arrow keys].\n\n'+\
+        bprofile.msg='Press [i] to input filter phrase,\nescape input mode with arrow keys.\n\n'+\
             'mode: {}\nfilter by: {}\n'+50*textutil.dash+bprofile.msg0
-        dotfn=self.runsubprocess(browse.Browse(**bprofile),name='pick function')
+        fullpath,fname=self.runsubprocess(browse.Browse(**bprofile),name='pick function')
 
-        dotpath,selections.fname=options[dotfn]
-        selections.dotpath='cancellations.'+dotpath
-
+        selections.dotpath,selections.fname=fullpath.replace('/','.')[:-3],fname
 
         # task 2
 
@@ -93,4 +80,5 @@ sysutil.clearscreen()
 
 m = importlib.import_module(selections.dotpath)
 fn=getattr(m,selections.fname)
-fn(*selections.inputprofile.args,**selections.inputprofile.kwargs)
+out=fn(*selections.inputprofile.args,**selections.inputprofile.kwargs)
+print(out)
