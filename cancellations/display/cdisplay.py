@@ -31,6 +31,8 @@ class ConcreteDisplay(disp.StackedDisplay):
 		super().remove()
 
 
+
+
 class Dashboard(disp.CompositeDisplay):
 	def draw(self,*a,**kw):
 		for e in self.elements.values():
