@@ -16,6 +16,8 @@ profile=P.getprofiles('estimateobservables')['true ground state']()
 class Run(estimateobservables.Run):
     def execprocess(self):
         sysutil.save(profile.p_descr.compress(),self.outpath+'density')
+        sysutil.save(profile.p_descr.compress(),self.outpath+'data/functions/density')
+        sysutil.save(profile.psi_descr.compress(),self.outpath+'data/functions/psi')
         super().execprocess()
 
 

@@ -85,6 +85,9 @@ class Display:
 	def setwidth(self,width):
 		self.width=width
 
+	def getwidth(self):
+		return self.width
+
 	
 
 
@@ -260,6 +263,15 @@ class DynamicRange(Display,tracking.Stopwatch):
 
 		#return textutil.overwrite(textutil.placelabels([T(t) for t in ticks],ticks),textutil.placelabels([T(self.getval())])
 
+class Range(DynamicRange):
+	def __init__(self,queryfn,truevalue,rangewidth):
+		super().__init__(queryfn,customticks=[truevalue],customlabels=['true value'])
+		_T_=R_to_I_formatter(truevalue,1)
+		self.T=lambda t: _T_(t,self.getwidth())
+		self.center=truevalue
+		self.rangewidth=rangewidth
+
+	def gettransform(self): pass
 
 
 

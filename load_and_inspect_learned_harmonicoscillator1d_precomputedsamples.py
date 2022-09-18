@@ -62,7 +62,7 @@ class Run(batchjob.Batchjob):
         q=lambda X:psi(X)**2
         p=sysutil.load(samplepath+'density').restore().eval
 
-        sampler=sampling.LoadedSamplesPipe(samplepath)
+        sampler=sampling.LoadSamplesPipe(samplepath)
 
         sprofile=estimateobservables.Run.getdefaultprofile().butwith(\
             qpratio=jax.jit(lambda X: jnp.squeeze(q(X))/jnp.squeeze(p(X))),\

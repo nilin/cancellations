@@ -14,8 +14,9 @@ from ..learning import learning
 from ..functions.functions import ComposedFunction,SingleparticleNN,Product
 from ..utilities import config as cfg, numutil, tracking, sysutil, textutil, sampling, energy
 from ..display import cdisplay,display as disp
+import optax
 from . import plottools as pt
-from . import exampletemplate
+from . import exampleutil
 
 jax.config.update("jax_enable_x64", True)
 
@@ -36,31 +37,29 @@ def getdefaultprofile():
         'OddNN':dict(widths=[25,1],activation='sp')
     }
 
-    profile._var_X_distr_=4
-    profile._X_distr_=lambda key,samples,n,d:rnd.normal(key,(samples,n,d))*jnp.sqrt(profile._var_X_distr_)
-    profile._X_distr_density_=lambda X:jnp.exp(-jnp.sum(X**2/(2*profile._var_X_distr_),axis=(-2,-1)))
+    profile._var_X0_distr_=4
+    profile._X0_distr_=lambda key,samples,n,d:rnd.normal(key,(samples,n,d))*jnp.sqrt(profile._var_X0_distr_)
+    profile._X0_distr_density_=lambda X:jnp.exp(-jnp.sum(X**2/(2*profile._var_X_distr_),axis=(-2,-1)))
+
+    profile.proposalfn=sampling.gaussianstepproposal(.1)
 
     # training params
+
+    profile.nrunners=100
+    profile.burnsteps=100
 
     profile.weight_decay=0
     profile.iterations=25000
     profile.minibatchsize=100
 
-    profile.samples_train=5*10**4
-    profile.samples_test=1000
-    profile.evalblocksize=10**4
-
     profile.adjusttargetsamples=10000
     profile.adjusttargetiterations=250
 
-    profile.act_on_input=exampletemplate.act_on_input
+    profile.act_on_input=exampleutil.act_on_input
+
+    profile.truevalue=ef.totalenergy(profile.n)
     return profile
 
-
-#def gettarget(profile):
-#    #for i in range(profile.n): setattr(functions,'psi'+str(i),ef.psi(i))
-#    #return ComposedFunction(functions.Slater(*['psi'+str(i) for i in range(profile.n)]),functions.Outputscaling())
-#    return functions.Slater(*['psi'+str(i) for i in range(profile.n)])
 
 def getlearner(profile):
 
@@ -77,8 +76,8 @@ class Run(cdisplay.Run):
 
     def execprocess(run:cdisplay.Run):
 
-        run.act_on_input=exampletemplate.act_on_input
-        exampletemplate.prepdisplay(run)
+        run.act_on_input=exampleutil.act_on_input
+        exampleutil.prepdisplay(run)
 
         run.outpath='outputs/{}/'.format(run.ID)
         cfg.outpath='outputs/{}/'.format(run.ID)
@@ -87,18 +86,11 @@ class Run(cdisplay.Run):
         
         info='runID: {}\n'.format(run.ID)+'\n'*4; run.infodisplay.msg=info
 
-        run.X_train=run.genX(run.samples_train)
-        run.logcurrenttask('preparing training data')
-        run.X_test=run.genX(run.samples_test)
-        #r=5
-        #run.sections=pt.genCrossSections(numutil.blockwise_eval(run.target,blocksize=run.evalblocksize),interval=jnp.arange(-r,r,r/50))
-
         run.learner=getlearner(run)
         info+=4*'\n'+'learner\n\n{}'.format(textutil.indent(run.learner.getinfo())); run.infodisplay.msg=info
 
 
-
-        setupdata=dict(X_train=run.X_train,X_test=run.X_test,\
+        setupdata=dict(\
             learner=run.learner.compress(),
             sections=run.sections)
         sysutil.save(setupdata,run.outpath+'data/setup')
@@ -108,18 +100,25 @@ class Run(cdisplay.Run):
         run.trackcurrent('runinfo',info)
         sysutil.write(info,run.outpath+'info.txt',mode='w')
 
+
+        X0=run._X0_distr_(tracking.nextkey(),run.nrunners,run.n,run.d)
+
+        run._density_=lambda params,X: run.learner._eval_(params,X)**2
+        sampler=sampling.DynamicSampler(run._density_,run.proposalfn,X0)
+
+        for i in range(run.burnsteps):
+            sampler.step(run.learner.weights)
+            run.trackcurrenttask('burning',(i+1)/run.burnsteps)
+
         #train
         run.lossgrad=gen_lossgrad(run.learner._eval_)
 
-        run.trainer=TestTrainer(run.lossgrad,run.learner,run.X_train,\
-            memory=run,**{k:run[k] for k in ['weight_decay','iterations','minibatchsize']}) 
-        #run.trainer=learning.Trainer(run.lossgrad,run.learner,run.X_train,\
-        #    memory=run,**{k:run[k] for k in ['weight_decay','iterations','minibatchsize']}) 
+        run.trainer=TestTrainer(run.lossgrad,run.learner,sampler,\
+            **{k:run[k] for k in ['weight_decay','iterations']}) 
 
         regsched=tracking.Scheduler(tracking.nonsparsesched(run.iterations,start=100))
         plotsched=tracking.Scheduler(tracking.sparsesched(run.iterations,start=1000))
-        run.trainer.prepnextepoch(permute=False)
-        ld,_=exampletemplate.addlearningdisplay(run,tracking.currentprocess().display)
+        ld,_=addlearningdisplay(run,tracking.currentprocess().display)
 
         stopwatch1=tracking.Stopwatch()
         stopwatch2=tracking.Stopwatch()
@@ -127,9 +126,10 @@ class Run(cdisplay.Run):
         for i in range(run.iterations+1):
 
             loss=run.trainer.step()
+    
             for mem in [run.unprocessed,run]:
                 mem.addcontext('minibatchnumber',i)
-                mem.remember('minibatch loss',loss)
+                mem.remember('energy',jnp.exp(loss))
 
             if regsched.activate(i):
                 run.unprocessed.remember('weights',run.learner.weights)
@@ -160,11 +160,32 @@ def gen_lossgrad(psi):
 
 class TestTrainer(learning.Trainer):
 
-    def minibatch_step(self,X_mini,*Y_mini):
+    def minibatch_step(self,X_mini):
 
-        loss,grad=self.lossgrad(self.learner.weights,X_mini,*Y_mini)
+        loss,grad=self.lossgrad(self.learner.weights,X_mini)
         #updates,self.state=self.opt.update(grad,self.state,self.learner.weights)
         #self.learner.weights=optax.apply_updates(self.learner.weights,updates)
         self.learner.weight=numutil.leafwise(lambda x,y:x-.01*y,self.learner.weights,grad)
-        self.memory.remember('minibatch loss',loss)
         return loss
+
+    def step(self):
+        X_mini=self.sampler.step(self.learner.weights)
+        return self.minibatch_step(X_mini)	
+
+
+
+
+
+
+def addlearningdisplay(run,display):
+
+    a,b=display.xlim[0]+2,display.xlim[1]-2
+
+    ld=cdisplay.ConcreteStackedDisplay((a,b),(display.height-10,display.height-1))
+    ld.add(disp.NumberPrint('energy',msg='energy estimate {:.2E}',avg_of=100))
+
+    ld.add(disp.Range(run.getqueryfn('energy'),run.truevalue,1))
+    ld.add(disp.VSpace(1))
+    ld.add(disp.NumberPrint('minibatchnumber',msg='minibatch number {:.0f}'))
+
+    return run.display.add(ld,'learningdisplay')

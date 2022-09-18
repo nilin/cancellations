@@ -12,10 +12,10 @@ import jax.random as rnd
 from ..functions import examplefunctions as ef, functions
 from ..learning import learning
 from ..functions.functions import ComposedFunction,SingleparticleNN,Product
-from ..utilities import config as cfg, numutil, tracking, sysutil, textutil
+from ..utilities import config as cfg, numutil, tracking, sysutil, textutil, sampling
 from ..display import cdisplay,display as disp
 from . import plottools as pt
-from . import exampletemplate
+from . import exampleutil
 
 jax.config.update("jax_enable_x64", True)
 
@@ -32,7 +32,7 @@ class Run(cdisplay.Run):
 
     def execprocess(run:cdisplay.Run):
 
-        run.act_on_input=exampletemplate.act_on_input
+        run.act_on_input=exampleutil.act_on_input
 
         run.outpath='outputs/{}/'.format(run.ID)
         cfg.outpath='outputs/{}/'.format(run.ID)
@@ -81,13 +81,15 @@ class Run(cdisplay.Run):
         #train
         run.lossgrad=gen_lossgrad(run.learner._eval_,run._X_distr_density_)
 
-        run.trainer=learning.Trainer(run.lossgrad,run.learner,run.X_train,run.Y_train,\
-            memory=run,**{k:run[k] for k in ['weight_decay','iterations','minibatchsize']}) 
+        run.sampler=sampling.SamplesPipe(run.X_train,run.Y_train,minibatchsize=run.minibatchsize)
+
+        run.trainer=learning.Trainer(run.lossgrad,run.learner,run.sampler,\
+            **{k:run[k] for k in ['weight_decay','iterations']}) 
 
         regsched=tracking.Scheduler(tracking.nonsparsesched(run.iterations,start=100))
         plotsched=tracking.Scheduler(tracking.sparsesched(run.iterations,start=1000))
-        run.trainer.prepnextepoch(permute=False)
-        ld,_=exampletemplate.addlearningdisplay(run,tracking.currentprocess().display)
+        #run.trainer.prepnextepoch(permute=False)
+        ld,_=exampleutil.addlearningdisplay(run,tracking.currentprocess().display)
 
         stopwatch1=tracking.Stopwatch()
         stopwatch2=tracking.Stopwatch()
@@ -106,8 +108,8 @@ class Run(cdisplay.Run):
                 sysutil.write('loss={:.3f} iterations={} n={} d={}'.format(loss,i,run.n,run.d),run.outpath+'metadata.txt',mode='w')	
 
             if plotsched.activate(i):
-                exampletemplate.fplot()
-                exampletemplate.lplot()
+                exampleutil.fplot()
+                exampleutil.lplot()
 
             if stopwatch1.tick_after(.05):
                 ld.draw()
@@ -118,7 +120,7 @@ class Run(cdisplay.Run):
         return run.learner
 
 
-    prepdisplay=exampletemplate.prepdisplay
+    prepdisplay=exampleutil.prepdisplay
 
     @staticmethod
     def getdefaultprofile():
@@ -153,7 +155,7 @@ class Run(cdisplay.Run):
         profile.adjusttargetsamples=10000
         profile.adjusttargetiterations=250
 
-        profile.act_on_input=exampletemplate.act_on_input
+        profile.act_on_input=exampleutil.act_on_input
         return profile
 
 

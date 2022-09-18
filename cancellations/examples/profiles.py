@@ -29,6 +29,7 @@ def getprofiles(exname):
                     name='tgsamples',\
                     p=p_descr.eval,\
                     p_descr=p_descr,\
+                    psi_descr=psi_descr,\
                     qpratio=lambda X:jnp.ones(X.shape[0],),\
                     maxburnsteps=2500,\
                     maxiterations=10**6,\
@@ -41,7 +42,7 @@ def getprofiles(exname):
 
 
         case 'unsupervised':
-            pgens['this example is under development']=harmonicoscillator1d.Run.getdefaultprofile
+            pgens['this example is under development']=unsupervised.Run.getdefaultprofile
 
     return pgens
 

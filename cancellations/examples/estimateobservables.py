@@ -78,11 +78,12 @@ class Run(cdisplay.Run):
 
             cd.add(disp.VSpace(1))
 
-            T=lambda t: disp.R_to_I_formatter(tv,1)(t,display.width)
-            class Range(disp.DynamicRange):
-                def gettransform(self): self.center=tv; self.rangewidth=1; self.T=T
+            #T=lambda t: disp.R_to_I_formatter(tv,1)(t,display.width)
+            #class Range(disp.DynamicRange):
+            #    def gettransform(self): self.center=tv; self.rangewidth=1; self.T=T
 
-            cd.add(Range(run.getqueryfn('estimate '+obs),customticks=[tv],customlabels='true value'))
+            #cd.add(Range(run.getqueryfn('estimate '+obs),customticks=[tv],customlabels='true value'))
+            cd.add(disp.Range(run.getqueryfn('estimate '+obs),tv,1))
 
         for obs in run.observables.keys():
             addline(obs)

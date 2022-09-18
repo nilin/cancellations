@@ -7,6 +7,7 @@ import jax.random as rnd
 import re
 import os
 import math
+from . import numutil
 from collections import deque
 
 from cancellations.utilities import sysutil
@@ -17,19 +18,19 @@ from ..utilities import tracking
 scaleby=jax.vmap(jnp.multiply,in_axes=(0,0))
 
 
-class Sampler:
+class DynamicSampler:
 	
-	def __init__(self,p,proposalfn,X0):
-		self.p=p
+	def __init__(self,_p_,proposalfn,X0):
+		self._p_=_p_
 		self.runners=X0.shape[0]
 		self.X=X0
 		self.proposalfn=proposalfn
 		self.hist=[]
 		
-	def step(self):
+	def step(self,p_params):
 		X0=self.X
 		X1=self.proposals(X0)
-		ratios=self.p(X1)/self.p(X0)
+		ratios=self._p_(p_params,X1)/self._p_(p_params,X0)
 		u=rnd.uniform(tracking.nextkey(),ratios.shape)
 		accepted=ratios>u
 		rejected=1-accepted
@@ -39,11 +40,45 @@ class Sampler:
 	def proposals(self,X):
 		return self.proposalfn(tracking.nextkey(),X)
 
+class Sampler(DynamicSampler):
+	
+	def __init__(self,p,proposalfn,X0):
+		_p_=numutil.dummyparams(p)
+		super().__init__(_p_,proposalfn,X0)
+		
+	def step(self):
+		return super().step(None)
+
+def gaussianstepproposal(var):
+    return lambda key,X: X+rnd.normal(key,X.shape)*math.sqrt(var)
+
+
+
+
+class SamplesPipe(Sampler):
+
+	def __init__(self,X,*Ys,minibatchsize):
+		self.X=X
+		self.Ys=Ys
+		self.minibatches=deque([])
+		self.minibatchsize=minibatchsize
+
+	def step(self):
+		if len(self.minibatches)==0:
+			self.prepnextepoch()
+		return self.minibatches.popleft()
+
+	def prepnextepoch(self,permute=True):
+		if permute: self.X,*self.Ys=numutil.randperm(self.X,*self.Ys)
+		self.minibatches=deque(numutil.chop(self.X,*self.Ys,blocksize=self.minibatchsize))
+
+
+
 
 
 class InputExhausted(Exception): pass
 
-class LoadedSamplesPipe(Sampler):
+class LoadSamplesPipe(Sampler):
 
 	def __init__(self,path,burnfraction=.25,cycle=False):
 		self.i=0
