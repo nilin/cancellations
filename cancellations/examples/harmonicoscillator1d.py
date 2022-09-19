@@ -89,7 +89,7 @@ class Run(cdisplay.Run):
         run.trainer=learning.Trainer(run.lossgrad,run.learner,run.sampler,\
             **{k:run[k] for k in ['weight_decay','iterations']}) 
 
-        regsched=tracking.Scheduler(tracking.nonsparsesched(run.iterations,start=100))
+        regsched=tracking.Scheduler(tracking.nonsparsesched(run.iterations,start=50))
         plotsched=tracking.Scheduler(tracking.sparsesched(run.iterations,start=1000))
         #run.trainer.prepnextepoch(permute=False)
         ld,_=exampleutil.addlearningdisplay(run,tracking.currentprocess().display)
@@ -167,10 +167,14 @@ class Run(cdisplay.Run):
 
 
 def gen_lossgrad(f,_X_distr_density_):
-    gainfn=lambda X,Y1,Y2: jnp.sum(Y1*Y2/_X_distr_density_(X))
-    lossfn1=lambda X,Y1,Y2: 1-gainfn(X,Y1,Y2)**2/(gainfn(X,Y1,Y1)*gainfn(X,Y2,Y2))
-    lossfn2=lambda params,X,Y: lossfn1(X,f(params,X),Y)
-    return jax.jit(jax.value_and_grad(lossfn2))
+    lossfn=lambda params,X,Y: numutil.weighted_SI_loss(f(params,X),Y,relweights=_X_distr_density_(X))
+    return jax.jit(jax.value_and_grad(lossfn))
+
+##def gen_lossgrad(f,_X_distr_density_):
+##    gainfn=lambda X,Y1,Y2: jnp.sum(Y1*Y2/_X_distr_density_(X))
+##    lossfn1=lambda X,Y1,Y2: 1-gainfn(X,Y1,Y2)**2/(gainfn(X,Y1,Y1)*gainfn(X,Y2,Y2))
+##    lossfn2=lambda params,X,Y: lossfn1(X,f(params,X),Y)
+##    return jax.jit(jax.value_and_grad(lossfn2))
 
 def gettarget(profile):
     #for i in range(profile.n): setattr(functions,'psi'+str(i),ef.psi(i))

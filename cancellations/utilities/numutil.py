@@ -339,11 +339,11 @@ def applyonleaves(T,fn):
 	else:
 		return fn(T)
 
-def recurseonleaves(T,fn):
+def recurseonleaves(T,leaf_fn,combine):
 	if type(T)==list or type(T)==tuple:
-		return fn([recurseonleaves(t,fn) for t in T])
+		return combine([recurseonleaves(t,leaf_fn,combine) for t in T])
 	else:
-		return fn([T])
+		return leaf_fn(T)
 
 nestedstructure=applyonleaves
 

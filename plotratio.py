@@ -69,13 +69,18 @@ class Run(batchjob.Batchjob):
         fs=[getnorm(_f_,weights,X) for weights in weightslist]
         f_over_Af=[jnp.sqrt(f/Af) for f,Af in zip(fs,Afs)]
 
+        weightnorms=[jnp.sqrt(numutil.recurseonleaves(weights,lambda A:jnp.sum(A**2) if A!=None else 0,sum)) for weights in weightslist]
+
         #losses=[numutil.SI_loss(_psi_(weights,X),psi0(X)) for weights in weightslist]
         losses=[numutil.weighted_SI_loss(_psi_(weights,X),psi0(X),samplingdensity(X)) for weights in weightslist]
 
         fig,(ax1,ax2)=plt.subplots(2,1)
+        ax2.plot(i_s,weightnorms,'r:',label='|W|')
+
         ax1.plot(i_s,f_over_Af,'r',label='|f|/|Af|')
         ax1.set_yscale('log')
         ax1.legend()
+
         #ax1.set_title('|f|/|Af|')
         ax2.plot(i_s,losses,'b',label='loss')
         ax2.set_yscale('log')
