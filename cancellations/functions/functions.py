@@ -340,12 +340,19 @@ class IsoGaussian(FunctionDescription):
 #=======================================================================================================
 
 def switchtype(f:FunctionDescription):
-	if type(f)==ComposedFunction:
-		elements=[switchtype(e) if isinstance(e,Switchable) else e for e in f.elements]
-		return ComposedFunction(*elements)
+
+	compositeclass=None
+	if type(f)==ComposedFunction: compositeclass=ComposedFunction 
+	if type(f)==Product: compositeclass=Product 
+
+	if compositeclass!=None:
+		elements,switchcounts=zip(*[switchtype(e) for e in f.elements])
+		return compositeclass(*elements), sum(switchcounts)
+
 	elif isinstance(f,Switchable):
-		return f.switchtype()
-	else: raise ValueError
+		return f.switchtype(),1
+	else:
+		return f,0
 
 
 
