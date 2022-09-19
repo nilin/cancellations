@@ -278,6 +278,9 @@ class Profile(dotdict):
         self.update(defs)
         return self
 
+    def __str__(self):
+        return '\n'.join(['{} = {}'.format(k,v) for k,v in self.items()])
+
 
 def timeprint(): return datetime.timedelta(seconds=int(session.time()))
 def nowstr():
@@ -294,6 +297,7 @@ class Process(Profile,Memory):
         if 'name' not in profile.keys(): self.name=''
         if 'ID' not in profile.keys(): self.ID='{}/{}'.format(session.ID,self.name)
         self.outpath='outputs/'+self.ID+'/'
+        self.profile=profile
 
     def log(self,msg):
         msg='{} | {}'.format(timeprint(),msg)
@@ -325,6 +329,8 @@ class Process(Profile,Memory):
     def getdefaultprofile():
         return Profile()
 
+    def profilestr(self):
+        return '\n'.join(['{} = {}'.format(k,v) for k,v in self.profile.items()])
 
 class Run(Process):
     def __init__(self,*a,**kw):

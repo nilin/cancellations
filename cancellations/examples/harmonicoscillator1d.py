@@ -62,7 +62,8 @@ class Run(cdisplay.Run):
             run.sections=pt.genCrossSections(numutil.blockwise_eval(run.target,blocksize=run.evalblocksize),interval=jnp.arange(-r,r,r/50))
 
         run.learner=getlearner(run)
-        info+=4*'\n'+'learner\n\n{}'.format(textutil.indent(run.learner.getinfo())); run.infodisplay.msg=info
+        info+=4*'\n'+'learner\n\n{}'.format(textutil.indent(run.learner.getinfo()))#; run.infodisplay.msg=info
+        info+=10*'\n'+run.profilestr(); run.infodisplay.msg=info
 
 
 
