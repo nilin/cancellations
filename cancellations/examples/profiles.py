@@ -7,53 +7,62 @@ import jax.numpy as jnp
 
 def getprofiles(exname):
     profilegenerators=dict()
-    pgens=profilegenerators
+    exprofiles=profilegenerators
     match exname:
 
 
         case 'harmonicoscillator1d':
-            pgens['default']=lambda:harmonicoscillator1d.Run.getdefaultprofile().butwith(weight_decay=.1)
+            exprofiles['default']=harmonicoscillator1d.Run.getdefaultprofile().butwith(weight_decay=.1)
 
-            pgens['no weight_decay']=lambda:harmonicoscillator1d.Run.getdefaultprofile().butwith(weight_decay=0)
-            pgens['weight_decay .1']=lambda:harmonicoscillator1d.Run.getdefaultprofile().butwith(weight_decay=.1)
-            pgens['weight_decay 1']=lambda:harmonicoscillator1d.Run.getdefaultprofile().butwith(weight_decay=1.0)
-            pgens['weight_decay 10']=lambda:harmonicoscillator1d.Run.getdefaultprofile().butwith(weight_decay=10.0)
-            pgens['weight growth']=lambda:harmonicoscillator1d.Run.getdefaultprofile().butwith(weight_decay=-.1)
+            exprofiles['no weight_decay']=harmonicoscillator1d.Run.getdefaultprofile().butwith(weight_decay=0)
+            exprofiles['weight_decay .1']=harmonicoscillator1d.Run.getdefaultprofile().butwith(weight_decay=.1)
+            exprofiles['weight_decay 1']=harmonicoscillator1d.Run.getdefaultprofile().butwith(weight_decay=1.0)
+            exprofiles['weight_decay 10']=harmonicoscillator1d.Run.getdefaultprofile().butwith(weight_decay=10.0)
+            exprofiles['weight growth']=harmonicoscillator1d.Run.getdefaultprofile().butwith(weight_decay=-.1)
 
+            exprofiles['layer normalization, no weight decay']=harmonicoscillator1d.Run.getdefaultprofile().butwith(\
+                layernormalization=(2.0,'batch'),\
+                weight_decay=0\
+                )
+
+            exprofiles['init weights small, no weight decay']=harmonicoscillator1d.Run.getdefaultprofile().butwith(\
+                initweight_coefficient=.1,\
+                weight_decay=0\
+                )
+
+            exprofiles['test']=harmonicoscillator1d.Run.getdefaultprofile().butwith(n=2)
 
         case 'estimateobservables':
 
             # 1
-            pgens['abstract (non-runnable)']=estimateobservables.Run.getdefaultprofile
+            exprofiles['abstract (non-runnable)']=estimateobservables.Run.getdefaultprofile()
 
             # 2
-            def getprofile2():
-                psi_descr=harmonicoscillator1d.gettarget(estimateobservables.Run.getdefaultprofile())
-                psi=psi_descr.eval
-                E_kin_local=numutil.forfixedparams(energy.genlocalkinetic)(psi)
-                p_descr=functions.ComposedFunction(psi_descr,'square')
-                profile=estimateobservables.Run.getdefaultprofile().butwith(\
-                    name='tgsamples',\
-                    p=p_descr.eval,\
-                    p_descr=p_descr,\
-                    psi_descr=psi_descr,\
-                    qpratio=lambda X:jnp.ones(X.shape[0],),\
-                    maxburnsteps=2500,\
-                    maxiterations=10**6,\
-                    observables={'V':lambda X:jnp.sum(X**2/2,axis=(-2,-1)),'K':E_kin_local},\
-                    burn_avg_of=1000)
-                profile.trueenergies={k:ef.totalenergy(5)/2 for k in ['V','K']}
-                return profile
+            psi_descr=harmonicoscillator1d.gettarget(estimateobservables.Run.getdefaultprofile())
+            psi=psi_descr.eval
+            E_kin_local=numutil.forfixedparams(energy.genlocalkinetic)(psi)
+            p_descr=functions.ComposedFunction(psi_descr,'square')
+            profile=estimateobservables.Run.getdefaultprofile().butwith(\
+                name='tgsamples',\
+                p=p_descr.eval,\
+                p_descr=p_descr,\
+                psi_descr=psi_descr,\
+                qpratio=lambda X:jnp.ones(X.shape[0],),\
+                maxburnsteps=2500,\
+                maxiterations=10**6,\
+                observables={'V':lambda X:jnp.sum(X**2/2,axis=(-2,-1)),'K':E_kin_local},\
+                burn_avg_of=1000)
+            profile.trueenergies={k:ef.totalenergy(5)/2 for k in ['V','K']}
 
-            pgens['true ground state']=getprofile2
+            exprofiles['true ground state']=profile
 
 
         case 'unsupervised':
-            pgens['this example is under development']=unsupervised.Run.getdefaultprofile
+            exprofiles['this example is under development']=unsupervised.Run.getdefaultprofile()
 
 
     #return {pname:lambda:pgen().butwith(profilename=pname) for pname,pgen in pgens.items()}
-    return pgens
+    return exprofiles
 
 
 

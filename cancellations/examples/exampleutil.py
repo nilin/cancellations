@@ -15,7 +15,7 @@ from . import plottools as pt
 import matplotlib.pyplot as plt
 from ..display import cdisplay,display as disp
 
-from ..utilities import numutil as mathutil, tracking,config as cfg,sysutil,textutil
+from ..utilities import numutil as mathutil, tracking,config as cfg,sysutil,textutil, numutil
 from ..functions import functions
 from ..learning import testing_old
 import os
@@ -222,7 +222,12 @@ def fplot():
 	run=tracking.currentprocess()
 	figtitle=info(separator='\n')
 	figpath='{}{} minibatches'.format(run.outpath,int(run.unprocessed.getval('minibatchnumber')))
-	plotfunctions(run.sections,run.learner.eval,figtitle,figpath)
+
+	C=numutil.norm(run.target.eval(run.X_train[:1000]))/numutil.norm(run.learner.eval(run.X_train[:1000]))
+	f=lambda X:run.learner.eval(X)*C
+
+	plotfunctions(run.sections,f,figtitle,figpath)
+	#plotfunctions(run.sections,run.learner.eval,figtitle,figpath)
 
 
 # dashboard

@@ -416,7 +416,7 @@ breaker=Breaker()
 
 
 # start must be 10,25,50,100,250,500,1000,...
-def sparsesched(timebound,start=500,skipzero=True):
+def sparsesched(timebound,start=500,skipzero=False):
     sched=[0]
     t=start
     while t<timebound:

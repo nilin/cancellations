@@ -48,15 +48,16 @@ class Run(batchjob.Batchjob):
 
         # task 2
 
-        profilegenerators=P.getprofiles(m.Run.exname)
+        profiles=P.getprofiles(m.Run.exname)
         bprofile=browse.Browse.getdefaultprofile().butwith(\
             onlyone=True,\
             #readinfo=lambda pname: textutil.startingfrom(sysutil.readtextfile('cancellations/examples/profiles.py'),m.Run.exname,pname),\
-            options=list(profilegenerators.keys())
+            options=list(profiles.keys()),\
+            readinfo=lambda profilename:profiles[profilename].__str__()
             )
         bprofile.msg='select a profile\n'+bprofile.msg
         profilename=self.runsubprocess(browse.Browse(**bprofile),name='pick profile')
-        profile=profilegenerators[profilename]()
+        profile=profiles[profilename]
         profile['profilename']=profilename
 
 

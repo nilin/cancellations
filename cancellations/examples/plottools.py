@@ -48,9 +48,9 @@ class CrossSection:
 		self.X=X
 		self.Y=Y
 		self.n=X.shape[-2]
-	def plot(self,staticlearner,normalized=True,**kwargs):
-		f=mathutil.closest_multiple(staticlearner,self.X[:250],self.Y[:250],normalized=normalized)
-		return self.plot_y_vs_f(f,normalized_target=normalized,**kwargs)
+	def plot(self,staticlearner,**kwargs):
+		f=mathutil.closest_multiple(staticlearner,self.X[:1000],self.Y[:1000])
+		return self.plot_y_vs_f(f,**kwargs)
 
 
 class Line_1particle(CrossSection):
@@ -78,12 +78,13 @@ class Slice(CrossSection):
 		self.y=mathutil.applyalonglast(target,self.slice,2)
 
 
-	def plot(self,f,normalized_target=False):
+	def plot(self,f):
 		I=self.interval
-		c=1/mathutil.norm(self.Y) if normalized_target else 1
+		#c=1/mathutil.norm(self.Y)
 
 		fig,(ax0,ax1,ax2)=plt.subplots(1,3,figsize=(15,6))
-		yt=c*self.y
+		#yt=c*self.y
+		yt=self.y
 		yl=mathutil.applyalonglast(f,self.slice,2)
 
 		#M=1 if normalized_target else mathutil.norm(self.Y)
@@ -93,20 +94,22 @@ class Slice(CrossSection):
 		ax1.set_title('learner')
 		ax2.set_title('both')
 
+		levels=[-.1,.1]
+
 		mt=ax0.pcolormesh(I,I,yt,cmap='seismic')#,vmin=-M,vmax=M)
-		ct=ax0.contour(I,I,yt,levels=[0],colors='k',linewidths=1)
-		cl=ax0.contour(I,I,yl,levels=[0],colors='k',linewidths=.1,alpha=.5)
+		ct=ax0.contour(I,I,yt,levels=levels,colors='k',linewidths=1)
+		cl=ax0.contour(I,I,yl,levels=levels,colors='k',linewidths=.1,alpha=.5)
 		plt.clabel(cl,inline=True,fmt=lambda x:'learner')
 
 		ml=ax1.pcolormesh(I,I,yl,cmap='seismic')#,vmin=-M,vmax=M)
-		cl=ax1.contour(I,I,yl,levels=[0],colors='k',linewidths=1)
-		ct=ax1.contour(I,I,yt,levels=[0],colors='k',linewidths=.1,alpha=.5)
+		cl=ax1.contour(I,I,yl,levels=levels,colors='k',linewidths=1)
+		ct=ax1.contour(I,I,yt,levels=levels,colors='k',linewidths=.1,alpha=.5)
 		plt.clabel(ct,inline=True,fmt=lambda x:'target')
 
 		for m in [mt,ml]: m.set_edgecolor('face')
 
-		c0=ax2.contour(I,I,yt,levels=[0],colors='b',linewidths=2)
-		c1=ax2.contour(I,I,yl,levels=[0],colors='r',linewidths=2)
+		c0=ax2.contour(I,I,yt,levels=levels,colors='b',linewidths=2)
+		c1=ax2.contour(I,I,yl,levels=levels,colors='r',linewidths=1)
 		plt.clabel(c0,inline=True,fmt=lambda x:'target')
 
 		for ax in (ax0,ax1,ax2): ax.set_aspect('equal')

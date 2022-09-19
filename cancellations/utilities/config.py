@@ -6,6 +6,11 @@ from collections import deque
 
 
 biasinitsize=.1
+initweight_coefficient=2
+layernormalization=None
+
+
+
 plotfineness=50
 
 def agrees(d1,**d2):

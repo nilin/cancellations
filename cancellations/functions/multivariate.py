@@ -23,10 +23,29 @@ from inspect import signature
 def gen_NN_layer(ac):
 	activation=activations[ac]
 
+	if cfg.layernormalization==None:
+		layernormalize=lambda Y:Y
+	else:
+		std,mode=cfg.layernormalization
+
+		match mode:
+			case 'online':
+				def layernormalize(Y):
+					means=jnp.average(Y,axis=-1)
+					norms=jnp.sqrt(jnp.average(Y**2,axis=-1))
+					return std*(Y-means[:,None])/norms[:,None]
+			case 'batch':
+				def layernormalize(Y):
+					mean=jnp.average(Y)
+					norm=jnp.sqrt(jnp.average(Y**2))
+					return std*(Y-mean)/norm
+
 	@jax.jit
 	def f(Wb,X):
 		W,b=Wb[0],Wb[1]
-		return activation(jnp.inner(X,W)+b[None,:])
+		ac_inputs=jnp.inner(X,W)+b[None,:]
+		ac_inputs=layernormalize(ac_inputs)
+		return activation(ac_inputs)
 	return f
 		
 

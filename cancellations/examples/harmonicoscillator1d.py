@@ -31,6 +31,12 @@ class Run(cdisplay.Run):
 
     def execprocess(run:cdisplay.Run):
 
+        # make this temporary
+        if 'layernormalization' in run.keys():
+            cfg.layernormalization=run.layernormalization 
+        if 'initweight_coefficient' in run.keys():
+            cfg.initweight_coefficient=run.initweight_coefficient
+
         run.act_on_input=exampleutil.act_on_input
 
         run.outpath='outputs/{}/'.format(run.ID)
@@ -40,27 +46,33 @@ class Run(cdisplay.Run):
         
         info='runID: {}\n'.format(run.ID)+'\n'*4; run.infodisplay.msg=info
 
-        if 'setupdata_path' in run.keys():
-            run.update(sysutil.load(run.setupdata_path))
-            run.target.restore()
-            tracking.log('Loaded target and training data from '+run.setupdata_path)
-            info+='target\n\n{}'.format(textutil.indent(run.target.getinfo())); #run.trackcurrent('runinfo',info)
+        ####
 
-        else:
-            run.target=gettarget(run)
-            #exampletemplate.adjustnorms(run.target,run.genX(1000))
+        #if 'setupdata_path' in run.keys():
+        #    run.update(sysutil.load(run.setupdata_path))
+        #    run.target.restore()
+        #    tracking.log('Loaded target and training data from '+run.setupdata_path)
+        #    info+='target\n\n{}'.format(textutil.indent(run.target.getinfo())); #run.trackcurrent('runinfo',info)
 
-            info+='target\n\n{}'.format(textutil.indent(run.target.getinfo())); #run.trackcurrent('runinfo',info)
+        #else:
 
-            run.X_train=run.genX(run.samples_train)
-            tracking.session.logcurrenttask('preparing training data')
-            run.Y_train=numutil.blockwise_eval(run.target,blocksize=run.evalblocksize,msg='preparing training data')(run.X_train)
-            run.X_test=run.genX(run.samples_test)
-            run.Y_test=numutil.blockwise_eval(run.target,blocksize=run.evalblocksize,msg='preparing test data')(run.X_test)
-            r=5
-            run.sections=pt.genCrossSections(numutil.blockwise_eval(run.target,blocksize=run.evalblocksize),interval=jnp.arange(-r,r,r/50))
 
-        #run.learner=getlearner(run)
+        run.target=gettarget(run)
+        #exampletemplate.adjustnorms(run.target,run.genX(1000))
+
+        info+='target\n\n{}'.format(textutil.indent(run.target.getinfo())); #run.trackcurrent('runinfo',info)
+
+        run.X_train=run.genX(run.samples_train)
+        tracking.session.logcurrenttask('preparing training data')
+        run.Y_train=numutil.blockwise_eval(run.target,blocksize=run.evalblocksize,msg='preparing training data')(run.X_train)
+        run.X_test=run.genX(run.samples_test)
+        run.Y_test=numutil.blockwise_eval(run.target,blocksize=run.evalblocksize,msg='preparing test data')(run.X_test)
+        r=5
+        run.sections=pt.genCrossSections(numutil.blockwise_eval(run.target,blocksize=run.evalblocksize),interval=jnp.arange(-r,r,r/50))
+
+        ####
+
+        run.learner=getlearner(run)
         info+=4*'\n'+'learner\n\n{}'.format(textutil.indent(run.learner.getinfo()))#; run.infodisplay.msg=info
         info+=10*'\n'+run.profilestr(); run.infodisplay.msg=info
 
@@ -141,9 +153,6 @@ class Run(cdisplay.Run):
             'dets':dict(d=25,ndets=25),
             #'OddNN':dict(widths=[25,1],activation='sp')
         }
-
-        profile.learner=getlearner(profile)
-
 
         profile._var_X_distr_=4
         profile._X_distr_=lambda key,samples,n,d:rnd.normal(key,(samples,n,d))*jnp.sqrt(profile._var_X_distr_)

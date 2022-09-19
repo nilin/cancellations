@@ -189,12 +189,9 @@ def normalize_by_weights(learner,X_):
 
 
 
-def closest_multiple(f,X,Y_target,normalized=False):
+def closest_multiple(f,X,Y_target):
 	Y=f(X)
-	if normalized:
-		C=jnp.sign(jnp.dot(Y,Y_target))/jnp.sqrt(dot(Y,Y))
-	else:
-		C=jnp.dot(Y,Y_target)/jnp.dot(Y,Y)
+	C=jnp.dot(Y,Y_target)/jnp.dot(Y,Y)
 	return scale(f,C)
 
 
@@ -411,7 +408,7 @@ def combinelossgradfns(lossgradfns,nums_inputs,coefficients):
 #	return 1/jnp.max(jnp.triu(1/sqdists))
 
 def initweights(shape):
-	return rnd.normal(tracking.nextkey(),shape)*jnp.sqrt(2/shape[-1])
+	return rnd.normal(tracking.nextkey(),shape)*jnp.sqrt(cfg.initweight_coefficient/shape[-1])
 
 
 
