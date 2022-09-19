@@ -125,3 +125,8 @@ def maybe(f,ifnot=None):
 
 def test():
     print(readtextfile('batch1.py'))
+
+
+
+
+write('setup','outputs/setup.txt')

@@ -14,6 +14,7 @@ def getprofiles(exname):
             pgens['default']=harmonicoscillator1d.Run.getdefaultprofile
             pgens['weight_decay a']=lambda:harmonicoscillator1d.Run.getdefaultprofile().butwith(weight_decay=.1)
             pgens['weight_decay b']=lambda:harmonicoscillator1d.Run.getdefaultprofile().butwith(weight_decay=1.0)
+            pgens['weight growth']=lambda:harmonicoscillator1d.Run.getdefaultprofile().butwith(weight_decay=-.1)
 
 
         case 'estimateobservables':
@@ -46,6 +47,8 @@ def getprofiles(exname):
         case 'unsupervised':
             pgens['this example is under development']=unsupervised.Run.getdefaultprofile
 
+
+    #return {pname:lambda:pgen().butwith(profilename=pname) for pname,pgen in pgens.items()}
     return pgens
 
 

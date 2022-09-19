@@ -25,7 +25,7 @@ class Run(batchjob.Batchjob):
 
         pathprofile=browse.defaultpathprofile()
         fullpaths=['outputs/'+relpath for relpath in browse.getpaths(pathprofile)]
-        fullpaths=sorted(fullpaths,key=lambda full: os.path.getmtime(full))
+        fullpaths=sorted(fullpaths,key=lambda full: -os.path.getmtime(full))
 
 
         bprofile=browse.Browse.getdefaultprofile().butwith(\
@@ -56,15 +56,20 @@ class Run(batchjob.Batchjob):
         fs=[jnp.sum(_f_(weights,X)**2/_X_distr_density_(X)) for weights in weightslist]
         f_over_Af=[f/Af for f,Af in zip(fs,Afs)]
 
-        fig,ax=plt.subplots()
+        fig1,ax=plt.subplots()
         ax.plot(i_s,f_over_Af)
-        fig.suptitle('|f|^2/|Af|^2')
+        ax.set_yscale('log')
+        fig1.suptitle('|f|^2/|Af|^2'+sysutil.maybe(lambda:'\nprofile name: '+sysutil.load(runpath+'data/setup')['profilename'],'')())
 
         fpath=batch.outpath+'ratio.pdf' 
-        sysutil.savefig(fpath)
+        sysutil.savefig(fpath,fig=fig1)
+        sysutil.showfile(batch.outpath)
         sysutil.showfile(fpath)
+
         #plt.show()
 
+        info=sysutil.readtextfile(runpath+'info.txt')
+        sysutil.write(info,batch.outpath+'info.txt')
 
 Run(**profile).run_as_main()
 #

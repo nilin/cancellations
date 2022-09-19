@@ -68,9 +68,11 @@ class Run(cdisplay.Run):
 
 
         setupdata=dict(X_train=run.X_train,Y_train=run.Y_train,X_test=run.X_test,Y_test=run.Y_test,\
-            target=run.target.compress(),
-            learner=run.learner.compress(),
-            sections=run.sections)
+            target=run.target.compress(),\
+            learner=run.learner.compress(),\
+            sections=run.sections,\
+            profilename=run.profilename\
+            )
         sysutil.save(setupdata,run.outpath+'data/setup')
 
         run.unprocessed=tracking.Memory()
@@ -128,6 +130,7 @@ class Run(cdisplay.Run):
         profile=tracking.Profile(name='run example')
         profile.exname='example'
         profile.instructions=''
+        profile.profilename='default'
 
         profile.n=5
         profile.d=1

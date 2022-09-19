@@ -56,7 +56,7 @@ class Run(batchjob.Batchjob):
         bprofile.msg='select a profile\n'+bprofile.msg
         profilename=self.runsubprocess(browse.Browse(**bprofile),name='pick profile')
         profile=profilegenerators[profilename]()
-
+        profile['profilename']=profilename
 
 
         # task 3

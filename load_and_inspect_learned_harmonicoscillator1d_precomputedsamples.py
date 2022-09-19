@@ -41,7 +41,7 @@ class Run(batchjob.Batchjob):
 
         pathprofile=browse.defaultpathprofile()
         fullpaths=['outputs/'+relpath for relpath in browse.getpaths(pathprofile)]
-        fullpaths=sorted(fullpaths,key=lambda full: os.path.getmtime(full))
+        fullpaths=sorted(fullpaths,key=lambda full: -os.path.getmtime(full))
 
 
         bprofile=browse.Browse.getdefaultprofile().butwith(\
