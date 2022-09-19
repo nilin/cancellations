@@ -17,7 +17,6 @@ from ..display import cdisplay,display as disp
 from . import plottools as pt
 from . import exampleutil
 
-jax.config.update("jax_enable_x64", True)
 
 
 
@@ -45,16 +44,16 @@ class Run(cdisplay.Run):
             run.update(sysutil.load(run.setupdata_path))
             run.target.restore()
             tracking.log('Loaded target and training data from '+run.setupdata_path)
-            info+='target\n\n{}'.format(textutil.indent(run.target.getinfo())); run.trackcurrent('runinfo',info)
+            info+='target\n\n{}'.format(textutil.indent(run.target.getinfo())); #run.trackcurrent('runinfo',info)
 
         else:
             run.target=gettarget(run)
             #exampletemplate.adjustnorms(run.target,run.genX(1000))
 
-            info+='target\n\n{}'.format(textutil.indent(run.target.getinfo())); run.trackcurrent('runinfo',info)
+            info+='target\n\n{}'.format(textutil.indent(run.target.getinfo())); #run.trackcurrent('runinfo',info)
 
             run.X_train=run.genX(run.samples_train)
-            run.logcurrenttask('preparing training data')
+            tracking.session.logcurrenttask('preparing training data')
             run.Y_train=numutil.blockwise_eval(run.target,blocksize=run.evalblocksize,msg='preparing training data')(run.X_train)
             run.X_test=run.genX(run.samples_test)
             run.Y_test=numutil.blockwise_eval(run.target,blocksize=run.evalblocksize,msg='preparing test data')(run.X_test)
@@ -64,7 +63,6 @@ class Run(cdisplay.Run):
         #run.learner=getlearner(run)
         info+=4*'\n'+'learner\n\n{}'.format(textutil.indent(run.learner.getinfo()))#; run.infodisplay.msg=info
         info+=10*'\n'+run.profilestr(); run.infodisplay.msg=info
-
 
 
         setupdata=dict(X_train=run.X_train,Y_train=run.Y_train,X_test=run.X_test,Y_test=run.Y_test,\
@@ -78,7 +76,7 @@ class Run(cdisplay.Run):
         run.unprocessed=tracking.Memory()
         run.unprocessed.target=run.target.compress()
 
-        run.trackcurrent('runinfo',info)
+        #run.trackcurrent('runinfo',info)
         sysutil.write(info,run.outpath+'info.txt',mode='w')
 
         #train
@@ -93,6 +91,8 @@ class Run(cdisplay.Run):
         plotsched=tracking.Scheduler(tracking.sparsesched(run.iterations,start=1000))
         #run.trainer.prepnextepoch(permute=False)
         ld,_=exampleutil.addlearningdisplay(run,tracking.currentprocess().display)
+
+        tracking.log('data type (32 or 64): {}'.format(run.learner.eval(run.X_train[100:]).dtype))
 
         stopwatch1=tracking.Stopwatch()
         stopwatch2=tracking.Stopwatch()

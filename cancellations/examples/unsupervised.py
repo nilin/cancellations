@@ -18,7 +18,6 @@ import optax
 from . import plottools as pt
 from . import exampleutil
 
-jax.config.update("jax_enable_x64", True)
 
 
 
@@ -27,7 +26,7 @@ def getdefaultprofile():
     profile.exname='example'
     profile.instructions=''
 
-    profile.n=5
+    profile.n=3
     profile.d=1
 
     profile.learnerparams={\
@@ -46,7 +45,9 @@ def getdefaultprofile():
     # training params
 
     profile.nrunners=100
-    profile.burnsteps=100
+    profile.burnsteps=1000
+    profile.thinning=1
+    profile.learningrate=.001
 
     profile.weight_decay=0
     profile.iterations=25000
@@ -106,15 +107,20 @@ class Run(cdisplay.Run):
         run._density_=lambda params,X: run.learner._eval_(params,X)**2
         sampler=sampling.DynamicSampler(run._density_,run.proposalfn,X0)
 
+
+        tracking.log('burning')
         for i in range(run.burnsteps):
             sampler.step(run.learner.weights)
-            run.trackcurrenttask('burning',(i+1)/run.burnsteps)
 
+        tracking.log('burning done')
         #train
         run.lossgrad=gen_lossgrad(run.learner._eval_)
 
         run.trainer=TestTrainer(run.lossgrad,run.learner,sampler,\
             **{k:run[k] for k in ['weight_decay','iterations']}) 
+
+        run.trainer.thinning=run.thinning
+        run.trainer.learningrate=run.learningrate
 
         regsched=tracking.Scheduler(tracking.nonsparsesched(run.iterations,start=100))
         plotsched=tracking.Scheduler(tracking.sparsesched(run.iterations,start=1000))
@@ -165,11 +171,11 @@ class TestTrainer(learning.Trainer):
         loss,grad=self.lossgrad(self.learner.weights,X_mini)
         #updates,self.state=self.opt.update(grad,self.state,self.learner.weights)
         #self.learner.weights=optax.apply_updates(self.learner.weights,updates)
-        self.learner.weight=numutil.leafwise(lambda x,y:x-.01*y,self.learner.weights,grad)
+        self.learner.weight=numutil.leafwise(lambda x,y:x-self.learningrate*y,self.learner.weights,grad)
         return loss
 
     def step(self):
-        X_mini=self.sampler.step(self.learner.weights)
+        X_mini=jnp.concatenate([self.sampler.step(self.learner.weights) for i in range(self.thinning)],axis=0)
         return self.minibatch_step(X_mini)	
 
 

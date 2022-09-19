@@ -1,3 +1,4 @@
+from cancellations.utilities import setup
 from statistics import harmonic_mean
 from cancellations.examples import harmonicoscillator1d, estimateobservables, profiles
 from cancellations.testing import testing
@@ -8,6 +9,7 @@ from cancellations.utilities.sysutil import maybe as maybe
 import matplotlib.pyplot as plt
 import jax
 import jax.numpy as jnp
+import sys
 import os
 
 
@@ -51,7 +53,8 @@ class Run(batchjob.Batchjob):
         _f_=fdescr._eval_
 
         assert(switchcounts==1)
-        testing.verify_antisymmetrization(psi_descr.eval,fdescr.eval,X[:100])
+        if not 'ignoreAS' in sys.argv:
+            testing.verify_antisymmetrization(psi_descr.eval,fdescr.eval,X[:100])
 
         # change this to be from saved data
         samplingdensity=profiles.getprofiles('harmonicoscillator1d')['default']()._X_distr_density_

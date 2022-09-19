@@ -11,7 +11,6 @@ import jax.random as rnd
 import pdb
 from . import multivariate as mv
 
-jax.config.update("jax_enable_x64", True)
 
 
 ####################################################################################################

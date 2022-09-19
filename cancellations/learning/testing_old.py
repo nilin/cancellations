@@ -8,7 +8,6 @@ import jax.random as rnd
 import pdb
 from numpy.testing import assert_allclose
 
-jax.config.update("jax_enable_x64", True)
 
 
 def naiveAS(f,X):

@@ -1,3 +1,4 @@
+from cancellations.utilities import setup
 from statistics import harmonic_mean
 from cancellations.examples import harmonicoscillator1d, estimateobservables
 from cancellations.functions import examplefunctions as ef, functions
