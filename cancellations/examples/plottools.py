@@ -98,13 +98,13 @@ class Slice(CrossSection):
 
 		mt=ax0.pcolormesh(I,I,yt,cmap='seismic')#,vmin=-M,vmax=M)
 		ct=ax0.contour(I,I,yt,levels=levels,colors='k',linewidths=1)
-		cl=ax0.contour(I,I,yl,levels=levels,colors='k',linewidths=.1,alpha=.5)
-		plt.clabel(cl,inline=True,fmt=lambda x:'learner')
+		#cl=ax0.contour(I,I,yl,levels=levels,colors='k',linewidths=.1,alpha=.5)
+		#plt.clabel(cl,inline=True,fmt=lambda x:'learner')
 
 		ml=ax1.pcolormesh(I,I,yl,cmap='seismic')#,vmin=-M,vmax=M)
 		cl=ax1.contour(I,I,yl,levels=levels,colors='k',linewidths=1)
-		ct=ax1.contour(I,I,yt,levels=levels,colors='k',linewidths=.1,alpha=.5)
-		plt.clabel(ct,inline=True,fmt=lambda x:'target')
+		#ct=ax1.contour(I,I,yt,levels=levels,colors='k',linewidths=.1,alpha=.5)
+		#plt.clabel(ct,inline=True,fmt=lambda x:'target')
 
 		for m in [mt,ml]: m.set_edgecolor('face')
 

@@ -30,7 +30,16 @@ def getprofiles(exname):
                 weight_decay=0\
                 )
 
-            exprofiles['test']=harmonicoscillator1d.Run.getdefaultprofile().butwith(n=2)
+            exprofiles['test']=harmonicoscillator1d.Run.getdefaultprofile().butwith(\
+                n=3,\
+                d=2,\
+                )
+
+        case 'harmonic2d':
+            exprofiles['test']=harmonicoscillator1d.Run.getdefaultprofile().butwith(\
+                n=3,\
+                d=2,\
+                )
 
         case 'estimateobservables':
 

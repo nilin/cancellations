@@ -223,8 +223,10 @@ def fplot():
 	figtitle=info(separator='\n')
 	figpath='{}{} minibatches'.format(run.outpath,int(run.unprocessed.getval('minibatchnumber')))
 
-	C=numutil.norm(run.target.eval(run.X_train[:1000]))/numutil.norm(run.learner.eval(run.X_train[:1000]))
-	f=lambda X:run.learner.eval(X)*C
+#	C=numutil.norm(run.target.eval(run.X_train[:1000]))/numutil.norm(run.learner.eval(run.X_train[:1000]))
+#	f=lambda X:run.learner.eval(X)*C
+
+	f=numutil.closest_multiple(run.learner.eval,run.X_train[:500],run.target.eval(run.X_train[:500]))
 
 	plotfunctions(run.sections,f,figtitle,figpath)
 	#plotfunctions(run.sections,run.learner.eval,figtitle,figpath)
