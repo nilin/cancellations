@@ -22,6 +22,7 @@ class Run(batchjob.Batchjob):
             )
 
         relpaths=browse.getpaths(pathprofile)
+        relpaths=sorted(relpaths,key=lambda relpath: 1000 if 'unsupervised' in relpath else 1)
         fullpaths=[pf+relpath for relpath in relpaths]
         rels={full:rel for full,rel in zip(fullpaths,relpaths)}
 
