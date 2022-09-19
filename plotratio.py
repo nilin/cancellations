@@ -1,5 +1,6 @@
 from statistics import harmonic_mean
 from cancellations.examples import harmonicoscillator1d, estimateobservables, profiles
+from cancellations.testing import testing
 from cancellations.functions import examplefunctions as ef, functions
 from cancellations.display import cdisplay
 from cancellations.utilities import numutil, sampling, tracking, browse, batchjob, energy, sysutil
@@ -44,16 +45,24 @@ class Run(batchjob.Batchjob):
         unprocessed=sysutil.load(runpath+'data/unprocessed')
         _psi_=psi_descr._eval_
         fdescr,switchcounts=functions.switchtype(psi_descr)
-        assert(switchcounts==1)
         _f_=fdescr._eval_
+
+        assert(switchcounts==1)
+        testing.verify_antisymmetrization(psi_descr.eval,fdescr.eval,X[:100])
 
         # change this to be from saved data
         _X_distr_density_=profiles.getprofiles('harmonicoscillator1d')['default']()._X_distr_density_
 
         weightslist,i_s=unprocessed.gethist('weights','minibatchnumber')
 
-        Afs=[jnp.sum(_psi_(weights,X)**2/_X_distr_density_(X)) for weights in weightslist]
-        fs=[jnp.sum(_f_(weights,X)**2/_X_distr_density_(X)) for weights in weightslist]
+        def getnorm(_f_,weights,X):
+            Y=_f_(weights,X)
+            squaresums=jnp.sum(Y**2,axis=Y.shape[1:])
+            normalized=squaresums/_X_distr_density_(X)
+            return jnp.average(normalized)
+
+        Afs=[getnorm(_psi_,weights,X) for weights in weightslist]
+        fs=[getnorm(_f_,weights,X) for weights in weightslist]
         f_over_Af=[f/Af for f,Af in zip(fs,Afs)]
 
         fig1,ax=plt.subplots()

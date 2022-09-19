@@ -16,19 +16,21 @@ def naiveAS(f,X):
 	p0=list(range(n))
 	out=0
 	for p in itertools.permutations(p0):
-		sign=sign(p)
+		sgn=sign(p)
 		PX=X[:,p,:]
-		out=out+sign*f(X)
+		out=out+sgn*f(PX)
 	return out
 
 
 def verify_antisymmetrization(Af,f,X):
-	Y=Af(X)
-	Z=naiveAS(f,X)
-	assertequal(Y,Z)
+	verify_antisymmetric(Af,X,rtol=1/10**5)
+	verify_antisymmetric(lambda _:naiveAS(f,_),X,rtol=1/10**5)
+	Y1=Af(X)
+	Y2=naiveAS(f,X)
+	assert_allclose(Y1,Y2,rtol=1/10**5)
 
 
-def verify_antisymmetric(f,X,nperms=10):
+def verify_antisymmetric(f,X,nperms=10,**kw):
 
 	n=X.shape[-2]
 	perms=[np.random.permutation(n) for _ in range(nperms)]
@@ -41,7 +43,7 @@ def verify_antisymmetric(f,X,nperms=10):
 	#for i,(s,P) in enumerate(zip(signs,Perms)):
 	#	if cfg.trackcurrenttask('verifying antisymmetry',(i+1)/len(signs))=='b': return None
 	#	should_be_equal.append(s*f(P(X)))
-	assert_ALLclose(should_be_equal)
+	assert_ALLclose(should_be_equal,**kw)
 
 
 def verify_equivariant(F,n,d,samples=25,nperms=25,fixparams=None):

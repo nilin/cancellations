@@ -17,7 +17,7 @@ from ..display import cdisplay,display as disp
 
 from ..utilities import numutil as mathutil, tracking,config as cfg,sysutil,textutil
 from ..functions import functions
-from ..learning import testing
+from ..learning import testing_old
 import os
 
 
@@ -72,9 +72,9 @@ def train(run,learner,X_train,Y_train,**kw):
 
 def testantisymmetry(target,learner,X):
 	tracking.logcurrenttask('verifying antisymmetry of target')
-	testing.verify_antisymmetric(target.eval,X[:100])
+	testing_old.verify_antisymmetric(target.eval,X[:100])
 	tracking.logcurrenttask('verifying antisymmetry of learner')
-	testing.verify_antisymmetric(learner.eval,X[:100])
+	testing_old.verify_antisymmetric(learner.eval,X[:100])
 	tracking.clearcurrenttask()
 	return True
 

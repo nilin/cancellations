@@ -61,7 +61,7 @@ class Run(cdisplay.Run):
             r=5
             run.sections=pt.genCrossSections(numutil.blockwise_eval(run.target,blocksize=run.evalblocksize),interval=jnp.arange(-r,r,r/50))
 
-        run.learner=getlearner(run)
+        #run.learner=getlearner(run)
         info+=4*'\n'+'learner\n\n{}'.format(textutil.indent(run.learner.getinfo()))#; run.infodisplay.msg=info
         info+=10*'\n'+run.profilestr(); run.infodisplay.msg=info
 
@@ -139,8 +139,11 @@ class Run(cdisplay.Run):
             'SPNN':dict(widths=[profile.d,25,25],activation='sp'),
             'backflow':dict(widths=[],activation='sp'),
             'dets':dict(d=25,ndets=25),
-            'OddNN':dict(widths=[25,1],activation='sp')
+            #'OddNN':dict(widths=[25,1],activation='sp')
         }
+
+        profile.learner=getlearner(profile)
+
 
         profile._var_X_distr_=4
         profile._X_distr_=lambda key,samples,n,d:rnd.normal(key,(samples,n,d))*jnp.sqrt(profile._var_X_distr_)
@@ -174,13 +177,16 @@ def gettarget(profile):
     #return ComposedFunction(functions.Slater(*['psi'+str(i) for i in range(profile.n)]),functions.Outputscaling())
     return functions.Slater(*['psi'+str(i) for i in range(profile.n)])
 
-def getlearner(profile):
 
+
+def getlearner(profile):
     return Product(functions.IsoGaussian(1.0),ComposedFunction(\
         SingleparticleNN(**profile.learnerparams['SPNN']),\
         #functions.Backflow(**profile.learnerparams['backflow']),\
         functions.Dets(n=profile.n,**profile.learnerparams['dets']),\
-        functions.OddNN(**profile.learnerparams['OddNN'])))
+        #functions.OddNN(**learnerparams['OddNN'])
+        functions.Sum()\
+        ))
 
 
 

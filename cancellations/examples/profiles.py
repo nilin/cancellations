@@ -1,6 +1,7 @@
 
 from . import harmonicoscillator1d, estimateobservables, unsupervised
 from ..functions import examplefunctions as ef, functions
+from ..functions.functions import Product, SingleparticleNN, ComposedFunction
 from ..utilities import numutil, energy, tracking
 import jax.numpy as jnp
 

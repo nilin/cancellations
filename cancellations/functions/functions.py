@@ -291,9 +291,27 @@ class Slater(Composite,Antisymmetric):
 
 #=======================================================================================================
 
-class Oddfunction(FunctionDescription): pass
 
-class OddNN(NNfunction,Oddfunction):
+
+
+class Oddfunction(FunctionDescription): pass
+class NonlinearOddfunction(Oddfunction): pass
+
+
+# remove later
+class Squeeze(Oddfunction):
+	def compile(self):
+		return lambda params,X:jnp.squeeze(X)
+
+# remove later
+class Sum(Oddfunction):
+	def compile(self):
+		return lambda params,X:jnp.sum(X,axis=-1)
+
+
+
+
+class OddNN(NNfunction,NonlinearOddfunction):
 	def compile(self):
 		NN=mv.gen_NN(self.activation)
 		scalarNN=lambda params,X:NN(params,X)
@@ -306,7 +324,7 @@ class Outputscaling(Oddfunction):
 	def _initweights_():
 		return 1.0
 
-class Flatten(Oddfunction):
+class Flatten(NonlinearOddfunction):
 	def compile(self):
 		return jax.jit(lambda _,Y:jnp.tanh(self.sharpness*Y))
 
@@ -340,6 +358,9 @@ class IsoGaussian(FunctionDescription):
 #=======================================================================================================
 
 def switchtype(f:FunctionDescription):
+
+	if isinstance(f,NonlinearOddfunction):
+		raise ValueError('\n\ncannot non/anti-symmetrize when odd-function postcomposition is involved\n')
 
 	compositeclass=None
 	if type(f)==ComposedFunction: compositeclass=ComposedFunction 
