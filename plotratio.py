@@ -41,8 +41,11 @@ class Run(batchjob.Batchjob):
         # task 2
 
         psi_descr=sysutil.load(runpath+'data/setup')['learner'].restore()
+        psi0_nonsqueezed=sysutil.load(runpath+'data/setup')['target'].restore().eval
+        psi0=lambda X:jnp.squeeze(psi0_nonsqueezed(X))
         X=unprocessed=sysutil.load(runpath+'data/setup')['X_train'][:1000]
         unprocessed=sysutil.load(runpath+'data/unprocessed')
+
         _psi_=psi_descr._eval_
         fdescr,switchcounts=functions.switchtype(psi_descr)
         _f_=fdescr._eval_
@@ -51,27 +54,37 @@ class Run(batchjob.Batchjob):
         testing.verify_antisymmetrization(psi_descr.eval,fdescr.eval,X[:100])
 
         # change this to be from saved data
-        _X_distr_density_=profiles.getprofiles('harmonicoscillator1d')['default']()._X_distr_density_
+        samplingdensity=profiles.getprofiles('harmonicoscillator1d')['default']()._X_distr_density_
+        X_weights=samplingdensity(X)
 
         weightslist,i_s=unprocessed.gethist('weights','minibatchnumber')
 
         def getnorm(_f_,weights,X):
             Y=_f_(weights,X)
             squaresums=jnp.sum(Y**2,axis=Y.shape[1:])
-            normalized=squaresums/_X_distr_density_(X)
+            normalized=squaresums/samplingdensity(X)
             return jnp.average(normalized)
 
         Afs=[getnorm(_psi_,weights,X) for weights in weightslist]
         fs=[getnorm(_f_,weights,X) for weights in weightslist]
-        f_over_Af=[f/Af for f,Af in zip(fs,Afs)]
+        f_over_Af=[jnp.sqrt(f/Af) for f,Af in zip(fs,Afs)]
 
-        fig1,ax=plt.subplots()
-        ax.plot(i_s,f_over_Af)
-        ax.set_yscale('log')
-        fig1.suptitle('|f|^2/|Af|^2'+sysutil.maybe(lambda:'\nprofile name: '+sysutil.load(runpath+'data/setup')['profilename'],'')())
+        #losses=[numutil.SI_loss(_psi_(weights,X),psi0(X)) for weights in weightslist]
+        losses=[numutil.weighted_SI_loss(_psi_(weights,X),psi0(X),samplingdensity(X)) for weights in weightslist]
+
+        fig,(ax1,ax2)=plt.subplots(2,1)
+        ax1.plot(i_s,f_over_Af,'r',label='|f|/|Af|')
+        ax1.set_yscale('log')
+        ax1.legend()
+        #ax1.set_title('|f|/|Af|')
+        ax2.plot(i_s,losses,'b',label='loss')
+        ax2.set_yscale('log')
+        ax2.grid(True,which='major',axis='y')
+        ax2.legend()
+        fig.suptitle(sysutil.maybe(lambda:'\nprofile name: '+sysutil.load(runpath+'data/setup')['profilename'],'')())
 
         fpath=batch.outpath+'ratio.pdf' 
-        sysutil.savefig(fpath,fig=fig1)
+        sysutil.savefig(fpath,fig=fig)
         sysutil.showfile(batch.outpath)
         sysutil.showfile(fpath)
 

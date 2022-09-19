@@ -39,6 +39,15 @@ def log_SI_loss(Y,Y_target):
 	return jnp.log(dot(Y_target,Y_target))+jnp.log(dot(Y,Y))-2*jnp.log(dot(Y,Y_target))
 
 
+def overlap(Y1,Y2,weights):
+	vec=weights*Y1*Y2
+	assert(weights.shape==Y1.shape)
+	assert(Y1.shape==Y2.shape)
+	return jnp.sum(vec)
+
+@jax.jit
+def weighted_SI_loss(Y,Y_target,relweights):
+	return 1-overlap(Y,Y_target,relweights)**2/(overlap(Y,Y,relweights)*overlap(Y_target,Y_target,relweights))
 
 
 @jax.jit
