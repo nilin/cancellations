@@ -12,9 +12,12 @@ def getprofiles(exname):
 
 
         case 'harmonicoscillator1d':
-            pgens['default']=harmonicoscillator1d.Run.getdefaultprofile
-            pgens['weight_decay a']=lambda:harmonicoscillator1d.Run.getdefaultprofile().butwith(weight_decay=.1)
-            pgens['weight_decay b']=lambda:harmonicoscillator1d.Run.getdefaultprofile().butwith(weight_decay=1.0)
+            pgens['default']=lambda:harmonicoscillator1d.Run.getdefaultprofile().butwith(weight_decay=1.0)
+
+            pgens['no weight_decay']=lambda:harmonicoscillator1d.Run.getdefaultprofile().butwith(weight_decay=0)
+            pgens['weight_decay .1']=lambda:harmonicoscillator1d.Run.getdefaultprofile().butwith(weight_decay=.1)
+            pgens['weight_decay 1']=lambda:harmonicoscillator1d.Run.getdefaultprofile().butwith(weight_decay=1.0)
+            pgens['weight_decay 10']=lambda:harmonicoscillator1d.Run.getdefaultprofile().butwith(weight_decay=10.0)
             pgens['weight growth']=lambda:harmonicoscillator1d.Run.getdefaultprofile().butwith(weight_decay=-.1)
 
 
