@@ -12,7 +12,7 @@ def getprofiles(exname):
 
         case 'harmonicoscillator1d':
             pgens['default']=harmonicoscillator1d.Run.getdefaultprofile
-            pgens['weightdecay']=lambda:harmonicoscillator1d.Run.getdefaultprofile().butwith(weight_decay=10.0)
+            pgens['weightdecay']=lambda:harmonicoscillator1d.Run.getdefaultprofile().butwith(weight_decay=1.0)
 
 
         case 'estimateobservables':
