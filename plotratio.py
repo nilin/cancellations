@@ -43,7 +43,7 @@ class Run(batchjob.Batchjob):
         psi_descr=sysutil.load(runpath+'data/setup')['learner'].restore()
         psi0_nonsqueezed=sysutil.load(runpath+'data/setup')['target'].restore().eval
         psi0=lambda X:jnp.squeeze(psi0_nonsqueezed(X))
-        X=unprocessed=sysutil.load(runpath+'data/setup')['X_train'][:1000]
+        X=unprocessed=sysutil.load(runpath+'data/setup')['X_test'][:1000]
         unprocessed=sysutil.load(runpath+'data/unprocessed')
 
         _psi_=psi_descr._eval_
