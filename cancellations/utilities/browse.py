@@ -32,8 +32,9 @@ def defaultpathprofile():
 
 
 class Browse(cdisplay.Process):
+	processname='browse'
 	def execprocess(process):
-		profile,display=process,process.display
+		profile,display=process.profile,process.display
 		#browsing=tracking.Process(profile,display=display)
 
 		W=display.width
@@ -41,30 +42,18 @@ class Browse(cdisplay.Process):
 		x0,x3=display.xlim
 		y0,y1=display.ylim
 		x1,x2=round(x0*.75+x3*.25), round(.4*x0+.6*x3)
-		screen=cfg.screen
+		screen=cdisplay.getscreen()
 		screen.nodelay(False)
 
 		explanation=profile.msg
-		#explainpad.addstr(0,0,explanation)
-		#explainpad.draw()
-
-
-		#explainpad=cdisplay.Pad((x0,x1-5),(y0,y1))
 		explanationtextdisp,_=display.add(cdisplay.ConcreteStaticTextDisplay((x0,x1-5),(y0,y1),msg=explanation),name='explanation')
-		#explanationtextdisp.draw()
 
 		listpad=cdisplay.Pad((x1,x2-10),(y0,y1),100,1000)
-		#matchinfopad=cdisplay.Pad((x2,x3),(y0,y1))
 		matchinfotextdisp,_=display.add(cdisplay.ConcreteStaticTextDisplay((x2,x3),(y0,y1),msg=''),name='matchinfo')
 
 		screen.refresh()
 		
 
-
-		
-		#if profile.matchtype=='dir': paths=[d+'/' for d,_,files in os.walk(profile.parentfolder)]
-		#else: paths=['{}/{}/{}'.format(r,d,f) for r,D,F in os.walk(profile.parentfolder) for d in D for f in F]
-		#['{}/{}{}'.format(r,'' if len(_d_)==0 else _d_[0]+'/',f) for r,_d_,F in os.walk(profile.parentfolder) for f in F+['']]
 		ls=0
 		choices=[]		# multiple case
 		mode='browse'
@@ -73,13 +62,11 @@ class Browse(cdisplay.Process):
 		allowtextinput=True if 'dynamiccondition' in profile.keys() else False
 
 		while True:
-			#matches=filter(profile.options,lambda option: profile.dynamiccondition(option,inputtext))\
 			if allowtextinput:
 				matches=[option for option in profile.options\
 						if profile.dynamiccondition(profile.displayoption(option),inputtext) not in [None,False]]
 			else: matches=profile.options
 
-			#explainpad.draw()
 			ls=max(0,min(len(matches)-1,ls))
 			displayoptions(matches,ls,choices,listpad,matchinfotextdisp,profile,H)
 			explanationtextdisp.msg=explanation.format(mode,inputtext)
@@ -222,20 +209,3 @@ def getpaths(profile):
 
 
 
-
-
-#browsingprofile=tracking.Profile()
-#
-#def pickfolders(**kw):
-#	return cdisplay.subtask_in_display(_pickfolders_,browsingprofile,**kw)
-#
-#def pickfolders_leave_cs(**kw):
-#	cdisplay.run_in_display(_pickfolders_,browsingprofile,nodelay=False,**kw)
-#	return browsingprofile.loadedpathandpaths
-#
-#
-#
-##
-#if __name__=='__main__':
-#	import cdisplay
-#	cdisplay.session_in_display(_pickfolders_,getdefaultprofile())

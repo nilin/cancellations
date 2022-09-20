@@ -2,7 +2,8 @@ import os
 import math
 from re import L
 from ..utilities import config as cfg, numutil, tracking,textutil
-from ..utilities.tracking import Stopwatch, session
+from ..utilities.tracking import Stopwatch
+from ..utilities.setup import session
 import collections
 from collections import deque
 import jax
@@ -23,8 +24,96 @@ def print_at(y,x,msg):
 widthbound=250
 line=dash*widthbound
 
+
+
+#####################################################################################################
+# 
+#####################################################################################################
+
+def BRcrop(text,width=None,height=None):
+	lines=text.splitlines()
+	if width!=None: lines=[l[:width] for l in lines]
+	if height!=None: lines=lines[-height:]
+	return '\n'.join(lines)
+
+def TLcrop(text,x0,y0):
+	lines=text.splitlines()
+	if x0>0: lines=[l[x0:] for l in lines]
+	if y0>0: lines=lines[y0:]
+	return '\n'.join(lines)
+
+def crop(x,y,text,width,height):
+	x_,y_,text_=max(x,0),max(y,0),TLcrop(text,-x,-y)
+	width_,height_=width-x_,height-y_
+	return x_,y_,BRcrop(text_,width_,height_)
+
+def movingwindow(x,y,text,xlim,ylim):
+	x0,x1=xlim
+	y0,y1=ylim
+	x_,y_,width,height=x-x0,y-y0,x1-x0,y1-y0
+	return crop(x_,y_,text,width,height)
+
 #----------------------------------------------------------------------------------------------------
 
+
+
+class _Display_:
+	def getelementstrings(self):
+		return []
+
+
+
+
+class _LinesDisplay_(_Display_):
+	def getelementstrings(self):
+		return [(0,i,l) for i,l in enumerate(self.getlines())]
+
+class _TextDisplay_(_LinesDisplay_):
+	def getlines(self):
+		return self.gettext().splitlines()
+
+class _LogDisplay_(_TextDisplay_):
+	def __init__(self,process,height):
+		self.process=process
+		self.height=height
+
+	def gettext(self):
+		return BRcrop('\n'.join(self.process.gethist('recentlog')),height=self.height)
+
+class _StackedText_(_TextDisplay_):
+	def __init__(self,elements):
+		self.elements=elements
+
+	def gettext(self):
+		return '\n'.join([e.gettext() for e in self.elements])
+
+
+
+
+class _CompositeDisplay_(_Display_):
+	def __init__(self,elements):
+		self.elements=elements
+
+	def getelementstrings(self):
+		return [(X+x,Y+y,s) for X,Y,e in self.elements for x,y,s in e.getelementstrings()]
+
+
+
+
+class _MovingWindow_(_Display_):
+	def __init__(self,display,xlim,ylim):
+		self.display=display
+		self.xlim=xlim
+		self.ylim=ylim
+
+	def getelementstrings(self):
+		return [(x,y,s) for (x,y,S) in self.display.getelementstrings()\
+			for (x,y,s) in [movingwindow(x,y,S,self.xlim,self.ylim)] if s!='']
+
+
+#####################################################################################################
+# 
+#####################################################################################################
 
 
 class Display:
@@ -103,16 +192,12 @@ class VSpace(StaticText):
 class Hline(StaticText):
 	msg=line	
 
-#class Runtext(Display):
-#	def _gettext_(self):
-#		return tracking.currentprocess().getval(self.query)
-
 class LogDisplay(Display):
-	def __init__(self,**kw):
-		super().__init__(bottom=True,**kw)
-		#super().__init__(wrap=True,**kw)
+	def __init__(self,process,**kw):
+		super().__init__(process=process,bottom=True,**kw)
+
 	def _gettext_(self):
-		rlog=session.gethist('recentlog')
+		rlog=self.process.gethist('recentlog')
 		return '\n'.join(rlog)
 
 
@@ -333,13 +418,14 @@ class NumberPrint(NumberDisplay):
 
 
 
-
-def wraptext(msg,style=dash):
-    width=max([len(l) for l in msg.splitlines()])
-    line=dash*width
-    return '{}\n{}\n{}'.format(line,msg,line)
-
-def wraplines(lines,style=dash):
-    width=max([len(l) for l in lines])
-    line=dash*width
-    return [line]+lines+[line]
+#
+#def wraptext(msg,style=dash):
+#    width=max([len(l) for l in msg.splitlines()])
+#    line=dash*width
+#    return '{}\n{}\n{}'.format(line,msg,line)
+#
+#def wraplines(lines,style=dash):
+#    width=max([len(l) for l in lines])
+#    line=dash*width
+#    return [line]+lines+[line]
+#

@@ -21,7 +21,7 @@ warnings.filterwarnings('ignore')
 def samplepoints(X,Y,nsamples):
 	p=Y**2
 	p=p/jnp.sum(p)
-	I=rnd.choice(tracking.nextkey(),jnp.arange(len(p)),(nsamples,),p=p)
+	I=rnd.choice(tracking.currentprocess().nextkey(),jnp.arange(len(p)),(nsamples,),p=p)
 	return X[I]
 	
 
@@ -150,7 +150,7 @@ class Slice_2particles(Slice):
 ############
 
 def genCrossSections(targetfn,**kw):
-	tracking.logcurrenttask('Preparing cross sections for plotting.')	
+	#tracking.logcurrenttask('Preparing cross sections for plotting.')	
 	tracking.currentkeychain=4
 
 	X=tracking.currentprocess().genX(1000)
@@ -159,7 +159,7 @@ def genCrossSections(targetfn,**kw):
 	x0s=samplepoints(X,Y,{1:3,2:3,3:1}[n])
 	sections1p=[Slice_1particle(X,Y,targetfn,x0,**kw) for x0 in x0s] if n>1 else []
 	sections2p=[Slice_2particles(X,Y,targetfn,x0,**kw) for x0 in x0s]
-	tracking.clearcurrenttask()
+	#tracking.clearcurrenttask()
 	return *sections2p,*sections1p
 
 #

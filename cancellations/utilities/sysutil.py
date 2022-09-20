@@ -1,6 +1,6 @@
 import os 
 import pickle
-from . import tracking
+from . import tracking, setup
 from collections import deque
 import matplotlib.pyplot as plt
 import sys
@@ -11,12 +11,11 @@ def makedirs(filepath):
     filename=filepath.split('/')[-1]
     os.makedirs(path,exist_ok=True)	
 
-def save(data,*paths,echo=True):
-    for path in paths:
-        makedirs(path)
-        with open(path,'wb') as file:
-            pickle.dump(data,file)
-    if echo: tracking.log('Saved data to {}'.format(paths))
+def save(data,path,echo=True):
+    makedirs(path)
+    with open(path,'wb') as file: pass
+        #pickle.dump(data,file)
+    if echo: setup.session.log('Saved data to {}'.format(path))
 
 def savefig(*paths,fig=None):
     for path in paths:
@@ -28,11 +27,10 @@ def savefig(*paths,fig=None):
     tracking.log('Saved figure to {}'.format(paths))
 
 
-def write(msg,*paths,mode='a'):
-    for path in paths:
-        makedirs(path)
-        with open(path,mode) as f:
-            f.write(msg)
+def write(msg,path,mode='a'):
+    makedirs(path)
+    with open(path,mode) as f:
+        f.write(msg)
     
 def load(path):
     with open(path,"rb") as file:

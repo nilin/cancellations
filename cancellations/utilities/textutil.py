@@ -162,6 +162,11 @@ def startingfrom(s,*starts):
 
 
 
+def appendright(l,R):
+    indent='\n'+' '*len(l)
+    return l+indent.join(R.splitlines())
+
+
 ####################################
 
 

@@ -4,7 +4,7 @@ import jax.numpy as jnp
 import jax
 import jax.random as rnd
 from . import config as cfg,tracking
-from .tracking import session
+from .setup import session
 from collections import deque
 from inspect import signature
 
@@ -223,8 +223,8 @@ def eval_blockwise(f,params,X,blocksize=100000,msg=None):
 	out=[]
 	for i,(B,) in enumerate(Xs):
 		out.append(jnp.squeeze(f(params,B)))
-		if msg!=None and len(Xs)>1:
-			tracking.trackcurrenttask(msg,(i+1)/len(Xs))
+		#if msg!=None and len(Xs)>1:
+			#tracking.trackcurrenttask(msg,(i+1)/len(Xs))
 	return jnp.concatenate(out,axis=0)
 
 

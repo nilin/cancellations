@@ -3,7 +3,7 @@ import time
 import copy
 import jax.numpy as jnp
 import sys
-from . import sysutil,config as cfg
+from . import sysutil,config as cfg, textutil, setup
 import matplotlib.pyplot as plt
 import datetime
 import re
@@ -16,76 +16,56 @@ import random
 
 #----------------------------------------------------------------------------------------------------
 
+class dotdict(dict):
+    __getattr__=dict.get
+    def __setattr__(self,k,v):
+        self[k]=v
+
+class Profile(dotdict):
+    def __init__(self,*a,**kw):
+        super().__init__(*a,**kw)
+
+    def butwith(self,**defs):
+        self.update(defs)
+        return self
+
+    def __str__(self):
+        return '\n'.join(['{} = {}'.format(k,v) for k,v in self.items()])
+
+#----------------------------------------------------------------------------------------------------
+
 class History:
-    def __init__(self):
+    def __init__(self,membound=None):
         self.snapshots=deque()
+        self.membound=membound
 
-    def remember(self,val,metadata=None,norepeat=False,membound=None):
-        if norepeat and self.getcurrentval()==val: pass
-
-        if metadata==None: metadata=dict()
-        self.snapshots.append((val,metadata|self.default_metadata()))
-        if membound!=None and len(self.snapshots)>membound: self.snapshots.popleft()
+    def remember(self,val,**metadata):
+        self.snapshots.append((val,metadata))
+        if self.membound!=None and len(self.snapshots)>self.membound: self.snapshots.popleft()
 
     def gethist(self,*metaparams):
         valhist=[val for val,metadata in self.snapshots]
         metaparamshist=list(zip(*[[metadata[mp] for mp in metaparams] for val,metadata in self.snapshots]))
+
         return (valhist,*metaparamshist) if len(metaparams)>0 else valhist
 
-    def getcurrentval(self):
+    def getlastval(self):
         return self.snapshots[-1][0] if len(self.snapshots)>0 else None
 
-    def default_metadata(self):
-        return {'snapshot number':len(self.snapshots)}
 
-    def filter(self,filterby,schedule):
-        filteredhistory=History()
-        schedule=deque(schedule)
-
-        for val,metadata in self.snapshots:
-            t=metadata[filterby]
-            if t>=schedule[0]:
-                filteredhistory.remember(val,metadata)
-                while t>=schedule[0]:
-                    schedule.popleft()
-                    if len(schedule)==0: break
-                if len(schedule)==0: break
-        return filteredhistory
-
-
-class BasicMemory:
-    def __init__(self):
-        self.hists=dict()
-
-    def remember(self,name,val,metadata,**kwargs):
-        if name not in self.hists:
-            self.hists[name]=History()
-        self.hists[name].remember(val,metadata,**kwargs)
-
-    def trackcurrent(self,name,val,*x,**y):
-        self.remember(name,val,*x,**y,membound=1)
-
-    def log(self,msg):
-        #self.remember('log',msg,{'timeprint':tp})
-        self.remember('recentlog',msg,membound=25)
-
-    def gethist(self,name,*metaparams):
-        return self.hists[name].gethist(*metaparams) #if name in self.hists else ([],)+tuple([[] for _ in metaparams])
-
-    def getcurrentval(self,name):
-        return self.hists[name].getcurrentval() #if name in self.hists else None
-
-    def getval(self,name):
-        return self.getcurrentval(name)
-
-    def getqueryfn(self,*names):
-        if len(names)==1:
-            [name]=names
-            def queryfn(): return self.getcurrentval(name)
-        else:
-            def queryfn(): return [self.getcurrentval(name) for name in names]
-        return queryfn
-
+#    def filter(self,filterby,schedule):
+#        filteredhistory=History()
+#        schedule=deque(schedule)
+#
+#        for val,metadata in self.snapshots:
+#            t=metadata[filterby]
+#            if t>=schedule[0]:
+#                filteredhistory.remember(val,metadata)
+#                while t>=schedule[0]:
+#                    schedule.popleft()
+#                    if len(schedule)==0: break
+#                if len(schedule)==0: break
+#        return filteredhistory
 
 class Timer:
     def __init__(self,*x,**y):
@@ -93,6 +73,36 @@ class Timer:
 
     def time(self):
         return time.perf_counter()-self.t0
+
+    def timeprint(self):
+        return str(datetime.timedelta(seconds=int(self.time())))
+
+class Memory(dotdict,Timer):
+    def __init__(self):
+        self.hists=dict()
+        Timer.__init__(self)
+
+    def remember(self,name,val,membound=None,**kw):
+        if name not in self.hists:
+            self.hists[name]=History(membound=membound)
+        if membound!=None: self.hists[name].membound=membound
+        self.hists[name].remember(val,**kw)
+
+    def gethist(self,name,*metaparams):
+        return self.hists[name].gethist(*metaparams) #if name in self.hists else ([],)+tuple([[] for _ in metaparams])
+
+    def getval(self,name):
+        return self.hists[name].getlastval() if name in self.hists else self[name]
+#
+    def getqueryfn(self,*names):
+        if len(names==1):
+            [name]=names
+            return lambda: self.getval(name)
+        else:
+            return lambda: [self.getval(name) for name in names]
+
+#----------------------------------------------------------------------------------------------------
+
 
 class Watched:
     def __init__(self):
@@ -106,33 +116,33 @@ class Watched:
         if signal in self.signals:
             for listener in self.signals[signal]: listener.poke(self)
 
-
-
-class Memory(BasicMemory,Timer,Watched):
-    def __init__(self):
-        BasicMemory.__init__(self)
-        Timer.__init__(self)
-        Watched.__init__(self)
-        self.memID=random.randint(0,10**9)
-        self.context=dict()
-
-    def addcontext(self,name,val):
-        self.context[name]=val
-        self.trackcurrent(name,val)
-
-    def getcontext(self):
-        return self.context|{'memory {} time'.format(self.memID):self.time()}
-
-    def gethistbytime(self,name):
-        timename='memory {} time'.format(self.memID)
-        out=self.gethist(name,timename)
-        return out
-
-    def remember(self,varname,val,**context):
-        super().remember(varname,val,self.getcontext()|context)
-        self.pokelisteners(varname)
-        #poke(varname,val)
-
+#
+#class Memory(BasicMemory,Timer,Watched):
+#    def __init__(self):
+#        BasicMemory.__init__(self)
+#        Timer.__init__(self)
+#        Watched.__init__(self)
+#        self.memID=random.randint(0,10**9)
+#        self.context=dict()
+#
+#    def addcontext(self,name,val):
+#        self.context[name]=val
+#        self.remember(name,val)
+#        self[name]=val
+#
+#    def getcontext(self):
+#        return self.context|{'memory {} time'.format(self.memID):self.time()}
+#
+#    def gethistbytime(self,name):
+#        timename='memory {} time'.format(self.memID)
+#        out=self.gethist(name,timename)
+#        return out
+#
+#    def remember(self,varname,val,**context):
+#        super().remember(varname,val,self.getcontext()|context)
+#        #self.pokelisteners(varname)
+#        #poke(varname,val)
+#
 
 #----------------------------------------------------------------------------------------------------
 
@@ -250,95 +260,91 @@ class Keychain:
 
 #----------------------------------------------------------------------------------------------------
 
-def donothing(*x,**y):
-    return None
+#def donothing(*x,**y):
+#    return None
 
 
-class dotdict(dict):
-    __getattr__=dict.get
-    def __setattr__(self,k,v):
-        self[k]=v
 
-class Profile(dotdict):
 
-    def __init__(self,*a,**kw):
-        self.name=''
-        super().__init__(*a,**kw)
-        self.run=Memory()
+class Process(Memory):
+    def __init__(self,profile=None,**kw):
+        super().__init__()
+
+        assert(profile==None or len(kw)==0)
+        if profile==None: profile=Profile(profilename='emptyprofile',**kw)
+
         self.keychain=Keychain()
-        self.act_on_input=donothing
+        self.profile=profile
+        self.setID()
+        self.outpath='outputs/'+self.ID+'/'
 
-    def register(self,*names,sourcedict):
-        self.update({k:sourcedict[k] for k in names})
+    def setID(self):
+        self.ID='{}/{}/{}'.format(self.processname,self.profile.profilename,setup.session.ID)
 
-    def load(self,*varnames):
-        return [self[vn] for vn in varnames]
+    def log(self,msg):
+        tmsg=textutil.appendright(self.timeprint()+' | ',msg)
+        self.remember('recentlog',tmsg,membound=25)
+        sysutil.write(tmsg,self.outpath+'log.txt',mode='a')
 
-    def butwith(self,**defs):
-        self.update(defs)
-        return self
+    def nextkey(self):
+        return self.keychain.nextkey()
 
-    def __str__(self):
-        return '\n'.join(['{} = {}'.format(k,v) for k,v in self.items()])
+#    def logcurrenttask(self,msg):
+#        self.trackcurrenttask(msg,0)
+#        log(msg)
+#
+#    def trackcurrenttask(self,msg,completeness):
+#        if completeness>=1 or stopwatch.tick_after(.05):
+#            self.currenttask=msg
+#            self.currenttaskcompleteness=completeness
+#            return act_on_input(setup.checkforinput())
+#        else: return None
+#
+#    def getcurrenttask(self):
+#        try: return self.run.getval('currenttask')	
+#        except: None
+#
+#    def clearcurrenttask(self):
+#        self.currenttask=None
+#        self.currenttaskcompleteness=0
+
+    @staticmethod
+    def getdefaultprofile():
+        return Profile()
+
+    #def profilestr(self):
+    #    return '\n'.join(['{} = {}'.format(k,v) for k,v in self.profile.items()])
 
 
-def timeprint(): return datetime.timedelta(seconds=int(session.time()))
+
+
+
+class Session(Process):
+    processname='session'
+
+    def setID(self):
+        self.ID=nowstr()
+
+
 def nowstr():
     date,time=str(datetime.datetime.now()).split('.')[0].split(' ')
     date='-'.join(date.split('-')[1:])
     time=''.join([x for pair in zip(time.split(':'),['h','m','s']) for x in pair])
     return date+'|'+time
 
-class Process(Profile,Memory):
-    def __init__(self,**profile):
-        super().__init__()
-        Memory.__init__(self)
-        self.update(profile)
-        if 'name' not in profile.keys(): self.name=''
-        if 'ID' not in profile.keys(): self.ID='{}/{}'.format(session.ID,self.name)
-        self.outpath='outputs/'+self.ID+'/'
-        self.profile=profile
 
-    def log(self,msg):
-        msg='{} | {}'.format(timeprint(),msg)
-        super().log(msg)
+#def newprocess(Processtype,**kw):
+#    return Processtype(Profile(**kw))
 
-    def nextkey(self):
-        return self.keychain.nextkey()
 
-    def logcurrenttask(self,msg):
-        self.trackcurrenttask(msg,0)
-        log(msg)
+#class Run(Process): pass
+#    def __init__(self,*a,**kw):
+#        super().__init__(*a,**kw)
+#        self.X_distr=lambda key,samples: self.profile._X_distr_(key,samples,self.profile.n,self.profile.d)
+#
+#    def genX(self,samples:int):
+#        return self.X_distr(self.nextkey(),samples)
 
-    def trackcurrenttask(self,msg,completeness):
-        if completeness>=1 or stopwatch.tick_after(.05):
-            self.run.trackcurrent('currenttask',msg)
-            self.run.trackcurrent('currenttaskcompleteness',completeness)
-            return act_on_input(checkforinput())
-        else: return None
-
-    def getcurrenttask(self):
-        try: return self.run.getval('currenttask')	
-        except: None
-
-    def clearcurrenttask(self):
-        self.run.trackcurrent('currenttask',None)
-        self.run.trackcurrent('currenttaskcompleteness',0)
-
-    @staticmethod
-    def getdefaultprofile():
-        return Profile()
-
-    def profilestr(self):
-        return '\n'.join(['{} = {}'.format(k,v) for k,v in self.profile.items()])
-
-class Run(Process):
-    def __init__(self,*a,**kw):
-        super().__init__(*a,**kw)
-        self.X_distr=lambda key,samples: self._X_distr_(key,samples,self.n,self.d)
-
-    def genX(self,samples:int):
-        return self.X_distr(self.nextkey(),samples)
 
 
 
@@ -352,14 +358,14 @@ def newprocess(execfn):
 
 
 
-def log(msg):
-    session.log(msg)
-    sysutil.write(msg+'\n',currentprocess().outpath+'log')
-    return currentprocess().act_on_input(checkforinput())
+#def log(msg):
+#    session.log(msg)
+#    sysutil.write(msg+'\n',currentprocess().outpath+'log')
+#    return currentprocess().profile.act_on_input(setup.checkforinput())
 
 
-def LOG(msg):
-    log('\n\n'+msg+'\n\n')
+#def LOG(msg):
+#    log('\n\n'+msg+'\n\n')
 #
 #----------------------------------------------------------------------------------------------------
 
@@ -512,7 +518,7 @@ class Clockedworker(Stopwatch):
 
 
 stopwatch=Stopwatch()
-session=Process(name='session',ID='session '+nowstr())
+setup.session=Session()
 
 
 
@@ -524,38 +530,51 @@ session=Process(name='session',ID='session '+nowstr())
 
 
 processes=[]
+dashboards=[]
 
 
 
 
-def loadprocess(process):
+def loadprocess(process,**environmentvars):
     if len(processes)==0 or processes[-1]!=process:
         processes.append(process)
+        dashboards.append(dotdict())
     return process
 
 def unloadprocess(process):
     if len(processes)>0 and processes[-1]==process:
         processes.pop()
+        dashboards.pop()
     return process
 
 def currentprocess():
     return processes[-1]
 
-def pull(*varnames):
-    process=currentprocess()
-    return [process[vn] for vn in varnames]
+
+
+
+
+def addpad(newpad,name):
+    dashboards[-1][name]=newpad
+
+
+
+
+#def pull(*varnames):
+#    process=currentprocess()
+#    return [process[vn] for vn in varnames]
 
 def act_on_input(inp):
-    return processes[-1].act_on_input(inp)
+    return currentprocess().profile.act_on_input(inp)
 
 
 
 #----------------------------------------------------------------------------------------------------
 def nextkey(): return currentprocess().nextkey()
-def logcurrenttask(msg): currentprocess().logcurrenttask(msg)
-def trackcurrenttask(msg,completeness): return currentprocess().trackcurrenttask(msg,completeness)
-def getcurrenttask(): return currentprocess().getcurrenttask()
-def clearcurrenttask(): currentprocess().clearcurrenttask()
+# def logcurrenttask(msg): currentprocess().logcurrenttask(msg)
+# def trackcurrenttask(msg,completeness): return currentprocess().trackcurrenttask(msg,completeness)
+# def getcurrenttask(): return currentprocess().getcurrenttask()
+# def clearcurrenttask(): currentprocess().clearcurrenttask()
 #----------------------------------------------------------------------------------------------------
 
 

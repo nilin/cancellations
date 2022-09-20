@@ -10,11 +10,11 @@ from . import tracking
 class Batchjob(cdisplay.Process):
 
     def runsubprocess(self,subprocess: cdisplay.Process,name=None):
-        self.trackcurrent('task',name)
+        self.task=name
         self.headlinedisplay().msg=\
-            '    '.join(['>{}<'.format(task) if task==self.getval('task') else task for task in self.tasks])+\
+            '    '.join(['>{}<'.format(task) if task==self.getval('task') else task for task in self.profile.tasks])+\
             '\n'+self.display.width*textutil.dash
-        cfg.screen.getch(); self.tasklistcdisplay.draw(); cfg.screen.refresh()
+        cdisplay.getscreen().getch(); self.tasklistcdisplay.draw(); cdisplay.getscreen().refresh()
 
         return subprocess.run_in_display(self.subdisplay)
 

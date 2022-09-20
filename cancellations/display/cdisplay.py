@@ -1,5 +1,5 @@
 from . import display as disp
-from ..utilities import config as cfg,tracking,textutil
+from ..utilities import config as cfg,tracking,textutil, setup
 import curses as cs
 
 
@@ -70,7 +70,7 @@ def checkforinput(*args,**kw):
 	tracking.currentprocess().display.draw()
 	return extractkey_cs(a)
 
-tracking.checkforinput=checkforinput
+setup.checkforinput=checkforinput
 
 def extractkey_cs(a):
     if a>=97 and a<=122: return chr(a)
@@ -87,34 +87,11 @@ def extractkey_cs(a):
 
 
 
-def getscreen(): return cfg.screen
+def getscreen(): return setup.screen
 
 def clearscreen():
 	getscreen().clear()
 	getscreen().refresh()
-
-#def session_in_display(task,profile,nodelay=True):
-#
-#	def wrapped(screen):
-#		cfg.screen=screen
-#		screen.nodelay(nodelay)
-#		cs.use_default_colors()
-#		tracking.session.dashboard=Dashboard((0,cs.COLS),(0,cs.LINES))
-#		return runtask(task,profile,display=tracking.session.dashboard)
-#
-#	out=cs.wrapper(wrapped)
-#	return out
-#
-#
-#
-#def runtask(task,profile,display):
-#	process=tracking.loadprocess(task(profile,display))
-#	output=process.execprocess()
-#	tracking.unloadprocess(process)
-#	display.remove()
-#	clearscreen()
-#	return output
-
 
 
 
@@ -133,15 +110,12 @@ class Process(tracking.Process):
 
 	def run_as_main(self):
 		def wrapped(screen):
-			cfg.screen=screen
+			setup.screen=screen
 			screen.nodelay(True)
 			cs.use_default_colors()
-			tracking.session.dashboard=Dashboard((0,cs.COLS),(0,cs.LINES))
-			return self.run_in_display(tracking.session.dashboard)
+			setup.session.dashboard=Dashboard((0,cs.COLS),(0,cs.LINES))
+			return self.run_in_display(setup.session.dashboard)
 
 		return cs.wrapper(wrapped)
 
 	def prepdisplay(self): pass
-
-class Run(Process,tracking.Run):
-	pass

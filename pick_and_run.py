@@ -11,6 +11,7 @@ import importlib
 profile=tracking.Profile(tasks=['pick script','pick profile','run script'])
 
 class Run(batchjob.Batchjob):
+    processname='pick_and_run'
 
     def runbatch(self):
 
@@ -48,7 +49,7 @@ class Run(batchjob.Batchjob):
 
         # task 2
 
-        profiles=P.getprofiles(m.Run.exname)
+        profiles=P.getprofiles(m.Run.processname)
         bprofile=browse.Browse.getdefaultprofile().butwith(\
             onlyone=True,\
             #readinfo=lambda pname: textutil.startingfrom(sysutil.readtextfile('cancellations/examples/profiles.py'),m.Run.exname,pname),\
@@ -63,7 +64,7 @@ class Run(batchjob.Batchjob):
 
         # task 3
 
-        self.runsubprocess(m.Run(**profile),name='run script')
+        self.runsubprocess(m.Run(profile),name='run script')
 
 
 

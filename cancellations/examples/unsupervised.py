@@ -72,10 +72,10 @@ def getlearner(profile):
 
 
 
-class Run(cdisplay.Run):
+class Run(cdisplay.Process):
     exname='unsupervised'
 
-    def execprocess(run:cdisplay.Run):
+    def execprocess(run:cdisplay.Process):
 
         run.act_on_input=exampleutil.act_on_input
         exampleutil.prepdisplay(run)

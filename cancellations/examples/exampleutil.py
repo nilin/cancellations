@@ -125,7 +125,8 @@ def adjustnorms(Afdescr,X,iterations=500,**learningparams):
 
 def info(separator=' | '):
 	run=tracking.currentprocess()
-	return 'n={}, target: {}{}learner: {}'.format(run['n'],\
+	P=run.profile
+	return 'n={}, target: {}{}learner: {}'.format(P.n,\
 		run.target.richtypename(),separator,run.learner.richtypename())
 
 def INFO(separator='\n\n',width=100):
@@ -147,9 +148,9 @@ def INFO(separator='\n\n',width=100):
 # learning plots
 
 def process_snapshot_0(processed,f,X,Y,i):
-	processed.addcontext('minibatchnumber',i)
-	processed.remember('Af norm',jnp.average(f(X[:100])**2))
-	processed.remember('test loss',mathutil.SI_loss(f(X),Y))
+	#processed.addcontext('minibatchnumber',i)
+	processed.remember('Af norm',jnp.average(f(X[:100])**2),minibatchnumber=i)
+	processed.remember('test loss',mathutil.SI_loss(f(X),Y),minibatchnumber=i)
 
 def plotexample_0(unprocessed,processed):
 	plt.close('all')
@@ -254,7 +255,7 @@ def prepdisplay(run):
 
 	# columndisplay
 
-	instructions=run.name+'\n\n\nPress [l] (lowercase L) to generate learning plots.\n'+\
+	instructions='Press [l] (lowercase L) to generate learning plots.\n'+\
 		'Press [f] to generate functions plot.\nPress [o] to open output folder.\
 		\n\nPress [b] to break from current task.\nPress [q] to quit. '
 	
@@ -268,13 +269,13 @@ def prepdisplay(run):
 	column1.add(disp.StaticText(msg=instructions))
 	column1.add(disp.VSpace(2))
 	column1.add(disp.Hline())
-	column1.add(disp.LogDisplay(height=10))
+	column1.add(disp.LogDisplay(run,height=10))
 	column1.add(disp.Hline())
 #	column1.add(disp.RunText(query='currenttask',msgtransform=lambda msg:msg if run.getcurrenttask()!=None else ''))
 #	column1.add(disp.Bar('currenttaskcompleteness',msgtransform=lambda msg:msg if run.getcurrenttask()!=None else ''))
 	column1.draw()
 
-	run.addlistener(column1,'recentlog')
+	#run.addlistener(column1,'recentlog')
 #	run.addlistener(column1,'currenttaskcompleteness')
 #	run.addlistener(column1,'target |Af|')
 

@@ -19,6 +19,6 @@ if __name__=='__main__':
 
 		match mode:
 			case 'Run':
-				pr.Run(**pr.profile).run_as_main()
+				pr.Run(pr.profile).run_as_main()
 			case 'singlefunction':
 				import testsinglefunction as tf

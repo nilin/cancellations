@@ -21,7 +21,7 @@ import math
 
 
 
-class Run(cdisplay.Run):
+class Run(cdisplay.Process):
 
     exname='estimateobservables'
 
