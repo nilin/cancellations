@@ -19,19 +19,21 @@ class Process(tracking.Process):
 	def run_in_display(self,display):
 		tracking.loadprocess(self)
 		self.display=display
-		self.prepdisplay()
 		output=self.execprocess()
 
 		tracking.unloadprocess(self)
-		self.display.disarm()
-		del self.display
-
 		clearscreen()
 		return output
 
 	def run_as_main(self):
 		def wrapped(screen):
+			def getch():
+				c=extractkey_cs(screen.getch())
+				screen.refresh()
+				return c
+
 			setup.screen=screen
+			setup.getch=getch
 			screen.nodelay(True)
 			cs.use_default_colors()
 			setup.session.dashboard=_Dashboard_(cs.COLS,cs.LINES)
@@ -87,8 +89,8 @@ class _Display_:
 	def getelementstrings(self):
 		return self._getelementstrings_()
 
-	def _getelementstrings_(self):
-		return []
+	#def _getelementstrings_(self):
+	#	return []
 
 	def getfullwidth(self):
 		if self._getelementstrings_()==[]: return 0
@@ -112,13 +114,14 @@ class _Frame_:
 		self.width=width
 		self.getcorner=lambda _self_: (0,0)
 		self.name=name
+		self.outline=False
 
 	def getelementstrings(self):
 		strings=self._getelementstrings_()
-		if self.name=='T':
-			tracking.log(strings)
 		x0,y0=self.getcorner(self)
 		out=self.movingframe(strings,(x0,x0+self.width),(y0,y0+self.height))
+
+		if self.outline: out+=self.getoutline()
 		return out
 
 	@staticmethod
@@ -134,6 +137,10 @@ class _Frame_:
 
 	def getheight(self):
 		return self.height
+
+	def getoutline(self):
+		return [(0,1,self.width*box),(0,self.height,self.width*box),\
+			(0,0,'\n'.join(self.height*[box])),(self.width-1,0,'\n'.join(self.height*[box]))]
 
 #----------------------------------------------------------------------------------------------------
 
@@ -187,57 +194,137 @@ class _CompositeDisplay_(_Display_):
 				tracking.log(out)
 		return out
 
-	def getelements(self): return self.elements
+	#def getelements(self): return self.elements
+
+	def vstack(self,spacing=2):
+		E=[]
+		y0=0
+		for x,y,e in self.elements:
+			E.append((x,y0,e))
+			y0+=e.getheight()+spacing
+		self.elements=E
 
 
 
-class _CompositeFrame_(_Frame_,_CompositeDisplay_):
-	def __init__(self,width,height,*elements,name=None):
+class _Dashboard_(_Frame_,_CompositeDisplay_):
+	def __init__(self,width,height,*elements,name=None,x0=0,y0=0):
 		super().__init__(width,height)
 		_CompositeDisplay_.__init__(self,*elements)
 		self.name=name
+		self.x0=x0
+		self.y0=y0
 		
-	def hsplit(self,rlimits=[0,.5,1],sep=2):
-		limits=[round(self.width*t) for t in rlimits]
-		ws=[b-a-sep for a,b in zip(limits[:-1],limits[1:])]
-		frames=[_CompositeFrame_(w-sep,self.height) for w in ws]
+	def hsplit(self,limits=None,rlimits=[.5],sep=2):
+		if limits==None:
+			limits=[round(self.width*t) for t in rlimits]
+		limits=[0]+limits+[self.width]
+		ws=[b-a for a,b in zip(limits[:-1],limits[1:])]
+
+		frames=[_Dashboard_(w-sep,self.height) for w in ws]
 		for f,x0 in zip(frames,limits[:-1]):
 			self.add(x0,0,f)
 		for f,name in zip(frames,['column {}'.format(i) for i in range(1,len(limits))]): f.name=name
+		self.fixate(self.x0,self.y0)
 		return frames
 
-	def vsplit(self,r=.5,sep=2):
-		h1=math.floor(self.height*r)
-		h2=math.floor(self.height*(1-r))
-		frames=(_CompositeFrame_(self.width,h1-sep),_CompositeFrame_(self.width,h2-sep))
-		for f,y0 in zip(frames,[0,h1]): self.add(0,y0,f)
-		for f,name in zip(frames,['T','B']): f.name=name
+	def vsplit(self,limits=None,rlimits=.5,sep=1):
+		if limits==None:
+			limits=[round(self.height*t) for t in rlimits]
+		limits=[0]+limits+[self.height]
+		hs=[b-a for a,b in zip(limits[:-1],limits[1:])]
+
+		frames=[_Dashboard_(self.width,h-sep) for h in hs]
+		for f,y0 in zip(frames,limits[:-1]):
+			self.add(0,y0,f)
+		for f,name in zip(frames,['row {}'.format(i) for i in range(1,len(limits))]): f.name=name
+		self.fixate(self.x0,self.y0)
 		return frames
+
+	def fixate(self,x0=0,y0=0):
+		self.x0=x0
+		self.y0=y0
+		for x,y,e in self.elements:
+			if isinstance(e,_Dashboard_): e.fixate(x0+x,y0+y)
+
 
 #----------------------------------------------------------------------------------------------------
 
-class _Dashboard_(_CompositeFrame_):
+	def blankclone(self):
+		return _Dashboard_(self.width,self.height,x0=self.x0,y0=self.y0)
 
+#----------------------------------------------------------------------------------------------------
 	def arm(self):
-		screencoords=[(e.getheight()+1,e.getwidth()+1,y,x) for x,y,e in self.getelements()]
-		self.windows=[cs.newwin(*sc) for sc in screencoords]
+		x,y=self.x0,self.y0
+		tracking.currentdashboard()[self.name]=cs.newwin(self.getheight()+1,self.getwidth()+1,y,x)
 
-	def disarm(self):
-		for w in self.windows:
-			del w
+	def draw(self):
+		window=tracking.currentdashboard()[self.name]
 
-	def drawall(self):
-		for i in range(len(self.getelements())):
-			self.draw(i)
+		window.erase()
+		for x,y,s in self.getelementstrings():
+			window.addstr(y,x,s)
+		window.refresh()
 
-	def draw(self,i):
-		_e_,w=self.getelements()[i],self.windows[i]
 
-		w.erase()
-		X,Y,e=_e_
-		for x,y,s in e.getelementstrings():
-			w.addstr(y,x,s)
-		w.refresh()
+#----------------------------------------------------------------------------------------------------
+def clearcurrentdash():
+	currentdash=tracking.currentdashboard()
+	for k,window in currentdash.items():
+		window.erase()
+		window.clear()
+		window.refresh()
+
+	keys=list(currentdash.keys())
+	for k in keys:
+		del currentdash[k]
+
 
 
 #####################################################################################################
+
+def extractkey_cs(a):
+    if a>=97 and a<=122: return chr(a)
+    if a>=48 and a<=57: return str(a-48)
+    match a:
+        case 32: return 'SPACE'
+        case 10: return 'ENTER'
+        case 127: return 'BACKSPACE'
+    return a
+
+
+
+
+
+
+#----------------------------------------------------------------------------------------------------
+
+
+
+halfblocks=[' ',\
+	'\u258F',\
+	'\u258E',\
+	'\u258D',\
+	'\u258C',\
+	'\u258B',\
+	'\u258A',\
+	'\u2589',\
+	]
+
+
+def hiresbar(t,width):
+	T=t*width
+	return BOX*math.floor(T)+halfblocks[math.floor(8*T)%8]
+
+
+theticks=['\u258F','|','|','\u2595']
+
+def hirestick(t,width):
+	T=t*width
+	return (math.floor(T),0,theticks[math.floor(4*T)%4])
+
+
+theTICKS=['\u2590\u258C ',' \u2588 ',' \u2588 ',' \u2590\u258C']
+
+def hirestick(t,width):
+	T=t*width
+	return (math.floor()-1,0,theTICKS[math.floor(4*T)%4])

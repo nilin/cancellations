@@ -10,6 +10,27 @@ import os
 
 
 
+class Run1(batchjob.Batchjob):
+    def runbatch(self):
+
+        process,display=self.loadprocess()
+
+        display.arm()
+        display.add(0,0,_display_._TextDisplay_(textutil.lipsum))
+        display.draw()
+
+        import time
+        time.sleep(1)
+
+        process,display=self.swap_process()
+
+        display.arm()
+        display.add(0,2,_display_._TextDisplay_(textutil.lipsum))
+        display.draw()
+
+        import time
+        time.sleep(1)
+
 
 
 class Run(_display_.Process):
@@ -18,23 +39,26 @@ class Run(_display_.Process):
         for i in range(5):
             self.log(str(i))
 
-        T,B=self.display.vsplit(r=.7)
+        T,B=self.display.vsplit([.7])
         L,R=T.hsplit()
 
         f=L.add(0,0,_display_._LogDisplay_(self,50,20))
 
         for i in range(0,100,10):
             R.add(i,i,_display_._TextDisplay_(textutil.lipsum))
-        #self.display.add(0,30,_display_._TextDisplay_(textutil.lipsum))
-        self.display.arm()
-        self.display.drawall()
-        T.getelementstrings()
+
+        #dashboard=self.display.flatten(name='flat')
+        dashboard=self.display
+
+        dashboard.arm()
+        dashboard.draw()
+
 
         import time 
         for i in range(100):
             self.log(str(i))
             R.getcorner=lambda _self_: (i,i)
-            self.display.drawall()
+            dashboard.draw()
 
             time.sleep(.02)
 #        sysutil.save(profile.p_descr.compress(),self.outpath+'density')

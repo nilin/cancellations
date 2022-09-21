@@ -67,7 +67,7 @@ class Pad(disp.CompositeDisplay):
 def checkforinput(*args,**kw):
 	a=getscreen().getch()
 	cs.flushinp()
-	tracking.currentprocess().display.draw()
+	#tracking.currentprocess().display.draw()
 	return extractkey_cs(a)
 
 setup.checkforinput=checkforinput

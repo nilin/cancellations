@@ -355,14 +355,14 @@ def nowstr():
 
 
 
-
-
-def newprocess(execfn):
-    class CustomProcess(Process):
-        execprocess=execfn
-    return CustomProcess
-
-
+#
+#
+#def newprocess(execfn):
+#    class CustomProcess(Process):
+#        execprocess=execfn
+#    return CustomProcess
+#
+#
 
 
 #def log(msg):
@@ -382,6 +382,9 @@ def newprocess(execfn):
 #    write(str(msg)+'\n','dblog/'+sessionID)
 #    write(str(msg)+'\n\n',outpath+'dblog')
 
+
+class Pointer(dotdict): pass
+    
 
 
 class Stopwatch:
@@ -407,22 +410,22 @@ class Stopwatch:
         if self.tick_after(dt):
             fn(*args,**kwargs)
 
-
-
-class Breaker:
-    def __init__(self):
-        self.wantbreak=False
-
-    def breaknow(self):
-        self.wantbreak=True
-
-    def wantsbreak(self):
-        out=self.wantbreak
-        self.wantbreak=False
-        return out
-
-
-breaker=Breaker()
+#
+#
+#class Breaker:
+#    def __init__(self):
+#        self.wantbreak=False
+#
+#    def breaknow(self):
+#        self.wantbreak=True
+#
+#    def wantsbreak(self):
+#        out=self.wantbreak
+#        self.wantbreak=False
+#        return out
+#
+#
+#breaker=Breaker()
 #----------------------------------------------------------------------------------------------------
 
 
@@ -541,22 +544,25 @@ def getlog():
 processes=[]
 dashboards=[]
 
-def gendashboard():
-    return None
 
 
-
-def loadprocess(process,**environmentvars):
+def loadprocess(process):
     if len(processes)==0 or processes[-1]!=process:
         processes.append(process)
-        dashboards.append(gendashboard())
+        dashboards.append(dict())
     return process
 
-def unloadprocess(process):
-    if len(processes)>0 and processes[-1]==process:
+def unloadprocess(process=None):
+    if len(processes)>0 and (process==None or processes[-1]==process):
         processes.pop()
         dashboards.pop()
     return process
+
+def swap_process(process):
+    unloadprocess()
+    return loadprocess(process)
+
+
 
 def currentprocess():
     return processes[-1]

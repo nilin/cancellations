@@ -3,6 +3,8 @@ import re
 import curses as cs
 import pdb
 
+from cancellations.utilities import textutil, setup
+
 from . import tracking
 from ..display.display import StaticText, dash
 from ..display import display as disp, _display_
@@ -21,96 +23,93 @@ right='\u2192'
 
 
 
-def defaultpathprofile():
-	parentfolder='outputs/'
-	return tracking.Profile(name='filterpaths',\
-	parentfolder=parentfolder,\
-	regex='.*',\
-	condition1=lambda path:os.path.exists(parentfolder+path+'/data/setup'),\
-	dynamiccondition=None,\
-	)
+
+
+
+
+def browse(process):
+	profile,display=process.profile,process.display
+
+	L,C,R=display.hsplit(rlimits=[.33,.66])
+	C0,C1,Cr=C.hsplit(limits=[2,4],sep=1)
+
+	pointer=tracking.Pointer(val=0)
+	selections=[]
+	
+
+	explanation=profile.msg
+	Ltext=L.add(0,0,_display_._TextDisplay_(explanation))
+	C0.add(0,0,_display_._Display_())._getelementstrings_=lambda: [(0,pointer.val,'>')]
+	C1.add(0,0,_display_._Display_())._getelementstrings_=lambda: [(0,i,'*') for i in selections]
+	Cr.add(0,0,_display_._TextDisplay_('\n'.join([profile.displayoption(o) for o in profile.options])))
+	Rtext=matchinfodisp=R.add(0,0,_display_._TextDisplay_(''))
+
+	display.arm()
+	display.draw()
+
+	matchinfodisp.msg=textutil.lipsum
+	display.draw()
+
+	mode='browse'
+	inputtext=''
+
+	#allowtextinput=True if 'dynamiccondition' in profile.keys() else False
+
+	while True:
+		matches=[option for option in profile.options\
+				if profile.dynamiccondition(profile.displayoption(option),inputtext) not in [None,False]]
+
+		ls=pointer.val
+		c=setup.getch()
+
+		if c=='ENTER': break
+		match mode:
+			case 'browse':
+				match c:
+					case 'SPACE':
+						if profile.onlyone: selections.append(ls)
+					case 'BACKSPACE':
+						if not profile.onlyone and ls in selections: selections.remove(ls)
+					case 259: ls-=1
+					case 258: ls+=1
+					case 260: ls-=5
+					case 261: ls+=5
+					case 's':
+						try: ls=max([c for c in selections if c<ls])
+						except: pass
+					case 'c':
+						try: ls=min([c for c in selections if c>ls])
+						except: pass
+					case 'i':
+						mode='input'
+					case 'q':
+						quit()
+					case 'b':
+						return None
+
+			case 'input':
+				if c=='BACKSPACE': inputtext=inputtext[:-1]
+				elif c=='SPACE': inputtext+=' '
+				elif c==27: mode='browse'
+				else:
+					try: inputtext+=c
+					except: mode='browse'
+
+		ls=max(0,min(len(matches)-1,ls))
+
+		Ltext.msg=explanation.format(mode,inputtext)
+		Rtext.msg=getinfo(profile.readinfo,profile.options[ls])
+		pointer.val=ls
+		display.draw()
+
+
+	#screen.nodelay(True)
+	return matches[ls] if profile.onlyone else [matches[ls] for ls in selections]
 
 
 class Browse(cdisplay.Process):
 	processname='browse'
-	def execprocess(process):
-		profile,display=process.profile,process.display
-		#browsing=tracking.Process(profile,display=display)
-
-		W=display.width
-		H=display.height
-		x0,x3=display.xlim
-		y0,y1=display.ylim
-		x1,x2=round(x0*.75+x3*.25), round(.4*x0+.6*x3)
-		screen=cdisplay.getscreen()
-		screen.nodelay(False)
-
-		explanation=profile.msg
-		explanationtextdisp,_=display.add(cdisplay.ConcreteStaticTextDisplay((x0,x1-5),(y0,y1),msg=explanation),name='explanation')
-
-		listpad=cdisplay.Pad((x1,x2-10),(y0,y1),100,1000)
-		matchinfotextdisp,_=display.add(cdisplay.ConcreteStaticTextDisplay((x2,x3),(y0,y1),msg=''),name='matchinfo')
-
-		screen.refresh()
-		
-
-		ls=0
-		choices=[]		# multiple case
-		mode='browse'
-		inputtext=''
-
-		allowtextinput=True if 'dynamiccondition' in profile.keys() else False
-
-		while True:
-			if allowtextinput:
-				matches=[option for option in profile.options\
-						if profile.dynamiccondition(profile.displayoption(option),inputtext) not in [None,False]]
-			else: matches=profile.options
-
-			ls=max(0,min(len(matches)-1,ls))
-			displayoptions(matches,ls,choices,listpad,matchinfotextdisp,profile,H)
-			explanationtextdisp.msg=explanation.format(mode,inputtext)
-			explanationtextdisp.draw()
-
-			c=cdisplay.extractkey_cs(screen.getch())
-
-			if c=='ENTER': break
-
-			match mode:
-				case 'browse':
-					match c:
-						case 'SPACE':
-							if profile.onlyone: choices.append(ls)
-						case 'BACKSPACE':
-							if not profile.onlyone and ls in choices: choices.remove(ls)
-						case 259: ls-=1
-						case 258: ls+=1
-						case 260: ls-=5
-						case 261: ls+=5
-						case 's':
-							try: ls=max([c for c in choices if c<ls])
-							except: pass
-						case 'c':
-							try: ls=min([c for c in choices if c>ls])
-							except: pass
-						case 'i':
-							if allowtextinput: mode='input'
-						case 'q':
-							quit()
-						case 'b':
-							return None
-
-				case 'input':
-					if c=='BACKSPACE': inputtext=inputtext[:-1]
-					elif c=='SPACE': inputtext+=' '
-					elif c==27: mode='browse'
-					else:
-						try: inputtext+=c
-						except: mode='browse'
-
-
-		screen.nodelay(True)
-		return matches[ls] if profile.onlyone else [matches[ls] for ls in choices]
+	execprocess=browse
 
 	@staticmethod
 	def getdefaultprofile():
@@ -137,38 +136,39 @@ class Browse(cdisplay.Process):
 				+'\n\nPress ENTER to finish selection'
 		profile.msg=profile.msg1
 		profile.displayoption=lambda option:option
+		profile.dynamiccondition=lambda fulldotpath,phrase: re.search(phrase,fulldotpath)
 		return profile
 
-def displayoptions(options,selection,selections,listpad,matchinfotextdisp,profile,H):
-	#matchinfopad.erase()
-	listpad.erase()
-	for i,match in enumerate(options):
-		listpad.addstr(i,2,'{}: {}'.format(str(i+1),profile.displayoption(match)))
-	try:
-		#matchinfopad.addstr(0,0,getmetadata(options[selection]))
-		#matchinfopad.addstr(2,0,getinfo(profile.readinfo,options[selection]))
-		matchinfotextdisp.msg=getinfo(profile.readinfo,options[selection])
-	except:
-		#matchinfopad.addstr(0,0,'no folder selected or no info.txt')
-		matchinfotextdisp.msg='no folder selected or no info.txt'
-	
-	listpad.addstr(selection,0,' *' if profile.onlyone else '>')
-	for s in selections: listpad.addstr(s,1,'*')
-	listpad.refresh(max(0,selection-H//2))
-	matchinfotextdisp.draw()
+#def displayoptions(options,selection,selections,listpad,matchinfotextdisp,profile,H):
+#	#matchinfopad.erase()
+#	listpad.erase()
+#	for i,match in enumerate(options):
+#		listpad.addstr(i,2,'{}: {}'.format(str(i+1),profile.displayoption(match)))
+#	try:
+#		#matchinfopad.addstr(0,0,getmetadata(options[selection]))
+#		#matchinfopad.addstr(2,0,getinfo(profile.readinfo,options[selection]))
+#		matchinfotextdisp.msg=getinfo(profile.readinfo,options[selection])
+#	except:
+#		#matchinfopad.addstr(0,0,'no folder selected or no info.txt')
+#		matchinfotextdisp.msg='no folder selected or no info.txt'
+#	
+#	listpad.addstr(selection,0,' *' if profile.onlyone else '>')
+#	for s in selections: listpad.addstr(s,1,'*')
+#	listpad.refresh(max(0,selection-H//2))
+#	matchinfotextdisp.draw()
 
 
 
-def combineconditions(profile):
-	conditions=[]
-	for i in range(1,10):
-		cname='condition'+str(i)
-		if cname in profile.keys(): conditions.append(profile[cname])
-		else: break
-	def CONDITION(d):
-		try: return all([True if c==None else c(d) for c in conditions])
-		except: False
-	return CONDITION 	
+#def combineconditions(profile):
+#	conditions=[]
+#	for i in range(1,10):
+#		cname='condition'+str(i)
+#		if cname in profile.keys(): conditions.append(profile[cname])
+#		else: break
+#	def CONDITION(d):
+#		try: return all([True if c==None else c(d) for c in conditions])
+#		except: False
+#	return CONDITION 	
 
 
 
@@ -196,11 +196,23 @@ def getinfo(readinfo,path):
 
 
 
-def getpaths(profile):
-	paths=allpaths(profile.parentfolder)
-	pattern=re.compile(profile.regex)
+
+
+####################################################################################################
+
+
+def defaultpathprofile():
+	return tracking.Profile(name='filterpaths',\
+	parentfolder='outputs',\
+	regex='.*',\
+	condition=lambda path:os.path.exists('outputs/'+path+'/data/setup'),\
+	)
+
+def getpaths(pathprofile):
+	paths=allpaths(pathprofile.parentfolder)
+	pattern=re.compile(pathprofile.regex)
 	paths=list(filter(pattern.fullmatch,paths))
-	paths=list(filter(combineconditions(profile),paths))
+	paths=list(filter(pathprofile.condition,paths))
 
 	try: paths.sort(reverse=True,key=lambda path:os.path.getmtime(path))
 	except: pass

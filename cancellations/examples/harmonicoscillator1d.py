@@ -13,7 +13,7 @@ from ..functions import examplefunctions as ef, functions
 from ..learning import learning
 from ..functions.functions import ComposedFunction,SingleparticleNN,Product
 from ..utilities import config as cfg, numutil, tracking, sysutil, textutil, sampling, setup
-from ..display import cdisplay,display as disp
+from ..display import cdisplay,display as disp, _display_
 from . import plottools as pt
 from . import exampleutil
 
@@ -30,7 +30,10 @@ class Run(cdisplay.Process):
     processname='harmonicoscillator1d'
 
     def execprocess(run:cdisplay.Process):
+
+        run.prepdisplay()
         run.log('imports done')
+
 
         P=run.profile
         info='runID: {}\n'.format(run.ID)+'\n'*4; run.infodisplay.msg=info
@@ -41,25 +44,36 @@ class Run(cdisplay.Process):
         if 'initweight_coefficient' in P.keys():
             cfg.initweight_coefficient=P.initweight_coefficient
 
+        run.log('gen target')
+
+
         run.target=P.gettarget(P)
         info+='target\n\n{}'.format(textutil.indent(run.target.getinfo()))
+        run.infodisplay.msg=info
+        run.T.draw()
 
+
+        run.log('gen samples')
 
         run.genX=lambda nsamples: P._genX_(run.nextkey(),nsamples,P.n,P.d)
         run.X_train=run.genX(P.samples_train)
+
         run.log('preparing training data')
+
         run.Y_train=numutil.blockwise_eval(run.target,blocksize=P.evalblocksize,msg='preparing training data')(run.X_train)
         run.X_test=run.genX(P.samples_test)
         run.Y_test=numutil.blockwise_eval(run.target,blocksize=P.evalblocksize,msg='preparing test data')(run.X_test)
         r=P.plotrange
         run.sections=pt.genCrossSections(numutil.blockwise_eval(run.target,blocksize=P.evalblocksize),interval=jnp.arange(-r,r,r/50))
 
-        ####
+        run.log('gen learner')
 
         run.learner=P.getlearner(P)
         info+=4*'\n'+'learner\n\n{}'.format(textutil.indent(run.learner.getinfo()))#; run.infodisplay.msg=info
-        info+=10*'\n'+str(run.profile); run.infodisplay.msg=info
+        run.infodisplay.msg=info
+        run.T.draw()
 
+        run.log('save setup data')
 
         setupdata=dict(X_train=run.X_train,Y_train=run.Y_train,X_test=run.X_test,Y_test=run.Y_test,\
             target=run.target.compress(),\
@@ -72,19 +86,19 @@ class Run(cdisplay.Process):
         run.unprocessed=tracking.Memory()
         run.unprocessed.target=run.target.compress()
 
+        info+=10*'\n'+str(run.profile) 
         sysutil.write(info,run.outpath+'info.txt',mode='w')
 
+        run.log('gen lossgrad and learner')
         #train
         run.lossgrad=gen_lossgrad(run.learner._eval_,P.X_density)
-
         run.sampler=sampling.SamplesPipe(run.X_train,run.Y_train,minibatchsize=P.minibatchsize)
-
         run.trainer=learning.Trainer(run.lossgrad,run.learner,run.sampler,\
             **{k:P[k] for k in ['weight_decay','iterations']}) 
 
         regsched=tracking.Scheduler(tracking.nonsparsesched(P.iterations,start=50))
         plotsched=tracking.Scheduler(tracking.sparsesched(P.iterations,start=1000))
-        ld,_=exampleutil.addlearningdisplay(run,run.display)
+        run.addlearningdisplay()
 
         run.log('data type (32 or 64): {}'.format(run.learner.eval(run.X_train[100:]).dtype))
 
@@ -94,9 +108,10 @@ class Run(cdisplay.Process):
         for i in range(P.iterations+1):
 
             loss=run.trainer.step()
-            for mem in [run.unprocessed,run]:
-                mem.minibatchnumber=i
-                mem.remember('minibatch loss',loss)
+            run.loss.val=loss
+            run.learningdisplay.draw()
+
+            run.unprocessed.remember('minibatch loss',loss,minibatchnumber=i)
 
             if regsched.activate(i):
                 run.unprocessed.remember('weights',run.learner.weights,minibatchnumber=i)
@@ -109,15 +124,46 @@ class Run(cdisplay.Process):
 #                exampleutil.lplot()
 
             if stopwatch1.tick_after(.05):
-                ld.draw()
+                run.learningdisplay.draw()
 
             if stopwatch2.tick_after(.5):
                 if P.act_on_input(setup.checkforinput())=='b': break
 
         return run.learner
 
+    def log(self,msg):
+        super().log(msg)
+        self.T.draw()
 
-    prepdisplay=exampleutil.prepdisplay
+    def prepdisplay(self):
+        instructions='Press [l] (lowercase L) to generate learning plots.\n'+\
+            'Press [f] to generate functions plot.\nPress [o] to open output folder.\
+            \n\nPress [b] to break from current task.\nPress [q] to quit. '
+
+        self.dashboard=self.display
+        self.T,self.learningdisplay=self.dashboard.vsplit(rlimits=[.8])
+        self.L,self.R=self.T.hsplit()
+
+        self.L.add(0,0,_display_._TextDisplay_(instructions))
+        self.L.add(0,20,_display_._LogDisplay_(self,self.L.width,10))
+        self.L.vstack()
+
+
+        self.infodisplay=self.R.add(0,0,_display_._TextDisplay_(''))
+
+        self.T.arm()
+        self.learningdisplay.arm()
+        self.T.draw()
+
+
+    def addlearningdisplay(self):
+        self.loss=tracking.Pointer()
+        display=self.learningdisplay.add(0,0,_display_._Display_())
+        display._getelementstrings_=lambda: [(0,0,_display_.hiresbar(self.loss.val,self.dashboard.width)),\
+            (0,1,'loss {:.2E}'.format(self.loss.val))]
+        
+
+
 
     @staticmethod
     def getdefaultprofile():
@@ -159,6 +205,12 @@ class Run(cdisplay.Process):
 
         profile.act_on_input=exampleutil.act_on_input
         return profile
+
+
+
+
+
+
 
 
 def gen_lossgrad(f,X_density):
