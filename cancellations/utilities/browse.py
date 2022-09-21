@@ -30,6 +30,8 @@ right='\u2192'
 def browse(process):
 	profile,display=process.profile,process.display
 
+	#setup.screen.nodelay(False)
+
 	L,C,R=display.hsplit(rlimits=[.33,.66])
 	C0,C1,Cr=C.hsplit(limits=[2,4],sep=1)
 
@@ -41,7 +43,15 @@ def browse(process):
 	Ltext=L.add(0,0,_display_._TextDisplay_(explanation))
 	C0.add(0,0,_display_._Display_())._getelementstrings_=lambda: [(0,pointer.val,'>')]
 	C1.add(0,0,_display_._Display_())._getelementstrings_=lambda: [(0,i,'*') for i in selections]
-	Cr.add(0,0,_display_._TextDisplay_('\n'.join([profile.displayoption(o) for o in profile.options])))
+	optionsdisplay=Cr.add(0,0,_display_._TextDisplay_(''))
+
+	getcorner=lambda _: (0,max(pointer.val-display.height//2,0))
+	C0.getcorner=getcorner
+	C1.getcorner=getcorner
+	Cr.getcorner=getcorner
+
+
+
 	Rtext=matchinfodisp=R.add(0,0,_display_._TextDisplay_(''))
 
 	display.arm()
@@ -53,6 +63,7 @@ def browse(process):
 	mode='browse'
 	inputtext=''
 
+	profile.options=list(filter(profile.condition,profile.options))
 	#allowtextinput=True if 'dynamiccondition' in profile.keys() else False
 
 	while True:
@@ -63,51 +74,55 @@ def browse(process):
 		c=setup.getch()
 
 		if c=='ENTER': break
-		match mode:
-			case 'browse':
-				match c:
-					case 'SPACE':
-						if profile.onlyone: selections.append(ls)
-					case 'BACKSPACE':
-						if not profile.onlyone and ls in selections: selections.remove(ls)
-					case 259: ls-=1
-					case 258: ls+=1
-					case 260: ls-=5
-					case 261: ls+=5
-					case 's':
-						try: ls=max([c for c in selections if c<ls])
-						except: pass
-					case 'c':
-						try: ls=min([c for c in selections if c>ls])
-						except: pass
-					case 'i':
-						mode='input'
-					case 'q':
-						quit()
-					case 'b':
-						return None
+		if c!=-1:
+			match mode:
+				case 'browse':
+					match c:
+						case 'SPACE':
+							if profile.onlyone: selections.append(ls)
+						case 'BACKSPACE':
+							if not profile.onlyone and ls in selections: selections.remove(ls)
+						case 259: ls-=1
+						case 258: ls+=1
+						case 260: ls-=5
+						case 261: ls+=5
+						case 's':
+							try: ls=max([c for c in selections if c<ls])
+							except: pass
+						case 'c':
+							try: ls=min([c for c in selections if c>ls])
+							except: pass
+						case 'i':
+							mode='input'
+						case 'q':
+							quit()
+						case 'b':
+							return None
 
-			case 'input':
-				if c=='BACKSPACE': inputtext=inputtext[:-1]
-				elif c=='SPACE': inputtext+=' '
-				elif c==27: mode='browse'
-				else:
-					try: inputtext+=c
-					except: mode='browse'
+				case 'input':
+					if c=='BACKSPACE': inputtext=inputtext[:-1]
+					elif c=='SPACE': inputtext+=' '
+					elif c==27: mode='browse'
+					else:
+						try: inputtext+=c
+						except: mode='browse'
+
+
 
 		ls=max(0,min(len(matches)-1,ls))
-
+		
 		Ltext.msg=explanation.format(mode,inputtext)
+		optionsdisplay.msg='\n'.join([profile.displayoption(o) for o in matches])
 		Rtext.msg=getinfo(profile.readinfo,profile.options[ls])
 		pointer.val=ls
 		display.draw()
 
 
-	#screen.nodelay(True)
+	#setup.screen.nodelay(True)
 	return matches[ls] if profile.onlyone else [matches[ls] for ls in selections]
 
 
-class Browse(cdisplay.Process):
+class Browse(_display_.Process):
 	processname='browse'
 	execprocess=browse
 
@@ -136,7 +151,9 @@ class Browse(cdisplay.Process):
 				+'\n\nPress ENTER to finish selection'
 		profile.msg=profile.msg1
 		profile.displayoption=lambda option:option
+		#profile.dynamiccondition=lambda fulldotpath,phrase: re.search('.*'.join([c for c in phrase]),fulldotpath)
 		profile.dynamiccondition=lambda fulldotpath,phrase: re.search(phrase,fulldotpath)
+		profile.condition=lambda option:True
 		return profile
 
 #def displayoptions(options,selection,selections,listpad,matchinfotextdisp,profile,H):

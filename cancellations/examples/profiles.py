@@ -1,5 +1,5 @@
 
-from . import harmonicoscillator1d, estimateobservables, unsupervised
+from . import harmonicoscillator1d, harmonicoscillator2d, estimateobservables, unsupervised
 from ..functions import examplefunctions as ef, functions
 from ..functions.functions import Product, SingleparticleNN, ComposedFunction
 from ..utilities import numutil, energy, tracking
@@ -35,11 +35,8 @@ def getprofiles(exname):
                 d=2,\
                 )
 
-        case 'harmonic2d':
-            exprofiles['test']=harmonicoscillator1d.Run.getdefaultprofile().butwith(\
-                n=3,\
-                d=2,\
-                )
+        case 'harmonicoscillator2d':
+            exprofiles['default']=harmonicoscillator2d.Run.getdefaultprofile().butwith(weight_decay=.1)
 
         case 'estimateobservables':
 

@@ -61,7 +61,10 @@ def totalenergy(n): return sum([i+1/2 for i in range(n)])
 
 # load function definitions
 
-for i in range(10): setattr(functions,'psi'+str(i),psi(i))
+for i in range(10):
+	setattr(functions,'psi'+str(i),psi(i))
+	globals()['psi'+str(i)]=psi(i)
+
 functions.square=lambda y:y**2
 
 #----------------------------------------------------------------------------------------------------

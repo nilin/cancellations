@@ -2,9 +2,10 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 from ..functions import multivariate as mv
+from .. import functions
 import itertools
-from utilities import math as mathutil
-
+from . import examplefunctions
+from ..utilities import numutil as mathutil, numutil
 
 
 
@@ -42,19 +43,60 @@ def n_dtuples_maxdegree(n,d):
 def hermite_nd_params(n,d):		
 	return [[H_coefficients_list[p] for p in phi] for phi in gen_n_dtuples(n,d)]	
 
-def gen_hermitegaussproducts(n,d,envelopevariance=1):
-	hermiteprods=util.fixparams(polynomial_products,hermite_nd_params(n,d))	
-	envelope=lambda x:jnp.exp(-jnp.sum(jnp.square(x),axis=(-1))/(2*envelopevariance))
-	return jax.jit(lambda X:envelope(X)[:,None]*hermiteprods(X))
 
 #----------------------------------------------------------------------------------------------------
 # test
 #----------------------------------------------------------------------------------------------------
 
+psis=[examplefunctions.psi(i) for i in range(10)]
+_Psis_=[[] for i in range(4)]
+
+for d in [1,2,3]:
+
+	tuples=gen_n_dtuples(6,d)
+	for ijk in tuples:
+
+		def psi(X,ijk=ijk):
+			out=1
+			for k,l in zip(ijk,range(d)):
+				out*=psis[k](X[:,l])
+			return out
+
+			#by_dim=[psis[k](X[:,dim]) for k,dim in zip(ijk,range(d))]
+			#return jnp.product(jnp.stack(by_dim,axis=-1),axis=-1)
+
+#		import pdb
+#		pdb.set_trace()
+
+		_Psis_[d].append(psi)
+
+
+	for i,psi in enumerate(_Psis_[d]):
+		globals()['psi{}_{}d'.format(i,d)]=psi
+
+
 
 
 def test():
-	for p in H_coefficients_list: print(p)
+	print([k for k in globals().keys() if 'psi' in k])
+
+	import matplotlib.pyplot as plt
+
+	I=jnp.arange(-3,3,.02)
+
+
+
+	X1,X2=jnp.meshgrid(I,I)
+	X=jnp.stack([X1,X2],axis=-1)
+
+	fig,axs=plt.subplots(5)
+	for i,ax in enumerate(axs):
+		Y=jax.vmap(globals()['psi{}_2d'.format(i)])(X)
+		print(Y.shape)
+		ax.pcolormesh(X1,X2,Y)
+	plt.show()
+
+	#for p in H_coefficients_list: print(p)
 
 	
 

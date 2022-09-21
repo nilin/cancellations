@@ -22,8 +22,8 @@ class Run(batchjob.Batchjob):
         pathprofile=browse.defaultpathprofile().butwith(\
             parentfolder=pf,\
             regex='.*[a-z].py',\
-            condition1=None
-            #condition1=lambda path: re.search('class Run', sysutil.readtextfile(path)),\
+            #condition=None
+            condition=lambda path: re.search('def test', sysutil.readtextfile(pf+path)),\
             )
         allrelpaths=browse.getpaths(pathprofile)
         allfullpaths=[pf+relpath for relpath in browse.getpaths(pathprofile)]
@@ -53,11 +53,12 @@ class Run(batchjob.Batchjob):
             options=fullfnpaths,\
             displayoption=displayoption,\
             dynamiccondition=lambda fulldotpath,phrase: re.search(phrase,fulldotpath),\
+            condition=lambda path: 'test' in path,\
             readinfo=readinfo\
             )
         bprofile.msg='Press [i] to input filter phrase,\nescape input mode with arrow keys.\n\n'+\
             'mode: {}\nfilter by: {}\n'+50*textutil.dash+bprofile.msg0
-        fullpath,fname=self.runsubprocess(browse.Browse(**bprofile),name='pick function')
+        fullpath,fname=self.run_subprocess(browse.Browse(bprofile),name='pick function')
 
         selections.dotpath,selections.fname=fullpath.replace('/','.')[:-3],fname
 
@@ -70,13 +71,13 @@ class Run(batchjob.Batchjob):
             options=list(profilegenerators.keys())
             )
         bprofile.msg='select an input profile\n'+bprofile.msg
-        profilename=self.runsubprocess(browse.Browse(**bprofile),name='pick inputs')
+        profilename=self.run_subprocess(browse.Browse(bprofile),name='pick inputs')
 
         selections.inputprofile=profilegenerators[profilename]()
 
 
 
-Run(**profile).run_as_main()
+Run(profile).run_as_main()
 sysutil.clearscreen()
 
 m = importlib.import_module(selections.dotpath)

@@ -595,6 +595,8 @@ def debuglistcomp(x,msg):
     log(msg)
     return x
 
+def testX(n=5,d=2):
+    return rnd.normal(nextkey(),(100,n,d))
 
 BOX='\u2588'
 box='\u2592'
