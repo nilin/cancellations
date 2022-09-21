@@ -5,7 +5,7 @@ import pdb
 
 from . import tracking
 from ..display.display import StaticText, dash
-from ..display import display as disp
+from ..display import display as disp, _display_
 from ..display import cdisplay
 from ..utilities import config as cfg,sysutil,tracking
 import time

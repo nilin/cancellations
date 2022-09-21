@@ -180,6 +180,11 @@ def treetest():
     print(drawtree(t))
 
 
+a='Lorem ipsum dolor sit amet, \nconsectetur adipiscing elit,'
+b='sed do eiusmod \ntempor incididunt \nut labore et dolore \nmagna aliqua'
+
+lipsum=a+b
+
 def test():
     a='Lorem ipsum dolor sit amet, \nconsectetur adipiscing elit,'
     b='sed do eiusmod \ntempor incididunt \nut labore et dolore \nmagna aliqua'

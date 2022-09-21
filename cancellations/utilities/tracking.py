@@ -89,7 +89,8 @@ class Memory(dotdict,Timer):
         self.hists[name].remember(val,**kw)
 
     def gethist(self,name,*metaparams):
-        return self.hists[name].gethist(*metaparams) #if name in self.hists else ([],)+tuple([[] for _ in metaparams])
+        return self.hists[name].gethist(*metaparams) if name in self.hists else\
+            (([],)+tuple([[] for _ in metaparams]) if len(metaparams)>0 else [])
 
     def getval(self,name):
         return self.hists[name].getlastval() if name in self.hists else self[name]
@@ -282,12 +283,18 @@ class Process(Memory):
         self.ID='{}/{}/{}'.format(self.processname,self.profile.profilename,setup.session.ID)
 
     def log(self,msg):
+        msg=str(msg)
         tmsg=textutil.appendright(self.timeprint()+' | ',msg)
-        self.remember('recentlog',tmsg,membound=25)
+        self.remember('recentlog',tmsg,membound=100)
         sysutil.write(tmsg,self.outpath+'log.txt',mode='a')
+
+        self.refresh()
 
     def nextkey(self):
         return self.keychain.nextkey()
+
+    def refresh(self): pass
+
 
 #    def logcurrenttask(self,msg):
 #        self.trackcurrenttask(msg,0)
@@ -307,10 +314,10 @@ class Process(Memory):
 #    def clearcurrenttask(self):
 #        self.currenttask=None
 #        self.currenttaskcompleteness=0
-
-    @staticmethod
-    def getdefaultprofile():
-        return Profile()
+#
+#    @staticmethod
+#    def getdefaultprofile():
+#        return Profile()
 
     #def profilestr(self):
     #    return '\n'.join(['{} = {}'.format(k,v) for k,v in self.profile.items()])
@@ -484,61 +491,65 @@ class Scheduler(Timer):
         
 
 #====================================================================================================
-
-class Clockedworker(Stopwatch):
-
-    def __init__(self):
-        super().__init__()
-        self.totalrest=0
-        self.totalwork=0
-        self.working=False
-
-    def clock_in(self):
-        assert not self.working
-        self.totalrest+=self.tick()
-        self.working=True
-
-    def clock_out(self):
-        assert self.working
-        self.totalwork+=self.tick()
-        self.working=False
-
-    def workfraction(self):
-        return self.totalwork/self.elapsed()
-    
-    def do_if_rested(self,workfraction,*fs):
-        if self.workfraction()<workfraction:
-            self.clock_in()
-            for f in fs:
-                f()
-            self.clock_out()		
-
-
+# 
+# class Clockedworker(Stopwatch):
+# 
+#     def __init__(self):
+#         super().__init__()
+#         self.totalrest=0
+#         self.totalwork=0
+#         self.working=False
+# 
+#     def clock_in(self):
+#         assert not self.working
+#         self.totalrest+=self.tick()
+#         self.working=True
+# 
+#     def clock_out(self):
+#         assert self.working
+#         self.totalwork+=self.tick()
+#         self.working=False
+# 
+#     def workfraction(self):
+#         return self.totalwork/self.elapsed()
+#     
+#     def do_if_rested(self,workfraction,*fs):
+#         if self.workfraction()<workfraction:
+#             self.clock_in()
+#             for f in fs:
+#                 f()
+#             self.clock_out()		
+# 
+# 
 #====================================================================================================
 
 
-stopwatch=Stopwatch()
+setup.stopwatch=Stopwatch()
 setup.session=Session()
 
+def log(msg):
+    setup.session.log(msg)
 
+def getlog():
+    return setup.session.gethist('recentlog')
 
 
 
 
 #====================================================================================================
-
-
 
 processes=[]
 dashboards=[]
 
+def gendashboard():
+    return None
 
 
 
 def loadprocess(process,**environmentvars):
     if len(processes)==0 or processes[-1]!=process:
         processes.append(process)
-        dashboards.append(dotdict())
+        dashboards.append(gendashboard())
     return process
 
 def unloadprocess(process):
@@ -550,12 +561,8 @@ def unloadprocess(process):
 def currentprocess():
     return processes[-1]
 
-
-
-
-
-def addpad(newpad,name):
-    dashboards[-1][name]=newpad
+def currentdashboard():
+    return dashboards[-1]
 
 
 
@@ -578,7 +585,9 @@ def nextkey(): return currentprocess().nextkey()
 #----------------------------------------------------------------------------------------------------
 
 
-
+def debuglistcomp(x,msg):
+    log(msg)
+    return x
 
 
 BOX='\u2588'

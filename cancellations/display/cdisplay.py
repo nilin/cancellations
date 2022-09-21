@@ -119,3 +119,7 @@ class Process(tracking.Process):
 		return cs.wrapper(wrapped)
 
 	def prepdisplay(self): pass
+
+
+
+#def getscreen(): return setup.screen

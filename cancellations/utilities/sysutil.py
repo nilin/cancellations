@@ -43,7 +43,7 @@ def read(path):
 def showfile(path):
     import os
     import subprocess
-    tracking.log('opening path '+path)
+    setup.session.log('opening path '+path)
 
     try: subprocess.Popen(['open',path])
     except: pass
