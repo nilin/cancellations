@@ -241,8 +241,3 @@ class _Dashboard_(_CompositeFrame_):
 
 
 #####################################################################################################
-
-
-def armdashboard(dashboard):
-	screencoords=lambda xlim,ylim,*_: (ylim[0],xlim[0],ylim[1],xlim[1])
-	tracking.currentdashboard().update({k:cs.newwin(*screencoords(*_e_)) for k,_e_ in dashboard.elements.items()})
