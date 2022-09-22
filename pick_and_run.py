@@ -96,4 +96,5 @@ class Run(batchjob.Batchjob):
 
 if __name__=='__main__':
     Run().run_as_main()
+    setup.postrun()
 
