@@ -2,7 +2,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 from ..functions import multivariate as mv
-from .. import functions
+from ..functions import functions
 import itertools
 from . import examplefunctions
 from ..utilities import numutil as mathutil, numutil
@@ -40,40 +40,34 @@ def gen_n_dtuples(n,d):
 def n_dtuples_maxdegree(n,d):
 	return max([max(t) for t in gen_n_dtuples(n,d)])
 
-def hermite_nd_params(n,d):		
-	return [[H_coefficients_list[p] for p in phi] for phi in gen_n_dtuples(n,d)]	
+#def hermite_nd_params(n,d):		
+#	return [[H_coefficients_list[p] for p in phi] for phi in gen_n_dtuples(n,d)]	
 
 
 #----------------------------------------------------------------------------------------------------
 # test
 #----------------------------------------------------------------------------------------------------
 
-psis=[examplefunctions.psi(i) for i in range(10)]
-_Psis_=[[] for i in range(4)]
+
+def genpsi(d,ijk):
+	def psi(X):
+		out=1
+		for k,l in zip(ijk,range(d)):
+			out*=examplefunctions.psi(k)(X[:,l])
+		return out
+	return psi
+
+Psis=[[] for i in range(4)]
 
 for d in [1,2,3]:
+	for ijk in gen_n_dtuples(10,d):
+		Psis[d].append(genpsi(d,ijk))
 
-	tuples=gen_n_dtuples(6,d)
-	for ijk in tuples:
-
-		def psi(X,ijk=ijk):
-			out=1
-			for k,l in zip(ijk,range(d)):
-				out*=psis[k](X[:,l])
-			return out
-
-			#by_dim=[psis[k](X[:,dim]) for k,dim in zip(ijk,range(d))]
-			#return jnp.product(jnp.stack(by_dim,axis=-1),axis=-1)
-
-#		import pdb
-#		pdb.set_trace()
-
-		_Psis_[d].append(psi)
-
-
-	for i,psi in enumerate(_Psis_[d]):
-		globals()['psi{}_{}d'.format(i,d)]=psi
-
+	for i,psi in enumerate(Psis[d]):
+		fname='psi{}_{}d'.format(i,d)
+		globals()[fname]=psi
+		setattr(functions,fname,psi)
+		#functions.definefunctions(fname,psi)
 
 
 

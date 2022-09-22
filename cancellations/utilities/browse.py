@@ -30,6 +30,10 @@ right='\u2192'
 def browse(process):
 	profile,display=process.profile,process.display
 
+	profile.options=list(filter(profile.condition,profile.options))
+	if len(profile.options)==0: return None
+
+
 	#setup.screen.nodelay(False)
 
 	L,C,R=display.hsplit(rlimits=[.33,.66])
@@ -63,7 +67,6 @@ def browse(process):
 	mode='browse'
 	inputtext=''
 
-	profile.options=list(filter(profile.condition,profile.options))
 	#allowtextinput=True if 'dynamiccondition' in profile.keys() else False
 
 	while True:
@@ -122,37 +125,39 @@ def browse(process):
 	return matches[ls] if profile.onlyone else [matches[ls] for ls in selections]
 
 
+msg='\n\n'\
+	+'Move with arrow keys:\n{}: up\n{}: down\n{}: fast up\n{}: fast down'.format(up,down,left,right)\
+	+'\nYou may be able to scroll with the touchpad.'\
+	+'\n\nPress [i] to input filter phrase (escape with arrow keys).\nmode: {}\nphrase: {}'\
+	+'\n\nPress ENTER to finish selection.'
+
 class Browse(_display_.Process):
 	processname='browse'
 	execprocess=browse
 
 	@staticmethod
-	def getdefaultprofile():
-		profile=tracking.Profile(name='browsing')
-		profile.msg='select folder'
+	def getdefaultprofile(**kw):
+		profile=tracking.Profile(profilename='browsing')
+		profile.msg='select'
 		profile.onlyone=True
-		profile.readinfo=lambda path: sysutil.readtextfile(path+'info.txt')
-		profile.options=getpaths(defaultpathprofile())
-		profile.msg0='\n\n'\
-				+'Move with arrow keys:\n{}: up\n{}: down\n{}: fast up\n{}: fast down'.format(up,down,left,right)\
-				+'\n\nYou may be able to scroll\nwith the touchpad.'\
-				+'\n\nPress ENTER to finish selection.'
-		profile.msg1='\n\n'\
-				+'Move with arrow keys:\n{}: up\n{}: down\n{}: fast up\n{}: fast down'.format(up,down,left,right)\
-				+'\n\nYou may be able to scroll\nwith the touchpad.'\
-				+'\n\nPress b to continue without selection.'\
-				+'\n\nPress ENTER to finish selection.'
-		profile.msg2='\n\n'\
-				+'Move with arrow keys:\n{}: up\n{}: down\n{}: fast up\n{}: fast down'.format(up,down,left,right)\
-				+'\n\nYou may be able to scroll\nwith the touchpad.'\
-				+'\n\nPress SPACE or a to add (i.e. mark) elements.'\
-				+'\nPress s or c to move between marked elements.'\
-				+'\n\nPress b to continue without selection.'\
-				+'\n\nPress ENTER to finish selection'
-		profile.msg=profile.msg1
+		profile.readinfo=lambda selection: str(selection) #sysutil.readtextfile(path+'info.txt')
+		profile.msg=msg
+		profile.options=getpaths(defaultpathprofile(**kw))
 		profile.displayoption=lambda option:option
-		#profile.dynamiccondition=lambda fulldotpath,phrase: re.search('.*'.join([c for c in phrase]),fulldotpath)
-		profile.dynamiccondition=lambda fulldotpath,phrase: re.search(phrase,fulldotpath)
+		profile.dynamiccondition=lambda fulldotpath,phrase: re.search('.*'.join(phrase),fulldotpath.replace('.',''))
+		profile.condition=lambda option:True
+		return profile
+
+	@staticmethod
+	def getdefaultfilebrowsingprofile(parentfolder='outputs/',**kw):
+		profile=tracking.Profile(profilename='file browsing',parentfolder=parentfolder)
+		profile.msg='select file'
+		profile.onlyone=True
+		profile.readinfo=lambda path: sysutil.readtextfile(profile.parentfolder+path+'info.txt')
+		profile.options=getpaths(defaultpathprofile(**kw))
+		profile.msg=msg
+		profile.displayoption=lambda option:option+getmetadata(profile.parentfolder+option)
+		profile.dynamiccondition=lambda fulldotpath,phrase: re.search('.*'.join(phrase),fulldotpath.replace('.',''))
 		profile.condition=lambda option:True
 		return profile
 
@@ -208,6 +213,7 @@ def getmetadata(folder):
 	except Exception as e: return ''
 
 def getinfo(readinfo,path):
+	#return readinfo(path)
 	try: return readinfo(path)
 	except: return 'no info'
 
@@ -218,12 +224,12 @@ def getinfo(readinfo,path):
 ####################################################################################################
 
 
-def defaultpathprofile():
+def defaultpathprofile(**kw):
 	return tracking.Profile(name='filterpaths',\
-	parentfolder='outputs',\
+	parentfolder='outputs/',\
 	regex='.*',\
 	condition=lambda path:os.path.exists('outputs/'+path+'/data/setup'),\
-	)
+	).butwith(**kw)
 
 def getpaths(pathprofile):
 	paths=allpaths(pathprofile.parentfolder)
@@ -231,8 +237,9 @@ def getpaths(pathprofile):
 	paths=list(filter(pattern.fullmatch,paths))
 	paths=list(filter(pathprofile.condition,paths))
 
-	try: paths.sort(reverse=True,key=lambda path:os.path.getmtime(path))
-	except: pass
+	paths.sort(reverse=True,key=lambda path:os.path.getmtime(pathprofile.parentfolder+path))
+	#try: paths.sort(reverse=True,key=lambda path:os.path.getmtime(pathprofile.parentfolder+path))
+	#except: pass
 
 	return paths
 

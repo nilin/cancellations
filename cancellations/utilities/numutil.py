@@ -14,6 +14,87 @@ from jax.nn import softplus
 
 
 
+####################################################################################################
+
+class RunningAvg:
+    def __init__(self,k):
+        self.k=k
+        self.recenthist=deque([])
+        self._sum_=0
+        self._sqsum_=0
+        self.i=0
+
+    def update(self,val,thinning=1):
+        if self.i%thinning==0: self.do_update(val)
+        return self.avg()
+
+    def do_update(self,val):    
+        self.i+=1
+        self._sum_+=val
+        self._sqsum_+=val**2
+        self.recenthist.append(val)
+        if len(self.recenthist)>self.k:
+            self._sum_-=self.recenthist.popleft()
+
+    def avg(self):
+        return self.sum()/self.actualk()    
+
+    def var(self,val=None,**kw):
+        if val!=None: self.update(val,**kw)
+        return self.sqsum()/self.actualk()-self.avg()**2
+
+    def actualk(self):
+        return len(self.recenthist)
+
+    def sum(self): return self._sum_
+    def sqsum(self): return self._sqsum_
+
+class InfiniteRunningAvg(RunningAvg):
+    def __init__(self):
+        self._sum_=0
+        self._sqsum_=0
+        self.i=0
+
+    def do_update(self,val):    
+        self.i+=1
+        self._sum_+=val
+        self._sqsum_+=val**2
+
+    def actualk(self): return self.i
+
+
+def ispoweroftwo(n):
+    pattern=re.compile('10*')
+    return pattern.fullmatch('{0:b}'.format(n))
+
+
+class ExpRunningAverage(InfiniteRunningAvg):
+    def __init__(self):
+        self.blocksums=[]
+        self.intervals=[]
+        self.i=0
+
+    def do_update(self,val):
+        if ispoweroftwo(self.i) or self.i==0:
+            self.blocksums.append(InfiniteRunningAvg())
+            self.intervals.append([self.i,self.i])
+        self.blocksums[-1].do_update(val)
+        self.intervals[-1][-1]+=1
+        self.i+=1
+
+    def sum(self):
+        return sum([e.sum() for e in self.blocksums])
+
+    def sqsum(self): return sum([e.sqsum() for e in self.blocksums])
+
+    def avg(self):
+        if self.i<=1: return None
+        prevlen=self.intervals[-2][1]-self.intervals[-2][0]
+        curlen=self.intervals[-1][1]-self.intervals[-1][0]
+        return (self.blocksums[-1].sum()+self.blocksums[-2].sum())/(prevlen+curlen)
+
+
+####################################################################################################
 
 @jax.jit
 def sqloss(Y1,Y2):

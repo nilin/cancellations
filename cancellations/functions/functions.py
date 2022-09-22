@@ -11,7 +11,7 @@ from . import multivariate as mv
 from . import AS_tools
 from . import AS_tools as ASt
 import jax.random as rnd
-from . import backflow as bf
+from . import backflow as bf, examplefunctions, examplefunctions3d
 import textwrap
 import copy
 from .backflow import gen_backflow,initweights_Backflow
@@ -106,7 +106,7 @@ class Composite(FunctionDescription):
 		self.weights=[e.weights for e in elements]
 
 	def getinfo(self):
-		return '{}\n\n{}'.format('\n'.join(textwrap.wrap(self.richtypename(),width=50)),self.info())
+		return '{}\n\n{}'.format('\n'.join(textwrap.wrap(self.richtypename(),width=100)),self.info())
 
 	def compress(self):
 		c=super().compress()
@@ -448,4 +448,7 @@ def inspect(fd,X,formatarrays=None,msg=''):
 	return S
 	
 
-		
+
+
+def definefunction(fname,fn):
+	globals()[fname]=fn

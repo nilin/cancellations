@@ -27,6 +27,7 @@ class Process(tracking.Process):
 
 	def run_as_main(self):
 		def wrapped(screen):
+			screen.refresh()
 			def getch():
 				c=extractkey_cs(screen.getch())
 				screen.refresh()
@@ -259,6 +260,7 @@ class _Dashboard_(_Frame_,_CompositeDisplay_):
 
 	def draw(self):
 		window=tracking.currentdashboard()[self.name]
+		window.refresh()
 
 		window.erase()
 		for x,y,s in self.getelementstrings():
@@ -318,13 +320,13 @@ def hiresbar(t,width):
 
 theticks=['\u258F','|','|','\u2595']
 
-def hirestick(t,width):
+def hirestick(t,width,y=0):
 	T=t*width
-	return (math.floor(T),0,theticks[math.floor(4*T)%4])
+	return (math.floor(T),y,theticks[math.floor(4*T)%4])
 
 
 theTICKS=['\u2590\u258C ',' \u2588 ',' \u2588 ',' \u2590\u258C']
 
-def hirestick(t,width):
+def hiresTICK(t,width,y=0):
 	T=t*width
-	return (math.floor()-1,0,theTICKS[math.floor(4*T)%4])
+	return (math.floor(T)-1,y,theTICKS[math.floor(4*T)%4])

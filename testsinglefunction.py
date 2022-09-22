@@ -58,7 +58,7 @@ class Run(batchjob.Batchjob):
             )
         bprofile.msg='Press [i] to input filter phrase,\nescape input mode with arrow keys.\n\n'+\
             'mode: {}\nfilter by: {}\n'+50*textutil.dash+bprofile.msg0
-        fullpath,fname=self.run_subprocess(browse.Browse(bprofile),name='pick function')
+        fullpath,fname=self.run_subprocess(browse.Browse(bprofile),taskname='pick function')
 
         selections.dotpath,selections.fname=fullpath.replace('/','.')[:-3],fname
 
@@ -71,7 +71,7 @@ class Run(batchjob.Batchjob):
             options=list(profilegenerators.keys())
             )
         bprofile.msg='select an input profile\n'+bprofile.msg
-        profilename=self.run_subprocess(browse.Browse(bprofile),name='pick inputs')
+        profilename=self.run_subprocess(browse.Browse(bprofile),taskname='pick inputs')
 
         selections.inputprofile=profilegenerators[profilename]()
 

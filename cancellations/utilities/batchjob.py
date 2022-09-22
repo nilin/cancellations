@@ -9,10 +9,12 @@ from . import tracking
 
 
 class Batchjob(_display_.Process):
+    processname='batchjob'
 
     def execprocess(self):
         self.dashboard=self.display
-        self.tasklistdisplay,self.subdisplay=self.dashboard.vsplit(limits=[5])
+        self.tasklistdisplay,self.subdisplay=self.dashboard.vsplit(limits=[3])
+        self.tasklisttext=self.tasklistdisplay.add(0,0,_display_._TextDisplay_(''))
         #self.tasklistdisplay.outline=True
         #self.tasklistdisplay.arm()
         #self.tasklistdisplay.draw()
@@ -24,17 +26,19 @@ class Batchjob(_display_.Process):
         process,display=self.swap_process()
 
 
-    def loadprocess(self,process=None):
+    def loadprocess(self,process=None,taskname=None):
         assert(tracking.currentprocess()==self)
         if process==None:
             process=tracking.Process()
-        elif isinstance(process,tracking.Profile):
-            process=tracking.Process(process)
+        #elif isinstance(process,tracking.Profile):
+        #    process=tracking.Process(process)
+
+        process.taskname=taskname
+        self.printtaskline(process)
+
         tracking.loadprocess(process)
         process.display=self.subdisplay.blankclone()
 
-        self.tasklistdisplay.arm()
-        self.tasklistdisplay.draw()
         return process,process.display
 
     def unloadprocess(self):
@@ -45,12 +49,21 @@ class Batchjob(_display_.Process):
         self.unloadprocess()
         return self.loadprocess(process)
 
-    def run_subprocess(self,subprocess: _display_.Process,name=None):
-        self.loadprocess(subprocess)
+    def run_subprocess(self,subprocess: _display_.Process,**kw):
+        self.loadprocess(subprocess,**kw)
         out=subprocess.execprocess()
         self.unloadprocess()
         return out
 
+    def printtaskline(self,process):
+        self.tasklisttext.msg='    '.join(['*{}*'.format(task) if task==process.taskname else task for task in self.profile.tasks])+\
+            '\n'+self.dashboard.width*textutil.dash
+        self.tasklistdisplay.arm()
+        self.tasklistdisplay.draw()
+
+    @staticmethod
+    def getdefaultprofile(**kw):
+        return tracking.Process.getdefaultprofile().butwith(tasks=[],**kw)
 
 #        self.task=name
 #        self.headlinedisplay().msg=\

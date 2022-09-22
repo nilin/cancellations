@@ -9,10 +9,11 @@ from re import I
 import jax
 import jax.numpy as jnp
 import jax.random as rnd
-from ..functions import examplefunctions as ef, functions
+from ..functions import examplefunctions as ef, examplefunctions3d, functions
 from ..learning import learning
 from ..functions.functions import ComposedFunction,SingleparticleNN,Product
 from ..utilities import config as cfg, numutil, tracking, sysutil, textutil, sampling, setup
+from ..utilities.tracking import dotdict
 from ..display import cdisplay,display as disp, _display_
 from . import plottools as pt
 from . import exampleutil
@@ -51,6 +52,8 @@ class Run(cdisplay.Process):
         info+='target\n\n{}'.format(textutil.indent(run.target.getinfo()))
         run.infodisplay.msg=info
         run.T.draw()
+        sysutil.save(run.target.compress(),path=run.outpath+'data/target')
+        #sysutil.save(run.profile,path=run.outpath+'data/profile')
 
 
         run.log('gen samples')
@@ -84,7 +87,7 @@ class Run(cdisplay.Process):
         sysutil.save(setupdata,run.outpath+'data/setup')
 
         run.unprocessed=tracking.Memory()
-        run.unprocessed.target=run.target.compress()
+        #run.unprocessed.target=run.target.compress()
 
         info+=10*'\n'+str(run.profile) 
         sysutil.write(info,run.outpath+'info.txt',mode='w')
@@ -115,8 +118,8 @@ class Run(cdisplay.Process):
 
             if regsched.activate(i):
                 run.unprocessed.remember('weights',run.learner.weights,minibatchnumber=i)
-                run.unprocessed.learner=run.learner.compress()
-                sysutil.save(run.unprocessed,run.outpath+'data/unprocessed',echo=False)
+                sysutil.save(run.learner.compress(),path=run.outpath+'data/learner')
+                #sysutil.save(run.unprocessed,run.outpath+'data/unprocessed',echo=False)
                 sysutil.write('loss={:.2E} iterations={} n={} d={}'.format(loss,i,P.n,P.d),run.outpath+'metadata.txt',mode='w')	
 
 #            if plotsched.activate(i):
@@ -145,7 +148,7 @@ class Run(cdisplay.Process):
         self.L,self.R=self.T.hsplit()
 
         self.L.add(0,0,_display_._TextDisplay_(instructions))
-        self.L.add(0,20,_display_._LogDisplay_(self,self.L.width,10))
+        self.L.add(0,20,_display_._LogDisplay_(self,self.L.width,20))
         self.L.vstack()
 
 
@@ -158,9 +161,16 @@ class Run(cdisplay.Process):
 
     def addlearningdisplay(self):
         self.loss=tracking.Pointer()
+        smoother1=numutil.RunningAvg(k=10)
+        smoother2=numutil.RunningAvg(k=100)
         display=self.learningdisplay.add(0,0,_display_._Display_())
-        display._getelementstrings_=lambda: [(0,0,_display_.hiresbar(self.loss.val,self.dashboard.width)),\
-            (0,1,'loss {:.2E}'.format(self.loss.val))]
+        display._getelementstrings_=lambda: [\
+            (0,0,'loss {:.2E}'.format(self.loss.val)),\
+            #(0,1,_display_.hiresbar(self.loss.val,self.dashboard.width)),\
+            _display_.hiresTICK(smoother1.update(self.loss.val),self.dashboard.width,y=1),\
+            _display_.hirestick(smoother1.avg(),self.dashboard.width,y=2),\
+            (0,3,_display_.hiresbar(smoother2.update(self.loss.val),self.dashboard.width)),\
+            (0,4,'loss {:.2E}'.format(smoother2.avg()))]
         
 
 
@@ -177,12 +187,12 @@ class Run(cdisplay.Process):
         profile.n=5
         profile.d=2
 
-        profile.learnerparams={\
-            'SPNN':dict(widths=[profile.d,25,25],activation='sp'),
-            'backflow':dict(widths=[],activation='sp'),
-            'dets':dict(d=25,ndets=25),
+        profile.learnerparams=tracking.dotdict(\
+            SPNN=dotdict(widths=[profile.d,25,25],activation='sp'),\
+            backflow=dotdict(widths=[],activation='sp'),\
+            dets=dotdict(d=25,ndets=25),)
             #'OddNN':dict(widths=[25,1],activation='sp')
-        }
+        #}
 
         profile._var_X_distr_=4
         profile._genX_=lambda key,samples,n,d:rnd.normal(key,(samples,n,d))*jnp.sqrt(profile._var_X_distr_)
@@ -219,7 +229,9 @@ def gen_lossgrad(f,X_density):
 
 
 def gettarget(profile):
-    return functions.Slater(*['psi'+str(i) for i in range(profile.n)])
+    for i in range(profile.n):
+        setattr(functions,'psi{}_{}d'.format(i,profile.d),getattr(examplefunctions3d,'psi{}_{}d'.format(i,profile.d)))
+    return functions.Slater(*['psi{}_{}d'.format(i,profile.d) for i in range(profile.n)])
 
 
 

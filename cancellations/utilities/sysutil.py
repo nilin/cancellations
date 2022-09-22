@@ -13,8 +13,8 @@ def makedirs(filepath):
 
 def save(data,path,echo=True):
     makedirs(path)
-    with open(path,'wb') as file: pass
-        #pickle.dump(data,file)
+    with open(path,'wb') as file:
+        pickle.dump(data,file)
     if echo: setup.session.log('Saved data to {}'.format(path))
 
 def savefig(*paths,fig=None):

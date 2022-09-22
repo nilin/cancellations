@@ -10,7 +10,7 @@ import importlib
 
 
 class Run(batchjob.Batchjob):
-    processname='pick_and_run'
+    #processname='pick_and_run'
 
     def runbatch(self):
 
@@ -20,11 +20,14 @@ class Run(batchjob.Batchjob):
 
 
 
-        pf='cancellations/examples/'
+        pf='cancellations/'#examples/'
         pathprofile=browse.defaultpathprofile().butwith(\
             parentfolder=pf,\
             regex='.*[a-z].py',\
-            condition=lambda path: re.search('class Run', sysutil.readtextfile(pf+path)),\
+            condition=lambda path: \
+                re.search('class Run[^a-z]', sysutil.readtextfile(pf+path))\
+                and not re.search('ignore pick_and_run', sysutil.readtextfile(pf+path))\
+                and not re.search('dontpick', sysutil.readtextfile(pf+path)),\
             )
 
         relpaths=browse.getpaths(pathprofile)
@@ -34,17 +37,18 @@ class Run(batchjob.Batchjob):
 
         bprofile1=browse.Browse.getdefaultprofile().butwith(\
             onlyone=True,\
-            readinfo=lambda path: textutil.startingfrom(sysutil.readtextfile(path),'class Run'),\
+            #readinfo=lambda path: textutil.startingfrom(sysutil.readtextfile(path),'class Run',linewise=True),\
+            readinfo=lambda path: textutil.findblock(sysutil.readtextfile(path),'class Run')[-1],\
             options=fullpaths,\
             displayoption=lambda full:rels[full]
             )
         bprofile1.msg='select a file to run Run(profile).execprocess().\n\n'\
-            +'Press [b] to run a single function instead.\n'+50*textutil.dash\
-            +bprofile1.msg0
+            +150*textutil.dash\
+            +bprofile1.msg
 
 
 
-        path=self.run_subprocess(browse.Browse(bprofile1))
+        path=self.run_subprocess(browse.Browse(bprofile1),taskname='pick script')
 
 #        browsingprocess1,display=self.swap_process(bprofile1)
 #        path=browse.browse(browsingprocess1)
@@ -54,7 +58,8 @@ class Run(batchjob.Batchjob):
         path=re.search('([a-z].*)',path).group()
         mname = path.replace('/', '.')[:-3]
         m = importlib.import_module(mname)
-        runprofiles=P.getprofiles(m.Run.processname)
+        processname=mname.split('.')[-1]
+        runprofiles=P.getprofiles(processname)
         bprofile2=browse.Browse.getdefaultprofile().butwith(\
             onlyone=True,\
             #readinfo=lambda pname: textutil.startingfrom(sysutil.readtextfile('cancellations/examples/profiles.py'),m.Run.exname,pname),\
@@ -66,26 +71,29 @@ class Run(batchjob.Batchjob):
 
 
 
-        profilename=self.run_subprocess(browse.Browse(bprofile2),name='pick profile')
+        profilename=self.run_subprocess(browse.Browse(bprofile2),taskname='pick profile')
 
 #        browsingprocess2,display=self.swap_process(bprofile2)
 #        profilename=browse.browse(browsingprocess2)
 
 
 
-
-        runprofile=runprofiles[profilename]
-        runprofile['profilename']=profilename
+        if profilename==None:
+            runprofile=m.Run.getdefaultprofile()
+        else:
+            runprofile=runprofiles[profilename]
+            runprofile['profilename']=profilename
 
 
         # task 3
 
-        self.run_subprocess(m.Run(runprofile),name='run script')
+        self.run_subprocess(m.Run(runprofile),taskname='run script')
 
 
-
-profile=tracking.Profile(tasks=['pick script','pick profile','run script'])
+    @staticmethod
+    def getdefaultprofile(**kw):
+        return batchjob.Batchjob.getdefaultprofile().butwith(tasks=['pick script','pick profile','run script'],**kw)
 
 if __name__=='__main__':
-    Run(profile).run_as_main()
+    Run().run_as_main()
 

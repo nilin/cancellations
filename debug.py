@@ -21,7 +21,7 @@ def debug(mode):
 
 		match mode:
 			case 'Run':
-				pr.Run(pr.profile).run_as_main()
+				pr.Run().run_as_main()
 			case 'singlefunction':
 				import testsinglefunction as tf
 

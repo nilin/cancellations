@@ -164,7 +164,30 @@ def startingfrom(s,*starts):
 
 def appendright(l,R):
     indent='\n'+' '*len(l)
-    return l+indent.join(R.splitlines())
+    return l+indent.join(R.splitlines())+('\n' if len(R.splitlines())>1 else '')
+
+
+
+def findblock(text,pattern):
+    inblock=False
+    block=[]
+
+    #import pdb; pdb.set_trace()
+    
+    for i,l in enumerate(text.splitlines()):
+        if inblock and (l=='' or l[0]==' '): block.append(l)
+        if inblock and l!='' and l[0]!=' ': break
+        if not inblock: a=i
+        if re.search(pattern,l):
+            block.append(l)
+            inblock=True
+
+    return a,i,'\n'.join(block)
+
+
+
+
+
 
 
 ####################################
@@ -185,10 +208,20 @@ b='sed do eiusmod \ntempor incididunt \nut labore et dolore \nmagna aliqua'
 
 lipsum=a+b
 
+
+linestyles=['b-','r-','b--','r--','b:','r:']
+colors=['b','r','m','g','c']
+
+
 def test():
-    a='Lorem ipsum dolor sit amet, \nconsectetur adipiscing elit,'
-    b='sed do eiusmod \ntempor incididunt \nut labore et dolore \nmagna aliqua'
-    print(a)
-    print(b)
-    print(boxedsidebyside(a,b))
+    a='Lorem ipsum dolor sit amet, '+\
+        '\nconsectetur adipiscing elit,'
+    b='sed do eiusmod \n'+\
+        'tempor incididunt \n    ut labore et dolore \nmagna aliqua'
+#    print(a)
+#    print(b)
+#    print(boxedsidebyside(a,b))
+    c=a+b
+    print(c)
+    print(findblock(c,'incidi'))
     
