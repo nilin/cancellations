@@ -244,7 +244,7 @@ class ProdState(Composite,Nonsym):
 	def compile(self):
 		phis=[phi.compiled() for phi in self.elements]
 		return jax.jit(lambda params,X:jnp.product(jnp.stack([\
-			phi(params,X[:,i,:]) for i,phi in enumerate(phis)])))
+			phi(params,X[:,i,:]) for i,phi in enumerate(phis)],axis=-1),axis=-1))
 
 	@staticmethod
 	def _initweights_(elements):
@@ -285,7 +285,7 @@ class Slater(Composite,Antisymmetric):
 		phis=[jax.vmap(phi.compiled(),in_axes=(None,-2),out_axes=-1) for phi in self.elements]
 		return jax.jit(lambda params,X: jnp.linalg.det(jnp.stack([phi(params,X)for phi in phis],axis=-1)))
 
-	def richtypename(self): return ' ^ '.join([phi.richtypename() for phi in self.elements])+'-'+self.typename()
+	def richtypename(self): return ' \u2227 '.join([phi.richtypename() for phi in self.elements])
 	def info(self): return textutil.indent('\n'.join([phi.info() for phi in self.elements]))
 
 
@@ -368,7 +368,9 @@ def switchtype(f:FunctionDescription):
 
 	if compositeclass!=None:
 		elements,switchcounts=zip(*[switchtype(e) for e in f.elements])
-		return compositeclass(*elements), sum(switchcounts)
+		newf,i=compositeclass(*elements), sum(switchcounts)
+		newf.weights=f.weights
+		return newf,i
 
 	elif isinstance(f,Switchable):
 		return f.switchtype(),1

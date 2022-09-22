@@ -14,6 +14,7 @@ from ..learning import learning
 from ..functions.functions import ComposedFunction,SingleparticleNN,Product
 from ..utilities import config as cfg, numutil, tracking, sysutil, textutil, sampling, setup
 from ..utilities.tracking import dotdict
+from ..plotting import plotting
 from ..display import cdisplay,display as disp, _display_
 from . import plottools as pt
 from . import exampleutil
@@ -78,16 +79,18 @@ class Run(cdisplay.Process):
 
         run.log('save setup data')
 
-        setupdata=dict(X_train=run.X_train,Y_train=run.Y_train,X_test=run.X_test,Y_test=run.Y_test,\
+        setupdata=dict(\
             target=run.target.compress(),\
             learner=run.learner.compress(),\
+            #
+            X_train=run.X_train, Y_train=run.Y_train, Xdensity_train=P.X_density(run.X_train),\
+            X_test=run.X_test,Y_test=run.Y_test, Xdensity_test=P.X_density(run.X_test),\
             #sections=run.sections,\
             profilename=P.profilename\
             )
         sysutil.save(setupdata,run.outpath+'data/setup')
 
-        run.unprocessed=tracking.Memory()
-        #run.unprocessed.target=run.target.compress()
+        run.traindata=[]
 
         info+=10*'\n'+str(run.profile) 
         sysutil.write(info,run.outpath+'info.txt',mode='w')
@@ -100,7 +103,6 @@ class Run(cdisplay.Process):
             **{k:P[k] for k in ['weight_decay','iterations']}) 
 
         regsched=tracking.Scheduler(tracking.nonsparsesched(P.iterations,start=50))
-        plotsched=tracking.Scheduler(tracking.sparsesched(P.iterations,start=1000))
         run.addlearningdisplay()
 
         run.log('data type (32 or 64): {}'.format(run.learner.eval(run.X_train[100:]).dtype))
@@ -114,12 +116,12 @@ class Run(cdisplay.Process):
             run.loss.val=loss
             run.learningdisplay.draw()
 
-            run.unprocessed.remember('minibatch loss',loss,minibatchnumber=i)
+            run.traindata.append(dict(loss=loss,i=i))
 
             if regsched.activate(i):
-                run.unprocessed.remember('weights',run.learner.weights,minibatchnumber=i)
+                run.traindata.append(dict(weights=run.learner.weights,i=i))
                 sysutil.save(run.learner.compress(),path=run.outpath+'data/learner')
-                #sysutil.save(run.unprocessed,run.outpath+'data/unprocessed',echo=False)
+                sysutil.save(run.traindata,run.outpath+'data/traindata',echo=False)
                 sysutil.write('loss={:.2E} iterations={} n={} d={}'.format(loss,i,P.n,P.d),run.outpath+'metadata.txt',mode='w')	
 
 #            if plotsched.activate(i):
@@ -130,17 +132,18 @@ class Run(cdisplay.Process):
                 run.learningdisplay.draw()
 
             if stopwatch2.tick_after(.5):
-                if P.act_on_input(setup.checkforinput())=='b': break
+                if P.act_on_input(setup.checkforinput(),run)=='b': break
 
         return run.learner
 
     def log(self,msg):
         super().log(msg)
+        self.profile.act_on_input(setup.checkforinput(),self)
         self.T.draw()
 
     def prepdisplay(self):
-        instructions='Press [l] (lowercase L) to generate learning plots.\n'+\
-            'Press [f] to generate functions plot.\nPress [o] to open output folder.\
+        instructions='Press [p] to generate plots.\n'+\
+            'Press [o] to open output folder.\
             \n\nPress [b] to break from current task.\nPress [q] to quit. '
 
         self.dashboard=self.display
@@ -182,7 +185,14 @@ class Run(cdisplay.Process):
 
         profile.gettarget=gettarget
         profile.getlearner=getlearner
-        profile.act_on_input=exampleutil.act_on_input
+
+        def act_on_input(key,process):
+            if key=='q': quit()
+            if key=='p': plotting.allplots(process)
+            if key=='o': sysutil.showfile(process.outpath)
+            return key
+
+        profile.act_on_input=act_on_input
 
         profile.n=5
         profile.d=2
@@ -213,7 +223,6 @@ class Run(cdisplay.Process):
 
         profile.plotrange=5
 
-        profile.act_on_input=exampleutil.act_on_input
         return profile
 
 

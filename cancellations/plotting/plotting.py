@@ -5,8 +5,9 @@ import jax.random as rnd
 
 from cancellations.display import _display_
 from cancellations.utilities import textutil
-from ..utilities import sysutil, tracking, batchjob, browse, numutil
+from ..utilities import sysutil, tracking, batchjob, browse, numutil, setup
 from ..functions import examplefunctions3d
+from . import traingraphs
 
 
 
@@ -16,32 +17,33 @@ class Slice:
         Y=jax.vmap(f_eval)(self.X)
         m=ax.pcolormesh(Y,cmap='seismic')
         m.set_edgecolor('face')
-        ax.set_title(f_descr.typename())
+        ax.set_title(f_descr.richtypename())
         ax.set_aspect('equal')
 
     def contour(self,ax,f_eval,*args,**kw):
         Y=jax.vmap(f_eval)(self.X)
-        ax.contour(Y,*args,levels=[0],**kw)
+        ax.contour(Y,*args,levels=[-1,0,1],**kw)
         ax.set_aspect('equal')
 
     def compare(self,*fs):
 
         xnorm=rnd.normal(tracking.nextkey(),(100,self.n,self.d)) 
-        evals=[numutil.closest_multiple(f.eval,xnorm,fs[0].eval(xnorm)) for f in fs]
+        f0=numutil.normalize(fs[0].eval,xnorm)
+        evals=[numutil.closest_multiple(f.eval,xnorm,f0(xnorm)) for f in fs]
 
 
         fig,axs=plt.subplots(1,len(fs),figsize=(7*len(fs),7))
         for ax,f_eval,f_descr in zip(axs,evals,fs):
             self.plot(ax,f_eval,f_descr)
-            self.contour(ax,f_eval)
+            self.contour(ax,f_eval,colors='k')
         
-        sysutil.savefig(self.process.outpath+'heatmaps_{}.pdf'.format(self.slicetype),fig=fig)
+        sysutil.savefig(self.process.outpath+'{}_heatmaps.pdf'.format(self.slicetype),fig=fig)
 
         fig,ax=plt.subplots(figsize=(7,7))
         for f_eval,c,lw in zip(evals,textutil.colors,[2,1,.5,.25]):
             self.contour(ax,f_eval,colors=c,linewidths=lw)
 
-        sysutil.savefig(self.process.outpath+'contours_{}.pdf'.format(self.slicetype),fig=fig)
+        sysutil.savefig(self.process.outpath+'{}_contours.pdf'.format(self.slicetype),fig=fig)
 
 
 class Slice_1p(Slice):
@@ -96,7 +98,21 @@ class RandomSlices:
             s.compare(*fs)
 
 
+def allplots(process):
+    runpath=process.outpath
 
+    target=sysutil.load(runpath+'data/target').restore()
+    learner=sysutil.load(runpath+'data/learner').restore()
+    setupdata=sysutil.load(runpath+'data/setup')
+    _,n,d=setupdata['X_test'].shape
+
+    process.log('generating heatmaps and contour plots')
+
+    S=RandomSlices(process,n,d)
+    S.plot(target,learner)
+    sysutil.showfile(process.outpath)
+
+    traingraphs.graph(process,runpath)
 
 
 class Run(batchjob.Batchjob):
@@ -105,26 +121,29 @@ class Run(batchjob.Batchjob):
 
         browsingprocess=browse.Browse(browse.Browse.getdefaultfilebrowsingprofile())
         runpath='outputs/'+self.run_subprocess(browsingprocess,taskname='choose run')
+        self.outpath=runpath
 
         process,display=self.loadprocess(taskname='plot')
-
         info=sysutil.readtextfile(runpath+'info.txt')
         display.add(0,0,_display_._TextDisplay_(info))
         display.arm()
         display.draw()
+        #sysutil.write(info,process.outpath+'info.txt')
 
-        target=sysutil.load(runpath+'data/target').restore()
-        learner=sysutil.load(runpath+'data/learner').restore()
-        setupdata=sysutil.load(runpath+'data/setup')
-        _,n,d=setupdata['X_test'].shape
-        #profile=sysutil.load(runpath+'data/profile')
+        allplots(self)
 
-        S=RandomSlices(self,n,d)
-        
-        S.plot(target,learner)
-        sysutil.write(info,self.outpath+'info.txt')
-        sysutil.showfile(self.outpath)
+        #def postrun():
+        #    tracking.loadprocess(tracking.Process())
+        #    traingraphs.graph(self,runpath)
+        #setup.postrun=postrun 
+        #return 
+
+
+
 
     @staticmethod
     def getdefaultprofile(**kw):
         return batchjob.Batchjob.getdefaultprofile(**kw).butwith(tasks=['choose run','plot'])
+
+
+

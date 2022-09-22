@@ -36,6 +36,20 @@ class Profile(dotdict):
 
 #----------------------------------------------------------------------------------------------------
 
+
+def extracthist(snapshots,*varnames):
+    out=[[] for n in varnames]
+    for snapshot in snapshots:
+        if all([n in snapshot.keys() for n in varnames]):
+            for i,n in enumerate(varnames):
+                out[i].append(snapshot[n])
+    return out
+    return zip(*[(snapshot[n] for n in varnames) for snapshot in snapshots if all([n in snapshot.keys() for n in varnames])])
+
+
+
+#----------------------------------------------------------------------------------------------------
+
 class History:
     def __init__(self,membound=None):
         self.snapshots=deque()
@@ -161,6 +175,9 @@ def nowstr():
 
 class Session(Process):
     processname='session'
+    def __init__(self,profile=None,**kw):
+        super().__init__(profile=profile,**kw)
+        self.outpath='outputs/sessions/'+self.ID+'/'
 
     def setID(self):
         self.ID=nowstr()
@@ -210,8 +227,8 @@ def currentdashboard():
 
 
 
-def act_on_input(inp):
-    return currentprocess().profile.act_on_input(inp)
+def act_on_input(inp,*args,**kw):
+    return currentprocess().profile.act_on_input(inp,*args,**kw)
 
 
 
@@ -219,6 +236,7 @@ def nextkey(): return currentprocess().nextkey()
 
 
 
+loadprocess(setup.session)
 
 #----------------------------------------------------------------------------------------------------
 

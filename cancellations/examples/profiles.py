@@ -11,34 +11,37 @@ def getprofiles(exname):
     match exname:
 
 
-        case 'harmonicoscillator1d':
-            exprofiles['default']=harmonicoscillator1d.Run.getdefaultprofile().butwith(weight_decay=.1)
-
-            exprofiles['no weight_decay']=harmonicoscillator1d.Run.getdefaultprofile().butwith(weight_decay=0)
-            exprofiles['weight_decay .1']=harmonicoscillator1d.Run.getdefaultprofile().butwith(weight_decay=.1)
-            exprofiles['weight_decay 1']=harmonicoscillator1d.Run.getdefaultprofile().butwith(weight_decay=1.0)
-            exprofiles['weight_decay 10']=harmonicoscillator1d.Run.getdefaultprofile().butwith(weight_decay=10.0)
-            exprofiles['weight growth']=harmonicoscillator1d.Run.getdefaultprofile().butwith(weight_decay=-.1)
-
-            exprofiles['layer normalization, no weight decay']=harmonicoscillator1d.Run.getdefaultprofile().butwith(\
-                layernormalization=(2.0,'batch'),\
-                weight_decay=0\
-                )
-
-            exprofiles['init weights small, no weight decay']=harmonicoscillator1d.Run.getdefaultprofile().butwith(\
-                initweight_coefficient=.1,\
-                weight_decay=0\
-                )
-
-            exprofiles['test']=harmonicoscillator1d.Run.getdefaultprofile().butwith(\
-                n=3,\
-                d=2,\
-                )
-
         case 'harmonicoscillator2d':
             exprofiles['default']=harmonicoscillator2d.Run.getdefaultprofile().butwith(weight_decay=.1)
             exprofiles['n=6']=harmonicoscillator2d.Run.getdefaultprofile().butwith(n=6,weight_decay=.1)
-            exprofiles['n=7']=harmonicoscillator2d.Run.getdefaultprofile().butwith(n=7,weight_decay=.1)
+            exprofiles['n=7 wd=0']=harmonicoscillator2d.Run.getdefaultprofile().butwith(n=7,weight_decay=0)
+            exprofiles['n=7 wd=.1']=harmonicoscillator2d.Run.getdefaultprofile().butwith(n=7,weight_decay=.1)
+            exprofiles['n=7 wd=1']=harmonicoscillator2d.Run.getdefaultprofile().butwith(n=7,weight_decay=1.0)
+
+#        case 'harmonicoscillator1d':
+#            exprofiles['default']=harmonicoscillator1d.Run.getdefaultprofile().butwith(weight_decay=.1)
+#
+#            exprofiles['no weight_decay']=harmonicoscillator1d.Run.getdefaultprofile().butwith(weight_decay=0)
+#            exprofiles['weight_decay .1']=harmonicoscillator1d.Run.getdefaultprofile().butwith(weight_decay=.1)
+#            exprofiles['weight_decay 1']=harmonicoscillator1d.Run.getdefaultprofile().butwith(weight_decay=1.0)
+#            exprofiles['weight_decay 10']=harmonicoscillator1d.Run.getdefaultprofile().butwith(weight_decay=10.0)
+#            exprofiles['weight growth']=harmonicoscillator1d.Run.getdefaultprofile().butwith(weight_decay=-.1)
+#
+#            exprofiles['layer normalization, no weight decay']=harmonicoscillator1d.Run.getdefaultprofile().butwith(\
+#                layernormalization=(2.0,'batch'),\
+#                weight_decay=0\
+#                )
+#
+#            exprofiles['init weights small, no weight decay']=harmonicoscillator1d.Run.getdefaultprofile().butwith(\
+#                initweight_coefficient=.1,\
+#                weight_decay=0\
+#                )
+#
+#            exprofiles['test']=harmonicoscillator1d.Run.getdefaultprofile().butwith(\
+#                n=3,\
+#                d=2,\
+#                )
+#
 
         case 'estimateobservables':
 

@@ -195,3 +195,7 @@ def addlearningdisplay(run,display):
     ld.add(disp.NumberPrint('minibatchnumber',msg='minibatch number {:.0f}'))
 
     return run.display.add(ld,'learningdisplay')
+
+
+
+#dontpick

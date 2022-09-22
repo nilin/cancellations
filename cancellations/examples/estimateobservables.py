@@ -154,3 +154,4 @@ def plot(run,ests):
     sysutil.savefig(run.outpath+'plot.pdf',fig=fig)
 
 
+#dontpick
