@@ -3,6 +3,7 @@ from . import harmonicoscillator1d, harmonicoscillator2d, estimateobservables, u
 from ..functions import examplefunctions as ef, functions
 from ..functions.functions import Product, SingleparticleNN, ComposedFunction
 from ..utilities import numutil, energy, tracking
+from ..utilities.tracking import dotdict
 import jax.numpy as jnp
 
 def getprofiles(exname):
@@ -18,6 +19,18 @@ def getprofiles(exname):
             exprofiles['n=7 wd=.1']=harmonicoscillator2d.Run.getdefaultprofile().butwith(n=7,weight_decay=.1)
             exprofiles['n=7 wd=1']=harmonicoscillator2d.Run.getdefaultprofile().butwith(n=7,weight_decay=1.0)
 
+            exprofiles['ASNN']=harmonicoscillator2d.Run.getdefaultprofile().butwith(weight_decay=.1,\
+                n=5,\
+                getlearner=lambda profile:  Product(functions.IsoGaussian(1.0),ComposedFunction(\
+                                            SingleparticleNN(**profile.learnerparams['SPNN']),\
+                                            functions.ASNN(**profile.learnerparams['ASNN']))),\
+                learnerparams=tracking.dotdict(\
+                    SPNN=dotdict(widths=[2,25,10],activation='sp'),\
+                    ASNN=dotdict(n=5,d=10,widths=[50,50,1],activation='sp')),\
+                minibatchsize=50,\
+                evalblocksize=100\
+                )
+                
 #        case 'harmonicoscillator1d':
 #            exprofiles['default']=harmonicoscillator1d.Run.getdefaultprofile().butwith(weight_decay=.1)
 #

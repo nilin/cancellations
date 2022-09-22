@@ -170,10 +170,10 @@ class Run(cdisplay.Process):
         display._getelementstrings_=lambda: [\
             (0,0,'loss {:.2E}'.format(self.loss.val)),\
             #(0,1,_display_.hiresbar(self.loss.val,self.dashboard.width)),\
-            _display_.hiresTICK(smoother1.update(self.loss.val),self.dashboard.width,y=1),\
-            _display_.hirestick(smoother1.avg(),self.dashboard.width,y=2),\
-            (0,3,_display_.hiresbar(smoother2.update(self.loss.val),self.dashboard.width)),\
-            (0,4,'loss {:.2E}'.format(smoother2.avg()))]
+            #_display_.hiresTICK(smoother1.update(self.loss.val),self.dashboard.width,y=1),\
+            #_display_.hirestick(smoother1.avg(),self.dashboard.width,y=2),\
+            (0,1,_display_.hiresbar(smoother2.update(self.loss.val),self.dashboard.width)),\
+            (0,3,'avg over 100 minibatches\n\nloss {:.2E}'.format(smoother2.avg()))]
         
 
 
