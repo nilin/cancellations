@@ -13,8 +13,9 @@ def getprofiles(exname):
 
 
         case 'harmonicoscillator2d':
-            exprofiles['default']=harmonicoscillator2d.Run.getdefaultprofile().butwith(weight_decay=.1)
-            exprofiles['n=6']=harmonicoscillator2d.Run.getdefaultprofile().butwith(n=6,weight_decay=.1)
+            exprofiles['n=6 d=2']=harmonicoscillator2d.Run.getdefaultprofile().butwith(n=6,weight_decay=.1)
+            exprofiles['n=6 d=2 no weight decay']=harmonicoscillator2d.Run.getdefaultprofile().butwith(n=6,weight_decay=0)
+            exprofiles['n=6 d=2 strong weight decay']=harmonicoscillator2d.Run.getdefaultprofile().butwith(n=6,weight_decay=1.)
 #            exprofiles['n=7 wd=0']=harmonicoscillator2d.Run.getdefaultprofile().butwith(n=7,weight_decay=0)
 #            exprofiles['n=7 wd=.1']=harmonicoscillator2d.Run.getdefaultprofile().butwith(n=7,weight_decay=.1)
 #            exprofiles['n=7 wd=1']=harmonicoscillator2d.Run.getdefaultprofile().butwith(n=7,weight_decay=1.0)
@@ -35,6 +36,8 @@ def getprofiles(exname):
                 minibatchsize=50,\
                 evalblocksize=100\
                 )
+
+            exprofiles['ASNN, no weight decay']=exprofiles['ASNN'].butwith(weight_decay=0)
                 
 #        case 'harmonicoscillator1d':
 #            exprofiles['default']=harmonicoscillator1d.Run.getdefaultprofile().butwith(weight_decay=.1)
