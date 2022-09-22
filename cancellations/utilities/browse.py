@@ -6,7 +6,7 @@ import pdb
 from cancellations.utilities import textutil, setup
 
 from . import tracking
-from ..display.display import StaticText, dash
+#from ..display.display import StaticText, dash
 from ..display import display as disp, _display_
 from ..display import cdisplay
 from ..utilities import config as cfg,sysutil,tracking

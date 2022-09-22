@@ -1,6 +1,5 @@
 from cancellations.utilities import setup
 from statistics import harmonic_mean
-from ..examples import harmonicoscillator1d, estimateobservables, profiles
 from ..testing import testing
 from ..functions import examplefunctions as ef, functions
 from ..display import cdisplay

@@ -35,6 +35,7 @@ class Process(tracking.Process):
 
 			setup.screen=screen
 			setup.getch=getch
+			setup.checkforinput=getch
 			screen.nodelay(True)
 			cs.use_default_colors()
 			setup.session.dashboard=_Dashboard_(cs.COLS,cs.LINES)

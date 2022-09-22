@@ -1,5 +1,5 @@
 
-from . import harmonicoscillator1d, harmonicoscillator2d, estimateobservables, unsupervised
+from . import harmonicoscillator2d #, estimateobservables, unsupervised
 from ..functions import examplefunctions as ef, functions
 from ..functions.functions import Product, SingleparticleNN, ComposedFunction
 from ..utilities import numutil, energy, tracking
@@ -61,33 +61,33 @@ def getprofiles(exname):
 #                )
 #
 
-        case 'estimateobservables':
-
-            # 1
-            exprofiles['abstract (non-runnable)']=estimateobservables.Run.getdefaultprofile()
-
-            # 2
-            psi_descr=harmonicoscillator1d.gettarget(estimateobservables.Run.getdefaultprofile())
-            psi=psi_descr.eval
-            E_kin_local=numutil.forfixedparams(energy.genlocalkinetic)(psi)
-            p_descr=functions.ComposedFunction(psi_descr,'square')
-            profile=estimateobservables.Run.getdefaultprofile().butwith(\
-                name='tgsamples',\
-                p=p_descr.eval,\
-                p_descr=p_descr,\
-                psi_descr=psi_descr,\
-                qpratio=lambda X:jnp.ones(X.shape[0],),\
-                maxburnsteps=2500,\
-                maxiterations=10**6,\
-                observables={'V':lambda X:jnp.sum(X**2/2,axis=(-2,-1)),'K':E_kin_local},\
-                burn_avg_of=1000)
-            profile.trueenergies={k:ef.totalenergy(5)/2 for k in ['V','K']}
-
-            exprofiles['true ground state']=profile
-
-
-        case 'unsupervised':
-            exprofiles['this example is under development']=unsupervised.Run.getdefaultprofile()
+#        case 'estimateobservables':
+#
+#            # 1
+#            exprofiles['abstract (non-runnable)']=estimateobservables.Run.getdefaultprofile()
+#
+#            # 2
+#            psi_descr=harmonicoscillator1d.gettarget(estimateobservables.Run.getdefaultprofile())
+#            psi=psi_descr.eval
+#            E_kin_local=numutil.forfixedparams(energy.genlocalkinetic)(psi)
+#            p_descr=functions.ComposedFunction(psi_descr,'square')
+#            profile=estimateobservables.Run.getdefaultprofile().butwith(\
+#                name='tgsamples',\
+#                p=p_descr.eval,\
+#                p_descr=p_descr,\
+#                psi_descr=psi_descr,\
+#                qpratio=lambda X:jnp.ones(X.shape[0],),\
+#                maxburnsteps=2500,\
+#                maxiterations=10**6,\
+#                observables={'V':lambda X:jnp.sum(X**2/2,axis=(-2,-1)),'K':E_kin_local},\
+#                burn_avg_of=1000)
+#            profile.trueenergies={k:ef.totalenergy(5)/2 for k in ['V','K']}
+#
+#            exprofiles['true ground state']=profile
+#
+#
+#        case 'unsupervised':
+#            exprofiles['this example is under development']=unsupervised.Run.getdefaultprofile()
 
 
     #return {pname:lambda:pgen().butwith(profilename=pname) for pname,pgen in pgens.items()}

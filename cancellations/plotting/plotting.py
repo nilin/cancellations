@@ -22,12 +22,12 @@ class Slice:
 
     def contour(self,ax,f_eval,*args,**kw):
         Y=jax.vmap(f_eval)(self.X)
-        ax.contour(Y,*args,levels=[-1,0,1],**kw)
+        ax.contour(Y,*args,levels=[i*.05 for i in range(-5,6)],**kw)
         ax.set_aspect('equal')
 
     def compare(self,*fs):
 
-        xnorm=rnd.normal(tracking.nextkey(),(100,self.n,self.d)) 
+        xnorm=rnd.normal(rnd.PRNGKey(0),(100,self.n,self.d)) 
         f0=numutil.normalize(fs[0].eval,xnorm)
         evals=[numutil.closest_multiple(f.eval,xnorm,f0(xnorm)) for f in fs]
 
@@ -79,10 +79,10 @@ class Slice_2p(Slice):
 
 class RandomSlices:
 
-    def __init__(self,process,n,d,r=5,fineness=100):
+    def __init__(self,process,n,d,r=3,fineness=100):
         self.process=process
 
-        x0=rnd.normal(tracking.nextkey(),(n,d))
+        x0=rnd.normal(rnd.PRNGKey(1),(n,d))
         I=jnp.arange(-r,r,2*r/fineness)
         l=len(I)
         diagonalcurve=I[:,None]+jnp.zeros((d,))[None,:]

@@ -27,11 +27,11 @@ from . import exampleutil
 
 
 
-class Run(cdisplay.Process):
+class Run(_display_.Process):
 
     processname='harmonicoscillator2d'
 
-    def execprocess(run:cdisplay.Process):
+    def execprocess(run:_display_.Process):
 
         run.prepdisplay()
         run.log('imports done')
