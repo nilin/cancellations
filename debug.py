@@ -23,7 +23,7 @@ def debug(mode):
 			case 'Run':
 				pr.Run().run_as_main()
 			case 'singlefunction':
-				import testsinglefunction as tf
+				import testsinglemethod as tf
 
 
 
