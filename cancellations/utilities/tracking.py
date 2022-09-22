@@ -21,16 +21,18 @@ class dotdict(dict):
     def __setattr__(self,k,v):
         self[k]=v
 
+    def __str__(self):
+        return '\n'.join([textutil.appendright(k+' = ',str(v)) for k,v in self.items()])
+
 class Profile(dotdict):
     def __init__(self,*a,**kw):
         super().__init__(*a,**kw)
+        self.profilename='default'
 
     def butwith(self,**defs):
         self.update(defs)
         return self
 
-    def __str__(self):
-        return '\n'.join(['{} = {}'.format(k,v) for k,v in self.items()])
 
 #----------------------------------------------------------------------------------------------------
 
@@ -53,19 +55,6 @@ class History:
         return self.snapshots[-1][0] if len(self.snapshots)>0 else None
 
 
-#    def filter(self,filterby,schedule):
-#        filteredhistory=History()
-#        schedule=deque(schedule)
-#
-#        for val,metadata in self.snapshots:
-#            t=metadata[filterby]
-#            if t>=schedule[0]:
-#                filteredhistory.remember(val,metadata)
-#                while t>=schedule[0]:
-#                    schedule.popleft()
-#                    if len(schedule)==0: break
-#                if len(schedule)==0: break
-#        return filteredhistory
 
 class Timer:
     def __init__(self,*x,**y):
@@ -103,144 +92,6 @@ class Memory(dotdict,Timer):
             return lambda: [self.getval(name) for name in names]
 
 #----------------------------------------------------------------------------------------------------
-
-
-class Watched:
-    def __init__(self):
-        self.signals=dict()
-
-    def addlistener(self,listener,signal):
-        if signal not in self.signals: self.signals[signal]=[]
-        self.signals[signal].append(listener)
-
-    def pokelisteners(self,signal):
-        if signal in self.signals:
-            for listener in self.signals[signal]: listener.poke(self)
-
-#
-#class Memory(BasicMemory,Timer,Watched):
-#    def __init__(self):
-#        BasicMemory.__init__(self)
-#        Timer.__init__(self)
-#        Watched.__init__(self)
-#        self.memID=random.randint(0,10**9)
-#        self.context=dict()
-#
-#    def addcontext(self,name,val):
-#        self.context[name]=val
-#        self.remember(name,val)
-#        self[name]=val
-#
-#    def getcontext(self):
-#        return self.context|{'memory {} time'.format(self.memID):self.time()}
-#
-#    def gethistbytime(self,name):
-#        timename='memory {} time'.format(self.memID)
-#        out=self.gethist(name,timename)
-#        return out
-#
-#    def remember(self,varname,val,**context):
-#        super().remember(varname,val,self.getcontext()|context)
-#        #self.pokelisteners(varname)
-#        #poke(varname,val)
-#
-
-#----------------------------------------------------------------------------------------------------
-
-class RunningAvg:
-    def __init__(self,k):
-        self.k=k
-        self.recenthist=deque([])
-        self._sum_=0
-        self._sqsum_=0
-        self.i=0
-
-    def update(self,val,thinning=1):
-        if self.i%thinning==0: self.do_update(val)
-        return self.avg()
-
-    def do_update(self,val):    
-        self.i+=1
-        self._sum_+=val
-        self._sqsum_+=val**2
-        self.recenthist.append(val)
-        if len(self.recenthist)>self.k:
-            self._sum_-=self.recenthist.popleft()
-
-    def avg(self):
-        return self.sum()/self.actualk()    
-
-    def var(self,val=None,**kw):
-        if val!=None: self.update(val,**kw)
-        return self.sqsum()/self.actualk()-self.avg()**2
-
-    def actualk(self):
-        return len(self.recenthist)
-
-    def sum(self): return self._sum_
-    def sqsum(self): return self._sqsum_
-
-class InfiniteRunningAvg(RunningAvg):
-    def __init__(self):
-        self._sum_=0
-        self._sqsum_=0
-        self.i=0
-
-    def do_update(self,val):    
-        self.i+=1
-        self._sum_+=val
-        self._sqsum_+=val**2
-
-    def actualk(self): return self.i
-
-
-def ispoweroftwo(n):
-    pattern=re.compile('10*')
-    return pattern.fullmatch('{0:b}'.format(n))
-
-
-class ExpRunningAverage(InfiniteRunningAvg):
-    def __init__(self):
-        self.blocksums=[]
-        self.intervals=[]
-        self.i=0
-
-    def do_update(self,val):
-        if ispoweroftwo(self.i) or self.i==0:
-            self.blocksums.append(InfiniteRunningAvg())
-            self.intervals.append([self.i,self.i])
-        self.blocksums[-1].do_update(val)
-        self.intervals[-1][-1]+=1
-        self.i+=1
-
-    def sum(self):
-        return sum([e.sum() for e in self.blocksums])
-
-    def sqsum(self): return sum([e.sqsum() for e in self.blocksums])
-
-    def avg(self):
-        if self.i<=1: return None
-        prevlen=self.intervals[-2][1]-self.intervals[-2][0]
-        curlen=self.intervals[-1][1]-self.intervals[-1][0]
-        return (self.blocksums[-1].sum()+self.blocksums[-2].sum())/(prevlen+curlen)
-
-
-
-
-
-
-class NoRunningAvg(RunningAvg):
-    def __init__(self): pass
-    def update(self,val): self.val=val; return val
-    def avg(self): return self.val
-    def actualk(self): return 1
-
-
-def RunningAvgOrIden(k):
-    if k==1: return NoRunningAvg()
-    if k==None: return InfiniteRunningAvg()
-    return RunningAvg(k)
-
 #----------------------------------------------------------------------------------------------------
 
 class Keychain:
@@ -261,18 +112,17 @@ class Keychain:
 
 #----------------------------------------------------------------------------------------------------
 
-#def donothing(*x,**y):
-#    return None
-
-
 
 
 class Process(Memory):
+    processname='process'
     def __init__(self,profile=None,**kw):
         super().__init__()
 
         assert(profile==None or len(kw)==0)
-        if profile==None: profile=Profile(profilename='emptyprofile',**kw)
+        if profile==None:
+            try: profile=self.getdefaultprofile(**kw)
+            except: profile=self.getdefaultprofile().butwith(**kw)
 
         self.keychain=Keychain()
         self.profile=profile
@@ -295,42 +145,11 @@ class Process(Memory):
 
     def refresh(self): pass
 
-
-#    def logcurrenttask(self,msg):
-#        self.trackcurrenttask(msg,0)
-#        log(msg)
-#
-#    def trackcurrenttask(self,msg,completeness):
-#        if completeness>=1 or stopwatch.tick_after(.05):
-#            self.currenttask=msg
-#            self.currenttaskcompleteness=completeness
-#            return act_on_input(setup.checkforinput())
-#        else: return None
-#
-#    def getcurrenttask(self):
-#        try: return self.run.getval('currenttask')	
-#        except: None
-#
-#    def clearcurrenttask(self):
-#        self.currenttask=None
-#        self.currenttaskcompleteness=0
-#
-#    @staticmethod
-#    def getdefaultprofile():
-#        return Profile()
-
-    #def profilestr(self):
-    #    return '\n'.join(['{} = {}'.format(k,v) for k,v in self.profile.items()])
+    @staticmethod
+    def getdefaultprofile(**kw):
+        return Profile().butwith(**kw)
 
 
-
-
-
-class Session(Process):
-    processname='session'
-
-    def setID(self):
-        self.ID=nowstr()
 
 
 def nowstr():
@@ -340,47 +159,72 @@ def nowstr():
     return date+'|'+time
 
 
-#def newprocess(Processtype,**kw):
-#    return Processtype(Profile(**kw))
+class Session(Process):
+    processname='session'
+
+    def setID(self):
+        self.ID=nowstr()
 
 
-#class Run(Process): pass
-#    def __init__(self,*a,**kw):
-#        super().__init__(*a,**kw)
-#        self.X_distr=lambda key,samples: self.profile._X_distr_(key,samples,self.profile.n,self.profile.d)
-#
-#    def genX(self,samples:int):
-#        return self.X_distr(self.nextkey(),samples)
+setup.session=Session()
+
+def log(msg):
+    setup.session.log(msg)
+
+def getlog():
+    return setup.session.gethist('recentlog')
 
 
 
 
-#
-#
-#def newprocess(execfn):
-#    class CustomProcess(Process):
-#        execprocess=execfn
-#    return CustomProcess
-#
-#
+#====================================================================================================
+
+processes=[]
+dashboards=[]
 
 
-#def log(msg):
-#    session.log(msg)
-#    sysutil.write(msg+'\n',currentprocess().outpath+'log')
-#    return currentprocess().profile.act_on_input(setup.checkforinput())
+
+def loadprocess(process):
+    if len(processes)==0 or processes[-1]!=process:
+        processes.append(process)
+        dashboards.append(dict())
+    return process
+
+def unloadprocess(process=None):
+    if len(processes)>0 and (process==None or processes[-1]==process):
+        processes.pop()
+        dashboards.pop()
+    return process
+
+def swap_process(process):
+    unloadprocess()
+    return loadprocess(process)
 
 
-#def LOG(msg):
-#    log('\n\n'+msg+'\n\n')
-#
+
+def currentprocess():
+    return processes[-1]
+
+def currentdashboard():
+    return dashboards[-1]
+
+
+
+def act_on_input(inp):
+    return currentprocess().profile.act_on_input(inp)
+
+
+
+def nextkey(): return currentprocess().nextkey()
+
+
+
+
 #----------------------------------------------------------------------------------------------------
 
 
 
-#def dblog(msg):
-#    write(str(msg)+'\n','dblog/'+sessionID)
-#    write(str(msg)+'\n\n',outpath+'dblog')
+
 
 
 class Pointer(dotdict): pass
@@ -411,21 +255,6 @@ class Stopwatch:
             fn(*args,**kwargs)
 
 #
-#
-#class Breaker:
-#    def __init__(self):
-#        self.wantbreak=False
-#
-#    def breaknow(self):
-#        self.wantbreak=True
-#
-#    def wantsbreak(self):
-#        out=self.wantbreak
-#        self.wantbreak=False
-#        return out
-#
-#
-#breaker=Breaker()
 #----------------------------------------------------------------------------------------------------
 
 
@@ -528,62 +357,6 @@ class Scheduler(Timer):
 
 
 setup.stopwatch=Stopwatch()
-setup.session=Session()
-
-def log(msg):
-    setup.session.log(msg)
-
-def getlog():
-    return setup.session.gethist('recentlog')
-
-
-
-
-#====================================================================================================
-
-processes=[]
-dashboards=[]
-
-
-
-def loadprocess(process):
-    if len(processes)==0 or processes[-1]!=process:
-        processes.append(process)
-        dashboards.append(dict())
-    return process
-
-def unloadprocess(process=None):
-    if len(processes)>0 and (process==None or processes[-1]==process):
-        processes.pop()
-        dashboards.pop()
-    return process
-
-def swap_process(process):
-    unloadprocess()
-    return loadprocess(process)
-
-
-
-def currentprocess():
-    return processes[-1]
-
-def currentdashboard():
-    return dashboards[-1]
-
-
-
-
-#def pull(*varnames):
-#    process=currentprocess()
-#    return [process[vn] for vn in varnames]
-
-def act_on_input(inp):
-    return currentprocess().profile.act_on_input(inp)
-
-
-
-#----------------------------------------------------------------------------------------------------
-def nextkey(): return currentprocess().nextkey()
 # def logcurrenttask(msg): currentprocess().logcurrenttask(msg)
 # def trackcurrenttask(msg,completeness): return currentprocess().trackcurrenttask(msg,completeness)
 # def getcurrenttask(): return currentprocess().getcurrenttask()
@@ -643,45 +416,45 @@ week=7*day
 #----------------------------------------------------------------------------------------------------
 
 
+#
+#
+#
+#def providedefault(defs,**kw):
+#    [(name,defaultval)]=list(kw.items())
+#    try: return defs[name]
+#    except: return defaultval
+#
+#
+#t0=time.perf_counter()
+#trackedvals=dict()
+#eventlisteners=dict()
+#
+#
+#
+#
+#def getfromargs(**kw):
+#    return kw[selectone(set(kw.keys()),cmdparams)]
+#
+#fromcmdparams=getfromargs
+#getfromcmdparams=getfromargs
+#
+#
+#dash='\u2015'
+#
+#
 
 
-
-def providedefault(defs,**kw):
-    [(name,defaultval)]=list(kw.items())
-    try: return defs[name]
-    except: return defaultval
-
-
-t0=time.perf_counter()
-trackedvals=dict()
-eventlisteners=dict()
-
-
-
-
-def getfromargs(**kw):
-    return kw[selectone(set(kw.keys()),cmdparams)]
-
-fromcmdparams=getfromargs
-getfromcmdparams=getfromargs
-
-
-dash='\u2015'
-
-
-
-
-
-
-
-
-
-def test():
-    import time
-    s=Stopwatch()
-    for i in range(100): print(s.tick_after(.1)); time.sleep(.01)
-
-
+#
+#
+#
+#
+#
+#def test():
+#    import time
+#    s=Stopwatch()
+#    for i in range(100): print(s.tick_after(.1)); time.sleep(.01)
+#
+#
 #def conditional(f,do):
 #    if do:
 #        f()
