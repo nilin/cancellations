@@ -56,8 +56,8 @@ class Run(batchjob.Batchjob):
             condition=lambda path: 'test' in path,\
             readinfo=readinfo\
             )
-        bprofile.msg='Press [i] to input filter phrase,\nescape input mode with arrow keys.\n\n'+\
-            'mode: {}\nfilter by: {}\n'+50*textutil.dash+bprofile.msg0
+        #bprofile.msg='Press [i] to input filter phrase,\nescape input mode with arrow keys.\n\n'+\
+        #    'mode: {}\nfilter by: {}\n'+50*textutil.dash+bprofile.msg
         fullpath,fname=self.run_subprocess(browse.Browse(bprofile),taskname='pick function')
 
         selections.dotpath,selections.fname=fullpath.replace('/','.')[:-3],fname
