@@ -31,7 +31,7 @@ def browse(process):
 	profile,display=process.profile,process.display
 
 	profile.options=list(filter(profile.condition,profile.options))
-	if len(profile.options)==0: raise ValueError('\n\nNo options found for browsing ({})\n'.format(process.taskname))
+	if len(profile.options)==0: return None
 
 
 	#setup.screen.nodelay(False)
@@ -45,8 +45,8 @@ def browse(process):
 
 	explanation=profile.msg
 	Ltext=L.add(0,0,_display_._TextDisplay_(explanation))
-	C0.add(0,0,_display_._Display_())._getelementstrings_=lambda: [(0,pointer.val,'>')]
-	C1.add(0,0,_display_._Display_())._getelementstrings_=lambda: [(0,i,'*') for i in selections]
+	C0.add(0,0,_display_._Display_()).encode=lambda: [(0,pointer.val,'>')]
+	C1.add(0,0,_display_._Display_()).encode=lambda: [(0,i,'*') for i in selections]
 	optionsdisplay=Cr.add(0,0,_display_._TextDisplay_(''))
 
 	getcorner=lambda _: (0,max(pointer.val-display.height//2,0))
@@ -112,7 +112,8 @@ def browse(process):
 
 
 
-		ls=max(0,min(len(matches)-1,ls))
+		#ls=max(0,min(len(matches)-1,ls))
+		ls=ls%len(matches)
 		
 		Ltext.msg=explanation.format(mode,inputtext)
 		optionsdisplay.msg='\n'.join([profile.displayoption(o) for o in matches])

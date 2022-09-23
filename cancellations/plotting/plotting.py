@@ -32,7 +32,7 @@ class Slice:
         evals=[numutil.closest_multiple(f.eval,xnorm,f0(xnorm)) for f in fs]
 
 
-        fig,axs=plt.subplots(1,len(fs)+1,figsize=(7*(len(fs)+1),7))
+        fig,axs=plt.subplots(1,len(fs)+1,figsize=(8*(len(fs)+1),8))
         for ax,f_eval,f_descr,c,lw in zip(axs[:-1],evals,fs,textutil.colors,[2,1,.5,.25]):
             self.plot(ax,f_eval,f_descr)
             self.contour(ax,f_eval,colors='k')
@@ -121,15 +121,19 @@ class Run(batchjob.Batchjob):
     def runbatch(self):
 
         browsingprocess=browse.Browse(browse.Browse.getdefaultfilebrowsingprofile())
-        runpath='outputs/'+self.run_subprocess(browsingprocess,taskname='choose run')
+        relrunpath=self.run_subprocess(browsingprocess,taskname='choose run')
+
+        if relrunpath==None:
+            setup.postcommand=lambda: print('No outputs found')
+            return
+
+        runpath='outputs/'+relrunpath
         self.outpath=runpath
 
         process,self.pdisplay=self.loadprocess(taskname='plot')
-        #info=sysutil.readtextfile(runpath+'info.txt')
         self.pdisplay.add(0,0,_display_._LogDisplay_(self,100,20))
         self.pdisplay.arm()
 
-        #sysutil.write(info,process.outpath+'info.txt')
 
         allplots(self)
 

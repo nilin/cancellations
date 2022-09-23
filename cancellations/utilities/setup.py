@@ -6,7 +6,15 @@ if not '32' in sys.argv:
     jax.config.update("jax_enable_x64", True)
 
 
-postrun=lambda: None
+
 display_on=True
 debug=False
+
+
+
+class noRun:
+    def run_as_NODISPLAY(self): pass
+
+postcommand=lambda: None
+postrun=noRun()
 

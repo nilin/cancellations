@@ -107,6 +107,7 @@ def main():
 
     Run().run_as_main()
     setup.postrun.run_as_NODISPLAY()
+    setup.postcommand()
 
 
 if __name__=='__main__': main()

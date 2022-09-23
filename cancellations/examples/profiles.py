@@ -38,6 +38,7 @@ def getprofiles(exname):
 
             exprofiles['ASNN, no weight decay']=exprofiles['ASNN'].butwith(weight_decay=0)
                 
+            exprofiles['quicktest']=harmonicoscillator2d.Run.getdefaultprofile().butwith(n=4,iterations=1000,samples_train=10**4)
 
 
     return exprofiles

@@ -102,7 +102,8 @@ class Run(_display_.Process):
         run.trainer=learning.Trainer(run.lossgrad,run.learner,run.sampler,\
             **{k:P[k] for k in ['weight_decay','iterations']}) 
 
-        regsched=tracking.Scheduler(tracking.nonsparsesched(P.iterations,start=50))
+        #regsched=tracking.Scheduler(tracking.nonsparsesched(P.iterations,start=50))
+        regsched=tracking.Scheduler(range(0,P.iterations+100,100))
         run.addlearningdisplay()
 
         run.log('data type (32 or 64): {}'.format(run.learner.eval(run.X_train[100:]).dtype))
@@ -165,7 +166,7 @@ class Run(_display_.Process):
         smoother1=numutil.RunningAvg(k=10)
         smoother2=numutil.RunningAvg(k=100)
         display=self.learningdisplay.add(0,0,_display_._Display_())
-        display._getelementstrings_=lambda: [\
+        display.encode=lambda: [\
             (0,0,'loss {:.2E}'.format(self.loss.val)),\
             #(0,1,_display_.hiresbar(self.loss.val,self.dashboard.width)),\
             #_display_.hiresTICK(smoother1.update(self.loss.val),self.dashboard.width,y=1),\
@@ -212,7 +213,7 @@ class Run(_display_.Process):
         profile.iterations=25000
         profile.minibatchsize=100
 
-        profile.samples_train=5*10**4
+        profile.samples_train=10**5
         profile.samples_test=1000
         profile.evalblocksize=10**4
 

@@ -159,7 +159,7 @@ class Run(cdisplay.Process):
     def addlearningdisplay(self):
         self.loss=tracking.Pointer()
         display=self.learningdisplay.add(0,0,_display_._Display_())
-        display._getelementstrings_=lambda: [(0,0,_display_.hiresbar(self.loss.val,self.dashboard.width)),\
+        display.encode=lambda: [(0,0,_display_.hiresbar(self.loss.val,self.dashboard.width)),\
             (0,1,'loss {:.2E}'.format(self.loss.val))]
         
 

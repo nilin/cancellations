@@ -83,18 +83,21 @@ def graph(process,datapath):
 
         losses=[numutil.weighted_SI_loss(_psi_(weights,X),Y,Xdensity) for weights in weightslist]
 
-        fig,(ax1,ax2)=plt.subplots(2,1)
-        ax2.plot(i_s,weightnorms,'r:',label='|W|')
+        fig,(ax1,ax2,ax3)=plt.subplots(3,1,figsize=(8,10))
 
-        ax1.plot(i_s,f_over_Af,'r',label='|f|/|Af|')
+        ax1.plot(i_s,losses,'b',label='loss')
         ax1.set_yscale('log')
+        ax1.grid(True,which='major',axis='y')
         ax1.legend()
-
-        ax2.plot(i_s,losses,'b',label='loss')
-        ax2.set_yscale('log')
-        ax2.grid(True,which='major',axis='y')
-        ax2.legend()
         fig.suptitle(sysutil.maybe(lambda:'\nprofile name: '+sysutil.load(datapath+'data/setup')['profilename'],'')())
+
+        ax2.plot(i_s,f_over_Af,'r',label='|f|/|Af|')
+        ax2.set_yscale('log')
+        ax2.legend()
+
+        ax3.plot(i_s,weightnorms,'r:',label='|W|')
+        ax2.set_yscale('log')
+        ax2.legend()
 
         sysutil.savefig(process.outpath+'ratio.pdf',fig=fig)
 

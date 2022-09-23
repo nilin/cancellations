@@ -118,21 +118,20 @@ def movingwindow(x,y,text,xlim,ylim):
 
 
 class _Display_:
-	output=lambda self: self.getelementstrings()
 
-	def getelementstrings(self):
-		return self._getelementstrings_()
+	def render(self):
+		return self.encode()
 
-	#def _getelementstrings_(self):
+	#def encode(self):
 	#	return []
 
 	def getfullwidth(self):
-		if self._getelementstrings_()==[]: return 0
-		return max([x+max([len(l) for l in s.splitlines()]) for x,_,s in self._getelementstrings_()])
+		if self.encode()==[]: return 0
+		return max([x+max([len(l) for l in s.splitlines()]) for x,_,s in self.encode()])
 
 	def getfullheight(self):
-		if self._getelementstrings_()==[]: return 0
-		return max([y+len(s.splitlines()) for _,y,s in self._getelementstrings_()])
+		if self.encode()==[]: return 0
+		return max([y+len(s.splitlines()) for _,y,s in self.encode()])
 
 	def getwidth(self):
 		return self.getfullwidth()
@@ -150,8 +149,8 @@ class _Frame_:
 		self.name=name
 		self.outline=False
 
-	def getelementstrings(self):
-		strings=self._getelementstrings_()
+	def render(self):
+		strings=self.encode()
 		x0,y0=self.getcorner(self)
 		out=self.movingframe(strings,(x0,x0+self.width),(y0,y0+self.height))
 
@@ -179,7 +178,7 @@ class _Frame_:
 #----------------------------------------------------------------------------------------------------
 
 class _LinesDisplay_(_Display_):
-	def _getelementstrings_(self):
+	def encode(self):
 		return [(0,i,l) for i,l in enumerate(self.getlines())]
 
 class _TextDisplay_(_LinesDisplay_):
@@ -220,10 +219,10 @@ class _CompositeDisplay_(_Display_):
 		self.elements.append((x,y,display))
 		return display
 
-	def _getelementstrings_(self):
+	def encode(self):
 		out=[]
 		for X,Y,e in self.elements:
-			out=out+[(X+x,Y+y,s) for x,y,s in e.getelementstrings()]
+			out=out+[(X+x,Y+y,s) for x,y,s in e.render()]
 			if self.name=='T':
 				tracking.log(out)
 		return out
@@ -302,7 +301,7 @@ class _Dashboard_(_Frame_,_CompositeDisplay_):
 		window.refresh()
 
 		window.erase()
-		for x,y,s in self.getelementstrings():
+		for x,y,s in self.render():
 			window.addstr(y,x,s)
 		window.refresh()
 
