@@ -9,6 +9,10 @@ box='\u2592'
 dash='\u2015'
 infty='\u221E'
 
+arrowup='\u2191'
+arrowdown='\u2193'
+arrowleft='\u2190'
+arrowright='\u2192'
 
 
 def indent(s):

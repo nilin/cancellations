@@ -154,7 +154,7 @@ class Browse(_display_.Process):
 		profile=tracking.Profile(profilename='file browsing',parentfolder=parentfolder)
 		profile.msg='select file'
 		profile.onlyone=True
-		profile.readinfo=lambda path: sysutil.readtextfile(profile.parentfolder+path+'info.txt')
+		profile.readinfo=lambda path: getmetadata(profile.parentfolder+path)+'\n\n'+sysutil.readtextfile(profile.parentfolder+path+'info.txt')
 		profile.options=getpaths(defaultpathprofile(**kw))
 		profile.msg=msg
 		profile.displayoption=lambda option:option+getmetadata(profile.parentfolder+option)

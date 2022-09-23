@@ -1,4 +1,4 @@
-from cancellations.utilities import setup
+from cancellations.utilities import setup, textutil
 from statistics import harmonic_mean
 from ..testing import testing
 from ..functions import examplefunctions as ef, functions
@@ -102,12 +102,13 @@ def graph(process,datapath):
         sysutil.savefig(process.outpath+'train_graphs.pdf',fig=fig)
 
         fig,ax=plt.subplots()
-        ax.scatter(f_over_Af,losses,color='b')
+        ax.scatter(losses,f_over_Af,s=6,color='b',marker='d')
         ax.set_xscale('log')
         ax.set_yscale('log')
-        ax.grid(True,which='both')
-        ax.set_xlabel('|f|/|Af|')
-        ax.set_ylabel('loss')
+        ax.invert_xaxis()
+        #ax.grid(True,which='both')
+        ax.set_xlabel('loss (poor {} good)'.format(textutil.arrowright))
+        ax.set_ylabel('|f|/|Af|')
         fig.suptitle(sysutil.maybe(lambda:'\nprofile name: '+sysutil.load(datapath+'data/setup')['profilename'],'')())
 
         sysutil.savefig(process.outpath+'normratio_vs_loss.pdf',fig=fig)

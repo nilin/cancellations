@@ -33,15 +33,15 @@ class Slice:
 
 
         fig,axs=plt.subplots(1,len(fs)+1,figsize=(8*(len(fs)+1),8))
-        for ax,f_eval,f_descr,c,lw in zip(axs[:-1],evals,fs,textutil.colors,[2,1,.5,.25]):
+        for ax,f_eval,f_descr,c,lw in zip(axs[:-1],evals,fs,textutil.colors,[3**(-k) for k in range(10)]):
             self.plot(ax,f_eval,f_descr)
             self.contour(ax,f_eval,colors='k')
 
-            self.contour(axs[-1],f_eval,colors=c,linewidths=3*lw)
-            levels=[2**k for k in range(-3,1)]
+            self.contour(axs[-1],f_eval,colors=c,linewidths=5*lw)
+            levels=[2**(k/2) for k in range(-10,10)]
             levels=list(reversed([-l for l in levels]))+levels
             self.process.log('levels {}'.format(levels))
-            self.contour(axs[-1],f_eval,colors=c,levels=levels,linewidths=lw)
+            self.contour(axs[-1],f_eval,colors=c,levels=levels,linewidths=lw,alpha=.5)
         
         sysutil.savefig(self.process.outpath+'{}.pdf'.format(self.slicetype),fig=fig)
 
