@@ -132,19 +132,17 @@ class Run(_display_.Process):
                 run.learningdisplay.draw()
 
             if stopwatch2.tick_after(.5):
-                if P.act_on_input(setup.checkforinput(),run)=='b': break
+                if P.act_on_input(setup.getch(getinstructions),run)=='b': break
 
         return run.learner
 
     def log(self,msg):
         super().log(msg)
-        self.profile.act_on_input(setup.checkforinput(),self)
+        self.profile.act_on_input(setup.getch(getinstructions),self)
         self.T.draw()
 
     def prepdisplay(self):
-        instructions='Press [p] to generate plots.\n'+\
-            'Press [o] to open output folder.\
-            \n\nPress [b] to break from current task.\nPress [q] to quit. '
+        instructions=getinstructions()
 
         self.dashboard=self.display
         self.T,self.learningdisplay=self.dashboard.vsplit(rlimits=[.8])
@@ -227,7 +225,10 @@ class Run(_display_.Process):
 
 
 
-
+def getinstructions():
+    return 'Press [p] to generate plots.\n'+\
+        'Press [o] to open output folder.'+\
+        '\n\nPress [b] to break from current task.\nPress [q] to quit. '
 
 
 
@@ -238,9 +239,7 @@ def gen_lossgrad(f,X_density):
 
 
 def gettarget(profile):
-    for i in range(profile.n):
-        setattr(functions,'psi{}_{}d'.format(i,profile.d),getattr(examplefunctions3d,'psi{}_{}d'.format(i,profile.d)))
-    return functions.Slater(*['psi{}_{}d'.format(i,profile.d) for i in range(profile.n)])
+    return functions.Slater(*['psi{}_{}d'.format(i,profile.d) for i in range(1,profile.n+1)])
 
 
 

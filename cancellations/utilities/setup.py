@@ -7,3 +7,6 @@ if not '32' in sys.argv:
 
 
 postrun=lambda: None
+display_on=True
+debug=False
+

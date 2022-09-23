@@ -22,7 +22,7 @@ class Slice:
 
     def contour(self,ax,f_eval,*args,**kw):
         Y=jax.vmap(f_eval)(self.X)
-        ax.contour(Y,*args,levels=[i*.05 for i in range(-5,6)],**kw)
+        ax.contour(Y,*args,levels=[i**3 for i in jnp.arange(-1,1.0001,.2)],**kw)
         ax.set_aspect('equal')
 
     def compare(self,*fs):
@@ -32,18 +32,15 @@ class Slice:
         evals=[numutil.closest_multiple(f.eval,xnorm,f0(xnorm)) for f in fs]
 
 
-        fig,axs=plt.subplots(1,len(fs),figsize=(7*len(fs),7))
-        for ax,f_eval,f_descr in zip(axs,evals,fs):
+        fig,axs=plt.subplots(1,len(fs)+1,figsize=(7*(len(fs)+1),7))
+        for ax,f_eval,f_descr,c,lw in zip(axs[:-1],evals,fs,textutil.colors,[2,1,.5,.25]):
             self.plot(ax,f_eval,f_descr)
             self.contour(ax,f_eval,colors='k')
+
+            self.contour(axs[-1],f_eval,colors=c,linewidths=lw)
         
-        sysutil.savefig(self.process.outpath+'{}_heatmaps.pdf'.format(self.slicetype),fig=fig)
+        sysutil.savefig(self.process.outpath+'{}.pdf'.format(self.slicetype),fig=fig)
 
-        fig,ax=plt.subplots(figsize=(7,7))
-        for f_eval,c,lw in zip(evals,textutil.colors,[2,1,.5,.25]):
-            self.contour(ax,f_eval,colors=c,linewidths=lw)
-
-        sysutil.savefig(self.process.outpath+'{}_contours.pdf'.format(self.slicetype),fig=fig)
 
 
 class Slice_1p(Slice):
@@ -123,14 +120,19 @@ class Run(batchjob.Batchjob):
         runpath='outputs/'+self.run_subprocess(browsingprocess,taskname='choose run')
         self.outpath=runpath
 
-        process,display=self.loadprocess(taskname='plot')
-        info=sysutil.readtextfile(runpath+'info.txt')
-        display.add(0,0,_display_._TextDisplay_(info))
-        display.arm()
-        display.draw()
+        process,self.pdisplay=self.loadprocess(taskname='plot')
+        #info=sysutil.readtextfile(runpath+'info.txt')
+        self.pdisplay.add(0,0,_display_._LogDisplay_(self,100,20))
+        self.pdisplay.arm()
+
         #sysutil.write(info,process.outpath+'info.txt')
 
         allplots(self)
+
+    def log(self,msg):
+        super().log(msg)
+        self.pdisplay.draw()
+
 
         #def postrun():
         #    tracking.loadprocess(tracking.Process())

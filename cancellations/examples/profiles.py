@@ -7,15 +7,16 @@ from ..utilities.tracking import dotdict
 import jax.numpy as jnp
 
 def getprofiles(exname):
-    profilegenerators=dict()
-    exprofiles=profilegenerators
+    exprofiles=dict()
     match exname:
 
 
         case 'harmonicoscillator2d':
-            exprofiles['n=6 d=2']=harmonicoscillator2d.Run.getdefaultprofile().butwith(n=6,weight_decay=.1)
+            exprofiles['n=6 d=2 weight decay .1']=harmonicoscillator2d.Run.getdefaultprofile().butwith(n=6,weight_decay=.1)
             exprofiles['n=6 d=2 no weight decay']=harmonicoscillator2d.Run.getdefaultprofile().butwith(n=6,weight_decay=0)
             exprofiles['n=6 d=2 strong weight decay']=harmonicoscillator2d.Run.getdefaultprofile().butwith(n=6,weight_decay=1.)
+
+            exprofiles['n=7 d=2 weight decay .1']=harmonicoscillator2d.Run.getdefaultprofile().butwith(n=7,weight_decay=.1)
 
             exprofiles['ASNN']=harmonicoscillator2d.Run.getdefaultprofile().butwith(\
                 #
@@ -47,18 +48,13 @@ def getprofiles(exname):
 
 
 def get_test_fn_inputs():
-    inputgenerators=dict()
-    ig=inputgenerators
+    inputprofiles=dict()
+    inputprofiles['no inputs']=lambda: tracking.dotdict(args=[],kwargs=dict())
 
 
-    ig['no inputs']=lambda: tracking.dotdict(args=[],kwargs=dict())
+    s='Lorem ipsum dolor sit amet, \nconsectetur adipiscing elit,'+\
+        'sed do eiusmod \ntempor incididunt \nut labore et dolore \nmagna aliqua'
 
+    inputprofiles['lipsum, do, p']=tracking.dotdict(args=[s,'do','p'],kwargs=dict())
 
-    def _():
-        a='Lorem ipsum dolor sit amet, \nconsectetur adipiscing elit,'
-        b='sed do eiusmod \ntempor incididunt \nut labore et dolore \nmagna aliqua'
-        return tracking.dotdict(args=[a+b,'do','p'],kwargs=dict())
-
-    ig['lipsum, do, p']=_
-
-    return ig
+    return inputprofiles

@@ -1,7 +1,8 @@
 import os
 import math
 from re import L
-from ..utilities import config as cfg, numutil, tracking,textutil
+import re
+from ..utilities import config as cfg, numutil, tracking,textutil, sysutil
 from ..utilities.tracking import Stopwatch
 from ..utilities.setup import session
 import collections
@@ -14,6 +15,8 @@ import curses as cs
 
 #----------------------------------------------------------------------------------------------------
 
+
+
 class Process(tracking.Process):
 
 	def run_in_display(self,display):
@@ -22,39 +25,68 @@ class Process(tracking.Process):
 		output=self.execprocess()
 
 		tracking.unloadprocess(self)
-		clearscreen()
+		setup.clearscreen()
 		return output
 
 	def run_as_main(self):
 		def wrapped(screen):
 			screen.refresh()
-			def getch():
+
+			def getch(prompt=None):
 				c=extractkey_cs(screen.getch())
 				screen.refresh()
 				return c
+			def clearscreen():
+				screen.clear()
+				screen.refresh()
 
-			setup.screen=screen
 			setup.getch=getch
-			setup.checkforinput=getch
+			setup.clearscreen=clearscreen
+
 			screen.nodelay(True)
 			cs.use_default_colors()
 			setup.session.dashboard=_Dashboard_(cs.COLS,cs.LINES)
-			return self.run_in_display(setup.session.dashboard)
+			output=self.run_in_display(setup.session.dashboard)
+
+			globals()['screen']=None
+			return output
 
 		return cs.wrapper(wrapped)
 
-	def prepdisplay(self): pass
+	def run_as_NODISPLAY(self):
+		def getch(prompt=None):
+			if hasattr(setup,'defaultinputs') and len(setup.defaultinputs)>0:
+				return setup.defaultinputs.popleft()
+
+			print('{}\n{}\n{}\ninput "100s myinput" to skip input 100 times with default input "myinput".\n{}\n'.\
+				format(100*dash,prompt(),100*dash,100*dash))
+			c=input()
+
+			tryskip=re.fullmatch('([0-9]+)s.*?([a-z]*)',c)
+			if tryskip:
+				nskips,defaultinput=tryskip.groups()
+				setup.defaultinputs=deque(int(nskips)*[defaultinput])
+				print('queued inputs: {}'.format(setup.defaultinputs))
+				return getch(prompt)
+			else:
+				return c
+
+		setup.getch=getch
+		setup.clearscreen=sysutil.clearscreen
+		tracking.loadprocess(self)
+		dummydisplay=_Dashboard_(100,50)
+		self.display=dummydisplay
+
+		self.execprocess()
+
+
+	#def prepdisplay(self): pass
 
 
 
 
 #----------------------------------------------------------------------------------------------------
 
-def getscreen(): return setup.screen
-
-def clearscreen():
-	getscreen().clear()
-	getscreen().refresh()
 
 #----------------------------------------------------------------------------------------------------
 
@@ -256,10 +288,16 @@ class _Dashboard_(_Frame_,_CompositeDisplay_):
 
 #----------------------------------------------------------------------------------------------------
 	def arm(self):
+		if not setup.display_on: return
+
 		x,y=self.x0,self.y0
 		tracking.currentdashboard()[self.name]=cs.newwin(self.getheight()+1,self.getwidth()+1,y,x)
 
 	def draw(self):
+		if not setup.display_on:
+			print('display update')
+			return
+
 		window=tracking.currentdashboard()[self.name]
 		window.refresh()
 
@@ -286,15 +324,18 @@ def clearcurrentdash():
 #####################################################################################################
 
 def extractkey_cs(a):
-    if a>=97 and a<=122: return chr(a)
-    if a>=48 and a<=57: return str(a-48)
-    match a:
-        case 32: return 'SPACE'
-        case 10: return 'ENTER'
-        case 127: return 'BACKSPACE'
-    return a
+	if a>=97 and a<=122: return chr(a)
+	if a>=48 and a<=57: return str(a-48)
+	match a:
+		case 32: return 'SPACE'
+		case 10: return 'ENTER'
+		case 127: return 'BACKSPACE'
+		case 259: return 'UP'
+		case 258: return 'DOWN'
+		case 260: return 'LEFT'		
+		case 261: return 'RIGHT'
 
-
+	return a
 
 
 

@@ -5,6 +5,7 @@ from cancellations.examples import profiles as P
 import os
 import re
 import importlib
+import sys
 
 
 
@@ -84,17 +85,28 @@ class Run(batchjob.Batchjob):
             runprofile=runprofiles[profilename]
             runprofile['profilename']=profilename
 
+        self.run=m.Run(runprofile)
 
         # task 3
 
-        self.run_subprocess(m.Run(runprofile),taskname='run script')
+        if setup.debug:
+            setup.postrun=self.run
+            setup.display_on=False
+            return
+
+        self.run_subprocess(self.run,taskname='run script')
 
 
     @staticmethod
     def getdefaultprofile(**kw):
         return batchjob.Batchjob.getdefaultprofile().butwith(tasks=['pick script','pick profile','run script'],**kw)
 
-if __name__=='__main__':
-    Run().run_as_main()
-    setup.postrun()
 
+def main():
+    if 'debug' in sys.argv: setup.debug=True
+
+    Run().run_as_main()
+    setup.postrun.run_as_NODISPLAY()
+
+
+if __name__=='__main__': main()

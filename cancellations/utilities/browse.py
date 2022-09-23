@@ -74,7 +74,7 @@ def browse(process):
 				if profile.dynamiccondition(profile.displayoption(option),inputtext) not in [None,False]]
 
 		ls=pointer.val
-		c=setup.getch()
+		c=setup.getch(lambda: profile.msg)
 
 		if c=='ENTER': break
 		if c!=-1:
@@ -85,10 +85,10 @@ def browse(process):
 							if profile.onlyone: selections.append(ls)
 						case 'BACKSPACE':
 							if not profile.onlyone and ls in selections: selections.remove(ls)
-						case 259: ls-=1
-						case 258: ls+=1
-						case 260: ls-=5
-						case 261: ls+=5
+						case 'UP': ls-=1
+						case 'DOWN': ls+=1
+						case 'LEFT': ls-=5
+						case 'RIGHT': ls+=5
 						case 's':
 							try: ls=max([c for c in selections if c<ls])
 							except: pass

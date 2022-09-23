@@ -64,16 +64,16 @@ class Run(batchjob.Batchjob):
 
         # task 2
 
-        profilegenerators=P.get_test_fn_inputs()
-        bprofile=browse.Browse.getdefaultprofile().butwith(\
-            onlyone=True,\
-            readinfo=lambda : sysutil.readtextfile('cancellations/examples/profiles.py'),\
-            options=list(profilegenerators.keys())
-            )
-        bprofile.msg='select an input profile\n'+bprofile.msg
-        profilename=self.run_subprocess(browse.Browse(bprofile),taskname='pick inputs')
-
-        selections.inputprofile=profilegenerators[profilename]()
+#        testprofiles=P.get_test_fn_inputs()
+#        bprofile=browse.Browse.getdefaultprofile().butwith(\
+#            onlyone=True,\
+#            readinfo=lambda : sysutil.readtextfile('cancellations/examples/profiles.py'),\
+#            options=list(testprofiles.keys())
+#            )
+#        bprofile.msg='select an input profile\n'+bprofile.msg
+#        profilename=self.run_subprocess(browse.Browse(bprofile),taskname='pick inputs')
+#
+#        selections.inputprofile=testprofiles[profilename]
 
 
 
@@ -82,5 +82,6 @@ sysutil.clearscreen()
 
 m = importlib.import_module(selections.dotpath)
 fn=getattr(m,selections.fname)
-out=fn(*selections.inputprofile.args,**selections.inputprofile.kwargs)
+#out=fn(*selections.inputprofile.args,**selections.inputprofile.kwargs)
+out=fn()
 print(out)

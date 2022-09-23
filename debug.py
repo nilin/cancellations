@@ -21,18 +21,18 @@ def debug(mode):
 
 		match mode:
 			case 'Run':
-				pr.Run().run_as_main()
+				pr.main()
 			case 'singlefunction':
 				import testsinglemethod as tf
 
 
 
 def getmode():
-
 	profile=browse.Browse.getdefaultprofile().butwith(options=['Run','singlefunction'])
 	process=browse.Browse(profile)
 	return process.run_as_main()
 
 
 if __name__=='__main__':
+	setup.debug=True
 	debug(getmode())
