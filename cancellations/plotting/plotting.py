@@ -101,6 +101,7 @@ class RandomSlices:
 
 def allplots(process):
     runpath=process.outpath
+    sysutil.showfile(process.outpath)
 
     target=sysutil.load(runpath+'data/target').restore()
     learner=sysutil.load(runpath+'data/learner').restore()
@@ -111,7 +112,6 @@ def allplots(process):
 
     S=RandomSlices(process,n,d)
     S.plot(target,learner)
-    sysutil.showfile(process.outpath)
 
     traingraphs.graph(process,runpath)
 

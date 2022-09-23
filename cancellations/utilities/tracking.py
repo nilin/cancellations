@@ -150,7 +150,7 @@ class Process(Memory):
         msg=str(msg)
         tmsg=textutil.appendright(self.timeprint()+' | ',msg)
         self.remember('recentlog',tmsg,membound=100)
-        sysutil.write(tmsg,self.outpath+'log.txt',mode='a')
+        sysutil.write(tmsg+'\n',self.outpath+'log.txt',mode='a')
 
         self.refresh()
 

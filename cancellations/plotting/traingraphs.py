@@ -99,9 +99,18 @@ def graph(process,datapath):
         ax2.set_yscale('log')
         ax2.legend()
 
-        sysutil.savefig(process.outpath+'ratio.pdf',fig=fig)
+        sysutil.savefig(process.outpath+'train_graphs.pdf',fig=fig)
 
+        fig,ax=plt.subplots()
+        ax.scatter(f_over_Af,losses,color='b')
+        ax.set_xscale('log')
+        ax.set_yscale('log')
+        ax.grid(True,which='both')
+        ax.set_xlabel('|f|/|Af|')
+        ax.set_ylabel('loss')
+        fig.suptitle(sysutil.maybe(lambda:'\nprofile name: '+sysutil.load(datapath+'data/setup')['profilename'],'')())
 
+        sysutil.savefig(process.outpath+'normratio_vs_loss.pdf',fig=fig)
 
 
 #dontpick
