@@ -20,9 +20,9 @@ class Slice:
         ax.set_title(f_descr.richtypename())
         ax.set_aspect('equal')
 
-    def contour(self,ax,f_eval,*args,**kw):
+    def contour(self,ax,f_eval,*args,levels=[0],**kw):
         Y=jax.vmap(f_eval)(self.X)
-        ax.contour(Y,*args,levels=[i**3 for i in jnp.arange(-1,1.0001,.2)],**kw)
+        ax.contour(Y,*args,levels=levels,**kw)
         ax.set_aspect('equal')
 
     def compare(self,*fs):
@@ -37,7 +37,11 @@ class Slice:
             self.plot(ax,f_eval,f_descr)
             self.contour(ax,f_eval,colors='k')
 
-            self.contour(axs[-1],f_eval,colors=c,linewidths=lw)
+            self.contour(axs[-1],f_eval,colors=c,linewidths=3*lw)
+            levels=[2**k for k in range(-3,1)]
+            levels=list(reversed([-l for l in levels]))+levels
+            self.process.log('levels {}'.format(levels))
+            self.contour(axs[-1],f_eval,colors=c,levels=levels,linewidths=lw)
         
         sysutil.savefig(self.process.outpath+'{}.pdf'.format(self.slicetype),fig=fig)
 
