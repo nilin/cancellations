@@ -31,7 +31,7 @@ def browse(process):
 	profile,display=process.profile,process.display
 
 	profile.options=list(filter(profile.condition,profile.options))
-	if len(profile.options)==0: return None
+	if len(profile.options)==0: raise ValueError('\n\nNo options found for browsing ({})\n'.format(process.taskname))
 
 
 	#setup.screen.nodelay(False)

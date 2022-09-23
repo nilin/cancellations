@@ -30,8 +30,6 @@ class Batchjob(_display_.Process):
         assert(tracking.currentprocess()==self)
         if process==None:
             process=tracking.Process()
-        #elif isinstance(process,tracking.Profile):
-        #    process=tracking.Process(process)
 
         process.taskname=taskname
         self.printtaskline(process)
