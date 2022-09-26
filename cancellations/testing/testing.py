@@ -18,7 +18,7 @@ def naiveAS(f,X):
 		sgn=sign(p)
 		PX=X[:,p,:]
 		out=out+sgn*f(PX)
-	return out
+	return out/jnp.sqrt(math.factorial(n))
 
 
 def verify_antisymmetrization(Af,f,X):

@@ -13,6 +13,7 @@ from . import AS_tools as ASt
 import jax.random as rnd
 from . import backflow as bf, examplefunctions, examplefunctions3d
 import textwrap
+import math
 import copy
 from .backflow import gen_backflow,initweights_Backflow
 from .AS_tools import dets #,initweights_detsum
@@ -264,15 +265,22 @@ class Antisymmetric(FunctionDescription,Switchable):
 	def _initweights_(cls,**kw):
 		return cls.nonsym._initweights_(**{cls.nonsym.translation(k):v for k,v in kw.items()})
 
+	def compile(self):
+		Af=self._compile_()
+		c=1/jnp.sqrt(math.factorial(self.getn()))
+		return jax.jit(lambda params,X: c*Af(params,X))
+
+	def getn(self): return self.n
+
 class ASNN(Antisymmetric,NNfunction):
 	nonsym=NN
-	def compile(self):
+	def _compile_(self):
 		NN_NS=mv.gen_NN_NS(self.activation)
 		return ASt.gen_Af(self.n,NN_NS)
 
 class Dets(Antisymmetric):
 	nonsym=Prods
-	def compile(self): return AS_tools.dets
+	def _compile_(self): return AS_tools.dets
 
 	@staticmethod
 	def translation(name):return 'ndets' if name=='k' else name
@@ -281,12 +289,13 @@ class Dets(Antisymmetric):
 class Slater(Composite,Antisymmetric):
 	nonsym=ProdState
 
-	def compile(self):
+	def _compile_(self):
 		phis=[jax.vmap(phi.compiled(),in_axes=(None,-2),out_axes=-1) for phi in self.elements]
 		return jax.jit(lambda params,X: jnp.linalg.det(jnp.stack([phi(params,X)for phi in phis],axis=-1)))
 
 	def richtypename(self): return ' \u2227 '.join([phi.richtypename() for phi in self.elements])
 	def info(self): return textutil.indent('\n'.join([phi.info() for phi in self.elements]))
+	def getn(self): return len(self.elements)
 
 
 #=======================================================================================================

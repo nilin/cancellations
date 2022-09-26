@@ -198,10 +198,9 @@ class Run(_display_.Process):
 
         profile.learnerparams=tracking.dotdict(\
             SPNN=dotdict(widths=[profile.d,25,25],activation='sp'),\
-            backflow=dotdict(widths=[],activation='sp'),\
+            #backflow=dotdict(widths=[],activation='sp'),\
             dets=dotdict(d=25,ndets=25),)
             #'OddNN':dict(widths=[25,1],activation='sp')
-        #}
 
         profile._var_X_distr_=4
         profile._genX_=lambda key,samples,n,d:rnd.normal(key,(samples,n,d))*jnp.sqrt(profile._var_X_distr_)

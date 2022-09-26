@@ -12,9 +12,18 @@ debug=False
 
 
 
-class noRun:
-    def run_as_NODISPLAY(self): pass
+postcommands=[]
+postprocesses=[]
 
-postcommand=lambda: None
-postrun=noRun()
 
+defaultinputs=dict()
+
+
+def run_afterdisplayclosed():
+    globals()['display_on']=False
+
+    for postrun in postprocesses:
+        postrun.run_as_NODISPLAY()
+
+    for postcommand in postcommands:
+        postcommand()

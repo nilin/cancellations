@@ -1,7 +1,7 @@
 from cancellations.utilities import setup
 from cancellations.display import _display_
 from cancellations.utilities import tracking, browse, batchjob, sysutil, textutil
-from cancellations.examples import profiles as P
+from cancellations import profiles as P
 import os
 import re
 import importlib
@@ -38,7 +38,6 @@ class Run(batchjob.Batchjob):
 
         bprofile1=browse.Browse.getdefaultprofile().butwith(\
             onlyone=True,\
-            #readinfo=lambda path: textutil.startingfrom(sysutil.readtextfile(path),'class Run',linewise=True),\
             readinfo=lambda path: textutil.findblock(sysutil.readtextfile(path),'class Run')[-1],\
             options=fullpaths,\
             displayoption=lambda full:rels[full]
@@ -51,8 +50,6 @@ class Run(batchjob.Batchjob):
 
         path=self.run_subprocess(browse.Browse(bprofile1),taskname='pick script')
 
-#        browsingprocess1,display=self.swap_process(bprofile1)
-#        path=browse.browse(browsingprocess1)
 
 
 
@@ -61,9 +58,10 @@ class Run(batchjob.Batchjob):
         m = importlib.import_module(mname)
         processname=mname.split('.')[-1]
         runprofiles=P.getprofiles(processname)
+
+
         bprofile2=browse.Browse.getdefaultprofile().butwith(\
             onlyone=True,\
-            #readinfo=lambda pname: textutil.startingfrom(sysutil.readtextfile('cancellations/examples/profiles.py'),m.Run.exname,pname),\
             options=list(runprofiles.keys()),\
             readinfo=lambda profilename:runprofiles[profilename].__str__()
             )
@@ -74,8 +72,6 @@ class Run(batchjob.Batchjob):
 
         profilename=self.run_subprocess(browse.Browse(bprofile2),taskname='pick profile')
 
-#        browsingprocess2,display=self.swap_process(bprofile2)
-#        profilename=browse.browse(browsingprocess2)
 
 
 
@@ -90,7 +86,7 @@ class Run(batchjob.Batchjob):
         # task 3
 
         if setup.debug:
-            setup.postrun=self.run
+            setup.postprocesses.append(self.run)
             setup.display_on=False
             return
 
@@ -102,12 +98,14 @@ class Run(batchjob.Batchjob):
         return batchjob.Batchjob.getdefaultprofile().butwith(tasks=['pick script','pick profile','run script'],**kw)
 
 
+
+
+
 def main():
     if 'debug' in sys.argv: setup.debug=True
-
     Run().run_as_main()
-    setup.postrun.run_as_NODISPLAY()
-    setup.postcommand()
+    setup.run_afterdisplayclosed()
+
 
 
 if __name__=='__main__': main()

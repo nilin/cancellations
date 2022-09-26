@@ -1,9 +1,9 @@
 
-from . import harmonicoscillator2d #, estimateobservables, unsupervised
-from ..functions import examplefunctions as ef, functions
-from ..functions.functions import Product, SingleparticleNN, ComposedFunction
-from ..utilities import numutil, energy, tracking
-from ..utilities.tracking import dotdict
+from cancellations.examples import harmonicoscillator2d #, estimateobservables, unsupervised
+from cancellations.functions import examplefunctions as ef, functions
+from cancellations.functions.functions import Product, SingleparticleNN, ComposedFunction
+from cancellations.utilities import numutil, energy, tracking
+from cancellations.utilities.tracking import dotdict
 import jax.numpy as jnp
 
 def getprofiles(exname):
@@ -12,9 +12,21 @@ def getprofiles(exname):
 
 
         case 'harmonicoscillator2d':
-            exprofiles['n=6 d=2 weight decay .1']=harmonicoscillator2d.Run.getdefaultprofile().butwith(n=6,weight_decay=.1)
-            exprofiles['n=6 d=2 no weight decay']=harmonicoscillator2d.Run.getdefaultprofile().butwith(n=6,weight_decay=0)
+            defaultprofile=harmonicoscillator2d.Run.getdefaultprofile()
+
+            exprofiles['n=6 d=2']=harmonicoscillator2d.Run.getdefaultprofile().butwith(n=6,weight_decay=.1)
             exprofiles['n=6 d=2 strong weight decay']=harmonicoscillator2d.Run.getdefaultprofile().butwith(n=6,weight_decay=1.)
+            exprofiles['n=6 d=2 no weight decay']=harmonicoscillator2d.Run.getdefaultprofile().butwith(n=6,weight_decay=0)
+
+            exprofiles['n=6 d=2 tanh']=harmonicoscillator2d.Run.getdefaultprofile().butwith(n=6,weight_decay=.0,
+                learnerparams=tracking.dotdict(\
+                SPNN=dotdict(widths=[defaultprofile.d,100,100],activation='tanh'),\
+                dets=dotdict(d=100,ndets=25),))
+
+            exprofiles['n=6 d=2 lrelu']=harmonicoscillator2d.Run.getdefaultprofile().butwith(n=6,weight_decay=.0,
+                learnerparams=tracking.dotdict(\
+                SPNN=dotdict(widths=[defaultprofile.d,100,100],activation='lrelu'),\
+                dets=dotdict(d=100,ndets=25),))
 
             exprofiles['n=7 d=2 weight decay .1']=harmonicoscillator2d.Run.getdefaultprofile().butwith(n=7,weight_decay=.1)
             exprofiles['n=7 d=2 weight decay .1, large batch']=harmonicoscillator2d.Run.getdefaultprofile().butwith(n=7,weight_decay=.1,minibatchsize=500)

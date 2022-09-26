@@ -143,6 +143,8 @@ class Process(Memory):
         self.setID()
         self.outpath='outputs/'+self.ID+'/'
 
+        self.continueprocess=self.execprocess
+
     def setID(self):
         self.ID='{}/{}/{}'.format(self.processname,self.profile.profilename,setup.session.ID)
 
@@ -153,6 +155,8 @@ class Process(Memory):
         sysutil.write(tmsg+'\n',self.outpath+'log.txt',mode='a')
 
         self.refresh()
+
+        if setup.display_on==False: print(msg)
 
     def nextkey(self):
         return self.keychain.nextkey()

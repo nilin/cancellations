@@ -141,7 +141,8 @@ def placelabels(positions,labels):
 
     return s
 
-
+def cleanstring(s):
+    return ''.join(c if c.isalpha() or c.isdigit() else '_' for c in s)
 
 def roundspacingandprecision(spacing,levels=None):
     if levels==None: levels=[1,2.5,5,10]

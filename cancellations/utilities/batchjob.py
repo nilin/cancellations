@@ -22,8 +22,7 @@ class Batchjob(_display_.Process):
 
 
     def runbatch(self):
-        process,display=self.loadprocess()
-        process,display=self.swap_process()
+        raise NotImplementedError
 
 
     def loadprocess(self,process=None,taskname=None):

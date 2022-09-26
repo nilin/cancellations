@@ -1,8 +1,9 @@
 import os 
 import pickle
-from . import tracking, setup
+from . import tracking, setup, textutil
 from collections import deque
 import matplotlib.pyplot as plt
+import re
 import sys
 
 
@@ -52,6 +53,20 @@ def showfile(path):
     try: os.startfile(path)
     except: pass
 
+def removetemplog(path):
+    delpaths=[os.path.join(path,fn) for fn in os.listdir(path) if '.templog' in fn]
+    for delpath in delpaths:
+        assert(readtextfile(delpath)=='temporary log')
+        os.remove(delpath)
+
+
+def filebrowserlog(path,msg):
+    removetemplog(path)
+    write('temporary log',os.path.join(path,'___log_'+textutil.cleanstring(msg)[:25]+'___.templog'),mode='w')
+    setup.postcommands.append(lambda: removetemplog(path))
+
+
+#====================================================================================================
 #====================================================================================================
 
 

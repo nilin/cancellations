@@ -40,7 +40,6 @@ class Slice:
             self.contour(axs[-1],f_eval,colors=c,linewidths=5*lw)
             levels=[2**(k/2) for k in range(-10,10)]
             levels=list(reversed([-l for l in levels]))+levels
-            self.process.log('levels {}'.format(levels))
             self.contour(axs[-1],f_eval,colors=c,levels=levels,linewidths=lw,alpha=.5)
         
         sysutil.savefig(self.process.outpath+'{}.pdf'.format(self.slicetype),fig=fig)
@@ -51,6 +50,8 @@ class Slice_1p(Slice):
     slicetype='1particle'
 
     def __init__(self,process,surface,x2__):
+
+        process.log('generating 1-particle slice')
         self.process=process
 
         w,h,self.d=surface.shape
@@ -64,6 +65,8 @@ class Slice_2p(Slice):
     slicetype='2particle'
 
     def __init__(self,process,curve,x3__):
+
+        process.log('generating 2-particle slice')
         self.process=process
 
         l,self.d=curve.shape
@@ -101,7 +104,6 @@ class RandomSlices:
 
 def allplots(process):
     runpath=process.outpath
-    sysutil.showfile(process.outpath)
 
     target=sysutil.load(runpath+'data/target').restore()
     learner=sysutil.load(runpath+'data/learner').restore()
@@ -114,6 +116,7 @@ def allplots(process):
     S.plot(target,learner)
 
     traingraphs.graph(process,runpath)
+    sysutil.showfile(process.outpath)
 
 
 class Run(batchjob.Batchjob):
@@ -130,23 +133,7 @@ class Run(batchjob.Batchjob):
         runpath='outputs/'+relrunpath
         self.outpath=runpath
 
-        process,self.pdisplay=self.loadprocess(taskname='plot')
-        self.pdisplay.add(0,0,_display_._LogDisplay_(self,100,20))
-        self.pdisplay.arm()
-
-
-        allplots(self)
-
-    def log(self,msg):
-        super().log(msg)
-        self.pdisplay.draw()
-
-
-        #def postrun():
-        #    tracking.loadprocess(tracking.Process())
-        #    traingraphs.graph(self,runpath)
-        #setup.postrun=postrun 
-        #return 
+        _display_.leavedisplay(self,lambda: allplots(self))
 
 
 

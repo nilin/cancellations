@@ -46,19 +46,27 @@ class Process(tracking.Process):
 			screen.nodelay(True)
 			cs.use_default_colors()
 			setup.session.dashboard=_Dashboard_(cs.COLS,cs.LINES)
+
 			output=self.run_in_display(setup.session.dashboard)
 
 			globals()['screen']=None
 			return output
 
-		return cs.wrapper(wrapped)
+		try:
+			return cs.wrapper(wrapped)
+		except LeaveDisplay:
+			setup.display_on=False
+			tracking.currentprocess().run_as_NODISPLAY()
 
 	def run_as_NODISPLAY(self):
-		def getch(prompt=None):
-			if hasattr(setup,'defaultinputs') and len(setup.defaultinputs)>0:
-				return setup.defaultinputs.popleft()
+		def getch(prompt=lambda: ''):
+			_prompt_=prompt()
+			if _prompt_ in setup.defaultinputs and len(setup.defaultinputs[_prompt_])>0:
+				inp=setup.defaultinputs[_prompt_].popleft()
+				print('robot input: {}'.format(inp))
+				return inp
 
-			print('{}\n{}\n{}\ninput "100s myinput" to skip input 100 times with default input "myinput".\n{}\n'.\
+			print('{}\n{}\n{}\ninput "100s myinput" to skip input to this prompt 100 times\nwith default input "myinput".\n{}\n'.\
 				format(100*dash,prompt(),100*dash,100*dash))
 			c=input()
 
@@ -77,11 +85,17 @@ class Process(tracking.Process):
 		dummydisplay=_Dashboard_(100,50)
 		self.display=dummydisplay
 
-		self.execprocess()
+		#self.execprocess()
+		self.continueprocess()
 
 
 	#def prepdisplay(self): pass
 
+class LeaveDisplay(Exception): pass
+
+def leavedisplay(process,continueprocess):
+	process.continueprocess=continueprocess
+	raise LeaveDisplay
 
 
 
@@ -200,12 +214,6 @@ class _LogDisplay_(_Frame_,_TextDisplay_):
 	def gettext(self):
 		return '\n'.join(self.process.gethist('recentlog'))
 
-#class _StackedText_(_TextDisplay_):
-#	def __init__(self,*elements):
-#		self.elements=elements
-#
-#	def gettext(self):
-#		return '\n'.join([e.gettext() for e in self.elements])
 
 #----------------------------------------------------------------------------------------------------
 
