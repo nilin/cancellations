@@ -21,7 +21,7 @@ def save(data,path,echo=True):
 def savefig(*paths,fig=None):
     for path in paths:
         makedirs(path)
-        if fig==None:
+        if fig is None:
             plt.savefig(path)
         else:
             fig.savefig(path)

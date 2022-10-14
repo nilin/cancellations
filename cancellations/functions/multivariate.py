@@ -23,7 +23,7 @@ from inspect import signature
 def gen_NN_layer(ac):
 	activation=activations[ac]
 
-	if cfg.layernormalization==None:
+	if cfg.layernormalization is None:
 		layernormalize=lambda Y:Y
 	else:
 		std,mode=cfg.layernormalization
@@ -79,7 +79,7 @@ def gen_NN_NS(activation):
 
 
 def gen_lossgrad(f,lossfn=None):
-	if lossfn==None: lossfn=cfg.getlossfn()
+	if lossfn is None: lossfn=cfg.getlossfn()
 
 	def collectiveloss(params,X,*Y):
 		return lossfn(f(params,X),*Y)
