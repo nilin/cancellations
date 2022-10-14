@@ -10,7 +10,7 @@ import sys
 def makedirs(filepath):
     path='/'.join(filepath.split('/')[:-1])
     filename=filepath.split('/')[-1]
-    os.makedirs(path,exist_ok=True)	
+    os.makedirs(path,exist_ok=True)    
 
 def save(data,path,echo=True):
     makedirs(path)
@@ -111,20 +111,20 @@ def readtextfile(path):
 cmdparams,cmdredefs=parse_args()
 
 def commonanc(*fs):
-	levels=list(zip(*[f.split('/') for f in fs]))
-	
-	path=''
-	difflevel=[]
-	for l in levels:
-		if all([li==l[0] for li in l]):
-			path+=l[0]+'/'
-		else:
-			break
-	return path,[f[len(path):] for f in fs]
+    levels=list(zip(*[f.split('/') for f in fs]))
+    
+    path=''
+    difflevel=[]
+    for l in levels:
+        if all([li==l[0] for li in l]):
+            path+=l[0]+'/'
+        else:
+            break
+    return path,[f[len(path):] for f in fs]
 
 
 def clearscreen():
-	os.system('cls' if os.name == 'nt' else 'clear')
+    os.system('cls' if os.name == 'nt' else 'clear')
 
 
 def maybe(f,ifnot=None):

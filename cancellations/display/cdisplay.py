@@ -8,27 +8,27 @@
 ### 
 ### 
 ### class ConcreteDisplay(disp.DisplayWithDimensions):
-### 	def __init__(self,*a,**kw):
-### 		super().__init__(*a,**kw)
-### 		self.pad=cs.newpad(self.height+1,self.width+1)	
+###     def __init__(self,*a,**kw):
+###         super().__init__(*a,**kw)
+###         self.pad=cs.newpad(self.height+1,self.width+1)    
 ### 
-### 	def draw(self):
-### 		self.pad.erase()
-### 		x1,x2=self.xlim
-### 		y1,y2=self.ylim
-### 		
-### 		lines=self.getlines()
-### 		for i,line in enumerate(lines):
-### 			self.pad.addstr(i,0,line)
+###     def draw(self):
+###         self.pad.erase()
+###         x1,x2=self.xlim
+###         y1,y2=self.ylim
+###         
+###         lines=self.getlines()
+###         for i,line in enumerate(lines):
+###             self.pad.addstr(i,0,line)
 ### 
-### 		self.pad.refresh(0,0,y1,x1,y2-1,x2-1)
+###         self.pad.refresh(0,0,y1,x1,y2-1,x2-1)
 ### 
-### 	def poke(self,src):
-### 		self.draw()
+###     def poke(self,src):
+###         self.draw()
 ### 
-### 	def remove(self):
-### 		del self.pad
-### 		super().remove()
+###     def remove(self):
+###         del self.pad
+###         super().remove()
 ### 
 ### 
 ### class ConcreteStaticTextDisplay(ConcreteDisplay,disp.StaticText): pass
@@ -37,38 +37,38 @@
 ### 
 ### 
 ### class Dashboard(disp.CompositeDisplay):
-### 	def draw(self,*a,**kw):
-### 		for e in self.elements.values():
-### 			e.draw(*a,**kw)
+###     def draw(self,*a,**kw):
+###         for e in self.elements.values():
+###             e.draw(*a,**kw)
 ### 
 ### 
 ### 
 ### class Pad(disp.CompositeDisplay):
-### 	def __init__(self,xlim,ylim,WIDTH=None,HEIGHT=None):
-### 		super().__init__(xlim,ylim)
-### 		self.pad=cs.newpad(self.height if HEIGHT==None else HEIGHT,self.width if WIDTH==None else WIDTH)
+###     def __init__(self,xlim,ylim,WIDTH=None,HEIGHT=None):
+###         super().__init__(xlim,ylim)
+###         self.pad=cs.newpad(self.height if HEIGHT==None else HEIGHT,self.width if WIDTH==None else WIDTH)
 ### 
-### 	def refresh(self,y,x=0):
-### 		x0,x1=self.xlim
-### 		y0,y1=self.ylim
-### 		self.pad.refresh(y,x,y0,x0,y1-1,x1-1)
+###     def refresh(self,y,x=0):
+###         x0,x1=self.xlim
+###         y0,y1=self.ylim
+###         self.pad.refresh(y,x,y0,x0,y1-1,x1-1)
 ### 
-### 	def draw(self):
-### 		self.refresh(0,0)
+###     def draw(self):
+###         self.refresh(0,0)
 ### 
-### 	def addstr(self,*a,**kw): self.pad.addstr(*a,**kw)
+###     def addstr(self,*a,**kw): self.pad.addstr(*a,**kw)
 ### 
-### 	def erase(self): self.pad.erase(); self.pad.clear()
+###     def erase(self): self.pad.erase(); self.pad.clear()
 ### 
 ### 
 ### 
 ### 
 ### 
 ### def checkforinput(*args,**kw):
-### 	a=getscreen().getch()
-### 	cs.flushinp()
-### 	#tracking.currentprocess().display.draw()
-### 	return extractkey_cs(a)
+###     a=getscreen().getch()
+###     cs.flushinp()
+###     #tracking.currentprocess().display.draw()
+###     return extractkey_cs(a)
 ### 
 ### setup.checkforinput=checkforinput
 ### 
@@ -90,35 +90,35 @@
 ### def getscreen(): return setup.screen
 ### 
 ### def clearscreen():
-### 	getscreen().clear()
-### 	getscreen().refresh()
+###     getscreen().clear()
+###     getscreen().refresh()
 ### 
 ### 
 ### 
 ### 
 ### class Process(tracking.Process):
 ### 
-### 	def run_in_display(self,display):
-### 		tracking.loadprocess(self)
-### 		self.display=display
-### 		self.prepdisplay()
-### 		output=self.execprocess()
-### 		tracking.unloadprocess(self)
-### 		self.display.remove()
-### 		clearscreen()
-### 		return output
+###     def run_in_display(self,display):
+###         tracking.loadprocess(self)
+###         self.display=display
+###         self.prepdisplay()
+###         output=self.execprocess()
+###         tracking.unloadprocess(self)
+###         self.display.remove()
+###         clearscreen()
+###         return output
 ### 
-### 	def run_as_main(self):
-### 		def wrapped(screen):
-### 			setup.screen=screen
-### 			screen.nodelay(True)
-### 			cs.use_default_colors()
-### 			setup.session.dashboard=Dashboard((0,cs.COLS),(0,cs.LINES))
-### 			return self.run_in_display(setup.session.dashboard)
+###     def run_as_main(self):
+###         def wrapped(screen):
+###             setup.screen=screen
+###             screen.nodelay(True)
+###             cs.use_default_colors()
+###             setup.session.dashboard=Dashboard((0,cs.COLS),(0,cs.LINES))
+###             return self.run_in_display(setup.session.dashboard)
 ### 
-### 		return cs.wrapper(wrapped)
+###         return cs.wrapper(wrapped)
 ### 
-### 	def prepdisplay(self): pass
+###     def prepdisplay(self): pass
 ### 
 ### 
 ### 

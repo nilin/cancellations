@@ -29,12 +29,12 @@ from . import multivariate as mv
 # F(W,X,Y) equivariant in X, symmetric in Y
 """
 def gen_EV_layer(phi,pool=jnp.sum):
-	
-	phi_iJ=jax.vmap(phi,in_axes=(None,None,-2),out_axes=-1)
-	def pooled_along_y(params,xi,yJ):
-		return pool(phi_iJ(params,xi,yJ),axis=-1)
+    
+    phi_iJ=jax.vmap(phi,in_axes=(None,None,-2),out_axes=-1)
+    def pooled_along_y(params,xi,yJ):
+        return pool(phi_iJ(params,xi,yJ),axis=-1)
 
-	return jax.jit(jax.vmap(pooled_along_y,in_axes=(None,-2,None),out_axes=-2))
+    return jax.jit(jax.vmap(pooled_along_y,in_axes=(None,-2,None),out_axes=-2))
 
 
 
@@ -46,21 +46,21 @@ def gen_EV_layer(phi,pool=jnp.sum):
 """
 def gen_backflow(ac):
 
-	NN_layer=mv.gen_NN_layer(ac)
-	phi=jax.jit(lambda Wb,x,y:NN_layer(Wb,jnp.concatenate([x,y],axis=-1)))
-	layer=gen_EV_layer(phi)
-	
-	def F(params,Y):
-		for Wl in params:
-			Y=layer(Wl,Y,Y)	
-		return Y
-	return jax.jit(F)
+    NN_layer=mv.gen_NN_layer(ac)
+    phi=jax.jit(lambda Wb,x,y:NN_layer(Wb,jnp.concatenate([x,y],axis=-1)))
+    layer=gen_EV_layer(phi)
+    
+    def F(params,Y):
+        for Wl in params:
+            Y=layer(Wl,Y,Y)    
+        return Y
+    return jax.jit(F)
 
 
 
 
 def gen_singleparticleNN(activation):
-	return jax.vmap(mv.gen_NN_wideoutput(activation),in_axes=(None,-2),out_axes=-2)
+    return jax.vmap(mv.gen_NN_wideoutput(activation),in_axes=(None,-2),out_axes=-2)
 
 
 
@@ -70,11 +70,11 @@ def gen_singleparticleNN(activation):
 
 
 def initweights_Backflow(widths,*args,**kw):
-	ds=widths
-	Ws=[mathutil.initweights((d2,2*d1)) for d1,d2 in zip(ds[:-1],ds[1:])]
-	bs=[rnd.normal(tracking.nextkey(),(d2,))*cfg.biasinitsize for d2 in ds[1:]]
+    ds=widths
+    Ws=[mathutil.initweights((d2,2*d1)) for d1,d2 in zip(ds[:-1],ds[1:])]
+    bs=[rnd.normal(tracking.nextkey(),(d2,))*cfg.biasinitsize for d2 in ds[1:]]
 
-	return list(zip(Ws,bs))	
+    return list(zip(Ws,bs))    
 
 
 
@@ -85,6 +85,6 @@ def initweights_Backflow(widths,*args,**kw):
 
 if __name__=='__main__':
 
-	import testing
+    import testing
 
-	n,d,k=5,3,2
+    n,d,k=5,3,2
