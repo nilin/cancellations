@@ -10,29 +10,29 @@ sysutil.clearscreen()
 #
 #print(rs)
 #match rs:
-#	case 'r': mode='Run'
-#	case 's': mode='singlefunction'
+#    case 'r': mode='Run'
+#    case 's': mode='singlefunction'
 #
 
 
 def debug(mode):
-	with jax.disable_jit():
-		import pick_and_run as pr
+    with jax.disable_jit():
+        import pick_and_run as pr
 
-		match mode:
-			case 'Run':
-				pr.main()
-			case 'singlefunction':
-				import testsinglemethod as tf
+        match mode:
+            case 'Run':
+                pr.main()
+            case 'singlefunction':
+                import testsinglemethod as tf
 
 
 
 def getmode():
-	profile=browse.Browse.getdefaultprofile().butwith(options=['Run','singlefunction'])
-	process=browse.Browse(profile)
-	return process.run_as_main()
+    profile=browse.Browse.getdefaultprofile().butwith(options=['Run','singlefunction'])
+    process=browse.Browse(profile)
+    return process.run_as_main()
 
 
 if __name__=='__main__':
-	setup.debug=True
-	debug(getmode())
+    setup.debug=True
+    debug(getmode())

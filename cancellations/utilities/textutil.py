@@ -151,8 +151,8 @@ def roundspacingandprecision(spacing,levels=None):
     return roundedspacing,max(0,-precision+1)
 
 def roundrangeandprecision(center,r,nticks):
-	spacing,prec=roundspacingandprecision(2*r/nticks)
-	return [spacing*(center//spacing+i) for i in range(round(-nticks//2),round(nticks//2))],prec
+    spacing,prec=roundspacingandprecision(2*r/nticks)
+    return [spacing*(center//spacing+i) for i in range(round(-nticks//2),round(nticks//2))],prec
 
 
 

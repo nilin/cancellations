@@ -46,8 +46,8 @@ sampler=mcmc.Sampler(p0,profile.proposalfn,X0_distr(tracking.nextkey()(),profile
 
 @jax.jit
 def Ep(X):
-	ratio=p(X)/p0(X)
-	return jnp.sum(ratio*O(X))/jnp.sum(ratio)
+    ratio=p(X)/p0(X)
+    return jnp.sum(ratio*O(X))/jnp.sum(ratio)
 
 
 for i in range(100):

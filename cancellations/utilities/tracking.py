@@ -372,7 +372,7 @@ class Scheduler(Timer):
 #             self.clock_in()
 #             for f in fs:
 #                 f()
-#             self.clock_out()		
+#             self.clock_out()        
 # 
 # 
 #====================================================================================================
@@ -425,10 +425,10 @@ week=7*day
 
 #
 #def savestate(*paths):
-#	#sessionstate.save(*paths)
-#		
+#    #sessionstate.save(*paths)
+#        
 #def save():
-#	savestate(*histpaths())
+#    savestate(*histpaths())
 #
 
 #def formatvars(elements,separator=' ',ignore={}):
@@ -549,8 +549,8 @@ week=7*day
 #params=dict()
 
 #def poke(*args,**kw):
-#	if 'recentlog' in args:
-#		print(args[1])
+#    if 'recentlog' in args:
+#        print(args[1])
 
 
 
@@ -567,23 +567,23 @@ week=7*day
 
 
 #def printonpoke(msgfn):
-#	def newpoke(*args,**kw):
-#		print(msgfn(*args,**kw))
-#	global poke
-#	poke=newpoke
+#    def newpoke(*args,**kw):
+#        print(msgfn(*args,**kw))
+#    global poke
+#    poke=newpoke
 #
 #def print_task_on_poke():
-#	def msgfn(*args,**kw):
-#		return '{}: {:.0%}'.format(session.getcurrentval('currenttask'),\
-#			session.getcurrentval('currenttaskcompleteness'))
-#	printonpoke(msgfn)
+#    def msgfn(*args,**kw):
+#        return '{}: {:.0%}'.format(session.getcurrentval('currenttask'),\
+#            session.getcurrentval('currenttaskcompleteness'))
+#    printonpoke(msgfn)
 
 
 #def provide(context=None,**kw):
 #    if context==None: context=globals()
 #    for name,val in kw.items():
 #        if name not in context:
-#            context[name]=val	
+#            context[name]=val    
 #
 
 
@@ -615,14 +615,14 @@ week=7*day
 #
 #if __name__=='__main__':
 #
-##	print(stepwiseperiodicsched([10,100],[0,60,600]))
-##	for i in range(10):
-##		print(nextkey())
+##    print(stepwiseperiodicsched([10,100],[0,60,600]))
+##    for i in range(10):
+##        print(nextkey())
 #
 #    #print(selectone({'r','t'},[1,4,'r',5,'d']))
 #
-##	print(times_to_ordinals([.1,.2,.3,.4,.5,.6,.7,.8],[.3,.7],['a','b']))
-##	print(times_to_ordinals([.1,.2,.3,.4,.5,.6,.7,.8],[.1,.2,.3,.4,.5,.6,.7,.8],[1,2,3,4,5,6,7,8]))
+##    print(times_to_ordinals([.1,.2,.3,.4,.5,.6,.7,.8],[.3,.7],['a','b']))
+##    print(times_to_ordinals([.1,.2,.3,.4,.5,.6,.7,.8],[.1,.2,.3,.4,.5,.6,.7,.8],[1,2,3,4,5,6,7,8]))
 #
 #    #print(expsched(.1,100,3))
 #

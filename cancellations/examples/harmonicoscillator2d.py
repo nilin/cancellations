@@ -123,7 +123,7 @@ class Run(_display_.Process):
                 run.traindata.append(dict(weights=run.learner.weights,i=i))
                 sysutil.save(run.learner.compress(),path=run.outpath+'data/learner')
                 sysutil.save(run.traindata,run.outpath+'data/traindata',echo=False)
-                sysutil.write('loss={:.2E} iterations={} n={} d={}'.format(loss,i,P.n,P.d),run.outpath+'metadata.txt',mode='w')	
+                sysutil.write('loss={:.2E} iterations={} n={} d={}'.format(loss,i,P.n,P.d),run.outpath+'metadata.txt',mode='w')    
 
 #            if plotsched.activate(i):
 #                exampleutil.fplot()

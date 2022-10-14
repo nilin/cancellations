@@ -117,7 +117,7 @@ class Run(cdisplay.Process):
                 run.unprocessed.remember('weights',run.learner.weights,minibatchnumber=i)
                 run.unprocessed.learner=run.learner.compress()
                 sysutil.save(run.unprocessed,run.outpath+'data/unprocessed',echo=False)
-                sysutil.write('loss={:.2E} iterations={} n={} d={}'.format(loss,i,P.n,P.d),run.outpath+'metadata.txt',mode='w')	
+                sysutil.write('loss={:.2E} iterations={} n={} d={}'.format(loss,i,P.n,P.d),run.outpath+'metadata.txt',mode='w')    
 
 #            if plotsched.activate(i):
 #                exampleutil.fplot()

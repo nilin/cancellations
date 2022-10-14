@@ -141,7 +141,7 @@ class Run(cdisplay.Process):
                 run.unprocessed.remember('weights',run.learner.weights)
                 run.unprocessed.learner=run.learner.compress()
                 sysutil.save(run.unprocessed,run.outpath+'data/unprocessed',echo=False)
-                sysutil.write('loss={:.3f} iterations={} n={} d={}'.format(loss,i,run.n,run.d),run.outpath+'metadata.txt',mode='w')	
+                sysutil.write('loss={:.3f} iterations={} n={} d={}'.format(loss,i,run.n,run.d),run.outpath+'metadata.txt',mode='w')    
 
     #        if plotsched.activate(i):
     #            exampletemplate.fplot()
@@ -176,7 +176,7 @@ class TestTrainer(learning.Trainer):
 
     def step(self):
         X_mini=jnp.concatenate([self.sampler.step(self.learner.weights) for i in range(self.thinning)],axis=0)
-        return self.minibatch_step(X_mini)	
+        return self.minibatch_step(X_mini)    
 
 
 
