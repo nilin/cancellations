@@ -40,7 +40,7 @@ class RunningAvg:
         return self.sum()/self.actualk()    
 
     def var(self,val=None,**kw):
-        if val!=None: self.update(val,**kw)
+        if val is not None: self.update(val,**kw)
         return self.sqsum()/self.actualk()-self.avg()**2
 
     def actualk(self):
@@ -325,7 +325,7 @@ def blockwise_eval(fdescr,**kw):
 
 def leafwise(op,*Gs):
 	G1=Gs[0]
-	if G1==None:
+	if G1 is None:
 		return None
 	elif type(G1)==list or type(G1)==tuple:
 		return [leafwise(op,*gs) for gs in zip(*Gs)]
@@ -410,7 +410,7 @@ def keyfromstr(s):
 
 
 def applyonleaves(T,fn):
-	if T==None:
+	if T is None:
 		return None
 	elif type(T)==list or type(T)==tuple:
 		return [applyonleaves(e,fn) for e in T]

@@ -126,7 +126,7 @@ class Run(batchjob.Batchjob):
         browsingprocess=browse.Browse(browse.Browse.getdefaultfilebrowsingprofile())
         relrunpath=self.run_subprocess(browsingprocess,taskname='choose run')
 
-        if relrunpath==None:
+        if relrunpath is None:
             setup.postcommand=lambda: print('No outputs found')
             return
 

@@ -189,8 +189,8 @@ plotexample=plotexample_0
 def processandplot(unprocessed,pfunc,X,Y,process_snapshot_fn=None,plotexample_fn=None):
 
 	pfunc=pfunc.getemptyclone()
-	if process_snapshot_fn==None: process_snapshot_fn=process_snapshot
-	if plotexample_fn==None: plotexample_fn=plotexample
+	if process_snapshot_fn is None: process_snapshot_fn=process_snapshot
+	if plotexample_fn is None: plotexample_fn=plotexample
 	processed=tracking.Memory()
 
 	weightslist,i_s=unprocessed.gethist('weights','minibatchnumber')

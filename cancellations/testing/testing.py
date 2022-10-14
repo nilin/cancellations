@@ -47,7 +47,7 @@ def verify_antisymmetric(f,X,nperms=10,**kw):
 
 def verify_equivariant(F,n,d,samples=25,nperms=25,fixparams=None):
 
-	if fixparams!=None:
+	if fixparams is not None:
 		F=mathutil.fixparams(F,fixparams)
 
 	X=rnd.normal(rnd.PRNGKey(0),(samples,n,d))

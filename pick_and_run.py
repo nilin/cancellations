@@ -75,7 +75,7 @@ class Run(batchjob.Batchjob):
 
 
 
-        if profilename==None:
+        if profilename is None:
             runprofile=m.Run.getdefaultprofile()
         else:
             runprofile=runprofiles[profilename]

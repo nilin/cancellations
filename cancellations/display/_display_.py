@@ -106,8 +106,8 @@ def leavedisplay(process,continueprocess):
 
 def BRcrop(text,width=None,height=None):
 	lines=text.splitlines()
-	if width!=None: lines=[l[:width] for l in lines]
-	if height!=None: lines=lines[-height:]
+	if width is not None: lines=[l[:width] for l in lines]
+	if height is not None: lines=lines[-height:]
 	return '\n'.join(lines)
 
 def TLcrop(text,x0,y0):
@@ -256,7 +256,7 @@ class _Dashboard_(_Frame_,_CompositeDisplay_):
 		self.y0=y0
 		
 	def hsplit(self,limits=None,rlimits=[.5],sep=2):
-		if limits==None:
+		if limits is None:
 			limits=[round(self.width*t) for t in rlimits]
 		limits=[0]+limits+[self.width]
 		ws=[b-a for a,b in zip(limits[:-1],limits[1:])]
@@ -269,7 +269,7 @@ class _Dashboard_(_Frame_,_CompositeDisplay_):
 		return frames
 
 	def vsplit(self,limits=None,rlimits=.5,sep=1):
-		if limits==None:
+		if limits is None:
 			limits=[round(self.height*t) for t in rlimits]
 		limits=[0]+limits+[self.height]
 		hs=[b-a for a,b in zip(limits[:-1],limits[1:])]

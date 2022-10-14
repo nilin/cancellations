@@ -49,8 +49,8 @@ def padheight(S,height,align='center',**kw):
     return a*'\n'+S+b*'\n'+' '
 
 def makebox(S,width=None,height=None,**kw):
-    if height==None: height=len(S.splitlines())
-    if width==None: width=max([len(l) for l in S.splitlines()])
+    if height is None: height=len(S.splitlines())
+    if width is None: width=max([len(l) for l in S.splitlines()])
     return padwidth(padheight(S,height,**kw),width,**kw)
 
 def makeBOX(S,width=None,height=None,border=' '):
@@ -71,7 +71,7 @@ def sidebyside(*elements,separator=' ',**kw):
     return '\n'.join([separator.join(line) for line in zip(*[E.splitlines() for E in Es])])
 
 def drawtree(tree,parseleaf=None):
-    if parseleaf==None: parseleaf=lambda l: '--'+str(l)+'--'
+    if parseleaf is None: parseleaf=lambda l: '--'+str(l)+'--'
     if isinstance(tree,list) or isinstance(tree,tuple):
         style=BOX if isinstance(tree,list) else box
 
@@ -102,7 +102,7 @@ def fillspan(points,style=BOX):
 
 def draw_weightdims_tree(weights):
     def parsearray(w):
-        if w==None: return 'None'
+        if w is None: return 'None'
         try: return str(w.shape)
         except: return type(w).__name__
     return drawtree(weights,parseleaf=parsearray)
@@ -145,7 +145,7 @@ def cleanstring(s):
     return ''.join(c if c.isalpha() or c.isdigit() else '_' for c in s)
 
 def roundspacingandprecision(spacing,levels=None):
-    if levels==None: levels=[1,2.5,5,10]
+    if levels is None: levels=[1,2.5,5,10]
     precision=math.floor(jnp.log10(spacing))
     roundedspacing=max([t for t in [10**precision*s for s in levels] if t<=spacing])
     return roundedspacing,max(0,-precision+1)

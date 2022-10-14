@@ -79,7 +79,7 @@ def graph(process,datapath):
         fs=[getnorm(_f_,weights,X,Xdensity) for weights in weightslist]
         f_over_Af=[jnp.sqrt(f/Af) for f,Af in zip(fs,Afs)]
 
-        weightnorms=[jnp.sqrt(numutil.recurseonleaves(weights,lambda A:jnp.sum(A**2) if A!=None else 0,sum)) for weights in weightslist]
+        weightnorms=[jnp.sqrt(numutil.recurseonleaves(weights,lambda A:jnp.sum(A**2) if A is not None else 0,sum)) for weights in weightslist]
 
         losses=[numutil.weighted_SI_loss(_psi_(weights,X),Y,Xdensity) for weights in weightslist]
 

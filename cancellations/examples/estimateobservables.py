@@ -31,7 +31,7 @@ class Run(cdisplay.Process):
         genX0=lambda samples: profile._X0_distr_(tracking.nextkey(),samples,profile.n,profile.d)
         X0=genX0(profile.nrunners)
 
-        sampler=sampling.Sampler(run.p,profile.proposalfn,X0) if run.sampler==None else run.sampler
+        sampler=sampling.Sampler(run.p,profile.proposalfn,X0) if run.sampler is None else run.sampler
 
         Xblock=[]
         run.obsestimator=ObsEstimator(run.observables,run.qpratio,run.preburnt)
@@ -40,12 +40,12 @@ class Run(cdisplay.Process):
         for i in range(run.maxiterations):
             X=sampler.step()
 
-            if run.blocksize!=None and i%(run.thinningratio*run.blocksize)==0 and i!=0:
+            if run.blocksize is not None and i%(run.thinningratio*run.blocksize)==0 and i!=0:
                 sysutil.save(Xblock,run.outpath+'block {}-{}'.format(i//run.thinningratio-len(Xblock),i//run.thinningratio))
                 sysutil.write('{} slices'.format(i//run.thinningratio),run.outpath+'metadata.txt',mode='w')
                 Xblock=[]
 
-            if run.thinningratio!=None and i%run.thinningratio==0: Xblock.append(X)
+            if run.thinningratio is not None and i%run.thinningratio==0: Xblock.append(X)
 
             if i%run.estevery==0:
                 numutil.appendtoeach(run.obsestimates,run.obsestimator.update(X))

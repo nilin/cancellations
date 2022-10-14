@@ -57,7 +57,7 @@ class History:
 
     def remember(self,val,**metadata):
         self.snapshots.append((val,metadata))
-        if self.membound!=None and len(self.snapshots)>self.membound: self.snapshots.popleft()
+        if self.membound is not None and len(self.snapshots)>self.membound: self.snapshots.popleft()
 
     def gethist(self,*metaparams):
         valhist=[val for val,metadata in self.snapshots]
@@ -88,7 +88,7 @@ class Memory(dotdict,Timer):
     def remember(self,name,val,membound=None,**kw):
         if name not in self.hists:
             self.hists[name]=History(membound=membound)
-        if membound!=None: self.hists[name].membound=membound
+        if membound is not None: self.hists[name].membound=membound
         self.hists[name].remember(val,**kw)
 
     def gethist(self,name,*metaparams):
@@ -133,8 +133,8 @@ class Process(Memory):
     def __init__(self,profile=None,**kw):
         super().__init__()
 
-        assert(profile==None or len(kw)==0)
-        if profile==None:
+        assert(profile is None or len(kw)==0)
+        if profile is None:
             try: profile=self.getdefaultprofile(**kw)
             except: profile=self.getdefaultprofile().butwith(**kw)
 
@@ -212,7 +212,7 @@ def loadprocess(process):
     return process
 
 def unloadprocess(process=None):
-    if len(processes)>0 and (process==None or processes[-1]==process):
+    if len(processes)>0 and (process is None or processes[-1]==process):
         processes.pop()
         dashboards.pop()
     return process
@@ -331,7 +331,7 @@ class Scheduler(Timer):
         Timer.__init__(self)
 
     def activate(self,t=None):
-        if t==None:t=self.time()
+        if t is None:t=self.time()
 
         if len(self.rem_sched)==0 or t<self.rem_sched[0]:
             act=False

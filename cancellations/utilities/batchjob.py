@@ -27,7 +27,7 @@ class Batchjob(_display_.Process):
 
     def loadprocess(self,process=None,taskname=None):
         assert(tracking.currentprocess()==self)
-        if process==None:
+        if process is None:
             process=tracking.Process()
 
         process.taskname=taskname

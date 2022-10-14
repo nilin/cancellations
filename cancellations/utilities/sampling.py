@@ -86,7 +86,7 @@ class LoadSamplesPipe(Sampler):
 
 		pattern=re.compile('block (.*)-(.*)')
 
-		filenames=[fn for fn in os.listdir(path) if pattern.match(fn)!=None]
+		filenames=[fn for fn in os.listdir(path) if pattern.match(fn) is not None]
 		intervals=[tuple(int(a) for a in pattern.match(fn).groups()) for fn in filenames]
 
 		intervals,filenames=zip(*sorted(zip(intervals,filenames)))

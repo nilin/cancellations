@@ -58,7 +58,7 @@ class FunctionDescription:
 		return c
 
 	def compiled(self):
-		if '_eval_' in vars(self) and self._eval_!=None: return self._eval_
+		if '_eval_' in vars(self) and self._eval_ is not None: return self._eval_
 		else: return mathutil.pad(self.compile())
 
 	# parameters
@@ -100,7 +100,7 @@ class FunctionDescription:
 class Composite(FunctionDescription):
 
 	def __init__(self, *elements_as_args, elements=None):
-		elements=elements_as_args if elements==None else elements
+		elements=elements_as_args if elements is None else elements
 
 		elements=[cast(e).compress() for e in elements]
 		super().__init__(elements=elements, initweights=False)
@@ -205,7 +205,7 @@ class Switchable:
 	def switch(self,newclass):
 		kw={newclass.translation(k):v for k,v in self.kw.items()}
 		Tf=newclass(**kw)
-		if hasattr(self,'weights') and self.weights!=None: Tf.weights=self.weights
+		if hasattr(self,'weights') and self.weights is not None: Tf.weights=self.weights
 		return Tf
 	@staticmethod
 	def translation(k): return k
@@ -375,7 +375,7 @@ def switchtype(f:FunctionDescription):
 	if type(f)==ComposedFunction: compositeclass=ComposedFunction 
 	if type(f)==Product: compositeclass=Product 
 
-	if compositeclass!=None:
+	if compositeclass is not None:
 		elements,switchcounts=zip(*[switchtype(e) for e in f.elements])
 		newf,i=compositeclass(*elements), sum(switchcounts)
 		newf.weights=f.weights
@@ -430,7 +430,7 @@ def inspect(fd,X,formatarrays=None,msg=''):
 
 	tracking.logcurrenttask('inspect function '+msg)
 
-	if formatarrays==None:
+	if formatarrays is None:
 		def formatarrays(name,val):
 			s=name+' '
 			if name in ['weights','X']:
