@@ -47,9 +47,9 @@ class Run(_display_.Process):
             cfg.initweight_coefficient=P.initweight_coefficient
 
         run.log('gen target')
+        run.genX=lambda nsamples: P._genX_(run.nextkey(),nsamples,P.n,P.d)
 
-
-        run.target=P.gettarget(P)
+        run.target=P.gettarget(P,run)
         info+='target\n\n{}'.format(textutil.indent(run.target.getinfo()))
         run.infodisplay.msg=info
         run.T.draw()
@@ -59,7 +59,6 @@ class Run(_display_.Process):
 
         run.log('gen samples')
 
-        run.genX=lambda nsamples: P._genX_(run.nextkey(),nsamples,P.n,P.d)
         run.X_train=run.genX(P.samples_train)
 
         run.log('preparing training data')
@@ -238,12 +237,25 @@ def gen_lossgrad(f,X_density):
     return jax.jit(jax.value_and_grad(lossfn))
 
 
-def gettarget(profile):
-    return functions.Slater(*['psi{}_{}d'.format(i,profile.d) for i in range(1,profile.n+1)])
+def gettarget(P,run):
+    target0=functions.Slater(*['psi{}_{}d'.format(i,P.d) for i in range(1,P.n+1)])
+    C=functions.ScaleFactor()
+
+    #normalize
+    X=run.genX(1000)
+    rho=P.X_density(X)
+    rho=rho/jnp.sum(rho)
+    Y=target0.eval(X)
+    assert(Y.shape==rho.shape)
+    squarednorm=jnp.sum(Y**2/rho)
+    C.weights=1/jnp.sqrt(squarednorm)
+
+    return Product(C,target0)
 
 
 
 def getlearner(profile):
+    #return Product(functions.ScaleFactor(),functions.IsoGaussian(1.0),ComposedFunction(\
     return Product(functions.IsoGaussian(1.0),ComposedFunction(\
         SingleparticleNN(**profile.learnerparams['SPNN']),\
         #functions.Backflow(**profile.learnerparams['backflow']),\

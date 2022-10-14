@@ -164,7 +164,7 @@ class Product(Composite):
         return ' X '.join(['({})'.format(e.richtypename()) for e in self.elements])
 
     def info(self):
-        return textutil.boxedsidebyside(*[e.getinfo() for e in self.elements],separator=' X ')
+        return textutil.boxedsidebyside(*[e.getinfo() for e in self.elements],separator='X')
 
 #=======================================================================================================
 class NNfunction(FunctionDescription):
@@ -294,7 +294,8 @@ class Slater(Composite,Antisymmetric):
         return jax.jit(lambda params,X: jnp.linalg.det(jnp.stack([phi(params,X)for phi in phis],axis=-1)))
 
     def richtypename(self): return ' \u2227 '.join([phi.richtypename() for phi in self.elements])
-    def info(self): return textutil.indent('\n'.join([phi.info() for phi in self.elements]))
+    #def info(self): return textutil.indent('\n'.join([phi.info() for phi in self.elements]))
+    def info(self): return ''
     def getn(self): return len(self.elements)
 
 
@@ -316,8 +317,6 @@ class Squeeze(Oddfunction):
 class Sum(Oddfunction):
     def compile(self):
         return lambda params,X:jnp.sum(X,axis=-1)
-
-
 
 
 class OddNN(NNfunction,NonlinearOddfunction):
@@ -362,7 +361,20 @@ class IsoGaussian(FunctionDescription):
         return jax.jit(f)
 
     def typename(self):
-        return 'N(0,{:.1f}I)'.format(self.var)
+        #return 'N(0,{:.1f}I)'.format(self.var)
+        return 'N'
+
+
+class ScaleFactor(FunctionDescription):
+    def compile(self):
+        return jax.jit(lambda c,X:c)
+
+    @staticmethod
+    def _initweights_():
+        return 1.0
+
+    def typename(self):
+        return 'C'
 
 #=======================================================================================================
 
