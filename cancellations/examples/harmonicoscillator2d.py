@@ -18,6 +18,7 @@ from ..plotting import plotting
 from ..display import cdisplay,display as disp, _display_
 from . import plottools as pt
 from . import exampleutil
+import math
 
 
 
@@ -96,7 +97,7 @@ class Run(_display_.Process):
 
         run.log('gen lossgrad and learner')
         #train
-        run.lossgrad=gen_lossgrad(run.learner._eval_,P.X_density)
+        run.lossgrad=P.gen_lossgrad(run.learner._eval_,P.X_density)
         run.sampler=sampling.SamplesPipe(run.X_train,run.Y_train,minibatchsize=P.minibatchsize)
         run.trainer=learning.Trainer(run.lossgrad,run.learner,run.sampler,\
             **{k:P[k] for k in ['weight_decay','iterations']}) 
@@ -162,16 +163,20 @@ class Run(_display_.Process):
 
     def addlearningdisplay(self):
         self.loss=tracking.Pointer()
-        smoother1=numutil.RunningAvg(k=10)
+        smoother1=numutil.RunningAvg(k=1)
         smoother2=numutil.RunningAvg(k=100)
         display=self.learningdisplay.add(0,0,_display_._Display_())
         display.encode=lambda: [\
-            (0,0,'loss {:.2E}'.format(self.loss.val)),\
+            (0,0,'training loss (avg over 100 minibatches) {:.2E}'.format(smoother2.update(self.loss.val))),\
+            (0,1,_display_.hiresbar(smoother2.avg(),self.dashboard.width)),\
+            #
             #(0,1,_display_.hiresbar(self.loss.val,self.dashboard.width)),\
             #_display_.hiresTICK(smoother1.update(self.loss.val),self.dashboard.width,y=1),\
             #_display_.hirestick(smoother1.avg(),self.dashboard.width,y=2),\
-            (0,1,_display_.hiresbar(smoother2.update(self.loss.val),self.dashboard.width)),\
-            (0,3,'avg over 100 minibatches\n\nloss {:.2E}'.format(smoother2.avg()))]
+            #
+            (0,4,_display_.thinbar(self.loss.val,self.dashboard.width)),\
+            (0,3,'training loss (non-smoothed) {:.2E}'.format(self.loss.val)),\
+            ]
         
 
 
@@ -183,6 +188,7 @@ class Run(_display_.Process):
 
         profile.gettarget=gettarget
         profile.getlearner=getlearner
+        profile.gen_lossgrad=gen_SI_lossgrad
 
         def act_on_input(key,process):
             if key=='q': quit()
@@ -203,7 +209,9 @@ class Run(_display_.Process):
 
         profile._var_X_distr_=4
         profile._genX_=lambda key,samples,n,d:rnd.normal(key,(samples,n,d))*jnp.sqrt(profile._var_X_distr_)
-        profile.X_density=lambda X:jnp.exp(-jnp.sum(X**2/(2*profile._var_X_distr_),axis=(-2,-1)))
+        profile.X_density=lambda X:\
+            jnp.exp(-jnp.sum(X**2/(2*profile._var_X_distr_),axis=(-2,-1)))\
+            /(2*math.pi*profile._var_X_distr_)**(X.shape[-2]*X.shape[-1]/2)
 
         # training params
 
@@ -232,10 +240,17 @@ def getinstructions():
 
 
 
-def gen_lossgrad(f,X_density):
-    lossfn=lambda params,X,Y: numutil.weighted_SI_loss(f(params,X),Y,relweights=X_density(X))
+def gen_SI_lossgrad(f,X_density):
+    lossfn=lambda params,X,Y: numutil.weighted_SI_loss(f(params,X),Y,relweights=1/X_density(X))
     return jax.jit(jax.value_and_grad(lossfn))
 
+def gen_nonSI_lossgrad(f,X_density):
+    def lossfn(params,X,Y):
+        rho=X_density(X)
+        sqdist=(f(params,X)-Y)**2
+        assert(sqdist.shape==rho.shape)
+        return jnp.average(sqdist/rho)
+    return jax.jit(jax.value_and_grad(lossfn))
 
 def gettarget(P,run):
     target0=functions.Slater(*['psi{}_{}d'.format(i,P.d) for i in range(1,P.n+1)])
@@ -244,10 +259,9 @@ def gettarget(P,run):
     #normalize
     X=run.genX(1000)
     rho=P.X_density(X)
-    rho=rho/jnp.sum(rho)
     Y=target0.eval(X)
     assert(Y.shape==rho.shape)
-    squarednorm=jnp.sum(Y**2/rho)
+    squarednorm=jnp.average(Y**2/rho)
     C.weights=1/jnp.sqrt(squarednorm)
 
     return Product(C,target0)

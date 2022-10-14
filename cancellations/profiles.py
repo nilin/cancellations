@@ -14,7 +14,19 @@ def getprofiles(exname):
         case 'harmonicoscillator2d':
             defaultprofile=harmonicoscillator2d.Run.getdefaultprofile()
 
-            exprofiles['n=6 d=2']=harmonicoscillator2d.Run.getdefaultprofile().butwith(n=6,weight_decay=.1)
+            exprofiles['n=6 d=2 SI']=harmonicoscillator2d.Run.getdefaultprofile().butwith(n=6,weight_decay=.1)
+            exprofiles['n=6 d=2 NON-SI']=harmonicoscillator2d.Run.getdefaultprofile().butwith(n=6,weight_decay=.1,\
+                    gen_lossgrad=harmonicoscillator2d.gen_nonSI_lossgrad
+                )
+            exprofiles['n=6 d=2 NON-SI overall scaling DOF']=harmonicoscillator2d.Run.getdefaultprofile().butwith(n=6,weight_decay=.1,\
+                getlearner=lambda profile:\
+                    Product(functions.ScaleFactor(),functions.IsoGaussian(1.0),ComposedFunction(\
+                        SingleparticleNN(**profile.learnerparams['SPNN']),\
+                        functions.Dets(n=profile.n,**profile.learnerparams['dets']),\
+                        functions.Sum())),\
+                    gen_lossgrad=harmonicoscillator2d.gen_nonSI_lossgrad
+                )
+
             exprofiles['n=6 d=2 strong weight decay']=harmonicoscillator2d.Run.getdefaultprofile().butwith(n=6,weight_decay=1.)
             exprofiles['n=6 d=2 no weight decay']=harmonicoscillator2d.Run.getdefaultprofile().butwith(n=6,weight_decay=0)
 

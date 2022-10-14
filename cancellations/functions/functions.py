@@ -161,10 +161,12 @@ class Product(Composite):
         return jax.jit(f)
 
     def typename(self):
-        return ' X '.join(['({})'.format(e.richtypename()) for e in self.elements])
+        return ' * '.join(['{}'.format(\
+            '('+e.richtypename()+')' if isinstance(e,ComposedFunction) else e.richtypename()\
+            ) for e in self.elements])
 
     def info(self):
-        return textutil.boxedsidebyside(*[e.getinfo() for e in self.elements],separator='X')
+        return textutil.boxedsidebyside(*[e.getinfo() for e in self.elements],separator='*')
 
 #=======================================================================================================
 class NNfunction(FunctionDescription):

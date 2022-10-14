@@ -366,6 +366,8 @@ def hiresbar(t,width):
     T=t*width
     return BOX*math.floor(T)+halfblocks[math.floor(8*T)%8]
 
+def thinbar(t,width):
+    return dash*math.floor(t*width)
 
 theticks=['\u258F','|','|','\u2595']
 
