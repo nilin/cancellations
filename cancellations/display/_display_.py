@@ -73,7 +73,7 @@ class Process(tracking.Process):
             tryskip=re.fullmatch('([0-9]+)s.*?([a-z]*)',c)
             if tryskip:
                 nskips,defaultinput=tryskip.groups()
-                setup.defaultinputs=deque(int(nskips)*[defaultinput])
+                setup.defaultinputs[_prompt_]=deque(int(nskips)*[defaultinput])
                 print('queued inputs: {}'.format(setup.defaultinputs))
                 return getch(prompt)
             else:
@@ -302,7 +302,7 @@ class _Dashboard_(_Frame_,_CompositeDisplay_):
 
     def draw(self):
         if not setup.display_on:
-            print('display update')
+            #print('display update')
             return
 
         window=tracking.currentdashboard()[self.name]
