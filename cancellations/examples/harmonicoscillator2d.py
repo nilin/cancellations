@@ -207,11 +207,12 @@ class Run(_display_.Process):
             dets=dotdict(d=25,ndets=25),)
             #'OddNN':dict(widths=[25,1],activation='sp')
 
-        profile._var_X_distr_=4
+        profile._var_X_distr_=1
         profile._genX_=lambda key,samples,n,d:rnd.normal(key,(samples,n,d))*jnp.sqrt(profile._var_X_distr_)
-        profile.X_density=lambda X:\
-            jnp.exp(-jnp.sum(X**2/(2*profile._var_X_distr_),axis=(-2,-1)))\
-            /(2*math.pi*profile._var_X_distr_)**(X.shape[-2]*X.shape[-1]/2)
+        profile.X_density=numutil.gen_nd_gaussian_density(var=profile._var_X_distr_)
+        #lambda X:\
+        #    jnp.exp(-jnp.sum(X**2/(2*profile._var_X_distr_),axis=(-2,-1)))\
+        #    /(2*math.pi*profile._var_X_distr_)**(X.shape[-2]*X.shape[-1]/2)
 
         # training params
 

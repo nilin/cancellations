@@ -143,7 +143,13 @@ def swap(x,y):
     return (y,x)
 
 
-
+def gen_nd_gaussian_density(var):
+    def density(X):
+        n=X.shape[-2]
+        d=X.shape[-1]
+        normalization=1/math.sqrt(2*math.pi*var)**(n*d)
+        return normalization*jnp.exp(-jnp.sum(X**2,axis=(-2,-1))/(2*var))
+    return density
 
 
 
