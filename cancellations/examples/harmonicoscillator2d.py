@@ -254,18 +254,23 @@ def gen_nonSI_lossgrad(f,X_density):
     return jax.jit(jax.value_and_grad(lossfn))
 
 def gettarget(P,run):
-    target0=functions.Slater(*['psi{}_{}d'.format(i,P.d) for i in range(1,P.n+1)])
+    f=functions.Slater(*['psi{}_{}d'.format(i,P.d) for i in range(1,P.n+1)])
+    f=normalize(f, run.genX, P.X_density)
+    ftest=normalize(f, run.genX, P.X_density)
+    run.log('double normalization factor check (should~1) {:.3f}'.format(ftest.elements[0].weights))
+    return f
+
+def normalize(f,genX,Xdensity):
     C=functions.ScaleFactor()
 
-    #normalize
-    X=run.genX(1000)
-    rho=P.X_density(X)
-    Y=target0.eval(X)
+    X=genX(1000)
+    rho=Xdensity(X)
+    Y=f.eval(X)
     assert(Y.shape==rho.shape)
     squarednorm=jnp.average(Y**2/rho)
     C.weights=1/jnp.sqrt(squarednorm)
 
-    return Product(C,target0)
+    return Product(C,f)
 
 
 
