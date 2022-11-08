@@ -2,7 +2,6 @@ from cancellations.utilities import setup, textutil
 from statistics import harmonic_mean
 from ..testing import testing
 from ..functions import examplefunctions as ef, functions
-from ..display import cdisplay
 from ..utilities import numutil, sampling, tracking, browse, batchjob, energy, sysutil
 from ..utilities.sysutil import maybe as maybe
 import matplotlib.pyplot as plt

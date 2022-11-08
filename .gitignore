@@ -9,3 +9,5 @@ venv*
 scratch*
 outputs*
 beta/*
+testsingle*
+*venv*

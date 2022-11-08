@@ -4,7 +4,6 @@ import config as cfg
 import os
 import jax.random as rnd
 import jax.numpy as jnp
-import cdisplay
 import jax
 import display
 from example import profile as exprofile

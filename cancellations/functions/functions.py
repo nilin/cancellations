@@ -5,7 +5,6 @@ import jax.numpy as jnp
 import jax.random as rnd
 from ..utilities import numutil as mathutil, tracking,textutil
 from cancellations.utilities import config as cfg
-from ..display import display as disp
 #from GPU_sum import sum_perms_multilayer as sumperms
 from . import multivariate as mv
 from . import AS_tools

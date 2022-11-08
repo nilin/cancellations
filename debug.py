@@ -1,5 +1,4 @@
 from cancellations.utilities import setup, tracking, browse
-from cancellations.display import _display_
 import jax
 from cancellations.utilities import sysutil
 

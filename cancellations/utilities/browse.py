@@ -1,14 +1,11 @@
 import os
 import re
 import curses as cs
-import pdb
 
 from cancellations.utilities import textutil, setup
 
 from . import tracking
-#from ..display.display import StaticText, dash
-from ..display import display as disp, _display_
-from ..display import cdisplay
+from ..display import _display_
 from ..utilities import config as cfg,sysutil,tracking
 import time
 
@@ -161,38 +158,6 @@ class Browse(_display_.Process):
         profile.dynamiccondition=lambda fulldotpath,phrase: re.search('.*'.join(phrase),fulldotpath.replace('.',''))
         profile.condition=lambda option:True
         return profile
-
-#def displayoptions(options,selection,selections,listpad,matchinfotextdisp,profile,H):
-#    #matchinfopad.erase()
-#    listpad.erase()
-#    for i,match in enumerate(options):
-#        listpad.addstr(i,2,'{}: {}'.format(str(i+1),profile.displayoption(match)))
-#    try:
-#        #matchinfopad.addstr(0,0,getmetadata(options[selection]))
-#        #matchinfopad.addstr(2,0,getinfo(profile.readinfo,options[selection]))
-#        matchinfotextdisp.msg=getinfo(profile.readinfo,options[selection])
-#    except:
-#        #matchinfopad.addstr(0,0,'no folder selected or no info.txt')
-#        matchinfotextdisp.msg='no folder selected or no info.txt'
-#    
-#    listpad.addstr(selection,0,' *' if profile.onlyone else '>')
-#    for s in selections: listpad.addstr(s,1,'*')
-#    listpad.refresh(max(0,selection-H//2))
-#    matchinfotextdisp.draw()
-
-
-
-#def combineconditions(profile):
-#    conditions=[]
-#    for i in range(1,10):
-#        cname='condition'+str(i)
-#        if cname in profile.keys(): conditions.append(profile[cname])
-#        else: break
-#    def CONDITION(d):
-#        try: return all([True if c==None else c(d) for c in conditions])
-#        except: False
-#    return CONDITION     
-
 
 
 # for path browsing

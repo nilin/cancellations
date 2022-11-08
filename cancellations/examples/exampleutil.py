@@ -13,7 +13,6 @@ import jax
 from ..learning import learning
 from . import plottools as pt
 import matplotlib.pyplot as plt
-from ..display import cdisplay,display as disp
 
 from ..utilities import numutil as mathutil, tracking,config as cfg,sysutil,textutil, numutil
 from ..functions import functions
@@ -243,73 +242,5 @@ def act_on_input(key):
     if key=='f': fplot()
     if key=='o': sysutil.showfile(tracking.currentprocess().outpath)
     return key
-
-
-
-
-
-
-def prepdisplay(run):
-
-    display=run.display
-
-    # columndisplay
-
-    instructions='Press [l] (lowercase L) to generate learning plots.\n'+\
-        'Press [f] to generate functions plot.\nPress [o] to open output folder.\
-        \n\nPress [b] to break from current task.\nPress [q] to quit. '
-    
-    x0,x2=display.xlim
-    x1=(x0+x2)//2
-    y0,y2=display.ylim
-    y1=(y0+3*y2)//4
-
-
-    column1=cdisplay.ConcreteStackedDisplay(xlim=(x0,x1-5),ylim=(y0,y1),memory=run)
-    column1.add(disp.StaticText(msg=instructions))
-    column1.add(disp.VSpace(2))
-    column1.add(disp.Hline())
-    column1.add(disp.LogDisplay(run,height=10))
-    column1.add(disp.Hline())
-#    column1.add(disp.RunText(query='currenttask',msgtransform=lambda msg:msg if run.getcurrenttask()!=None else ''))
-#    column1.add(disp.Bar('currenttaskcompleteness',msgtransform=lambda msg:msg if run.getcurrenttask()!=None else ''))
-    column1.draw()
-
-    #run.addlistener(column1,'recentlog')
-#    run.addlistener(column1,'currenttaskcompleteness')
-#    run.addlistener(column1,'target |Af|')
-
-
-    column2=cdisplay.ConcreteStackedDisplay(xlim=(x1+5,x2),ylim=(y0,y1))
-    run.infodisplay,_=column2.add(disp.StaticText(msg='',wrap=True))
-
-#    run.addlistener(column2,'runinfo')
-
-
-    display.add(column1,'column1')
-    display.add(column2,'column2')
-
-
-
-
-
-
-def addlearningdisplay(run,display):
-    from ..display import cdisplay
-
-    a,b=display.xlim[0]+2,display.xlim[1]-2
-
-    ld=cdisplay.ConcreteStackedDisplay((a,b),(display.height-10,display.height-1))
-    ld.add(disp.NumberPrint('minibatch loss',msg='training loss {:.2E}',avg_of=100))
-    ld.add(disp.Bar('minibatch loss',style=textutil.dash,emptystyle=' ',avg_of=1))
-    ld.add(disp.Bar('minibatch loss',style=disp.BOX,emptystyle=' ',avg_of=10))
-    ld.add(disp.Bar('minibatch loss',style=disp.BOX,emptystyle='_',avg_of=100))
-    ld.add(disp.VSpace(1))
-    ld.add(disp.NumberPrint('minibatchnumber',msg='minibatch number {:.0f}'))
-
-    return run.display.add(ld,'learningdisplay')
-    
-    
-
 
 

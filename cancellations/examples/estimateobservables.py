@@ -5,9 +5,7 @@
 import profile
 from re import I
 from cancellations.utilities import textutil,sysutil
-from ..display import cdisplay
 from ..utilities import numutil, tracking,sampling,config as cfg
-from ..display import display as disp
 import jax
 import jax.random as rnd
 from collections import deque

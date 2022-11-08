@@ -13,7 +13,6 @@ from ..functions import examplefunctions as ef, functions
 from ..learning import learning
 from ..functions.functions import ComposedFunction,SingleparticleNN,Product
 from ..utilities import config as cfg, numutil, tracking, sysutil, textutil, sampling, energy
-from ..display import cdisplay,display as disp
 import optax
 from . import plottools as pt
 from . import exampleutil

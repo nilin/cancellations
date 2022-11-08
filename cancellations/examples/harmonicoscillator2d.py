@@ -15,7 +15,7 @@ from ..functions.functions import ComposedFunction,SingleparticleNN,Product
 from ..utilities import config as cfg, numutil, tracking, sysutil, textutil, sampling, setup
 from ..utilities.tracking import dotdict
 from ..plotting import plotting
-from ..display import cdisplay,display as disp, _display_
+from ..display import _display_
 from . import plottools as pt
 from . import exampleutil
 import math
