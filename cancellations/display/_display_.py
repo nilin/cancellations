@@ -12,6 +12,7 @@ import jax.numpy as jnp
 from ..utilities.textutil import BOX,box,dash,infty
 from ..utilities import config as cfg,tracking,textutil, setup
 import curses as cs
+import time
 
 #----------------------------------------------------------------------------------------------------
 
@@ -32,7 +33,7 @@ class Process(tracking.Process):
         def wrapped(screen):
             screen.refresh()
 
-            def getch(prompt=None):
+            def getch(*a,**kw):
                 c=extractkey_cs(screen.getch())
                 screen.refresh()
                 return c
@@ -59,37 +60,19 @@ class Process(tracking.Process):
             tracking.currentprocess().run_as_NODISPLAY()
 
     def run_as_NODISPLAY(self):
-        def getch(prompt=lambda: ''):
-            _prompt_=prompt()
-            if _prompt_ in setup.defaultinputs and len(setup.defaultinputs[_prompt_])>0:
-                inp=setup.defaultinputs[_prompt_].popleft()
-                print('robot input: {}'.format(inp))
-                return inp
-
-            print('{}\n{}\n{}\ninput "100s myinput" to skip input to this prompt 100 times\nwith default input "myinput".\n{}\n'.\
-                format(100*dash,prompt(),100*dash,100*dash))
-            c=input()
-
-            tryskip=re.fullmatch('([0-9]+)s.*?([a-z]*)',c)
-            if tryskip:
-                nskips,defaultinput=tryskip.groups()
-                setup.defaultinputs[_prompt_]=deque(int(nskips)*[defaultinput])
-                print('queued inputs: {}'.format(setup.defaultinputs))
-                return getch(prompt)
-            else:
-                return c
+        def getch(*a,**kw):
+            return ''
 
         setup.getch=getch
         setup.clearscreen=sysutil.clearscreen
         tracking.loadprocess(self)
         dummydisplay=_Dashboard_(100,50)
         self.display=dummydisplay
+        self.stopwatch=tracking.Stopwatch()
 
-        #self.execprocess()
+        #self.refresh=lambda *a,**kw:self.stopwatch.do_after(.2,lambda *a_,**kw_: print(time.time(),end='\r'))
+        #self.refresh=lambda *a,**kw:print(time.time(),end='\r')
         self.continueprocess()
-
-
-    #def prepdisplay(self): pass
 
 class LeaveDisplay(Exception): pass
 

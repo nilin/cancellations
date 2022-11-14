@@ -1,1 +1,1 @@
-python pick_and_run.py
+python run.py $@

@@ -1,7 +1,7 @@
 from cancellations.utilities import setup
 from cancellations.display import _display_
 from cancellations.utilities import tracking, browse, batchjob, sysutil, textutil
-from cancellations import profiles as P
+#from cancellations import profiles as P
 import os
 import re
 import importlib
@@ -11,15 +11,8 @@ import sys
 
 
 class Run(batchjob.Batchjob):
-    #processname='pick_and_run'
 
     def runbatch(self):
-
-
-
-        #self.loadprocess()
-
-
 
         pf='cancellations/'#examples/'
         pathprofile=browse.defaultpathprofile().butwith(\
@@ -50,36 +43,32 @@ class Run(batchjob.Batchjob):
 
         path=self.run_subprocess(browse.Browse(bprofile1),taskname='pick script')
 
-
-
-
         path=re.search('([a-z].*)',path).group()
         mname = path.replace('/', '.')[:-3]
         m = importlib.import_module(mname)
-        processname=mname.split('.')[-1]
-        runprofiles=P.getprofiles(processname)
+
+        runprofiles=m.Run.getprofiles()
 
 
-        bprofile2=browse.Browse.getdefaultprofile().butwith(\
-            onlyone=True,\
-            options=list(runprofiles.keys()),\
-            readinfo=lambda profilename:runprofiles[profilename].__str__()
-            )
-        bprofile2.msg='select a profile\n'+bprofile2.msg
+        while not isinstance(runprofiles,tracking.Profile):
+            bprofile2=browse.Browse.getdefaultprofile().butwith(\
+                onlyone=True,\
+                options=list(runprofiles.keys()),\
+                readinfo=lambda profilename:runprofiles[profilename].__str__()
+                )
+            bprofile2.msg='select a profile\n'+bprofile2.msg
+            profilename=self.run_subprocess(browse.Browse(bprofile2),taskname='pick profile')
+            runprofiles=runprofiles[profilename]
 
+        runprofile=runprofiles
+        runprofile['profilename']=profilename
 
+#        if len(runprofiles)>1:
+#            profilename=self.run_subprocess(browse.Browse(bprofile2),taskname='pick profile')
+#        else:
+#            (profilename,)=runprofiles.keys()
 
-
-        profilename=self.run_subprocess(browse.Browse(bprofile2),taskname='pick profile')
-
-
-
-
-        if profilename is None:
-            runprofile=m.Run.getdefaultprofile()
-        else:
-            runprofile=runprofiles[profilename]
-            runprofile['profilename']=profilename
+        #runprofile['profilename']=profilename
 
         self.run=m.Run(runprofile)
 
@@ -102,7 +91,7 @@ class Run(batchjob.Batchjob):
 
 
 def main():
-    if 'debug' in sys.argv: setup.debug=True
+    if 'debug' in sys.argv or 'db' in sys.argv: setup.debug=True
     Run().run_as_main()
     setup.run_afterdisplayclosed()
 

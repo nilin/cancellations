@@ -10,8 +10,6 @@ if not '32' in sys.argv:
 display_on=True
 debug=False
 
-
-
 postcommands=[]
 postprocesses=[]
 

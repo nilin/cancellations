@@ -12,7 +12,7 @@ import copy
 from collections import deque
 import datetime
 import random
-
+import copy
 
 #----------------------------------------------------------------------------------------------------
 
@@ -27,11 +27,13 @@ class dotdict(dict):
 class Profile(dotdict):
     def __init__(self,*a,**kw):
         super().__init__(*a,**kw)
-        self.profilename='default'
+        if not hasattr(self,'profilename'):
+            self.profilename='default'
 
     def butwith(self,**defs):
-        self.update(defs)
-        return self
+        newself=Profile(**self)
+        newself.update(defs)
+        return newself
 
 
 #----------------------------------------------------------------------------------------------------
@@ -130,6 +132,7 @@ class Keychain:
 
 class Process(Memory):
     processname='process'
+
     def __init__(self,profile=None,**kw):
         super().__init__()
 
@@ -167,6 +170,9 @@ class Process(Memory):
     def getdefaultprofile(**kw):
         return Profile().butwith(**kw)
 
+    @classmethod
+    def getprofiles(cls,**kw):
+        return cls.getdefaultprofile(**kw)
 
 
 
