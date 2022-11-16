@@ -38,26 +38,23 @@ class Run(exampletemplate.Run):
     @classmethod
     def getprofiles(cls):
         profiles=dict()
-        default=cls.getdefaultprofile().butwith(n=6,weight_decay=.1)
-        profiles['n=6 d=2 SI']=default
-        profiles['n=6 d=2 non-SI']=default.butwith(initlossgrad=losses.Lossgrad_nonSI)
-        profiles['n=6 d=2 unbiased SI loss']=\
+        default=cls.getdefaultprofile().butwith(n=6,weight_decay=.1,iterations=10**4)
+        profiles['n=6 d=2 balanced SI loss']=\
             {\
-                'momentum 10':default.butwith(\
-                    initlossgrad=partial(losses.Lossgrad_unbiased,10),\
-                    minibatchsize=200),\
-                'momentum 1':default.butwith(\
-                    initlossgrad=partial(losses.Lossgrad_unbiased,1),\
-                    minibatchsize=200),\
-                'small mb, momentum 10':default.butwith(\
-                    initlossgrad=partial(losses.Lossgrad_unbiased,10),\
+                'balanced, small mb, momentum 100':default.butwith(\
+                    initlossgrad=partial(losses.Lossgrad_balanced,100,mode='nonsquare'),\
                     minibatchsize=10),\
-                'small mb, momentum 1':default.butwith(\
-                    initlossgrad=partial(losses.Lossgrad_unbiased,1),\
+                'balanced, squared, small mb, momentum 100':default.butwith(\
+                    initlossgrad=partial(losses.Lossgrad_balanced,100,mode='square'),\
+                    minibatchsize=10),\
+                'balanced, hopeforthebest, small mb':default.butwith(\
+                    initlossgrad=partial(losses.Lossgrad_balanced,100,mode='hopeforthebest'),\
                     minibatchsize=10),\
                 'small mb, reference (biased)':default.butwith(\
                     minibatchsize=5),\
             }
+        profiles['n=6 d=2 SI']=default
+        profiles['n=6 d=2 non-SI']=default.butwith(initlossgrad=losses.Lossgrad_nonSI)
         return profiles
 
 def gettarget(P,run):

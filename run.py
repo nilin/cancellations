@@ -48,7 +48,7 @@ class Run(batchjob.Batchjob):
         m = importlib.import_module(mname)
 
         runprofiles=m.Run.getprofiles()
-
+        profilenamestack=[]
 
         while not isinstance(runprofiles,tracking.Profile):
             bprofile2=browse.Browse.getdefaultprofile().butwith(\
@@ -59,9 +59,10 @@ class Run(batchjob.Batchjob):
             bprofile2.msg='select a profile\n'+bprofile2.msg
             profilename=self.run_subprocess(browse.Browse(bprofile2),taskname='pick profile')
             runprofiles=runprofiles[profilename]
+            profilenamestack.append(profilename)
 
         runprofile=runprofiles
-        runprofile['profilename']=profilename
+        runprofile['profilename']='/'.join(profilenamestack)
 
 #        if len(runprofiles)>1:
 #            profilename=self.run_subprocess(browse.Browse(bprofile2),taskname='pick profile')

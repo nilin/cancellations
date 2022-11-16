@@ -18,6 +18,7 @@ from ..plotting import plotting
 from ..display import _display_
 from . import plottools as pt
 from . import exampleutil
+import os
 import math
 from functools import partial
 from . import losses
@@ -56,8 +57,6 @@ class Run(_display_.Process):
         run.infodisplay.msg=info
         run.T.draw()
         sysutil.save(run.target.compress(),path=run.outpath+'data/target')
-        #sysutil.save(run.profile,path=run.outpath+'data/profile')
-
 
         run.log('gen samples')
 
@@ -121,6 +120,7 @@ class Run(_display_.Process):
 
             loss=run.trainer.step()
             run.loss.val=loss
+            run.samplesdone=i*P.minibatchsize
             run.learningdisplay.draw()
 
             run.traindata.append(dict(loss=loss,i=i))
@@ -131,17 +131,13 @@ class Run(_display_.Process):
                 sysutil.save(run.traindata,run.outpath+'data/traindata',echo=False)
                 sysutil.write('loss={:.2E} iterations={} n={} d={}'.format(loss,i,P.n,P.d),run.outpath+'metadata.txt',mode='w')    
 
-#            if plotsched.activate(i):
-#                exampleutil.fplot()
-#                exampleutil.lplot()
-
             if stopwatch1.tick_after(.05):
                 run.learningdisplay.draw()
 
             if stopwatch2.tick_after(.5):
                 if P.act_on_input(setup.getch(getinstructions),run)=='b': break
-
-
+        
+        plotting.allplots(run)
         return run.learner
 
     def log(self,msg):
@@ -183,6 +179,7 @@ class Run(_display_.Process):
             #
             (0,4,_display_.thinbar(self.loss.val,self.dashboard.width)),\
             (0,3,'training loss (non-smoothed) {:.2E}'.format(self.loss.val)),\
+            (0,8,'{:,d}/{:,d} samples'.format(self.samplesdone,self.profile.minibatchsize*self.profile.iterations))
             ]
         
 

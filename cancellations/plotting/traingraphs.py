@@ -13,38 +13,6 @@ import os
 
 #
 #
-#profile=tracking.Profile(tasks=[\
-#    'pick training run',\
-#    'estimate observable',\
-#    ])
-#
-#
-#class Run(batchjob.Batchjob):
-#    def execprocess(batch):
-#
-#        # task 1
-#
-#        pathprofile=browse.defaultpathprofile()
-#        fullpaths=['outputs/'+relpath for relpath in browse.getpaths(pathprofile)]
-#        fullpaths=sorted(fullpaths,key=lambda full: -os.path.getmtime(full))
-#
-#
-#        bprofile=browse.Browse.getdefaultprofile().butwith(\
-#                onlyone=True,\
-#                options=fullpaths,\
-#                readinfo=lambda full: sysutil.readtextfile(full+'/info.txt'),\
-#                displayoption=lambda full: full[8:]+' '+maybe(sysutil.readtextfile,'')(full+'/metadata.txt') )
-#
-#        runpath=batch.runsubprocess(browse.Browse(**bprofile),name='pick training run')
-#
-#
-#        # task 2
-#
-#        psi_descr=sysutil.load(runpath+'data/setup')['learner'].restore()
-#        psi0_nonsqueezed=sysutil.load(runpath+'data/setup')['target'].restore().eval
-#        psi0=lambda X:jnp.squeeze(psi0_nonsqueezed(X))
-#        X=unprocessed=sysutil.load(runpath+'data/setup')['X_test'][:1000]
-#        unprocessed=sysutil.load(runpath+'data/unprocessed')
 
 
 def graph(process,datapath):
