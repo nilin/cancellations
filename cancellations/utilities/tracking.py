@@ -196,7 +196,8 @@ class Session(Process):
 setup.session=Session()
 
 def log(msg):
-    setup.session.log(msg)
+    currentprocess().log(msg)
+    #setup.session.log(msg)
 
 def getlog():
     return setup.session.gethist('recentlog')

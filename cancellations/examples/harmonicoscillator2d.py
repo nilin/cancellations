@@ -42,37 +42,20 @@ class Run(exampletemplate.Run):
         ts=1
         profiles['n=6 d=2 balanced SI loss (batch)']=\
             {\
-                'balanced, small mb, batch {}'.format(ts):default.butwith(\
-                    initlossgrad=partial(losses.Lossgrad_balanced,ts,mode='nonsquare',batchmode='batch'),\
-                    minibatchsize=10),\
+                'balanced, small mb, batch 100':default.butwith(\
+                    initlossgrad=partial(losses.Lossgrad_balanced,100,10,mode='nonsquare',batchmode='batch'),\
+                    batchsize=1000),\
                 'balanced, squared, small mb, batch 100':default.butwith(\
-                    initlossgrad=partial(losses.Lossgrad_balanced,100,mode='square',batchmode='batch'),\
-                    minibatchsize=10),\
+                    initlossgrad=partial(losses.Lossgrad_balanced,100,10,mode='square',batchmode='batch'),\
+                    batchsize=1000),\
                 'balanced, hopeforthebest, small mb, batch 100':default.butwith(\
-                    initlossgrad=partial(losses.Lossgrad_balanced,100,mode='hopeforthebest',batchmode='batch'),\
-                    minibatchsize=10),\
+                    initlossgrad=partial(losses.Lossgrad_balanced,100,10,mode='hopeforthebest',batchmode='batch'),\
+                    batchsize=1000),\
                 'separate denominators, small mb, batch 100':default.butwith(\
-                    initlossgrad=partial(losses.Lossgrad_separate_denominators,100,batchmode='batch'),\
-                    minibatchsize=10),\
+                    initlossgrad=partial(losses.Lossgrad_separate_denominators,100,10,batchmode='batch'),\
+                    batchsize=1000),\
                 'small mb, reference (biased)':default.butwith(\
-                    minibatchsize=5),\
-            }
-        profiles['n=6 d=2 balanced SI loss (momentum)']=\
-            {\
-                'balanced, small mb, momentum {}'.format(ts):default.butwith(\
-                    initlossgrad=partial(losses.Lossgrad_balanced,ts,mode='nonsquare'),\
-                    minibatchsize=10),\
-                'balanced, squared, small mb, momentum 100':default.butwith(\
-                    initlossgrad=partial(losses.Lossgrad_balanced,100,mode='square'),\
-                    minibatchsize=10),\
-                'balanced, hopeforthebest, small mb':default.butwith(\
-                    initlossgrad=partial(losses.Lossgrad_balanced,100,mode='hopeforthebest'),\
-                    minibatchsize=10),\
-                'separate denominators, small mb, momentum 100':default.butwith(\
-                    initlossgrad=partial(losses.Lossgrad_separate_denominators,100),\
-                    minibatchsize=10),\
-                'small mb, reference (biased)':default.butwith(\
-                    minibatchsize=5),\
+                    batchsize=10),\
             }
         profiles['n=6 d=2 SI']=default
         profiles['n=6 d=2 non-SI']=default.butwith(initlossgrad=losses.Lossgrad_nonSI)

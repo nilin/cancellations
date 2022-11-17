@@ -100,7 +100,7 @@ class Run(_display_.Process):
         run.lossgradobj=P.initlossgrad(run.learner._eval_,P.X_density)
         run.lossgrad=run.lossgradobj._eval_
 
-        run.sampler=sampling.SamplesPipe(run.X_train,run.Y_train,minibatchsize=P.minibatchsize)
+        run.sampler=sampling.SamplesPipe(run.X_train,run.Y_train,minibatchsize=P.batchsize)
         run.trainer=learning.Trainer(run.lossgrad,run.learner,run.sampler,\
             **{k:P[k] for k in ['weight_decay','iterations']}) 
 
@@ -117,7 +117,7 @@ class Run(_display_.Process):
 
             loss=run.trainer.step()
             run.loss.val=loss
-            run.samplesdone=i*P.minibatchsize
+            run.its=i
             run.learningdisplay.draw()
 
             run.traindata.append(dict(loss=loss,i=i))
@@ -167,7 +167,7 @@ class Run(_display_.Process):
         smoother2=numutil.RunningAvg(k=100)
         display=self.learningdisplay.add(0,0,_display_._Display_())
         display.encode=lambda: [\
-            (0,0,'training loss (avg over 100 minibatches) {:.2E}'.format(smoother2.update(self.loss.val))),\
+            (0,0,'training loss (avg over 100 iterations) {:.2E}'.format(smoother2.update(self.loss.val))),\
             (0,1,_display_.hiresbar(smoother2.avg(),self.dashboard.width)),\
             #
             #(0,1,_display_.hiresbar(self.loss.val,self.dashboard.width)),\
@@ -176,7 +176,7 @@ class Run(_display_.Process):
             #
             (0,4,_display_.thinbar(self.loss.val,self.dashboard.width)),\
             (0,3,'training loss (non-smoothed) {:.2E}'.format(self.loss.val)),\
-            (0,8,'{:,d}/{:,d} samples'.format(self.samplesdone,self.profile.minibatchsize*self.profile.iterations))
+            (0,8,'{:,d}/{:,d} iterations'.format(self.its,self.profile.iterations))
             ]
         
 
@@ -219,7 +219,7 @@ class Run(_display_.Process):
 
         profile.weight_decay=0
         profile.iterations=25000
-        profile.minibatchsize=100
+        profile.batchsize=100
 
         profile.samples_train=10**5
         profile.samples_test=1000
