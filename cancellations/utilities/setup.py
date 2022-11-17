@@ -10,6 +10,28 @@ if not '32' in sys.argv:
 display_on=True
 debug=False
 
+
+#def testjitdisabled():
+#    a=jax.numpy.ones((5,))
+#    @jax.jit
+#    def f(x):
+#        print(x)
+#        return 2*x
+#    f(a)
+#    f(a)
+#    f(a)
+
+if 'db' in sys.argv:
+    debug=True
+    #jax.disable_jit()
+    #print('debugging mode: jit disabled')
+    #testjitdisabled()
+
+########
+
+
+########
+
 postcommands=[]
 postprocesses=[]
 

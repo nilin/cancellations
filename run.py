@@ -92,7 +92,6 @@ class Run(batchjob.Batchjob):
 
 
 def main():
-    if 'debug' in sys.argv or 'db' in sys.argv: setup.debug=True
     Run().run_as_main()
     setup.run_afterdisplayclosed()
 

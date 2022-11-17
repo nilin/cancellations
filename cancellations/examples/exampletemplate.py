@@ -105,9 +105,6 @@ class Run(_display_.Process):
             **{k:P[k] for k in ['weight_decay','iterations']}) 
 
 
-        if setup.debug:
-            breakpoint()
-        
         regsched=tracking.Scheduler(range(0,P.iterations+100,100))
         run.addlearningdisplay()
 

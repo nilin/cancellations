@@ -140,6 +140,11 @@ def test():
     print(readtextfile('batch1.py'))
 
 
+def tryexcept(f,g,xs,ys):
+    try:
+        return f(*xs)
+    except:
+        return g(*ys)
 
 
 write('setup','outputs/setup.txt')
