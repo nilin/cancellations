@@ -10,7 +10,6 @@ from ..functions import examplefunctions3d
 from . import traingraphs
 
 
-
 class Slice:
 
     def plot(self,ax,f_eval,f_descr):

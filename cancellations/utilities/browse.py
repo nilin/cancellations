@@ -30,6 +30,10 @@ def browse(process):
     profile.options=list(filter(profile.condition,profile.options))
     if len(profile.options)==0: return None
 
+    assert(len(profile.options)>0)
+    if profile.onlyone and len(profile.options)==1:
+        (option,)=profile.options
+        return option
 
     #setup.screen.nodelay(False)
 

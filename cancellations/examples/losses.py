@@ -157,7 +157,7 @@ class Lossgrad_balanced(Lossgrad_memory):
 
 
 class Lossgrad_normratio(Lossgrad):
-    def __init__(self,learnerdescr,density):
+    def __init__(self,learnerdescr,density,fpow=2,Afpow=-2):
 
         Af=learnerdescr._eval_
         fdescr,switchcounts=functions.switchtype(learnerdescr)
@@ -167,7 +167,7 @@ class Lossgrad_normratio(Lossgrad):
         fnorm=partial(self.getnorm,f,density=density)
         Afnorm=partial(self.getnorm,Af,density=density)
 
-        self.lossfn=lambda params,X,_: fnorm(params,X)/Afnorm(params,X)
+        self.lossfn=lambda params,X,_: jnp.exp((fpow/2)*jnp.log(fnorm(params,X)))*jnp.exp((Afpow/2)*jnp.log(Afnorm(params,X)))
         self._eval_=jax.jit(jax.value_and_grad(self.lossfn))
 
 

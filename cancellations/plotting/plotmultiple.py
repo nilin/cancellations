@@ -14,9 +14,8 @@ def trainplots(process,profile):
     nplots=len(plotoptions)
 
     runpaths=process.runpaths
-    outpath='outputs/combined/'+str(random.randint(10**9,10**10))+'/'
     
-    fig,axs=plt.subplots(nplots,1,figsize=(8,10))
+    fig,axs=plt.subplots(nplots,1,figsize=(8,5*nplots))
     #axs=deque(axs)
     colors=['r--','b']*10
 
@@ -43,7 +42,11 @@ def trainplots(process,profile):
 
             ax.legend()
 
-    sysutil.savefig(outpath+'comparison.pdf',fig=fig)
+    #outpath=os.path.join('outputs/combined',' | '.join(process.descriptions))
+    #sysutil.savefig(os.path.join(outpath,'comparison.pdf'),fig=fig)
+
+    outpath=os.path.join('outputs/combined',' | '.join(process.descriptions)+'.pdf')
+    sysutil.savefig(outpath,fig=fig)
     sysutil.showfile(outpath)
 
 class Run(batchjob.Batchjob):
@@ -77,7 +80,7 @@ class Run(batchjob.Batchjob):
                 options=runpaths,\
                 msg='Please select run for profile:\n{}'.format(desc)+browse.msg,\
                 displayoption=lambda path: os.path.join(*Path(path).parts[-2:]),\
-                readinfo=lambda path: path.replace('/','\n'),\
+                readinfo=lambda path: sysutil.readtextfile(os.path.join(path,'log.txt')),\
                 ))
             self.runpaths.append(self.run_subprocess(browsingprocess,taskname='choose run'))
 
