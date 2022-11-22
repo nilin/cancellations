@@ -5,60 +5,59 @@
 #
 
 
-from re import I
-import jax
 import jax.numpy as jnp
-import jax.random as rnd
-from ..functions import examplefunctions as ef, examplefunctions3d, functions
-from ..learning import learning
-from ..functions.functions import ComposedFunction,SingleparticleNN,Product
-from ..utilities import config as cfg, numutil, tracking, sysutil, textutil, sampling, setup
-from ..utilities.tracking import dotdict
-from ..plotting import plotting
-from ..display import _display_
-from . import plottools as pt
-from . import exampleutil
-import math
+from ..functions import functions
+from ..functions.functions import Product
 from functools import partial
-from . import losses
-
-from . import exampletemplate
-
+from . import losses,losses2
+from . import runtemplate2
 
 
 
 
-class Run(exampletemplate.Run):
+
+class Run(runtemplate2.Run):
     processname='harmonicoscillator2d'
 
     @classmethod
     def getdefaultprofile(cls):
-        return super().getdefaultprofile().butwith(gettarget=gettarget)
+        return super().getdefaultprofile().butwith(gettarget=gettarget,samples_train=10**5)
 
     @classmethod
     def getprofiles(cls):
         profiles=dict()
         default=cls.getdefaultprofile().butwith(n=6,weight_decay=.1,iterations=10**4)
-        ts=1
-        profiles['n=6 d=2 balanced SI loss (batch)']=\
+        profiles['n=6 d=2 bias-reduced SI loss']=\
             {\
-                'balanced, small mb, batch 100':default.butwith(\
-                    initlossgrad=partial(losses.Lossgrad_balanced,100,10,mode='nonsquare',batchmode='batch'),\
-                    batchsize=1000),\
-                'balanced, squared, small mb, batch 100':default.butwith(\
-                    initlossgrad=partial(losses.Lossgrad_balanced,100,10,mode='square',batchmode='batch'),\
-                    batchsize=1000),\
-                'balanced, hopeforthebest, small mb, batch 100':default.butwith(\
-                    initlossgrad=partial(losses.Lossgrad_balanced,100,10,mode='hopeforthebest',batchmode='batch'),\
-                    batchsize=1000),\
-                'separate denominators, small mb, batch 100':default.butwith(\
-                    initlossgrad=partial(losses.Lossgrad_separate_denominators,100,10,batchmode='batch'),\
-                    batchsize=1000),\
+                'balanced, small mb':default.butwith(\
+                    initlossgrads=[partial(losses.Lossgrad_balanced,100,10,mode='nonsquare',batchmode='batch')],\
+                    batchsize=100),\
+                'balanced, small mb, control normratio':default.butwith(\
+                    initlossgrads=\
+                        [partial(losses.Lossgrad_balanced,100,10,mode='nonsquare',batchmode='batch'),losses.Lossgrad_normratio],\
+                    lossnames=['loss','normratio_loss'],\
+                    lossperiods=[1,250],\
+                    batchsize=100),\
+                'balanced, small mb, WEAK WEIGHT DECAY':default.butwith(weight_decay=.01,\
+                    initlossgrads=[partial(losses.Lossgrad_balanced,100,10,mode='nonsquare',batchmode='batch')],\
+                    batchsize=100),\
+#                'balanced, squared, small mb, batch 100':default.butwith(\
+#                    initlossgrads=[partial(losses.Lossgrad_balanced,100,10,mode='square',batchmode='batch')],\
+#                    batchsize=1000),\
+#                'balanced, hopeforthebest, small mb, batch 100':default.butwith(\
+#                    initlossgrads=[partial(losses.Lossgrad_balanced,100,10,mode='hopeforthebest',batchmode='batch')],\
+#                    batchsize=1000),\
+                'separate denominators, small mb':default.butwith(\
+                    initlossgrads=[partial(losses2.Lossgrad_separate_denominators,100,10,batchmode='batch')],\
+                    batchsize=100),\
+                'separate denominators, small mb, WEAK WEIGHT DECAY':default.butwith(weight_decay=.01,\
+                    initlossgrads=[partial(losses2.Lossgrad_separate_denominators,100,10,batchmode='batch')],\
+                    batchsize=100),\
                 'small mb, reference (biased)':default.butwith(\
                     batchsize=10),\
             }
         profiles['n=6 d=2 SI']=default
-        profiles['n=6 d=2 non-SI']=default.butwith(initlossgrad=losses.Lossgrad_nonSI)
+        profiles['n=6 d=2 non-SI']=default.butwith(initlossgrads=[losses.Lossgrad_nonSI])
         return profiles
 
 def gettarget(P,run):

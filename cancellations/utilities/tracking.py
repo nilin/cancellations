@@ -352,36 +352,46 @@ class Scheduler(Timer):
         
 
 #====================================================================================================
-# 
-# class Clockedworker(Stopwatch):
-# 
-#     def __init__(self):
-#         super().__init__()
-#         self.totalrest=0
-#         self.totalwork=0
-#         self.working=False
-# 
-#     def clock_in(self):
-#         assert not self.working
-#         self.totalrest+=self.tick()
-#         self.working=True
-# 
-#     def clock_out(self):
-#         assert self.working
-#         self.totalwork+=self.tick()
-#         self.working=False
-# 
-#     def workfraction(self):
-#         return self.totalwork/self.elapsed()
-#     
-#     def do_if_rested(self,workfraction,*fs):
-#         if self.workfraction()<workfraction:
-#             self.clock_in()
-#             for f in fs:
-#                 f()
-#             self.clock_out()        
-# 
-# 
+
+
+class TimeDistribution:
+
+    none='everything else'
+
+    def __init__(self,log_every=10):
+        self.trackblocks=Stopwatch()
+        self.updatetracker=Stopwatch()
+        self.current=self.none
+        self.times={self.none:0}
+        self.log_every=log_every
+    
+    def starttask(self,task):
+        self.concludecurrenttask()
+        self.current=task
+        if task not in self.times:
+            self.times[task]=0
+            self.times[self.none]=self.times.pop(self.none)
+
+    def concludecurrenttask(self):
+        #breakpoint()
+        task=self.current
+        self.times[task]+=self.trackblocks.tick()
+        if self.log_every is not None:
+            self.updatetracker.do_after(self.log_every,self.log)
+
+    def endtask(self):
+        self.starttask(self.none)
+
+    def log(self):
+        tasks,times=zip(*list(self.times.items()))
+        times=jnp.array(times)
+        times=times/jnp.sum(times)
+        for task,time in zip(tasks,times):
+            log('{:.0%} of time spent on {}'.format(time,task))
+
+setup.timedistribution=TimeDistribution()
+
+
 #====================================================================================================
 
 

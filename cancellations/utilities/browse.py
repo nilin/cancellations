@@ -38,12 +38,12 @@ def browse(process):
 
     pointer=tracking.Pointer(val=0)
     selections=[]
-    
+    selectionpositions=[[]]
 
     explanation=profile.msg
     Ltext=L.add(0,0,_display_._TextDisplay_(explanation))
     C0.add(0,0,_display_._Display_()).encode=lambda: [(0,pointer.val,'>')]
-    C1.add(0,0,_display_._Display_()).encode=lambda: [(0,i,'*') for i in selections]
+    C1.add(0,0,_display_._Display_()).encode=lambda: [(0,i,'*') for i in selectionpositions[0]]
     optionsdisplay=Cr.add(0,0,_display_._TextDisplay_(''))
 
     getcorner=lambda _: (0,max(pointer.val-display.height//2,0))
@@ -73,15 +73,19 @@ def browse(process):
         ls=pointer.val
         c=setup.getch(lambda: profile.msg)
 
-        if c=='ENTER': break
+        if c=='ENTER':
+            return matches[ls] if profile.onlyone else selections
+
         if c!=-1:
             match mode:
                 case 'browse':
                     match c:
                         case 'SPACE':
-                            if profile.onlyone: selections.append(ls)
+                            if not profile.onlyone:
+                                selections.append(matches[ls])
+                                selectionpositions[0]=[i for i,m in enumerate(matches) if m in selections]
                         case 'BACKSPACE':
-                            if not profile.onlyone and ls in selections: selections.remove(ls)
+                            if not profile.onlyone and ls in selections: selections.remove(matches[ls])
                         case 'UP': ls-=1
                         case 'DOWN': ls+=1
                         case 'LEFT': ls-=5
@@ -118,14 +122,18 @@ def browse(process):
         pointer.val=ls
         display.draw()
 
-
-    #setup.screen.nodelay(True)
-    return matches[ls] if profile.onlyone else [matches[ls] for ls in selections]
-
+def squash(string):
+    a=5
+    b=50
+    if len(string)<=a+b:
+        return string
+    else:
+        return string[:a]+'...'+string[3-b:]
 
 msg='\n\n'\
     +'Move with arrow keys:\n{}: up\n{}: down\n{}: fast up\n{}: fast down'.format(up,down,left,right)\
     +'\nYou may be able to scroll with the touchpad.'\
+    +'\n\nIf in multiple selection mode, press SPACE to select one of several items.'\
     +'\n\nPress [i] to input filter phrase (escape with arrow keys).\nmode: {}\nphrase: {}'\
     +'\n\nPress ENTER to finish selection.'
 
@@ -141,7 +149,7 @@ class Browse(_display_.Process):
         profile.readinfo=lambda selection: str(selection) #sysutil.readtextfile(path+'info.txt')
         profile.msg=msg
         profile.options=getpaths(defaultpathprofile(**kw))
-        profile.displayoption=lambda option:option
+        profile.displayoption=lambda option:squash(option)
         profile.dynamiccondition=lambda fulldotpath,phrase: re.search('.*'.join(phrase),fulldotpath.replace('.',''))
         profile.condition=lambda option:True
         return profile
@@ -154,7 +162,7 @@ class Browse(_display_.Process):
         profile.readinfo=lambda path: getmetadata(profile.parentfolder+path)+'\n\n'+sysutil.readtextfile(profile.parentfolder+path+'info.txt')
         profile.options=getpaths(defaultpathprofile(**kw))
         profile.msg=msg
-        profile.displayoption=lambda option:option+getmetadata(profile.parentfolder+option)
+        profile.displayoption=lambda option:squash(option)+getmetadata(profile.parentfolder+option)
         profile.dynamiccondition=lambda fulldotpath,phrase: re.search('.*'.join(phrase),fulldotpath.replace('.',''))
         profile.condition=lambda option:True
         return profile

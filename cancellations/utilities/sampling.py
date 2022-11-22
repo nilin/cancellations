@@ -9,9 +9,10 @@ import os
 import math
 from . import numutil
 from collections import deque
+import time
 
 from cancellations.utilities import sysutil
-
+from . import setup
 from ..utilities import tracking
 
 
@@ -65,10 +66,13 @@ class SamplesPipe(Sampler):
 
     def step(self):
         if len(self.minibatches)==0:
+            setup.timedistribution.starttask('prep next epoch')
             self.prepnextepoch()
+            setup.timedistribution.endtask()
         return self.minibatches.popleft()
 
-    def prepnextepoch(self,permute=True):
+    def prepnextepoch(self):
+        permute=True
         if permute: self.X,*self.Ys=numutil.randperm(self.X,*self.Ys)
         self.minibatches=deque(numutil.chop(self.X,*self.Ys,blocksize=self.minibatchsize))
 

@@ -5,25 +5,14 @@
 #
 
 
-from re import I
 import jax
 import jax.numpy as jnp
 import jax.random as rnd
-from ..functions import examplefunctions as ef, examplefunctions3d, functions
-from ..learning import learning
-from ..functions.functions import ComposedFunction,SingleparticleNN,Product
-from ..utilities import config as cfg, numutil, tracking, sysutil, textutil, sampling, setup
+from ..utilities import numutil, tracking
 from ..utilities.numutil import make_single_x
-from ..utilities.tracking import dotdict
-from ..plotting import plotting
-from ..display import _display_
-from . import plottools as pt
-from . import exampleutil
-import math
 from functools import partial
-from jax.lax import cond
 from jax.tree_util import tree_map
-
+from cancellations.functions import functions
 
 
 
@@ -37,12 +26,14 @@ class Lossgrad:
     pass
 
 class Lossgrad_SI(Lossgrad):
-    def __init__(self,f,density):
+    def __init__(self,fd,density):
+        f=fd._eval_
         self.lossfn=lambda params,X,Y: numutil.weighted_SI_loss(f(params,X),Y,relweights=1/density(X))
         self._eval_=jax.jit(jax.value_and_grad(self.lossfn))
 
 class Lossgrad_nonSI(Lossgrad):
-    def __init__(self,f,density):
+    def __init__(self,fd,density):
+        f=fd._eval_
         def lossfn(params,X,Y):
             rho=density(X)
             sqdist=(f(params,X)-Y)**2
@@ -52,10 +43,22 @@ class Lossgrad_nonSI(Lossgrad):
         self._eval_=jax.jit(jax.value_and_grad(self.lossfn))
 
 
+#class Lossgrad_sum(Lossgrad):
+#    def __init__(self,*lossgrads)
+#        self.lossgrads=lossgrads
+#
+#    def _eval_(self,params,X,fX):
+#        losses,grads=zip(*[l._eval_(params,X,fX) for l in self.lossgrads])
+#        grad=grads[0]
+#        for G in grads[1:]:
+#            grad=tree_map(lambda D1+D2:,grads,)
+#        return jnp.sum(losses),grad
+
 ####################################################################################################
 
-class Lossgrad_memory:
-    def __init__(self,period,microbatchsize,g,rho,batchmode='batch',**kw):
+class Lossgrad_memory(Lossgrad):
+    def __init__(self,period,microbatchsize,gd,rho,batchmode='batch',**kw):
+        g=gd._eval_
         g_=make_single_x(g)
         Dg_=jax.grad(g_)
 
@@ -76,9 +79,16 @@ class Lossgrad_memory:
         h=self.microbatchsize
         assert(2*h<=n)
 
+        I=rnd.choice(tracking.nextkey(),n,(2*h,))
+        X=X[I]
+        fX=fX[I]
+
         if self.i%self.period==0:
             self.Es=self.update_E(params,X,fX)
             #tracking.log('update Es')
+
+        #tracking.log(type(X))
+        #tracking.log(type(fX))
 
         X1=X[:h]
         X2=X[h:2*h]
@@ -106,8 +116,8 @@ class Lossgrad_memory:
 
 class Lossgrad_balanced(Lossgrad_memory):
 
-    def __init__(self,period,microbatchsize,g,rho,mode='nonsquare',**kw):
-        super().__init__(period,microbatchsize,g,rho,**kw)
+    def __init__(self,period,microbatchsize,gd,rho,mode='nonsquare',**kw):
+        super().__init__(period,microbatchsize,gd,rho,**kw)
         self.gradestimate=jax.jit(partial(self.gradestimate,self.g,self.Dg,self.rho,mode))
 
     @staticmethod
@@ -143,33 +153,29 @@ class Lossgrad_balanced(Lossgrad_memory):
         return tree_map(lambda D:gradfactor*jnp.tensordot(gradweights,D,axes=(0,0)),Dg2)
 
 
+####################################################################################################
 
 
-class Lossgrad_separate_denominators(Lossgrad_memory):
+class Lossgrad_normratio(Lossgrad):
+    def __init__(self,learnerdescr,density):
 
-    def __init__(self,period,microbatchsize,g,rho,**kw):
-        super().__init__(period,microbatchsize,g,rho,**kw)
-        self.gradestimate=jax.jit(partial(self.gradestimate,self.g,self.Dg,self.rho))
+        Af=learnerdescr._eval_
+        fdescr,switchcounts=functions.switchtype(learnerdescr)
+        assert(switchcounts==1)
+        f=fdescr._eval_
+
+        fnorm=partial(self.getnorm,f,density=density)
+        Afnorm=partial(self.getnorm,Af,density=density)
+
+        self.lossfn=lambda params,X,_: fnorm(params,X)/Afnorm(params,X)
+        self._eval_=jax.jit(jax.value_and_grad(self.lossfn))
+
 
     @staticmethod
-    def gradestimate(g,Dg,rho,params,X1,X2,f1,f2,_Efg,_Eff,Egg):
-
-        g1,g2=g(params,X1),g(params,X2)
-        Dg2=Dg(params,X2)
-        rho1,rho2=rho(X1),rho(X2)
-
-        fg=jnp.average(f1*g1/rho1)
-
-        gradweights1=-f2/rho2
-        gradweights2=(fg/rho1)*g2/rho2
-
-        assert(gradweights1.shape==rho2.shape)
-
-        Z=jnp.sqrt(Egg)
-        Z3=Egg*Z
-
-        return tree_map(lambda D:\
-            jnp.tensordot(gradweights1,D,axes=(0,0))/Z\
-            +jnp.tensordot(gradweights2,D,axes=(0,0))/Z3,\
-            Dg2)
-
+    def getnorm(_f_,weights,X,density):
+        Y=_f_(weights,X)
+        Xdensity=density(X)
+        squaresums=jnp.sum(Y**2,axis=Y.shape[1:])
+        assert(squaresums.shape==Xdensity.shape)
+        normalized=squaresums/Xdensity
+        return jnp.average(normalized)

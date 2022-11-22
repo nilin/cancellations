@@ -5,58 +5,17 @@
 #
 
 
-from cgi import test
-from re import I
 import jax.numpy as jnp
-import jax.random as rnd
 import jax
 from ..learning import learning
-from . import plottools as pt
 import matplotlib.pyplot as plt
 
 from ..utilities import numutil as mathutil, tracking,config as cfg,sysutil,textutil, numutil
 from ..functions import functions
 from ..learning import testing_old
-import os
 
 
 
-
-def train(run,learner,X_train,Y_train,**kw):
-
-    iterations=kw['iterations']
-    trainer=learning.Trainer(learner,X_train,Y_train,memory=run,**kw) 
-    regsched=tracking.Scheduler(tracking.nonsparsesched(iterations,start=100))
-    plotsched=tracking.Scheduler(tracking.sparsesched(iterations,start=1000))
-    trainer.prepnextepoch(permute=False)
-    ld,_=addlearningdisplay(run,tracking.currentprocess().display)
-
-    stopwatch1=tracking.Stopwatch()
-    stopwatch2=tracking.Stopwatch()
-
-    for i in range(iterations+1):
-
-        loss=trainer.step()
-        for mem in [run.unprocessed,run]:
-            mem.addcontext('minibatchnumber',i)
-            mem.remember('minibatch loss',loss)
-
-        if regsched.activate(i):
-            run.unprocessed.remember('weights',learner.weights)
-            sysutil.save(run.unprocessed,run.outpath+'data/unprocessed',echo=False)
-            sysutil.write('loss={:.3f} iterations={} n={} d={}'.format(loss,i,run.n,run.d),run.outpath+'metadata.txt',mode='w')    
-
-        if plotsched.activate(i):
-            fplot()
-            lplot()
-
-        if stopwatch1.tick_after(.05):
-            ld.draw()
-
-        if stopwatch2.tick_after(.5):
-            if tracking.act_on_input(tracking.checkforinput())=='b': break
-
-    return trainer
 
 
 
