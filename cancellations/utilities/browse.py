@@ -67,8 +67,9 @@ def browse(process):
     #allowtextinput=True if 'dynamiccondition' in profile.keys() else False
 
     while True:
-        matches=[option for option in profile.options\
-                if profile.dynamiccondition(profile.displayoption(option),inputtext) not in [None,False]]
+        #matches=[option for option in profile.options\
+                #if profile.dynamiccondition(profile.displayoption(option),inputtext) not in [None,False]]
+        matches=profile.options
 
         ls=pointer.val
         c=setup.getch(lambda: profile.msg)
@@ -84,8 +85,8 @@ def browse(process):
                             if not profile.onlyone:
                                 selections.append(matches[ls])
                                 selectionpositions[0]=[i for i,m in enumerate(matches) if m in selections]
-                        case 'BACKSPACE':
-                            if not profile.onlyone and ls in selections: selections.remove(matches[ls])
+                        case 'd':
+                            if (not profile.onlyone) and matches[ls] in selections: selections.remove(matches[ls])
                         case 'UP': ls-=1
                         case 'DOWN': ls+=1
                         case 'LEFT': ls-=5
@@ -96,8 +97,8 @@ def browse(process):
                         case 'c':
                             try: ls=min([c for c in selections if c>ls])
                             except: pass
-                        case 'i':
-                            mode='input'
+                        #case 'i':
+                        #    mode='input'
                         case 'q':
                             quit()
                         case 'b':
@@ -116,7 +117,8 @@ def browse(process):
         #ls=max(0,min(len(matches)-1,ls))
         ls=ls%len(matches)
         
-        Ltext.msg=explanation.format(mode,inputtext)
+        #Ltext.msg=explanation.format(mode,inputtext)
+        Ltext.msg=explanation#.format(mode,inputtext)
         optionsdisplay.msg='\n'.join([profile.displayoption(o) for o in matches])
         Rtext.msg=getinfo(profile.readinfo,profile.options[ls])
         pointer.val=ls
@@ -133,9 +135,18 @@ def squash(string):
 msg='\n\n'\
     +'Move with arrow keys:\n{}: up\n{}: down\n{}: fast up\n{}: fast down'.format(up,down,left,right)\
     +'\nYou may be able to scroll with the touchpad.'\
-    +'\n\nIf in multiple selection mode, press SPACE to select one of several items.'\
-    +'\n\nPress [i] to input filter phrase (escape with arrow keys).\nmode: {}\nphrase: {}'\
-    +'\n\nPress ENTER to finish selection.'
+    +'\n\nPress ENTER to select.'
+
+msg2='\n\n'\
+    +'Move with arrow keys:\n{}: up\n{}: down\n{}: fast up\n{}: fast down'.format(up,down,left,right)\
+    +'\nYou may be able to scroll with the touchpad.'\
+    +'\n\n\n'\
+    +'\n'+50*'-'\
+    +'\nPress SPACE to select one of several items.'\
+    +'\n'+50*'-'\
+    +'\n\n\n\nPress ENTER to finish selection.'
+
+
 
 class Browse(_display_.Process):
     processname='browse'
@@ -150,7 +161,7 @@ class Browse(_display_.Process):
         profile.msg=msg
         profile.options=getpaths(defaultpathprofile(**kw))
         profile.displayoption=lambda option:squash(option)
-        profile.dynamiccondition=lambda fulldotpath,phrase: re.search('.*'.join(phrase),fulldotpath.replace('.',''))
+        #profile.dynamiccondition=lambda fulldotpath,phrase: re.search('.*'.join(phrase),fulldotpath.replace('.',''))
         profile.condition=lambda option:True
         return profile
 
@@ -163,7 +174,7 @@ class Browse(_display_.Process):
         profile.options=getpaths(defaultpathprofile(**kw))
         profile.msg=msg
         profile.displayoption=lambda option:squash(option)+getmetadata(profile.parentfolder+option)
-        profile.dynamiccondition=lambda fulldotpath,phrase: re.search('.*'.join(phrase),fulldotpath.replace('.',''))
+        #profile.dynamiccondition=lambda fulldotpath,phrase: re.search('.*'.join(phrase),fulldotpath.replace('.',''))
         profile.condition=lambda option:True
         return profile
 

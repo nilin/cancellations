@@ -1,15 +1,12 @@
 import matplotlib.pyplot as plt
-import jax
-import jax.numpy as jnp
-import jax.random as rnd
 
 from cancellations.display import _display_
-from cancellations.utilities import textutil
 from ..utilities import sysutil, tracking, batchjob, browse, numutil, setup
-from ..functions import examplefunctions3d
 from . import traingraphs
 import random
-from collections import deque
+import os
+from pathlib import Path
+
 
 def trainplots(process,profile):
 
@@ -21,7 +18,7 @@ def trainplots(process,profile):
     
     fig,axs=plt.subplots(nplots,1,figsize=(8,10))
     #axs=deque(axs)
-    colors=['r:','b']*10
+    colors=['r--','b']*10
 
     for ax,po in zip(axs,plotoptions):
         ax.set_title(po)
@@ -55,14 +52,38 @@ class Run(batchjob.Batchjob):
 
         P=tracking.Profile()
 
-        browsingprocess=browse.Browse(browse.Browse.getdefaultfilebrowsingprofile().butwith(onlyone=False))
-        relrunpaths=self.run_subprocess(browsingprocess,taskname='choose run')
-        self.runpaths=['outputs/'+relrunpath for relrunpath in relrunpaths]
-        self.outpath='outputs/'+' and '.join(relrunpaths).replace('/','_')
-        self.descriptions=[a[-50:] for a in relrunpaths]
+        pathprofile=tracking.Profile(\
+            parentfolder='./',\
+            regex='.*outputs.*',\
+            condition=lambda path:os.path.exists(path+'/data/setup'))
+
+        allrunpaths=browse.getpaths(pathprofile)
+        allprofilepaths=list(set([os.path.join(*Path(p).parts[:-1]) for p in allrunpaths]))
+
+        browsingprocess=browse.Browse(browse.Browse.getdefaultprofile().butwith(\
+            onlyone=False,\
+            msg='Please select plots to make (with SPACE)'+browse.msg2,\
+            options=allprofilepaths,\
+            displayoption=lambda path: Path(path).parts[-1],\
+            readinfo=lambda path: path.replace('/','\n'),\
+            ))
+        profilepaths=self.run_subprocess(browsingprocess,taskname='choose run')
+        self.descriptions=[Path(path).parts[-1] for path in profilepaths]
+
+        self.runpaths=[]
+        for path,desc in zip(profilepaths,self.descriptions):
+            runpaths=[p for p in allrunpaths if Path(path).parts[-1] in Path(p).parts]
+            browsingprocess=browse.Browse(browse.Browse.getdefaultprofile().butwith(\
+                options=runpaths,\
+                msg='Please select run for profile:\n{}'.format(desc)+browse.msg,\
+                displayoption=lambda path: os.path.join(*Path(path).parts[-2:]),\
+                readinfo=lambda path: path.replace('/','\n'),\
+                ))
+            self.runpaths.append(self.run_subprocess(browsingprocess,taskname='choose run'))
 
         options=['loss','|f|','|Af|','|f|/|Af|','|weights|']
-        browsingprocess2=browse.Browse(browse.Browse.getdefaultfilebrowsingprofile().butwith(onlyone=False,options=options))
+        browsingprocess2=browse.Browse(browse.Browse.getdefaultfilebrowsingprofile().butwith(\
+            onlyone=False,options=options,msg='select plots to make.'+browse.msg))
         P.plotoptions=self.run_subprocess(browsingprocess2,taskname='choose plot options')
 
         _display_.leavedisplay(self,lambda: trainplots(self,P))
