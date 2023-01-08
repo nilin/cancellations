@@ -5,23 +5,17 @@
 #
 
 
-from re import I
-import jax
 import jax.numpy as jnp
 import jax.random as rnd
-from ..functions import examplefunctions as ef, examplefunctions3d, functions
+from ..functions import functions
 from ..learning import learning
 from ..functions.functions import ComposedFunction,SingleparticleNN,Product
 from ..utilities import config as cfg, numutil, tracking, sysutil, textutil, sampling, setup
 from ..utilities.tracking import dotdict
 from ..plotting import plotting
 from ..display import _display_
-from . import plottools as pt
-from . import exampleutil
-import os
-import math
 from functools import partial
-from . import losses
+from ..lossesandnorms import losses
 
 
 
@@ -67,7 +61,6 @@ class Run(_display_.Process):
         run.X_test=run.genX(P.samples_test)
         run.Y_test=numutil.blockwise_eval(run.target,blocksize=P.evalblocksize,msg='preparing test data')(run.X_test)
         r=P.plotrange
-        #run.sections=pt.genCrossSections(numutil.blockwise_eval(run.target,blocksize=P.evalblocksize),interval=jnp.arange(-r,r,r/50))
 
         run.log('gen learner')
 
@@ -84,7 +77,6 @@ class Run(_display_.Process):
             #
             X_train=run.X_train, Y_train=run.Y_train, Xdensity_train=P.X_density(run.X_train),\
             X_test=run.X_test,Y_test=run.Y_test, Xdensity_test=P.X_density(run.X_test),\
-            #sections=run.sections,\
             profilename=P.profilename\
             )
         sysutil.save(setupdata,run.outpath+'data/setup')
@@ -96,15 +88,20 @@ class Run(_display_.Process):
 
         run.log('gen lossgrad and learner')
         #train
-        run.lossgradobj=P.initlossgrad(run.learner._eval_,P.X_density)
-        run.lossgrad=run.lossgradobj._eval_
 
         run.sampler=sampling.SamplesPipe(run.X_train,run.Y_train,minibatchsize=P.batchsize)
-        run.trainer=learning.Trainer(run.lossgrad,run.learner,run.sampler,\
-            **{k:P[k] for k in ['weight_decay','iterations']}) 
+
+        run.lossgrads=[]
+        run.trainers=[]
+        for init in P.initlossgrads:
+            run.lossgradobj=init(run.learner,P.X_density)
+            lossgrad=run.lossgradobj._eval_
+            run.lossgrads.append(lossgrad)
+            run.trainers.append(learning.Trainer(lossgrad,run.learner,run.sampler,\
+                **{k:P[k] for k in ['weight_decay','iterations']}))
 
 
-        regsched=tracking.Scheduler(range(0,P.iterations+100,100))
+        regsched=tracking.Scheduler(range(0,P.iterations+25,25))
         run.addlearningdisplay()
 
         run.log('data type (32 or 64): {}'.format(run.learner.eval(run.X_train[100:]).dtype))
@@ -114,12 +111,16 @@ class Run(_display_.Process):
 
         for i in range(P.iterations+1):
 
-            loss=run.trainer.step()
-            run.loss.val=loss
+            for name,dt,trainer in zip(P.lossnames,P.lossperiods,run.trainers):
+                if i%dt==0:
+                    loss=trainer.step()
+                    if name=='loss':
+                        run.loss.val=loss
+
+                run.traindata.append(dict(name=loss,i=i))
+
             run.its=i
             run.learningdisplay.draw()
-
-            run.traindata.append(dict(loss=loss,i=i))
 
             if regsched.activate(i):
                 run.traindata.append(dict(weights=run.learner.weights,i=i))
@@ -188,7 +189,11 @@ class Run(_display_.Process):
 
         profile.gettarget=gettarget
         profile.getlearner=getlearner
-        profile.initlossgrad=losses.Lossgrad_SI
+
+        #losses
+        profile.initlossgrads=[losses.Lossgrad_SI]
+        profile.lossnames=['loss']
+        profile.lossperiods=[1]
 
         def act_on_input(key,process):
             if key=='q': quit()

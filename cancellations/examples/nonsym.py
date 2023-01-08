@@ -14,14 +14,14 @@ from . import runtemplate
 
 
 
-
+#dontpick
 
 class Run(runtemplate.Run):
     processname='harmonicoscillator2d'
 
     @classmethod
     def getdefaultprofile(cls):
-        return super().getdefaultprofile().butwith(gettarget=gettarget,samples_train=10**5)
+        return super().getdefaultprofile().butwith(gettarget=gettarget,getlearner=getlearner,samples_train=10**5,no_nonsym_plot=True)
 
     @classmethod
     def getprofiles(cls):
@@ -77,10 +77,26 @@ class Run(runtemplate.Run):
 
 def gettarget(P,run):
     f=functions.Slater(*['psi{}_{}d'.format(i,P.d) for i in range(1,P.n+1)])
+
+    f,switchcounts=functions.switchtype(f)
+
     f=normalize(f, run.genX, P.X_density)
     ftest=normalize(f, run.genX, P.X_density)
     run.log('double normalization factor check (should~1) {:.3f}'.format(ftest.elements[0].weights))
     return f
+
+def getlearner(profile):
+    from ..functions.functions import ComposedFunction, SingleparticleNN
+    #return Product(functions.ScaleFactor(),functions.IsoGaussian(1.0),ComposedFunction(\
+    f=Product(functions.IsoGaussian(1.0),ComposedFunction(\
+        SingleparticleNN(**profile.learnerparams['SPNN']),\
+        functions.Backflow(**profile.learnerparams['backflow']),\
+        functions.Dets(n=profile.n,**profile.learnerparams['dets']),\
+        functions.Sum()\
+        ))
+    nonsym,switchcounts=functions.switchtype(f)
+    return nonsym
+
 
 def normalize(f,genX,Xdensity):
     C=functions.ScaleFactor()

@@ -10,7 +10,7 @@ from . import multivariate as mv
 from . import AS_tools
 from . import AS_tools as ASt
 import jax.random as rnd
-from . import backflow as bf, examplefunctions, examplefunctions3d
+from . import backflow as bf, examplefunctions
 import textwrap
 import math
 import copy

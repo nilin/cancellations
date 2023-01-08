@@ -14,7 +14,7 @@ from ..learning import learning
 from ..functions.functions import ComposedFunction,SingleparticleNN,Product
 from ..utilities import config as cfg, numutil, tracking, sysutil, textutil, sampling, energy
 import optax
-from . import plottools as pt
+from ..plotting import plottools as pt
 from . import exampleutil
 
 

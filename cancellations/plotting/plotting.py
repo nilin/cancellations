@@ -6,7 +6,6 @@ import jax.random as rnd
 from cancellations.display import _display_
 from cancellations.utilities import textutil
 from ..utilities import sysutil, tracking, batchjob, browse, numutil, setup
-from ..functions import examplefunctions3d
 from . import traingraphs
 
 

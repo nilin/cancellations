@@ -1,24 +1,8 @@
-from re import I
 import jax
 import jax.numpy as jnp
-import jax.random as rnd
-from ..functions import examplefunctions as ef, examplefunctions3d, functions
-from ..learning import learning
-from ..functions.functions import ComposedFunction,SingleparticleNN,Product
-from ..utilities import config as cfg, numutil, tracking, sysutil, textutil, sampling, setup
-from ..utilities.numutil import make_single_x
-from ..utilities.tracking import dotdict
-from ..plotting import plotting
-from ..display import _display_
-from . import plottools as pt
-from . import exampleutil
-import math
 from functools import partial
-from jax.lax import cond
 from jax.tree_util import tree_map
-
 from . import losses
-
 
 #dontpick
 
