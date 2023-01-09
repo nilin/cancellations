@@ -1,11 +1,12 @@
 import os
 import re
+from cancellations.config import config as cfg, tracking
 
-from cancellations.utilities import textutil, setup
+from cancellations.utilities import textutil
 
-from cancellations.utilities import tracking
+from cancellations.config import tracking
 from cancellations.display import _display_
-from cancellations.utilities import config as cfg,sysutil,tracking
+from cancellations.config import sysutil
 
 
 up='\u2191'
@@ -72,7 +73,7 @@ def browse(process):
         matches=profile.options
 
         ls=pointer.val
-        c=setup.getch(lambda: profile.msg)
+        c=cfg.getch(lambda: profile.msg)
 
         if c=='ENTER':
             return matches[ls] if profile.onlyone else selections

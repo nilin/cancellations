@@ -1,8 +1,9 @@
 import jax, jax.numpy as jnp
 import jax.random as rnd
 import math
+from cancellations.config import config as cfg, tracking
 
-from cancellations.utilities import numutil, tracking,config as cfg
+from cancellations.utilities import numutil
 from cancellations.utilities.numutil import activations
 from cancellations.utilities import numutil
 from cancellations.utilities import permutations as ps
@@ -48,30 +49,6 @@ def gen_lossgrad(f,lossfn=None):
     return jax.value_and_grad(collectiveloss)
     
 
-#=======================================================================================================
-# single layer special case
-#=======================================================================================================
-
-def gen_singlelayer_Af(n,ac):
-
-    Ps,signs=ps.allpermtuples(n)                    # Ps:    n!,n,n
-    I=jnp.repeat(jnp.expand_dims(jnp.arange(n),axis=0),len(signs),axis=0)
-    scale=1/jnp.sqrt(len(signs))
-
-    @jax.jit
-    def Af_singleneuron(w,b,X):     # w: n,d
-        overlaps=jnp.inner(X,w)     # s,n,n
-        outputs=ac(jnp.sum(overlaps[...,I,Ps],axis=-1)+b)
-        return jnp.inner(outputs,signs)
-
-    @jax.jit
-    def Af(params,X):     # w: n,d
-        (W,bs),a=params
-        A_neuronoutputs=jax.vmap(Af_singleneuron,in_axes=(0,0,None),out_axes=-1)(W,bs,X)
-        return jnp.squeeze(jnp.inner(A_neuronoutputs,a))*scale
-
-    return Af
-
 
 #----------------------------------------------------------------------------------------------------
 # random initializations
@@ -84,26 +61,6 @@ def initweights_NN(widths,*args,**kw):
     bs=[rnd.normal(tracking.nextkey(),(d2,))*cfg.biasinitsize for d2 in ds[1:]]
 
     return list(zip(Ws,bs))
-
-
-#----------------------------------------------------------------------------------------------------
-# operations on functions
-#----------------------------------------------------------------------------------------------------
-
-def multiply(*fs):
-    if max([numutil.takesparams(f) for f in fs]):
-        def F(paramsbundle,X):
-            out=1
-            for f,params in zip(fs,paramsbundle):
-                out*=numutil.pad(f)(params,X)
-            return out
-    else:
-        def F(X):
-            out=1
-            for f in fs: out*=f(X)
-            return out
-    return F
-
 
 
 

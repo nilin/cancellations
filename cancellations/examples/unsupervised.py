@@ -9,10 +9,12 @@ from re import I
 import jax
 import jax.numpy as jnp
 import jax.random as rnd
-from ..functions import examplefunctions as ef, functions
+
+from ..config import config as cfg, sysutil, tracking
+from ..functions import _functions_, examplefunctions as ef
 from ..learning import learning
-from ..functions.functions import ComposedFunction,SingleparticleNN,Product
-from ..utilities import config as cfg, numutil, tracking, sysutil, textutil, sampling, energy
+from ..functions._functions_ import ComposedFunction,SingleparticleNN,Product
+from ..utilities import numutil, textutil, sampling, energy
 import optax
 from ..plotting import plottools as pt
 from . import exampleutil
@@ -63,11 +65,11 @@ def getdefaultprofile():
 
 def getlearner(profile):
 
-    return Product(functions.IsoGaussian(1.0),ComposedFunction(\
+    return Product(_functions_.IsoGaussian(1.0),ComposedFunction(\
         SingleparticleNN(**profile.learnerparams['SPNN']),\
         #functions.Backflow(**profile.learnerparams['backflow']),\
-        functions.Dets(n=profile.n,**profile.learnerparams['dets']),\
-        functions.OddNN(**profile.learnerparams['OddNN'])))
+        _functions_.Dets(n=profile.n,**profile.learnerparams['dets']),\
+        _functions_.OddNN(**profile.learnerparams['OddNN'])))
 
 
 

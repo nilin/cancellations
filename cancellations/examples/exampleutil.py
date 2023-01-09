@@ -1,10 +1,11 @@
 import jax.numpy as jnp
 import jax
 import matplotlib.pyplot as plt
-
+import os
+from cancellations.config import config as cfg, sysutil, tracking
 from cancellations.learning import learning
-from cancellations.utilities import numutil as mathutil, tracking,config as cfg,sysutil,textutil, numutil
-from cancellations.functions import functions
+from cancellations.utilities import numutil as mathutil, textutil, numutil
+from cancellations.functions import _functions_
 from cancellations.testing import testing
 
 
@@ -21,7 +22,7 @@ def testantisymmetry(target,learner,X):
 def adjustnorms(Afdescr,X,iterations=500,**learningparams):
     run=tracking.currentprocess()
     Af=Afdescr._eval_
-    f=functions.switchtype(Afdescr)._eval_
+    f=_functions_.switchtype(Afdescr)._eval_
     normratio=jax.jit(lambda weights,X:mathutil.norm(f(weights,X))/mathutil.norm(Af(weights,X)))
     weights=Afdescr.weights
 
@@ -94,7 +95,6 @@ def process_snapshot_0(processed,f,X,Y,i):
 def plotexample_0(unprocessed,processed):
     plt.close('all')
 
-
     fig,(ax0,ax1)=plt.subplots(2)
     fig.suptitle('test loss '+info())
 
@@ -109,9 +109,7 @@ def plotexample_0(unprocessed,processed):
     ax1.set_yscale('log')
     ax1.grid(True,which='major',ls='-',axis='y')
     ax1.grid(True,which='minor',ls=':',axis='y')
-    sysutil.savefig('{}{}'.format(cfg.outpath,'losses.pdf'),fig=fig)
-
-
+    sysutil.savefig(os.path.join(cfg.outpath,'losses.pdf'),fig=fig)
 
     fig,ax=plt.subplots()
     ax.set_title('performance '+info())
@@ -119,7 +117,7 @@ def plotexample_0(unprocessed,processed):
     ax.plot(t,I)
     ax.set_xlabel('time')
     ax.set_ylabel('minibatch')
-    sysutil.savefig('{}{}'.format(cfg.outpath,'performance.pdf'),fig=fig)
+    sysutil.savefig(os.path.join(cfg.outpath,'performance.pdf'),fig=fig)
 
 
 process_snapshot=process_snapshot_0
@@ -161,7 +159,7 @@ def plotfunctions(sections,f,figtitle,path):
 def fplot():
     run=tracking.currentprocess()
     figtitle=info(separator='\n')
-    figpath='{}{} minibatches'.format(run.outpath,int(run.unprocessed.getval('minibatchnumber')))
+    figpath=os.path.join(run.outpath,int(run.unprocessed.getval('minibatchnumber'))+' minibatches')
 
 #    C=numutil.norm(run.target.eval(run.X_train[:1000]))/numutil.norm(run.learner.eval(run.X_train[:1000]))
 #    f=lambda X:run.learner.eval(X)*C

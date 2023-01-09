@@ -2,11 +2,10 @@
 
 import jax, jax.numpy as jnp
 import textwrap, math, copy
+from cancellations.config import config as cfg, tracking
 
-from cancellations.utilities import numutil as mathutil, tracking,textutil, config as cfg
-from cancellations.functions import NNfunctions as mv
-from cancellations.functions import AS_tools, AS_tools as ASt
-from cancellations.functions import backflow as bf
+from cancellations.utilities import numutil, numutil as mathutil, textutil
+from cancellations.functions import NN as mv, symmetries, symmetries as ASt
 
 
 class FunctionDescription:
@@ -172,7 +171,7 @@ class Equivariant(FunctionDescription):
 
 class SingleparticleNN(NNfunction,Equivariant):
     def compile(self):
-        return bf.gen_singleparticleNN(activation=self.activation)
+        return symmetries.gen_singleparticleNN(activation=self.activation)
 
     @staticmethod
     def _initweights_(widths,**kw):
@@ -218,7 +217,7 @@ class NN(NNfunction,Nonsym):
 
 class Prods(Nonsym):
     antisymtype='Dets'
-    def compile(self): return AS_tools.prods
+    def compile(self): return symmetries.prods
 
     @staticmethod
     def _initweights_(k,n,d,**kw):
@@ -270,7 +269,7 @@ class ASNN(Antisymmetric,NNfunction):
 
 class Dets(Antisymmetric):
     nonsym=Prods
-    def _compile_(self): return AS_tools.dets
+    def _compile_(self): return symmetries.dets
 
     @staticmethod
     def translation(name):return 'ndets' if name=='k' else name
@@ -465,3 +464,23 @@ def inspect(fd,X,formatarrays=None,msg=''):
 
 def definefunction(fname,fn):
     globals()[fname]=fn
+
+
+
+#----------------------------------------------------------------------------------------------------
+# operations on functions
+#----------------------------------------------------------------------------------------------------
+
+def multiply(*fs):
+    if max([numutil.takesparams(f) for f in fs]):
+        def F(paramsbundle,X):
+            out=1
+            for f,params in zip(fs,paramsbundle):
+                out*=numutil.pad(f)(params,X)
+            return out
+    else:
+        def F(X):
+            out=1
+            for f in fs: out*=f(X)
+            return out
+    return F

@@ -1,11 +1,13 @@
 from re import I
-from cancellations.utilities import textutil, tracking
+from cancellations.config import tracking
+from cancellations.utilities import textutil
 from cancellations.display import _display_
 
 
 
 class Batchjob(_display_.Process):
     processname='batchjob'
+    processtype='batchjobs'
 
     def execprocess(self):
         self.dashboard=self.display

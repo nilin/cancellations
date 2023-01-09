@@ -1,14 +1,13 @@
-import numpy as np
 import time
-import copy
-import jax.numpy as jnp
 import datetime
 import jax.random as rnd
-import copy
 from collections import deque
 import datetime
+import os
 import copy
-from cancellations.utilities import sysutil, textutil, setup
+from cancellations.config import sysutil, config as cfg
+from cancellations.utilities import textutil
+import jax.numpy as jnp
 
 #----------------------------------------------------------------------------------------------------
 
@@ -42,7 +41,7 @@ def extracthist(snapshots,*varnames):
             for i,n in enumerate(varnames):
                 out[i].append(snapshot[n])
     return out
-    return zip(*[(snapshot[n] for n in varnames) for snapshot in snapshots if all([n in snapshot.keys() for n in varnames])])
+    #return zip(*[(snapshot[n] for n in varnames) for snapshot in snapshots if all([n in snapshot.keys() for n in varnames])])
 
 
 
@@ -104,7 +103,6 @@ class Memory(dotdict,Timer):
             return lambda: [self.getval(name) for name in names]
 
 #----------------------------------------------------------------------------------------------------
-#----------------------------------------------------------------------------------------------------
 
 class Keychain:
 
@@ -124,10 +122,16 @@ class Keychain:
 
 #----------------------------------------------------------------------------------------------------
 
+def nowstr():
+    date,time=str(datetime.datetime.now()).split('.')[0].split(' ')
+    date='-'.join(date.split('-')[1:])
+    time=''.join([x for pair in zip(time.split(':'),['h','m','s']) for x in pair])
+    return date+'|'+time
 
 
 class Process(Memory):
     processname='process'
+    processtype='processes'
 
     def __init__(self,profile=None,**kw):
         super().__init__()
@@ -140,22 +144,23 @@ class Process(Memory):
         self.keychain=Keychain()
         self.profile=profile
         self.setID()
-        self.outpath='outputs/'+self.ID+'/'
-
+        self.outpath=os.path.join('outputs',self.processtype,self.ID)
         self.continueprocess=self.execprocess
 
     def setID(self):
-        self.ID='{}/{}/{}'.format(self.processname,self.profile.profilename,setup.session.ID)
+        self.ID=cfg.session.ID
+        #self.ID=nowstr()
+        #self.ID='{}/{}/{}'.format(self.processname,self.profile.profilename,cfg.session.ID)
 
     def log(self,msg):
         msg=str(msg)
         tmsg=textutil.appendright(self.timeprint()+' | ',msg)
         self.remember('recentlog',tmsg,membound=100)
-        sysutil.write(tmsg+'\n',self.outpath+'log.txt',mode='a')
+        sysutil.write(tmsg+'\n',os.path.join(self.outpath,'log.txt'),mode='a')
 
         self.refresh()
 
-        if setup.display_on==False: print(msg)
+        if cfg.display_on==False: print(msg)
 
     def nextkey(self):
         return self.keychain.nextkey()
@@ -172,31 +177,27 @@ class Process(Memory):
 
 
 
-def nowstr():
-    date,time=str(datetime.datetime.now()).split('.')[0].split(' ')
-    date='-'.join(date.split('-')[1:])
-    time=''.join([x for pair in zip(time.split(':'),['h','m','s']) for x in pair])
-    return date+'|'+time
 
 
 class Session(Process):
     processname='session'
-    def __init__(self,profile=None,**kw):
-        super().__init__(profile=profile,**kw)
-        self.outpath='outputs/sessions/'+self.ID+'/'
+    processtype='sessions'
+
+#    def __init__(self,profile=None,**kw):
+#        super().__init__(profile=profile,**kw)
 
     def setID(self):
         self.ID=nowstr()
 
 
-setup.session=Session()
+cfg.session=Session()
 
 def log(msg):
     currentprocess().log(msg)
-    #setup.session.log(msg)
+    #cfg.session.log(msg)
 
 def getlog():
-    return setup.session.gethist('recentlog')
+    return cfg.session.gethist('recentlog')
 
 
 
@@ -225,7 +226,6 @@ def swap_process(process):
     return loadprocess(process)
 
 
-
 def currentprocess():
     return processes[-1]
 
@@ -233,17 +233,14 @@ def currentdashboard():
     return dashboards[-1]
 
 
-
 def act_on_input(inp,*args,**kw):
     return currentprocess().profile.act_on_input(inp,*args,**kw)
-
 
 
 def nextkey(): return currentprocess().nextkey()
 
 
-
-loadprocess(setup.session)
+loadprocess(cfg.session)
 
 #----------------------------------------------------------------------------------------------------
 
@@ -369,7 +366,6 @@ class TimeDistribution:
             self.times[self.none]=self.times.pop(self.none)
 
     def concludecurrenttask(self):
-        #breakpoint()
         task=self.current
         self.times[task]+=self.trackblocks.tick()
         if self.log_every is not None:
@@ -385,19 +381,8 @@ class TimeDistribution:
         for task,time in zip(tasks,times):
             log('{:.0%} of time spent on {}'.format(time,task))
 
-setup.timedistribution=TimeDistribution()
-
-
-#====================================================================================================
-
-
-setup.stopwatch=Stopwatch()
-# def logcurrenttask(msg): currentprocess().logcurrenttask(msg)
-# def trackcurrenttask(msg,completeness): return currentprocess().trackcurrenttask(msg,completeness)
-# def getcurrenttask(): return currentprocess().getcurrenttask()
-# def clearcurrenttask(): currentprocess().clearcurrenttask()
-#----------------------------------------------------------------------------------------------------
-
+cfg.timedistribution=TimeDistribution()
+cfg.stopwatch=Stopwatch()
 
 def debuglistcomp(x,msg):
     log(msg)
@@ -413,234 +398,3 @@ hour=3600
 day=24*hour
 week=7*day
 
-
-
-
-#def getlossfn():
-#    return lossfn
-
-#def histpath():
-#    return cfg.outpath+'hist'
-#
-#def logpaths():
-#    return [cfg.outpath+'log','logs/'+session.ID]
-#
-#def getoutpath():
-#    return cfg.outpath
-
-#def register(*names,sourcedict,savetoglobals=False):
-#    cfgcontext=globals() if savetoglobals else params
-#    cfgcontext.update({k:sourcedict[k] for k in names})
-#
-#def retrieve(context,names):
-#    context.update({k:params[k] if k in params else globals()[k] for k in names})
-
-
-#
-#def savestate(*paths):
-#    #sessionstate.save(*paths)
-#        
-#def save():
-#    savestate(*histpaths())
-#
-
-#def formatvars(elements,separator=' ',ignore={}):
-#    return separator.join(['{}={}'.format(name,val) for name,val in elements if name not in ignore])
-
-
-#----------------------------------------------------------------------------------------------------
-
-
-#
-#
-#
-#def providedefault(defs,**kw):
-#    [(name,defaultval)]=list(kw.items())
-#    try: return defs[name]
-#    except: return defaultval
-#
-#
-#t0=time.perf_counter()
-#trackedvals=dict()
-#eventlisteners=dict()
-#
-#
-#
-#
-#def getfromargs(**kw):
-#    return kw[selectone(set(kw.keys()),cmdparams)]
-#
-#fromcmdparams=getfromargs
-#getfromcmdparams=getfromargs
-#
-#
-#dash='\u2015'
-#
-#
-
-
-#
-#
-#
-#
-#
-#def test():
-#    import time
-#    s=Stopwatch()
-#    for i in range(100): print(s.tick_after(.1)); time.sleep(.01)
-#
-#
-#def conditional(f,do):
-#    if do:
-#        f()
-
-#def orderedunion(A,B):
-#    A,B=list(A),deque(B)
-#    S=set(A)
-#    for b in B:
-#        if b not in S:
-#            A.append(b)
-#            S.add(b)
-#    return A
-#        
-#
-#def terse(l):
-#    return str([round(float(e*1000))/1000 for e in l])
-#
-#def selectone(options,l):
-#    choice=list(options.intersection(l))
-#    assert(len(choice)==1)
-#    return choice[0]
-#
-#def selectonefromargs(*options):
-#    return selectone(set(options),parse_cmdln_args()[0])
-
-#====================================================================================================
-
-
-#def longestduration(folder):
-#    def relorder(subfolder):
-#        try:
-#            with open(folder+'/'+subfolder+'/duration','r') as f:
-#                return int(f.read())
-#        except:
-#            return -1
-#    return folder+max([(subfolder,relorder(subfolder)) for subfolder in os.listdir(folder)],key=lambda pair:pair[1])[0]+'/'
-#    
-#def latest(folder):
-#    folders=[f for f in os.listdir(folder) if len(f)==15 and len(re.sub('[^0-9]','',f))==10]
-#    def relorder(subfoldername):
-#        return int(re.sub('[^0-9]','',subfoldername))
-#    return folder+max([(subfolder,relorder(subfolder)) for subfolder in folders],key=lambda pair:pair[1])[0]+'/'
-
-
-#def memorybatchlimit(n):
-#    s=1
-#    memlim=10**6
-#    while(s*math.factorial(n)<memlim):
-#        s=s*2
-#
-#    if n>heavy_threshold:
-#        assert s==1, 'AS_HEAVY assumes single samples'
-#
-#    return s
-        
-
-
-
-#setlossfn('sqloss')
-#setlossfn('SI_loss')
-#setlossfn('log_SI_loss')
-
-
-
-#lossfn=sqloss
-#heavy_threshold=8
-
-
-#sessionstate=State()
-#params=dict()
-
-#def poke(*args,**kw):
-#    if 'recentlog' in args:
-#        print(args[1])
-
-
-
-
-    #try: return chr(a)
-    #except: return a
-    #try: return {259:'UP',258:'DOWN',260:'LEFT',261:'RIGHT'}[a]
-    #except: pass
-    #try: return {27:'ESCAPE',127:'BACKSPACE',10:'ENTER'}[a]
-    #except: pass
-    #return a
-
-
-
-
-#def printonpoke(msgfn):
-#    def newpoke(*args,**kw):
-#        print(msgfn(*args,**kw))
-#    global poke
-#    poke=newpoke
-#
-#def print_task_on_poke():
-#    def msgfn(*args,**kw):
-#        return '{}: {:.0%}'.format(session.getcurrentval('currenttask'),\
-#            session.getcurrentval('currenttaskcompleteness'))
-#    printonpoke(msgfn)
-
-
-#def provide(context=None,**kw):
-#    if context==None: context=globals()
-#    for name,val in kw.items():
-#        if name not in context:
-#            context[name]=val    
-#
-
-
-#def addparams(**kw):
-#    params.update(kw)
-
-
-
-
-
-#def refreshdisplay(name):
-#    try: dashboard.draw(name)
-#    except: log('failed to refresh display '+name)
-
-
-####################################################################################################
-
-# testing
-
-
-#checkforinput=donothing
-
-
-
-#
-#
-#
-#
-#
-#if __name__=='__main__':
-#
-##    print(stepwiseperiodicsched([10,100],[0,60,600]))
-##    for i in range(10):
-##        print(nextkey())
-#
-#    #print(selectone({'r','t'},[1,4,'r',5,'d']))
-#
-##    print(times_to_ordinals([.1,.2,.3,.4,.5,.6,.7,.8],[.3,.7],['a','b']))
-##    print(times_to_ordinals([.1,.2,.3,.4,.5,.6,.7,.8],[.1,.2,.3,.4,.5,.6,.7,.8],[1,2,3,4,5,6,7,8]))
-#
-#    #print(expsched(.1,100,3))
-#
-#
-#    print(nonsparsesched(1000,10))
-#
-#    #livekeyboard()
-#

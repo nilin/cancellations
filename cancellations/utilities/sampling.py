@@ -11,9 +11,9 @@ from . import numutil
 from collections import deque
 import time
 
-from cancellations.utilities import sysutil
-from . import setup
-from ..utilities import tracking
+from cancellations.config import sysutil
+from ..config import config as cfg
+from ..config import tracking
 
 
 scaleby=jax.vmap(jnp.multiply,in_axes=(0,0))
@@ -66,9 +66,9 @@ class SamplesPipe(Sampler):
 
     def step(self):
         if len(self.minibatches)==0:
-            setup.timedistribution.starttask('prep next epoch')
+            cfg.timedistribution.starttask('prep next epoch')
             self.prepnextepoch()
-            setup.timedistribution.endtask()
+            cfg.timedistribution.endtask()
         return self.minibatches.popleft()
 
     def prepnextepoch(self):

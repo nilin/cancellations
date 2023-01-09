@@ -1,11 +1,14 @@
 import matplotlib.pyplot as plt
 import os
 from pathlib import Path
+from cancellations.config import batchjob, browse, config as cfg, tracking
 
 from cancellations.display import _display_
-from cancellations.utilities import sysutil, tracking, batchjob, browse, numutil, setup
+from cancellations.config import sysutil
 from cancellations.plotting import traingraphs
 
+
+# dontpick
 
 def trainplots(process,profile):
 
@@ -101,4 +104,4 @@ class Run(batchjob.Batchjob):
 
 if __name__=='__main__':
     Run().run_as_main()
-    setup.run_afterdisplayclosed()
+    cfg.run_afterdisplayclosed()

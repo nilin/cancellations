@@ -6,7 +6,8 @@ import jax.random as rnd
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import math
-from cancellations.utilities import sysutil, numutil, tracking,sampling
+from cancellations.config import sysutil, tracking
+from cancellations.utilities import numutil, sampling
 
 
 

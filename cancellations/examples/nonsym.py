@@ -6,8 +6,8 @@
 
 
 import jax.numpy as jnp
-from ..functions import functions
-from ..functions.functions import Product
+from ..functions import _functions_
+from ..functions._functions_ import Product
 from functools import partial
 from ..lossesandnorms import losses,losses2
 from . import runtemplate
@@ -76,9 +76,9 @@ class Run(runtemplate.Run):
         return profiles
 
 def gettarget(P,run):
-    f=functions.Slater(*['psi{}_{}d'.format(i,P.d) for i in range(1,P.n+1)])
+    f=_functions_.Slater(*['psi{}_{}d'.format(i,P.d) for i in range(1,P.n+1)])
 
-    f,switchcounts=functions.switchtype(f)
+    f,switchcounts=_functions_.switchtype(f)
 
     f=normalize(f, run.genX, P.X_density)
     ftest=normalize(f, run.genX, P.X_density)
@@ -86,20 +86,20 @@ def gettarget(P,run):
     return f
 
 def getlearner(profile):
-    from ..functions.functions import ComposedFunction, SingleparticleNN
+    from ..functions._functions_ import ComposedFunction, SingleparticleNN
     #return Product(functions.ScaleFactor(),functions.IsoGaussian(1.0),ComposedFunction(\
-    f=Product(functions.IsoGaussian(1.0),ComposedFunction(\
+    f=Product(_functions_.IsoGaussian(1.0),ComposedFunction(\
         SingleparticleNN(**profile.learnerparams['SPNN']),\
-        functions.Backflow(**profile.learnerparams['backflow']),\
-        functions.Dets(n=profile.n,**profile.learnerparams['dets']),\
-        functions.Sum()\
+        _functions_.Backflow(**profile.learnerparams['backflow']),\
+        _functions_.Dets(n=profile.n,**profile.learnerparams['dets']),\
+        _functions_.Sum()\
         ))
-    nonsym,switchcounts=functions.switchtype(f)
+    nonsym,switchcounts=_functions_.switchtype(f)
     return nonsym
 
 
 def normalize(f,genX,Xdensity):
-    C=functions.ScaleFactor()
+    C=_functions_.ScaleFactor()
 
     X=genX(1000)
     rho=Xdensity(X)

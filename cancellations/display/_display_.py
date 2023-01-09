@@ -1,4 +1,5 @@
-from cancellations.utilities import tracking, sysutil, setup
+from cancellations.config import config as cfg, tracking
+from cancellations.config import sysutil
 from cancellations.utilities.textutil import BOX,box,dash
 import curses as cs
 import math
@@ -15,7 +16,7 @@ class Process(tracking.Process):
         output=self.execprocess()
 
         tracking.unloadprocess(self)
-        setup.clearscreen()
+        cfg.clearscreen()
         return output
 
     def run_as_main(self):
@@ -30,14 +31,14 @@ class Process(tracking.Process):
                 screen.clear()
                 screen.refresh()
 
-            setup.getch=getch
-            setup.clearscreen=clearscreen
+            cfg.getch=getch
+            cfg.clearscreen=clearscreen
 
             screen.nodelay(True)
             cs.use_default_colors()
-            setup.session.dashboard=_Dashboard_(cs.COLS,cs.LINES)
+            cfg.session.dashboard=_Dashboard_(cs.COLS,cs.LINES)
 
-            output=self.run_in_display(setup.session.dashboard)
+            output=self.run_in_display(cfg.session.dashboard)
 
             globals()['screen']=None
             return output
@@ -45,15 +46,15 @@ class Process(tracking.Process):
         try:
             return cs.wrapper(wrapped)
         except LeaveDisplay:
-            setup.display_on=False
+            cfg.display_on=False
             tracking.currentprocess().run_as_NODISPLAY()
 
     def run_as_NODISPLAY(self):
         def getch(*a,**kw):
             return ''
 
-        setup.getch=getch
-        setup.clearscreen=sysutil.clearscreen
+        cfg.getch=getch
+        cfg.clearscreen=sysutil.clearscreen
         tracking.loadprocess(self)
         dummydisplay=_Dashboard_(100,50)
         self.display=dummydisplay
@@ -267,13 +268,13 @@ class _Dashboard_(_Frame_,_CompositeDisplay_):
 
 #----------------------------------------------------------------------------------------------------
     def arm(self):
-        if not setup.display_on: return
+        if not cfg.display_on: return
 
         x,y=self.x0,self.y0
         tracking.currentdashboard()[self.name]=cs.newwin(self.getheight()+1,self.getwidth()+1,y,x)
 
     def draw(self):
-        if not setup.display_on:
+        if not cfg.display_on:
             #print('display update')
             return
 

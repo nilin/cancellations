@@ -2,12 +2,16 @@ import matplotlib.pyplot as plt
 import jax
 import jax.numpy as jnp
 import jax.random as rnd
+from cancellations.config import batchjob, browse, config as cfg, sysutil, tracking
+from os import path
 
 from cancellations.display import _display_
 from cancellations.utilities import textutil
-from cancellations.utilities import sysutil, tracking, batchjob, browse, numutil, setup
+from cancellations.utilities import numutil
 from cancellations.plotting import traingraphs
 
+
+# dontpick
 
 class Slice:
 
@@ -40,7 +44,7 @@ class Slice:
             levels=list(reversed([-l for l in levels]))+levels
             self.contour(axs[-1],f_eval,colors=c,levels=levels,linewidths=lw,alpha=.5)
         
-        sysutil.savefig(self.process.outpath+'{}.pdf'.format(self.slicetype),fig=fig)
+        sysutil.savefig(path.join(self.process.outpath,'{}.pdf'.format(self.slicetype)),fig=fig)
 
 
 
@@ -103,9 +107,9 @@ class RandomSlices:
 def allplots(process):
     runpath=process.outpath
 
-    target=sysutil.load(runpath+'data/target').restore()
-    learner=sysutil.load(runpath+'data/learner').restore()
-    setupdata=sysutil.load(runpath+'data/setup')
+    target=sysutil.load(path.join(runpath,'data/target')).restore()
+    learner=sysutil.load(path.join(runpath,'data/learner')).restore()
+    setupdata=sysutil.load(path.join(runpath,'data/setup'))
     _,n,d=setupdata['X_test'].shape
 
     process.log('generating heatmaps and contour plots')
@@ -125,10 +129,10 @@ class Run(batchjob.Batchjob):
         relrunpath=self.run_subprocess(browsingprocess,taskname='choose run')
 
         if relrunpath is None:
-            setup.postcommand=lambda: print('No outputs found')
+            cfg.postcommand=lambda: print('No outputs found')
             return
 
-        runpath='outputs/'+relrunpath
+        runpath=path.join('outputs/',relrunpath)
         self.outpath=runpath
 
         _display_.leavedisplay(self,lambda: allplots(self))

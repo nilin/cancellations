@@ -1,6 +1,6 @@
 import jax, jax.numpy as jnp
 import itertools
-from cancellations.functions import functions
+from cancellations.functions import _functions_
 from cancellations.utilities import numutil as mathutil
 
 
@@ -65,7 +65,7 @@ def totalenergy(n): return sum([i+1/2 for i in range(n)])
 #     setattr(functions,fname,psi(i))
 #     #globals()[fname]=psi(i)
 
-functions.square=lambda y:y**2
+_functions_.square=lambda y:y**2
 
 
 
@@ -110,7 +110,7 @@ def genpsi(d,ijk):
 for d in [1,2,3]:
     for i,ijk in enumerate(gen_n_dtuples(10,d)):
         psi=genpsi(d,ijk)
-        setattr(functions,'psi{}_{}d'.format(i+1,d),psi)
+        setattr(_functions_,'psi{}_{}d'.format(i+1,d),psi)
 
 
 

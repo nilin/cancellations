@@ -1,6 +1,8 @@
 import jax
 import jax.numpy as jnp
-from ..utilities import numutil, textutil, tracking
+
+from ..config import tracking
+from ..utilities import numutil, textutil
 
 
 

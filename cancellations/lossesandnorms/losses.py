@@ -1,17 +1,11 @@
-#
-# nilin
-# 
-# 2022/7
-#
-
-
 import jax
 import jax.numpy as jnp
 import jax.random as rnd
 from functools import partial
 from jax.tree_util import tree_map
-from cancellations.functions import functions
-from cancellations.utilities import numutil, tracking
+from cancellations.config import tracking
+from cancellations.functions import _functions_
+from cancellations.utilities import numutil
 from cancellations.utilities.numutil import make_single_x
 
 
@@ -160,7 +154,7 @@ class Lossgrad_normratio(Lossgrad):
     def __init__(self,learnerdescr,density,fpow=2,Afpow=-2):
 
         Af=learnerdescr._eval_
-        fdescr,switchcounts=functions.switchtype(learnerdescr)
+        fdescr,switchcounts=_functions_.switchtype(learnerdescr)
         assert(switchcounts==1)
         f=fdescr._eval_
 

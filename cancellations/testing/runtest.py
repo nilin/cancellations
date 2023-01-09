@@ -1,5 +1,5 @@
 # import run
-# from cancellations.utilities import sysutil, setup
+# from cancellations.utilities import sysutil
 # import jax
 # 
 # sysutil.clearscreen()
@@ -19,7 +19,7 @@
 #I=(jnp.ones((Ps.shape[0]))[:,None]*jnp.arange(n)[None,:]).astype(int)
 
 
-from cancellations.functions import functions, NNfunctions
+from cancellations.functions import NN, _functions_
 from jax.nn import relu
 import jax.random as rnd
 import jax.numpy as jnp
@@ -28,12 +28,12 @@ from numpy.testing import assert_allclose
 n=5; d=3;
 m=100
 
-fdescr=functions.ASNN(activation='relu',n=n,d=d,widths=[n*d,m,1])
+fdescr=_functions_.ASNN(activation='relu',n=n,d=d,widths=[n*d,m,1])
 params=fdescr.weights
 [(W,bs),(a,_)]=params
 W=jnp.reshape(W,(-1,n,d))
 
-f2=NNfunctions.gen_singlelayer_Af(n,relu)
+f2=NN.gen_singlelayer_Af(n,relu)
 
 X=rnd.normal(rnd.PRNGKey(0),(1000,n,d))
 y1=f1=fdescr.eval(X)

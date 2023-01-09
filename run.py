@@ -1,5 +1,5 @@
-from cancellations.utilities import setup
-from cancellations.utilities import tracking, browse, batchjob, sysutil, textutil
+from cancellations.config import batchjob, browse, config as cfg, sysutil, tracking
+from cancellations.utilities import textutil
 import re
 import importlib
 import sys
@@ -64,9 +64,9 @@ class Run(batchjob.Batchjob):
 
         # task 3
 
-        if setup.debug:
-            setup.postprocesses.append(self.run)
-            setup.display_on=False
+        if cfg.debug:
+            cfg.postprocesses.append(self.run)
+            cfg.display_on=False
             return
 
         self.run_subprocess(self.run,taskname='run script')
@@ -79,13 +79,13 @@ class Run(batchjob.Batchjob):
 
 def main():
     Run().run_as_main()
-    setup.run_afterdisplayclosed()
+    cfg.run_afterdisplayclosed()
 
 def debug():
-    from cancellations.utilities import sysutil
+    from cancellations.config import sysutil
     import jax
     sysutil.clearscreen()
-    setup.debug=True
+    cfg.debug=True
     with jax.disable_jit():
         main()
 

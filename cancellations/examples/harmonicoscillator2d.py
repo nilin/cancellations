@@ -8,8 +8,8 @@
 import jax.numpy as jnp
 from functools import partial
 
-from cancellations.functions import functions
-from cancellations.functions.functions import Product
+from cancellations.functions import _functions_
+from cancellations.functions._functions_ import Product
 from cancellations.lossesandnorms import losses,losses2
 from cancellations.examples import runtemplate
 
@@ -75,14 +75,14 @@ class Run(runtemplate.Run):
         return profiles
 
 def gettarget(P,run):
-    f=functions.Slater(*['psi{}_{}d'.format(i,P.d) for i in range(1,P.n+1)])
+    f=_functions_.Slater(*['psi{}_{}d'.format(i,P.d) for i in range(1,P.n+1)])
     f=normalize(f, run.genX, P.X_density)
     ftest=normalize(f, run.genX, P.X_density)
     run.log('double normalization factor check (should~1) {:.3f}'.format(ftest.elements[0].weights))
     return f
 
 def normalize(f,genX,Xdensity):
-    C=functions.ScaleFactor()
+    C=_functions_.ScaleFactor()
 
     X=genX(1000)
     rho=Xdensity(X)

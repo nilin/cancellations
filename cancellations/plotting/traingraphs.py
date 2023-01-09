@@ -1,9 +1,11 @@
+from cancellations.config import sysutil, tracking
 from cancellations.utilities import textutil
-from cancellations.functions import examplefunctions as ef, functions
-from cancellations.utilities import numutil, tracking, sysutil
-from cancellations.utilities.sysutil import maybe as maybe
+from cancellations.functions import _functions_, examplefunctions as ef
+from cancellations.utilities import numutil
+from cancellations.config.sysutil import maybe as maybe
 import matplotlib.pyplot as plt
 import jax.numpy as jnp
+from os import path
 
 #
 #
@@ -19,12 +21,12 @@ def getnorm(_f_,weights,X,Xdensity):
 
 def graphdata(process,datapath):
 
-    learner=sysutil.load(datapath+'data/learner').restore()
-    traindata=sysutil.load(datapath+'data/traindata')
-    X,Y,Xdensity=[sysutil.load(datapath+'data/setup')[k] for k in ['X_test','Y_test','Xdensity_test']]
+    learner=sysutil.load(path.join(datapath,'data/learner')).restore()
+    traindata=sysutil.load(path.join(datapath,'data/traindata'))
+    X,Y,Xdensity=[sysutil.load(path.join(datapath,'data/setup'))[k] for k in ['X_test','Y_test','Xdensity_test']]
 
     _psi_=learner._eval_
-    fdescr,switchcounts=functions.switchtype(learner)
+    fdescr,switchcounts=_functions_.switchtype(learner)
     _f_=fdescr._eval_
 
     assert(switchcounts==1)
@@ -56,7 +58,7 @@ def graph(process,datapath):
     ax1.set_yscale('log')
     ax1.grid(True,which='major',axis='y')
     ax1.legend()
-    fig.suptitle(sysutil.maybe(lambda:'\nprofile name: '+sysutil.load(datapath+'data/setup')['profilename'],'')())
+    fig.suptitle(sysutil.maybe(lambda:'\nprofile name: '+sysutil.load(path.join(datapath,'data/setup'))['profilename'],'')())
 
     ax2.plot(i_s,f_over_Af,'m:',label='|f|/|Af|')
     ax2.plot(i_s,fs,'r',label='|f|')
@@ -68,7 +70,7 @@ def graph(process,datapath):
     ax3.set_yscale('log')
     ax3.legend()
 
-    sysutil.savefig(process.outpath+'train_graphs.pdf',fig=fig)
+    sysutil.savefig(path.join(process.outpath,'train_graphs.pdf'),fig=fig)
 
     fig,ax=plt.subplots()
     ax.scatter(losses,f_over_Af,s=6,color='b',marker='d')
@@ -78,9 +80,9 @@ def graph(process,datapath):
     #ax.grid(True,which='both')
     ax.set_xlabel('loss (poor {} good)'.format(textutil.arrowright))
     ax.set_ylabel('|f|/|Af|')
-    fig.suptitle(sysutil.maybe(lambda:'\nprofile name: '+sysutil.load(datapath+'data/setup')['profilename'],'')())
+    fig.suptitle(sysutil.maybe(lambda:'\nprofile name: '+sysutil.load(path.join(datapath,'data/setup'))['profilename'],'')())
 
-    sysutil.savefig(process.outpath+'normratio_vs_loss.pdf',fig=fig)
+    sysutil.savefig(path.join(process.outpath,'normratio_vs_loss.pdf'),fig=fig)
 
 
 #dontpick

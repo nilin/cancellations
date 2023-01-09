@@ -3,7 +3,8 @@ import pickle
 from collections import deque
 import matplotlib.pyplot as plt
 import sys
-from cancellations.utilities import tracking, setup, textutil
+from cancellations.config import config as cfg, tracking
+from cancellations.utilities import textutil
 
 
 def makedirs(filepath):
@@ -15,7 +16,7 @@ def save(data,path,echo=True):
     makedirs(path)
     with open(path,'wb') as file:
         pickle.dump(data,file)
-    if echo: setup.session.log('Saved data to {}'.format(path))
+    if echo: cfg.session.log('Saved data to {}'.format(path))
 
 def savefig(*paths,fig=None):
     for path in paths:
@@ -43,7 +44,7 @@ def read(path):
 def showfile(path):
     import os
     import subprocess
-    setup.session.log('opening path '+path)
+    cfg.session.log('opening path '+path)
 
     try: subprocess.Popen(['open',path])
     except: pass
@@ -62,7 +63,7 @@ def removetemplog(path):
 def filebrowserlog(path,msg):
     removetemplog(path)
     write('temporary log',os.path.join(path,'___log_'+textutil.cleanstring(msg)[:25]+'___.templog'),mode='w')
-    setup.postcommands.append(lambda: removetemplog(path))
+    cfg.postcommands.append(lambda: removetemplog(path))
 
 
 #====================================================================================================

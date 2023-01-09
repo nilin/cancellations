@@ -1,8 +1,9 @@
 import jax.numpy as jnp, jax.random as rnd, numpy as np
 import matplotlib.pyplot as plt
 import warnings
+from cancellations.config import tracking
 warnings.filterwarnings('ignore')
-from cancellations.utilities import numutil as mathutil, tracking
+from cancellations.utilities import numutil as mathutil
 
 
 

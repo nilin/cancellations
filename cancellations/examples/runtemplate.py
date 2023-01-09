@@ -1,18 +1,14 @@
-#
-# nilin
-# 
-# 2022/7
-#
-
-
 import jax.numpy as jnp
 import jax.random as rnd
+import os
+from os import path
 from functools import partial
-from cancellations.functions import functions
+from cancellations.config import config as cfg, sysutil, tracking
+from cancellations.functions import _functions_
 from cancellations.learning import learning
-from cancellations.functions.functions import ComposedFunction,SingleparticleNN,Product
-from cancellations.utilities import config as cfg, numutil, tracking, sysutil, textutil, sampling, setup
-from cancellations.utilities.tracking import dotdict
+from cancellations.functions._functions_ import ComposedFunction,SingleparticleNN,Product
+from cancellations.utilities import numutil, textutil, sampling
+from cancellations.config.tracking import dotdict
 from cancellations.plotting import plotting
 from cancellations.display import _display_
 from cancellations.lossesandnorms import losses
@@ -24,6 +20,7 @@ from cancellations.lossesandnorms import losses
 class Run(_display_.Process):
 
     processname='example template'
+    processtype='runs'
 
     def execprocess(run:_display_.Process):
 
@@ -33,12 +30,6 @@ class Run(_display_.Process):
         P=run.profile
         info='runID: {}\n'.format(run.ID)+'\n'*4; run.infodisplay.msg=info
 
-        # make this temporary
-        if 'layernormalization' in P.keys():
-            cfg.layernormalization=P.layernormalization 
-        if 'initweight_coefficient' in P.keys():
-            cfg.initweight_coefficient=P.initweight_coefficient
-
         run.log('gen target')
         run.genX=lambda nsamples: P._genX_(run.nextkey(),nsamples,P.n,P.d)
 
@@ -46,7 +37,7 @@ class Run(_display_.Process):
         info+='target\n\n{}'.format(textutil.indent(run.target.getinfo()))
         run.infodisplay.msg=info
         run.T.draw()
-        sysutil.save(run.target.compress(),path=run.outpath+'data/target')
+        sysutil.save(run.target.compress(),path=os.path.join(run.outpath,'data/target'))
 
         run.log('gen samples')
 
@@ -76,12 +67,12 @@ class Run(_display_.Process):
             X_test=run.X_test,Y_test=run.Y_test, Xdensity_test=P.X_density(run.X_test),\
             profilename=P.profilename\
             )
-        sysutil.save(setupdata,run.outpath+'data/setup')
+        sysutil.save(setupdata,os.path.join(run.outpath,'data/setup'))
 
         run.traindata=[]
 
         info+=10*'\n'+str(run.profile) 
-        sysutil.write(info,run.outpath+'info.txt',mode='w')
+        sysutil.write(info,path.join(run.outpath,'info.txt'),mode='w')
 
         run.log('gen lossgrad and learner')
         #train
@@ -121,22 +112,22 @@ class Run(_display_.Process):
 
             if regsched.activate(i):
                 run.traindata.append(dict(weights=run.learner.weights,i=i))
-                sysutil.save(run.learner.compress(),path=run.outpath+'data/learner')
-                sysutil.save(run.traindata,run.outpath+'data/traindata',echo=False)
-                sysutil.write('loss={:.2E} iterations={} n={} d={}'.format(loss,i,P.n,P.d),run.outpath+'metadata.txt',mode='w')    
+                sysutil.save(run.learner.compress(),path=path.join(run.outpath,'data','learner'))
+                sysutil.save(run.traindata,path.join(run.outpath,'data','traindata'),echo=False)
+                sysutil.write('loss={:.2E} iterations={} n={} d={}'.format(loss,i,P.n,P.d),path.join(run.outpath,'metadata.txt'),mode='w')    
 
             if stopwatch1.tick_after(.05):
                 run.learningdisplay.draw()
 
             if stopwatch2.tick_after(.5):
-                if P.act_on_input(setup.getch(getinstructions),run)=='b': break
+                if P.act_on_input(cfg.getch(getinstructions),run)=='b': break
         
         plotting.allplots(run)
         return run.learner
 
     def log(self,msg):
         super().log(msg)
-        self.profile.act_on_input(setup.getch(log=msg),self)
+        self.profile.act_on_input(cfg.getch(log=msg),self)
         self.T.draw()
 
     def prepdisplay(self):
@@ -160,16 +151,11 @@ class Run(_display_.Process):
 
     def addlearningdisplay(self):
         self.loss=tracking.Pointer()
-        smoother1=numutil.RunningAvg(k=1)
         smoother2=numutil.RunningAvg(k=100)
         display=self.learningdisplay.add(0,0,_display_._Display_())
         display.encode=lambda: [\
             (0,0,'training loss (avg over 100 iterations) {:.2E}'.format(smoother2.update(self.loss.val))),\
             (0,1,_display_.hiresbar(smoother2.avg(),self.dashboard.width)),\
-            #
-            #(0,1,_display_.hiresbar(self.loss.val,self.dashboard.width)),\
-            #_display_.hiresTICK(smoother1.update(self.loss.val),self.dashboard.width,y=1),\
-            #_display_.hirestick(smoother1.avg(),self.dashboard.width,y=2),\
             #
             (0,4,_display_.thinbar(self.loss.val,self.dashboard.width)),\
             (0,3,'training loss (non-smoothed) {:.2E}'.format(self.loss.val)),\
@@ -212,9 +198,6 @@ class Run(_display_.Process):
         profile._var_X_distr_=1
         profile._genX_=lambda key,samples,n,d:rnd.normal(key,(samples,n,d))*jnp.sqrt(profile._var_X_distr_)
         profile.X_density=numutil.gen_nd_gaussian_density(var=profile._var_X_distr_)
-        #lambda X:\
-        #    jnp.exp(-jnp.sum(X**2/(2*profile._var_X_distr_),axis=(-2,-1)))\
-        #    /(2*math.pi*profile._var_X_distr_)**(X.shape[-2]*X.shape[-1]/2)
 
         # training params
 
@@ -251,21 +234,16 @@ def getinstructions():
 
 
 
-
-
-
 def gettarget(P,run):
     raise NotImplementedError
 
-
-
 def getlearner(profile):
     #return Product(functions.ScaleFactor(),functions.IsoGaussian(1.0),ComposedFunction(\
-    return Product(functions.IsoGaussian(1.0),ComposedFunction(\
+    return Product(_functions_.IsoGaussian(1.0),ComposedFunction(\
         SingleparticleNN(**profile.learnerparams['SPNN']),\
         #functions.Backflow(**profile.learnerparams['backflow']),\
-        functions.Dets(n=profile.n,**profile.learnerparams['dets']),\
-        functions.Sum()\
+        _functions_.Dets(n=profile.n,**profile.learnerparams['dets']),\
+        _functions_.Sum()\
         ))
 
 
