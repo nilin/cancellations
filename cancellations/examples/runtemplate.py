@@ -18,9 +18,6 @@ from cancellations.display import _display_
 from cancellations.lossesandnorms import losses
 
 
-
-
-
 #dontpick
 
 

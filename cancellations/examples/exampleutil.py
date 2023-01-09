@@ -1,10 +1,3 @@
-#
-# nilin
-# 
-# 2022/7
-#
-
-
 import jax.numpy as jnp
 import jax
 import matplotlib.pyplot as plt
@@ -14,18 +7,6 @@ from cancellations.utilities import numutil as mathutil, tracking,config as cfg,
 from cancellations.functions import functions
 from cancellations.testing import testing
 
-
-
-
-
-
-# backend
-####################################################################################################
-
-#def inspect():
-#    testantisymmetry(cprof.target,cprof.learner,cprof.genX(100))
-#    functions.inspect(cprof.target,cprof.genX(55),msg='target')
-#    functions.inspect(cprof.learner,cprof.genX(55),msg='learner')
 
 
 def testantisymmetry(target,learner,X):

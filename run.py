@@ -1,8 +1,8 @@
 from cancellations.utilities import setup
 from cancellations.utilities import tracking, browse, batchjob, sysutil, textutil
-#from cancellations import profiles as P
 import re
 import importlib
+import sys
 
 
 
@@ -37,7 +37,6 @@ class Run(batchjob.Batchjob):
             +bprofile1.msg
 
 
-
         path=self.run_subprocess(browse.Browse(bprofile1),taskname='pick script')
 
         path=re.search('([a-z].*)',path).group()
@@ -61,13 +60,6 @@ class Run(batchjob.Batchjob):
         runprofile=runprofiles
         runprofile['profilename']='/'.join(profilenamestack)
 
-#        if len(runprofiles)>1:
-#            profilename=self.run_subprocess(browse.Browse(bprofile2),taskname='pick profile')
-#        else:
-#            (profilename,)=runprofiles.keys()
-
-        #runprofile['profilename']=profilename
-
         self.run=m.Run(runprofile)
 
         # task 3
@@ -85,13 +77,20 @@ class Run(batchjob.Batchjob):
         return batchjob.Batchjob.getdefaultprofile().butwith(tasks=['pick script','pick profile','run script'],**kw)
 
 
-
-
-
 def main():
     Run().run_as_main()
     setup.run_afterdisplayclosed()
 
+def debug():
+    from cancellations.utilities import sysutil
+    import jax
+    sysutil.clearscreen()
+    setup.debug=True
+    with jax.disable_jit():
+        main()
 
-
-if __name__=='__main__': main()
+if __name__=='__main__':
+    if 'd' in sys.argv:
+        debug()
+    else:
+        main()

@@ -92,3 +92,5 @@ def normalize(f,genX,Xdensity):
     C.weights=1/jnp.sqrt(squarednorm)
 
     return Product(C,f)
+
+

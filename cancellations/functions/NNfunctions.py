@@ -1,60 +1,33 @@
 import jax, jax.numpy as jnp
 import jax.random as rnd
+import math
 
 from cancellations.utilities import numutil, tracking,config as cfg
 from cancellations.utilities.numutil import activations
 from cancellations.utilities import numutil
-from cancellations.functions import permutations as ps
+from cancellations.utilities import permutations as ps
 
 
 #=======================================================================================================
 # NN 
 #=======================================================================================================
 
-def gen_NN_layer(ac):
-    activation=activations[ac]
+@jax.jit
+def NN_layer(Wb,X):
+    W,b=Wb[0],Wb[1]
+    return jnp.inner(X,W)+b[None,:]
 
-    if cfg.layernormalization is None:
-        layernormalize=lambda Y:Y
-    else:
-        std,mode=cfg.layernormalization
-
-        match mode:
-            case 'online':
-                def layernormalize(Y):
-                    means=jnp.average(Y,axis=-1)
-                    norms=jnp.sqrt(jnp.average(Y**2,axis=-1))
-                    return std*(Y-means[:,None])/norms[:,None]
-            case 'batch':
-                def layernormalize(Y):
-                    mean=jnp.average(Y)
-                    norm=jnp.sqrt(jnp.average(Y**2))
-                    return std*(Y-mean)/norm
-
-    @jax.jit
-    def f(Wb,X):
-        W,b=Wb[0],Wb[1]
-        ac_inputs=jnp.inner(X,W)+b[None,:]
-        ac_inputs=layernormalize(ac_inputs)
-        return activation(ac_inputs)
-    return f
-        
-
-def gen_NN_wideoutput(ac):
-    L=gen_NN_layer(ac)
-
+def gen_NN_wideoutput(activation):
+    ac=activations[activation]
     @jax.jit
     def NN(params,X):
-        for Wb in params:
-            X=L(Wb,X)
-        return X
-
+        for Wb in params[:-1]:
+            X=ac(NN_layer(Wb,X))
+        return NN_layer(params[-1],X)
     return NN
-
 
 def gen_NN(activation):
     return numutil.scalarfunction(gen_NN_wideoutput(activation))
-
 
 def gen_NN_NS(activation):
     NN=gen_NN(activation)
@@ -66,9 +39,6 @@ def gen_NN_NS(activation):
 
     return NN_NS
 
-
-
-
 def gen_lossgrad(f,lossfn=None):
     if lossfn is None: lossfn=cfg.getlossfn()
 
@@ -79,27 +49,28 @@ def gen_lossgrad(f,lossfn=None):
     
 
 #=======================================================================================================
-# single layer
+# single layer special case
 #=======================================================================================================
 
-#def gen_singlelayer_Af(n,ac):
-#
-#    Ps,signs=ps.allperms(n)                    # Ps:    n!,n,n
-#
-#    @jax.jit
-#    def Af_singleneuron(w,b,X):
-#        overlaps=jnp.inner(X,w)
-#
-#
-#    #    PX=mathutil.apply_on_n(Ps,X)                # PX:    n!,s,n,d
-#    #    fX=f(params,PX)                        # fX:    n!,s
-#    #    return jnp.dot(signs,fX)                # s
-#
-#    return Af
+def gen_singlelayer_Af(n,ac):
 
+    Ps,signs=ps.allpermtuples(n)                    # Ps:    n!,n,n
+    I=jnp.repeat(jnp.expand_dims(jnp.arange(n),axis=0),len(signs),axis=0)
+    scale=1/jnp.sqrt(len(signs))
 
+    @jax.jit
+    def Af_singleneuron(w,b,X):     # w: n,d
+        overlaps=jnp.inner(X,w)     # s,n,n
+        outputs=ac(jnp.sum(overlaps[...,I,Ps],axis=-1)+b)
+        return jnp.inner(outputs,signs)
 
+    @jax.jit
+    def Af(params,X):     # w: n,d
+        (W,bs),a=params
+        A_neuronoutputs=jax.vmap(Af_singleneuron,in_axes=(0,0,None),out_axes=-1)(W,bs,X)
+        return jnp.squeeze(jnp.inner(A_neuronoutputs,a))*scale
 
+    return Af
 
 
 #----------------------------------------------------------------------------------------------------

@@ -1,0 +1,1 @@
+from cancellations.testing import runtest

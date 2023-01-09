@@ -8,7 +8,7 @@
 import jax, jax.numpy as jnp
 
 from cancellations.utilities import numutil as mathutil
-from cancellations.functions import permutations as ps
+from cancellations.utilities import permutations as ps
 from cancellations.functions import NNfunctions as mv
 
 

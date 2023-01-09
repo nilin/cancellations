@@ -6,9 +6,10 @@
 log*
 stash*
 venv*
-scratch*
+**/scratch*
 outputs*
 beta/*
 testsingle*
 *venv*
 temp*
+runallprofiles.py
