@@ -1,6 +1,8 @@
 from cancellations.config import batchjob, browse, config as cfg, sysutil, tracking
 from cancellations.utilities import textutil
 import re
+import os
+import pathlib
 import importlib
 import sys
 
@@ -11,26 +13,15 @@ class Run(batchjob.Batchjob):
 
     def runbatch(self):
 
-        pf='cancellations/'#examples/'
-        pathprofile=browse.defaultpathprofile().butwith(\
-            parentfolder=pf,\
-            regex='.*[a-z].py',\
-            condition=lambda path: \
-                re.search('class Run[^a-z]', sysutil.readtextfile(pf+path))\
-                and not re.search('ignore pick_and_run', sysutil.readtextfile(pf+path))\
-                and not re.search('dontpick', sysutil.readtextfile(pf+path)),\
-            )
-
-        relpaths=browse.getpaths(pathprofile)
-        relpaths=sorted(relpaths,key=lambda relpath: 1000 if 'unsupervised' in relpath else 1)
-        fullpaths=[pf+relpath for relpath in relpaths]
-        rels={full:rel for full,rel in zip(fullpaths,relpaths)}
+        fullpaths=[\
+            'cancellations/examples/harmonicoscillator2d.py',\
+            'cancellations/plotting/plotmultiple.py']
 
         bprofile1=browse.Browse.getdefaultprofile().butwith(\
             onlyone=True,\
             readinfo=lambda path: textutil.findblock(sysutil.readtextfile(path),'class Run')[-1],\
             options=fullpaths,\
-            displayoption=lambda full:rels[full]
+            displayoption=lambda full:os.path.basename(full)
             )
         bprofile1.msg='select a file to run Run(profile).execprocess().\n\n'\
             +150*textutil.dash\

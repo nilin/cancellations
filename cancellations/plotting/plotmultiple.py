@@ -8,7 +8,6 @@ from cancellations.config import sysutil
 from cancellations.plotting import traingraphs
 
 
-# dontpick
 
 def trainplots(process,profile):
 
@@ -16,9 +15,9 @@ def trainplots(process,profile):
     nplots=len(plotoptions)
 
     runpaths=process.runpaths
-    
+
     fig,axs=plt.subplots(nplots,1,figsize=(8,5*nplots))
-    #axs=deque(axs)
+    if nplots==1: axs=[axs]
     colors=['r--','b']*10
 
     for ax,po in zip(axs,plotoptions):
@@ -44,9 +43,6 @@ def trainplots(process,profile):
 
             ax.legend()
 
-    #outpath=os.path.join('outputs/combined',' | '.join(process.descriptions))
-    #sysutil.savefig(os.path.join(outpath,'comparison.pdf'),fig=fig)
-
     outpath=os.path.join('outputs/combined',' | '.join(process.descriptions)+'.pdf')
     sysutil.savefig(outpath,fig=fig)
     sysutil.showfile(outpath)
@@ -57,37 +53,22 @@ class Run(batchjob.Batchjob):
 
         P=tracking.Profile()
 
-        pathprofile=tracking.Profile(\
-            parentfolder='./',\
-            regex='.*outputs.*',\
-            condition=lambda path:os.path.exists(path+'/data/setup'))
 
-        allrunpaths=browse.getpaths(pathprofile)
-        allprofilepaths=list(set([os.path.join(*Path(p).parts[:-1]) for p in allrunpaths]))
-
+        rdir='outputs/runs'
+        runpaths=[os.path.join(rdir,p) for p in os.listdir(rdir)]
         browsingprocess=browse.Browse(browse.Browse.getdefaultprofile().butwith(\
+            options=runpaths,\
+            msg='Please select run\n'+browse.msg,\
+            displayoption=lambda path: os.path.join(*Path(path).parts[-2:]),\
+            readinfo=lambda path: sysutil.readtextfile(os.path.join(path,'log.txt')),\
             onlyone=False,\
-            msg='Please select plots to make (with SPACE)'+browse.msg2,\
-            options=allprofilepaths,\
-            displayoption=lambda path: Path(path).parts[-1],\
-            readinfo=lambda path: path.replace('/','\n'),\
             ))
-        profilepaths=self.run_subprocess(browsingprocess,taskname='choose run')
-        self.descriptions=[Path(path).parts[-1] for path in profilepaths]
+        self.runpaths=self.run_subprocess(browsingprocess,taskname='choose run')
 
-        self.runpaths=[]
-        for path,desc in zip(profilepaths,self.descriptions):
-            runpaths=[p for p in allrunpaths if Path(path).parts[-1] in Path(p).parts]
-            browsingprocess=browse.Browse(browse.Browse.getdefaultprofile().butwith(\
-                options=runpaths,\
-                msg='Please select run for profile:\n{}'.format(desc)+browse.msg,\
-                displayoption=lambda path: os.path.join(*Path(path).parts[-2:]),\
-                readinfo=lambda path: sysutil.readtextfile(os.path.join(path,'log.txt')),\
-                ))
-            self.runpaths.append(self.run_subprocess(browsingprocess,taskname='choose run'))
+        self.descriptions=self.runpaths # replace with profile description
 
         options=['loss','|f|','|Af|','|f|/|Af|','|weights|']
-        browsingprocess2=browse.Browse(browse.Browse.getdefaultfilebrowsingprofile().butwith(\
+        browsingprocess2=browse.Browse(browse.Browse.getdefaultprofile().butwith(\
             onlyone=False,options=options,msg='select plots to make.'+browse.msg))
         P.plotoptions=self.run_subprocess(browsingprocess2,taskname='choose plot options')
 

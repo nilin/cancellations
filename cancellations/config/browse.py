@@ -16,23 +16,15 @@ right='\u2192'
 
 
 
-
-
-
-
-
 def browse(process):
     profile,display=process.profile,process.display
 
-    profile.options=list(filter(profile.condition,profile.options))
     if len(profile.options)==0: return None
 
     assert(len(profile.options)>0)
     if profile.onlyone and len(profile.options)==1:
         (option,)=profile.options
         return option
-
-    #setup.screen.nodelay(False)
 
     L,C,R=display.hsplit(rlimits=[.33,.66])
     C0,C1,Cr=C.hsplit(limits=[2,4],sep=1)
@@ -65,11 +57,7 @@ def browse(process):
     mode='browse'
     inputtext=''
 
-    #allowtextinput=True if 'dynamiccondition' in profile.keys() else False
-
     while True:
-        #matches=[option for option in profile.options\
-                #if profile.dynamiccondition(profile.displayoption(option),inputtext) not in [None,False]]
         matches=profile.options
 
         ls=pointer.val
@@ -98,8 +86,6 @@ def browse(process):
                         case 'c':
                             try: ls=min([c for c in selections if c>ls])
                             except: pass
-                        #case 'i':
-                        #    mode='input'
                         case 'q':
                             quit()
                         case 'b':
@@ -114,12 +100,9 @@ def browse(process):
                         except: mode='browse'
 
 
-
-        #ls=max(0,min(len(matches)-1,ls))
         ls=ls%len(matches)
         
-        #Ltext.msg=explanation.format(mode,inputtext)
-        Ltext.msg=explanation#.format(mode,inputtext)
+        Ltext.msg=explanation
         optionsdisplay.msg='\n'.join([profile.displayoption(o) for o in matches])
         Rtext.msg=getinfo(profile.readinfo,profile.options[ls])
         pointer.val=ls
@@ -160,24 +143,9 @@ class Browse(_display_.Process):
         profile.onlyone=True
         profile.readinfo=lambda selection: str(selection) #sysutil.readtextfile(path+'info.txt')
         profile.msg=msg
-        profile.options=getpaths(defaultpathprofile(**kw))
         profile.displayoption=lambda option:squash(option)
-        #profile.dynamiccondition=lambda fulldotpath,phrase: re.search('.*'.join(phrase),fulldotpath.replace('.',''))
-        profile.condition=lambda option:True
         return profile
 
-    @staticmethod
-    def getdefaultfilebrowsingprofile(parentfolder='outputs/',**kw):
-        profile=tracking.Profile(profilename='file browsing',parentfolder=parentfolder)
-        profile.msg='select file'
-        profile.onlyone=True
-        profile.readinfo=lambda path: getmetadata(profile.parentfolder+path)+'\n\n'+sysutil.readtextfile(profile.parentfolder+path+'info.txt')
-        profile.options=getpaths(defaultpathprofile(**kw))
-        profile.msg=msg
-        profile.displayoption=lambda option:squash(option)+getmetadata(profile.parentfolder+option)
-        #profile.dynamiccondition=lambda fulldotpath,phrase: re.search('.*'.join(phrase),fulldotpath.replace('.',''))
-        profile.condition=lambda option:True
-        return profile
 
 
 # for path browsing
@@ -210,23 +178,20 @@ def getinfo(readinfo,path):
 ####################################################################################################
 
 
-def defaultpathprofile(**kw):
-    return tracking.Profile(name='filterpaths',\
-    parentfolder='outputs/',\
-    regex='.*',\
-    condition=lambda path:os.path.exists('outputs/'+path+'/data/setup'),\
-    ).butwith(**kw)
+#def defaultpathprofile(**kw):
+#    return tracking.Profile(name='filterpaths',\
+#    parentfolder='outputs/',\
+#    regex='.*',\
+#    condition=lambda path:os.path.exists('outputs/'+path+'/data/setup'),\
+#    ).butwith(**kw)
 
-def getpaths(pathprofile):
-    paths=allpaths(pathprofile.parentfolder)
-    pattern=re.compile(pathprofile.regex)
+def getpaths(parentfolder='outputs/', regex='.*', condition=None):
+    if condition is None: condition=lambda path: True
+    paths=allpaths(parentfolder)
+    pattern=re.compile(regex)
     paths=list(filter(pattern.fullmatch,paths))
-    paths=list(filter(pathprofile.condition,paths))
-
-    paths.sort(reverse=True,key=lambda path:os.path.getmtime(pathprofile.parentfolder+path))
-    #try: paths.sort(reverse=True,key=lambda path:os.path.getmtime(pathprofile.parentfolder+path))
-    #except: pass
-
+    paths=list(filter(condition,paths))
+    paths.sort(reverse=True,key=lambda path:os.path.getmtime(os.path.join(parentfolder,path)))
     return paths
 
 

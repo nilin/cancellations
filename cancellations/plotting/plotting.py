@@ -125,7 +125,7 @@ class Run(batchjob.Batchjob):
     processname='plotting'
     def runbatch(self):
 
-        browsingprocess=browse.Browse(browse.Browse.getdefaultfilebrowsingprofile())
+        browsingprocess=browse.Browse(browse.Browse.getdefaultprofile())
         relrunpath=self.run_subprocess(browsingprocess,taskname='choose run')
 
         if relrunpath is None:
