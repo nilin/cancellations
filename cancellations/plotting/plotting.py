@@ -5,8 +5,8 @@ import jax.random as rnd
 
 from cancellations.display import _display_
 from cancellations.utilities import textutil
-from ..utilities import sysutil, tracking, batchjob, browse, numutil, setup
-from . import traingraphs
+from cancellations.utilities import sysutil, tracking, batchjob, browse, numutil, setup
+from cancellations.plotting import traingraphs
 
 
 class Slice:

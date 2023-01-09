@@ -1,20 +1,11 @@
-# nilin
-
-
-
-
-import jax.numpy as jnp
-import jax
-from ..utilities import numutil, tracking,config as cfg
-
-import math
+import jax, jax.numpy as jnp
 import jax.random as rnd
 
-from ..utilities.numutil import activations
-from ..utilities import numutil
-import pdb
+from cancellations.utilities import numutil, tracking,config as cfg
+from cancellations.utilities.numutil import activations
+from cancellations.utilities import numutil
+from cancellations.functions import permutations as ps
 
-from inspect import signature
 
 #=======================================================================================================
 # NN 
@@ -86,6 +77,30 @@ def gen_lossgrad(f,lossfn=None):
 
     return jax.value_and_grad(collectiveloss)
     
+
+#=======================================================================================================
+# single layer
+#=======================================================================================================
+
+#def gen_singlelayer_Af(n,ac):
+#
+#    Ps,signs=ps.allperms(n)                    # Ps:    n!,n,n
+#
+#    @jax.jit
+#    def Af_singleneuron(w,b,X):
+#        overlaps=jnp.inner(X,w)
+#
+#
+#    #    PX=mathutil.apply_on_n(Ps,X)                # PX:    n!,s,n,d
+#    #    fX=f(params,PX)                        # fX:    n!,s
+#    #    return jnp.dot(signs,fX)                # s
+#
+#    return Af
+
+
+
+
+
 
 #----------------------------------------------------------------------------------------------------
 # random initializations

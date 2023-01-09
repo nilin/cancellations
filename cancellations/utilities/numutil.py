@@ -3,16 +3,11 @@ import math
 import jax.numpy as jnp
 import jax
 import jax.random as rnd
-from . import config as cfg,tracking
-from .setup import session
+from cancellations.utilities import config as cfg,tracking
 from collections import deque
 from inspect import signature
-
 from jax.numpy import tanh
 from jax.nn import softplus
-
-
-
 
 ####################################################################################################
 

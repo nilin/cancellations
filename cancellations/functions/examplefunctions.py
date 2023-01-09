@@ -1,9 +1,7 @@
-import jax
-import jax.numpy as jnp
-import numpy as np
-from ..functions import multivariate as mv,functions
+import jax, jax.numpy as jnp
 import itertools
-from ..utilities import numutil as mathutil,textutil
+from cancellations.functions import functions
+from cancellations.utilities import numutil as mathutil
 
 
 

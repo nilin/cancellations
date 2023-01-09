@@ -1,23 +1,8 @@
 # nilin
 
 #----------------------------------------------------------------------------------------------------
-# This file replaces permutations
-#----------------------------------------------------------------------------------------------------
 
-import numpy as np
-import math
-import pickle
-import time
-import copy
-from .. import utilities
-import jax
-import sys
 import jax.numpy as jnp
-import bisect
-import time
-
-
-
 
 
 def applyrightshift_to_rows(shift,A):

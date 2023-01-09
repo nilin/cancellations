@@ -8,11 +8,11 @@
 import jax
 import jax.numpy as jnp
 import jax.random as rnd
-from ..utilities import numutil, tracking
-from ..utilities.numutil import make_single_x
 from functools import partial
 from jax.tree_util import tree_map
 from cancellations.functions import functions
+from cancellations.utilities import numutil, tracking
+from cancellations.utilities.numutil import make_single_x
 
 
 

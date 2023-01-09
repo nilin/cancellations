@@ -7,15 +7,15 @@
 
 import jax.numpy as jnp
 import jax.random as rnd
-from ..functions import functions
-from ..learning import learning
-from ..functions.functions import ComposedFunction,SingleparticleNN,Product
-from ..utilities import config as cfg, numutil, tracking, sysutil, textutil, sampling, setup
-from ..utilities.tracking import dotdict
-from ..plotting import plotting
-from ..display import _display_
 from functools import partial
-from ..lossesandnorms import losses
+from cancellations.functions import functions
+from cancellations.learning import learning
+from cancellations.functions.functions import ComposedFunction,SingleparticleNN,Product
+from cancellations.utilities import config as cfg, numutil, tracking, sysutil, textutil, sampling, setup
+from cancellations.utilities.tracking import dotdict
+from cancellations.plotting import plotting
+from cancellations.display import _display_
+from cancellations.lossesandnorms import losses
 
 
 

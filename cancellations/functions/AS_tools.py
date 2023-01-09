@@ -5,20 +5,11 @@
 #
 
 
+import jax, jax.numpy as jnp
 
-
-#----------------------------------------------------------------------------------------------------
-# This file replaces GPU_sum
-#----------------------------------------------------------------------------------------------------
-
-
-import jax
-import jax.numpy as jnp
-from ..utilities import numutil as mathutil,tracking
-from . import permutations_simple as ps
-from jax.lax import collapse
-from . import multivariate as mv
-from . import backflow as bf
+from cancellations.utilities import numutil as mathutil
+from cancellations.functions import permutations as ps
+from cancellations.functions import NNfunctions as mv
 
 
 
@@ -31,7 +22,7 @@ from . import backflow as bf
 #
 #=======================================================================================================
 
-def gen_Af_simple(n,f):
+def gen_Af_general(n,f):
     Ps,signs=ps.allperms(n)                    # Ps:    n!,n,n
 
     @jax.jit
@@ -44,14 +35,15 @@ def gen_Af_simple(n,f):
 
 
 
-# combine light and heavy regimes 
 #----------------------------------------------------------------------------------------------------
 
 def gen_Af(n,f):
-    return gen_Af_simple(n,f) #if n<=cfg.heavy_threshold else gen_Af_heavy(n,f)
+    return gen_Af_general(n,f)
+    
 
-def gen_lossgrad_Af(n,f,lossfn):
-    return mv.gen_lossgrad(gen_Af(n,f)) #if n<=cfg.heavy_threshold else AS_HEAVY.gen_lossgrad_Af_heavy(n,f,lossfn)
+
+#def gen_lossgrad_Af(n,f,lossfn):
+#    return mv.gen_lossgrad(gen_Af(n,f)) #if n<=cfg.heavy_threshold else AS_HEAVY.gen_lossgrad_Af_heavy(n,f,lossfn)
 
         
 
@@ -94,14 +86,15 @@ def prods(A,Y):
 #=======================================================================================================
 ## test
 #=======================================================================================================
-
-def test_AS(Ws,bs,X):
-
-    Af=lambda x:AS_NN(Ws,bs,x)
-    f=lambda x:NN(Ws,bs,x)
-
-    testing.test_AS(Af,f,X)
-
-
-if __name__=='__main__':
-    pass    
+#
+#def test_AS(Ws,bs,X):
+#
+#    Af=lambda x:AS_NN(Ws,bs,x)
+#    f=lambda x:NN(Ws,bs,x)
+#
+#    testing.test_AS(Af,f,X)
+#
+#
+#if __name__=='__main__':
+#    pass    
+#

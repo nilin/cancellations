@@ -1,24 +1,10 @@
-from . import tracking,sysutil
-import sys
-import time
-from collections import deque
-
-
-
 biasinitsize=.1
 initweight_coefficient=2
 layernormalization=None
-
-
-
 plotfineness=50
 
 def agrees(d1,**d2):
     return all([d1[k]==d2[k] for k in d1.keys() if k in d2.keys()])
-
-
-
-
 
 
 def test():

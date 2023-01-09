@@ -2,7 +2,7 @@ import jax
 import jax.numpy as jnp
 from functools import partial
 from jax.tree_util import tree_map
-from . import losses
+from cancellations.lossesandnorms import losses
 
 #dontpick
 

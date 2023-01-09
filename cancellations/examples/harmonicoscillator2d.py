@@ -6,13 +6,12 @@
 
 
 import jax.numpy as jnp
-from ..functions import functions
-from ..functions.functions import Product
 from functools import partial
-from ..lossesandnorms import losses,losses2
-from . import runtemplate
 
-
+from cancellations.functions import functions
+from cancellations.functions.functions import Product
+from cancellations.lossesandnorms import losses,losses2
+from cancellations.examples import runtemplate
 
 
 

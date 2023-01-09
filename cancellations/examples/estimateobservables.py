@@ -2,19 +2,11 @@
 # nilin
 
 
-import profile
-from re import I
-from cancellations.utilities import textutil,sysutil
-from ..utilities import numutil, tracking,sampling,config as cfg
-import jax
 import jax.random as rnd
-from collections import deque
-import matplotlib.pyplot as plt
 import jax.numpy as jnp
-import copy
+import matplotlib.pyplot as plt
 import math
-
-
+from cancellations.utilities import sysutil, numutil, tracking,sampling
 
 
 

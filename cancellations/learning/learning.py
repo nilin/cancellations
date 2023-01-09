@@ -1,11 +1,3 @@
-#
-# nilin
-#
-# 2022/7
-#
-
-
-
 import optax
 
 

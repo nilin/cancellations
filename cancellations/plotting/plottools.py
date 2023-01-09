@@ -1,12 +1,8 @@
-import jax.numpy as jnp
-import jax.random as rnd
-from ..utilities import numutil as mathutil, tracking
-import numpy as np
+import jax.numpy as jnp, jax.random as rnd, numpy as np
 import matplotlib.pyplot as plt
-import numpy as np
 import warnings
 warnings.filterwarnings('ignore')
-
+from cancellations.utilities import numutil as mathutil, tracking
 
 
 
@@ -25,12 +21,6 @@ def linethrough(x,interval):
     return X
 
 
-
-
-
-
-
-#def genCrossSections(X,Y,target):
 
 class CrossSection:
     info=''

@@ -7,12 +7,12 @@
 
 import jax.numpy as jnp
 import jax
-from ..learning import learning
 import matplotlib.pyplot as plt
 
-from ..utilities import numutil as mathutil, tracking,config as cfg,sysutil,textutil, numutil
-from ..functions import functions
-from ..learning import testing_old
+from cancellations.learning import learning
+from cancellations.utilities import numutil as mathutil, tracking,config as cfg,sysutil,textutil, numutil
+from cancellations.functions import functions
+from cancellations.testing import testing
 
 
 
@@ -30,9 +30,9 @@ from ..learning import testing_old
 
 def testantisymmetry(target,learner,X):
     tracking.logcurrenttask('verifying antisymmetry of target')
-    testing_old.verify_antisymmetric(target.eval,X[:100])
+    testing.verify_antisymmetric(target.eval,X[:100])
     tracking.logcurrenttask('verifying antisymmetry of learner')
-    testing_old.verify_antisymmetric(learner.eval,X[:100])
+    testing.verify_antisymmetric(learner.eval,X[:100])
     tracking.clearcurrenttask()
     return True
 

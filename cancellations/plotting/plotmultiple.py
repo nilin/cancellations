@@ -1,11 +1,10 @@
 import matplotlib.pyplot as plt
-
-from cancellations.display import _display_
-from ..utilities import sysutil, tracking, batchjob, browse, numutil, setup
-from . import traingraphs
-import random
 import os
 from pathlib import Path
+
+from cancellations.display import _display_
+from cancellations.utilities import sysutil, tracking, batchjob, browse, numutil, setup
+from cancellations.plotting import traingraphs
 
 
 def trainplots(process,profile):

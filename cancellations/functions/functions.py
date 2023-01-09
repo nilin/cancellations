@@ -1,23 +1,12 @@
 # nilin
 
-import jax
-import jax.numpy as jnp
-import jax.random as rnd
-from ..utilities import numutil as mathutil, tracking,textutil
-from cancellations.utilities import config as cfg
-#from GPU_sum import sum_perms_multilayer as sumperms
-from . import multivariate as mv
-from . import AS_tools
-from . import AS_tools as ASt
-import jax.random as rnd
-from . import backflow as bf, examplefunctions
-import textwrap
-import math
-import copy
-from .backflow import gen_backflow,initweights_Backflow
-from .AS_tools import dets #,initweights_detsum
-from jax.numpy import tanh
-from ..utilities.numutil import drelu
+import jax, jax.numpy as jnp
+import textwrap, math, copy
+
+from cancellations.utilities import numutil as mathutil, tracking,textutil, config as cfg
+from cancellations.functions import NNfunctions as mv
+from cancellations.functions import AS_tools, AS_tools as ASt
+from cancellations.functions import backflow as bf
 
 
 class FunctionDescription:

@@ -1,16 +1,6 @@
-# nilin
-
-
-
-
-import jax.numpy as jnp
-import jax
-from ..utilities import numutil as mathutil, tracking,config as cfg
-import math
-import jax.random as rnd
-import pdb
-from . import multivariate as mv
-
+import jax, jax.random as rnd, jax.numpy as jnp
+from cancellations.functions import NNfunctions as mv
+from cancellations.utilities import numutil as mathutil, tracking,config as cfg
 
 
 ####################################################################################################

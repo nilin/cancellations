@@ -1,15 +1,11 @@
 import os
 import re
-import curses as cs
 
 from cancellations.utilities import textutil, setup
 
-from . import tracking
-from ..display import _display_
-from ..utilities import config as cfg,sysutil,tracking
-import time
-
-from cancellations import utilities
+from cancellations.utilities import tracking
+from cancellations.display import _display_
+from cancellations.utilities import config as cfg,sysutil,tracking
 
 
 up='\u2191'
