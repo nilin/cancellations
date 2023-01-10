@@ -15,6 +15,8 @@ class Run(batchjob.Batchjob):
 
         fullpaths=[\
             'cancellations/examples/harmonicoscillator2d.py',\
+            #'cancellations/examples/harmonicoscillator2d_2.py',\
+            'cancellations/examples/Barronnorm.py',\
             'cancellations/plotting/plotmultiple.py']
 
         bprofile1=browse.Browse.getdefaultprofile().butwith(\

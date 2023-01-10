@@ -92,7 +92,7 @@ class Run(_display_.Process):
         regsched=tracking.Scheduler(range(0,P.iterations+25,25))
         run.addlearningdisplay()
 
-        run.log('data type (32 or 64): {}'.format(run.learner.eval(run.X_train[100:]).dtype))
+        run.log('data type (32 or 64): {}'.format(run.learner.eval(run.X_train[5:]).dtype))
 
         stopwatch1=tracking.Stopwatch()
         stopwatch2=tracking.Stopwatch()
@@ -161,12 +161,9 @@ class Run(_display_.Process):
             (0,3,'training loss (non-smoothed) {:.2E}'.format(self.loss.val)),\
             (0,8,'{:,d}/{:,d} iterations'.format(self.its,self.profile.iterations))
             ]
-        
 
-
-
-    @classmethod
-    def getdefaultprofile(cls):
+    @staticmethod
+    def getdefaultprofile():
         profile=tracking.Profile()
         profile.instructions=''
 
@@ -213,19 +210,13 @@ class Run(_display_.Process):
         profile.adjusttargetiterations=250
 
         profile.plotrange=5
-
         return profile
-
 
     @classmethod
     def getprofiles(cls):
-        profiles=dict()
-        default=cls.getdefaultprofile().butwith(n=6,weight_decay=.1)
-        profiles['n=6 d=2 SI']=default
-        profiles['n=6 d=2 non-SI']=default.butwith(initlossgrad=losses.Lossgrad_nonSI)
-        profiles['n=6 d=2 unbiased loss']=default.butwith(\
-            initlossgrad=partial(losses.Lossgrad_unbiased,10))
-        return profiles
+        default=cls.getdefaultprofile()
+        return {'default':default}
+
 
 def getinstructions():
     return 'Press [p] to generate plots.\n'+\

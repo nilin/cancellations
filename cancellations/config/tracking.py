@@ -183,18 +183,16 @@ class Session(Process):
     processname='session'
     processtype='sessions'
 
-#    def __init__(self,profile=None,**kw):
-#        super().__init__(profile=profile,**kw)
-
     def setID(self):
         self.ID=nowstr()
 
 
 cfg.session=Session()
+cfg.log=cfg.session.log
+
 
 def log(msg):
     currentprocess().log(msg)
-    #cfg.session.log(msg)
 
 def getlog():
     return cfg.session.gethist('recentlog')

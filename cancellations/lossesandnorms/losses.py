@@ -149,6 +149,28 @@ class Lossgrad_balanced(Lossgrad_memory):
 
 ####################################################################################################
 
+class Paramnorm(Lossgrad):
+
+    def __init__(self,fd,density,paramnorm,delta=.01):
+        f=fd._eval_
+        self.delta=delta
+        self.lossfn_constraint=jax.jit(lambda params,X,Y: numutil.weighted_SI_loss(f(params,X),Y,relweights=1/density(X)))
+        self.lossfn_sum=lambda params,X,Y: self.activation(paramnorm(params)+self.lossfn_constraint(params,X,Y),delta/2)
+        self.grad=jax.jit(jax.grad(self.lossfn_sum))
+        self.loss=jax.jit(lambda params,X,Y:paramnorm(params))
+
+    @staticmethod
+    def activation(paramnorm,constraintnorm,delta):
+        return jnp.log(paramnorm)+jax.nn.relu(constraintnorm-delta)
+
+    def _eval_(self,params,X,fX):
+        loss_constraint=self.lossfn_constraint(params,X,fX)
+        loss=self.loss(params,X,fX) if loss_constraint<self.delta else float('inf')
+        return loss,self.grad(params,X,fX)
+
+
+####################################################################################################
+
 
 class Lossgrad_normratio(Lossgrad):
     def __init__(self,learnerdescr,density,fpow=2,Afpow=-2):

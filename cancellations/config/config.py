@@ -20,9 +20,6 @@ def run_afterdisplayclosed():
     for postcommand in postcommands:
         postcommand()
 
-
-
-
 biasinitsize=.1
 initweight_coefficient=2
 layernormalization=None
@@ -34,3 +31,6 @@ def agrees(d1,**d2):
 def test():
     print(agrees(dict(a=1,b=2,c=3),b=1))
     print(agrees(dict(a=1,b=2,c=3),b=2))
+
+def log(msg):
+    print(msg)

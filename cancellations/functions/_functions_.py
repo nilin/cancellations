@@ -1,11 +1,11 @@
 # nilin
 
-import jax, jax.numpy as jnp
+import jax, jax.numpy as jnp, jax.random as rnd
 import textwrap, math, copy
 from cancellations.config import config as cfg, tracking
 
 from cancellations.utilities import numutil, numutil as mathutil, textutil
-from cancellations.functions import NN as mv, symmetries, symmetries as ASt
+from cancellations.functions import NN as mv, symmetries, symmetries
 
 
 class FunctionDescription:
@@ -200,7 +200,7 @@ class Switchable:
     def translation(k): return k
 
 class Nonsym(FunctionDescription,Switchable):
-    def antisym():
+    def antisym(self):
         return globals()[self.antisymtype]
     def getantisym(self):
         return self.switch(self.antisym())
@@ -265,7 +265,18 @@ class ASNN(Antisymmetric,NNfunction):
     nonsym=NN
     def _compile_(self):
         NN_NS=mv.gen_NN_NS(self.activation)
-        return ASt.gen_Af(self.n,NN_NS)
+        return symmetries.gen_Af(self.n,NN_NS)
+
+class ASBarron(FunctionDescription):
+    @staticmethod
+    def _initweights_(m,n,d):
+        W=numutil.initweights((m,n,d))
+        b=rnd.normal(tracking.nextkey(),(m,))*cfg.biasinitsize
+        a=numutil.initweights((1,m))
+        return [(W,b),a]
+
+    def compile(self):
+        return symmetries.gen_singlelayer_Af(self.n,self.d,'softplus')
 
 class Dets(Antisymmetric):
     nonsym=Prods

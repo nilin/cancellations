@@ -167,23 +167,9 @@ def getmetadata(folder):
     except Exception as e: return ''
 
 def getinfo(readinfo,path):
-    #return readinfo(path)
     try: return readinfo(path)
     except: return 'no info'
 
-
-
-
-
-####################################################################################################
-
-
-#def defaultpathprofile(**kw):
-#    return tracking.Profile(name='filterpaths',\
-#    parentfolder='outputs/',\
-#    regex='.*',\
-#    condition=lambda path:os.path.exists('outputs/'+path+'/data/setup'),\
-#    ).butwith(**kw)
 
 def getpaths(parentfolder='outputs/', regex='.*', condition=None):
     if condition is None: condition=lambda path: True

@@ -1,6 +1,6 @@
 import jax, jax.random as rnd, jax.numpy as jnp
 from cancellations.config import config as cfg, tracking
-from cancellations.utilities import numutil as mathutil
+from cancellations.utilities import numutil
 from cancellations.utilities import permutations as ps
 from cancellations.functions import NN as mv
 
@@ -56,7 +56,7 @@ def gen_singleparticleNN(activation):
 
 def initweights_Backflow(widths,*args,**kw):
     ds=widths
-    Ws=[mathutil.initweights((d2,2*d1)) for d1,d2 in zip(ds[:-1],ds[1:])]
+    Ws=[numutil.initweights((d2,2*d1)) for d1,d2 in zip(ds[:-1],ds[1:])]
     bs=[rnd.normal(tracking.nextkey(),(d2,))*cfg.biasinitsize for d2 in ds[1:]]
 
     return list(zip(Ws,bs))    
@@ -77,9 +77,9 @@ def gen_Af_general(n,f):
 
     @jax.jit
     def Af(params,X):
-        PX=mathutil.apply_on_n(Ps,X)                # PX:    n!,s,n,d
+        PX=numutil.apply_on_n(Ps,X)                # PX:    n!,s,n,d
         fX=f(params,PX)                        # fX:    n!,s
-        return jnp.dot(signs,fX)                # s
+        return jnp.tensordot(signs,fX,axes=(0,0))                # s
 
     return Af
 
@@ -92,11 +92,13 @@ def gen_Af(n,f):
 # single layer special case
 #=======================================================================================================
 
-def gen_singlelayer_Af(n,ac):
+def gen_singlelayer_Af(n,d,activation,compatibilitymode=False):
+    ac=numutil.activations[activation]
 
     Ps,signs=ps.allpermtuples(n)                    # Ps:    n!,n,n
     I=jnp.repeat(jnp.expand_dims(jnp.arange(n),axis=0),len(signs),axis=0)
     scale=1/jnp.sqrt(len(signs))
+    #scale=1
 
     @jax.jit
     def Af_singleneuron(w,b,X):     # w: n,d
@@ -106,11 +108,23 @@ def gen_singlelayer_Af(n,ac):
 
     @jax.jit
     def Af(params,X):     # w: n,d
-        (W,bs),a=params
-        A_neuronoutputs=jax.vmap(Af_singleneuron,in_axes=(0,0,None),out_axes=-1)(W,bs,X)
-        return jnp.squeeze(jnp.inner(A_neuronoutputs,a))*scale
+        (W,b),A=params
+        AS_neuronoutputs=jax.vmap(Af_singleneuron,in_axes=(0,0,None),out_axes=-1)(W,b,X)
+        return jnp.squeeze(jnp.inner(AS_neuronoutputs,A)*scale)
 
     return Af
+
+#    @jax.jit
+#    def Af_(params,X):
+#        (W,b),(A,_)=params
+#        W_=jnp.reshape(W,(-1,n,d))
+#        print(W_)
+#        print(b)
+#        print(A)
+#        return Af([(W_,b),A],X)
+#
+#    return Af_ if compatibilitymode else Af
+
 
 
 #=======================================================================================================

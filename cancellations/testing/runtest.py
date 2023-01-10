@@ -19,25 +19,54 @@
 #I=(jnp.ones((Ps.shape[0]))[:,None]*jnp.arange(n)[None,:]).astype(int)
 
 
-from cancellations.functions import NN, _functions_
-from jax.nn import relu
+from cancellations.functions import _functions_, symmetries
 import jax.random as rnd
 import jax.numpy as jnp
 from numpy.testing import assert_allclose
 
-n=5; d=3;
+n=5; d=3
 m=100
 
-fdescr=_functions_.ASNN(activation='relu',n=n,d=d,widths=[n*d,m,1])
-params=fdescr.weights
-[(W,bs),(a,_)]=params
-W=jnp.reshape(W,(-1,n,d))
+fdescr1=_functions_.ASBarron(n=n,d=d,m=m)
+fdescr2=_functions_.ASNN(activation='relu',n=n,d=d,widths=[n*d,m,1])
 
-f2=NN.gen_singlelayer_Af(n,relu)
+(W,b)=fdescr1.weights
+W2=jnp.reshape(W,(m,n*d))
+#W=jnp.reshape(W,(-1,n,d))
+params2=[(W2,b),(jnp.ones((1,m)),jnp.ones((1,)))]
+
 
 X=rnd.normal(rnd.PRNGKey(0),(1000,n,d))
-y1=f1=fdescr.eval(X)
-y2=f2([(W,bs),a],X)
+y1=jnp.squeeze(fdescr1.eval(X))
+y2=jnp.squeeze(fdescr2._eval_(params2,X))
 
 assert_allclose(y1,y2)
+
 print('test passed')
+
+# print()
+# print()
+# print()
+# print()
+# print(W)
+# print(bs)
+# print(a)
+# print()
+# print()
+# print()
+# print()
+
+# f3=symmetries.gen_singlelayer_Af(n,d,'relu')
+# 
+# X=rnd.normal(rnd.PRNGKey(0),(1000,n,d))
+# y1=jnp.squeeze(fdescr1._eval_(params,X))
+# y2=jnp.squeeze(fdescr2._eval_(params,X))
+# y3=jnp.squeeze(f3([(W,bs),a],X))
+# 
+# #breakpoint()
+# print(y1.shape)
+# print(y2.shape)
+# print(y3.shape)
+# assert_allclose(y1,y3)
+# assert_allclose(y1,y2)
+# print('test passed')
