@@ -13,7 +13,7 @@ from jax.tree_util import tree_map
 from cancellations.functions import _functions_
 from cancellations.functions._functions_ import Product
 from cancellations.lossesandnorms import energy
-from cancellations.examples import harmonicoscillator2d
+from cancellations.examples import examples
 
 from cancellations.config.tracking import dotdict
 from cancellations.run import supervised, runtemplate, sampling
@@ -27,19 +27,17 @@ from cancellations.run import supervised, runtemplate, sampling
 
 
 
-
-
 class Run(runtemplate.Run):
     processname=''
 
     @classmethod
     def getdefaultprofile(cls):
         profile=supervised.Run.getdefaultprofile().butwith(\
-            gettarget=harmonicoscillator2d.gettarget,\
+            gettarget=examples.get_harmonic_oscillator2d,\
             samples_train=10**5,\
             weight_decay=0.1)
 
-        profile.initlossgrads=[energy.Energy_val_and_grad]
+        profile.initlossgrads=[energy.Kinetic_energy_val_and_grad]
         profile.lossnames=['E']
         profile.proposalfn=sampling.gaussianstepproposal(.1)
 

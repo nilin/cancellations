@@ -46,12 +46,6 @@ class Run(runtemplate.Run):
         profile.n=5
         profile.d=2
 
-        profile.learnerparams=tracking.dotdict(\
-            SPNN=dotdict(widths=[profile.d,25,25],activation='sp'),\
-            #backflow=dotdict(widths=[],activation='sp'),\
-            dets=dotdict(d=25,ndets=25),)
-            #'OddNN':dict(widths=[25,1],activation='sp')
-
         profile._var_X_distr_=1
         profile._genX_=lambda key,samples,n,d:rnd.normal(key,(samples,n,d))*jnp.sqrt(profile._var_X_distr_)
         profile.X_density=numutil.gen_nd_gaussian_density(var=profile._var_X_distr_)
@@ -70,7 +64,7 @@ class Run(runtemplate.Run):
         profile.adjusttargetiterations=250
 
         profile.plotrange=5
-
+        profile.getlearner=runtemplate.getlearner_example
 
         return profile
 
@@ -81,13 +75,5 @@ def gettarget(P):
 def normalizeY(Y,rhoX):
     squarednorm=jnp.average(Y**2/rhoX)
     return Y/jnp.sqrt(squarednorm)
-
-def getlearner(profile):
-    return Product(_functions_.IsoGaussian(1.0),ComposedFunction(\
-        SingleparticleNN(**profile.learnerparams['SPNN']),\
-        #functions.Backflow(**profile.learnerparams['backflow']),\
-        _functions_.Dets(n=profile.n,**profile.learnerparams['dets']),\
-        _functions_.Sum()\
-        ))
 
 

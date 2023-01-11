@@ -24,63 +24,46 @@ class Run(_display_.Process):
     def execprocess(run:_display_.Process):
 
         run.prepdisplay()
-        run.log('imports done')
 
         P=run.profile
         run.info='runID: {}\n'.format(run.ID)+'\n'*4; run.infodisplay.msg=run.info
 
-        run.sampler=run.getsampler(P)
-
-        run.log('gen learner')
-        run.learner=P.getlearner(P)
-        run.info+=4*'\n'+'learner\n\n{}'.format(textutil.indent(run.learner.getinfo()))#; run.infodisplay.msg=info
+        run.info+=4*'\n'+'learner\n\n{}'.format(textutil.indent(P.learner.getinfo()))#; run.infodisplay.msg=info
         run.infodisplay.msg=run.info
         run.T.draw()
-
-        run.log('save setup data')
 
         run.traindata=dict()
         run.info+=10*'\n'+str(run.profile) 
         sysutil.write(run.info,path.join(run.outpath,'info.txt'),mode='w')
-        run.log('gen lossgrad and learner')
-        #train
-
-        run.lossgrads=[]
-        for init in P.initlossgrads:
-            run.lossgradobj=init(run.learner,P.X_density)
-            lossgrad=run.lossgradobj._eval_
-            run.lossgrads.append(lossgrad)
 
         regsched=tracking.Scheduler(range(0,P.iterations+25,25))
         run.losses={ln:None for ln in P.lossnames}
         run.addlearningdisplay()
 
-        run.log('data type (32 or 64): {}'.format(run.learner.eval(run.sampler.step(run.learner.weights)[0]).dtype))
-
         stopwatch1=tracking.Stopwatch()
         stopwatch2=tracking.Stopwatch()
 
         opt=optax.adamw(learning_rate=.01,weight_decay=P.weight_decay)
-        state=opt.init(run.learner.weights)
+        state=opt.init(P.learner.weights)
         #run.learner.weights=listform(run.learner.weights)
 
         for i in range(P.iterations+1):
 
-            X,*Ys=run.sampler.step(run.learner.weights)
+            X,*Ys=P.sampler()
 
-            Ls,Gs=zip(*[lossgrad(run.learner.weights,X,*Ys) for lossgrad in run.lossgrads])
+            Ls,Gs=zip(*[lossgrad(P.learner.weights,X,*Ys) for lossgrad in P.lossgrads])
             for i,(ln,loss) in enumerate(zip(P.lossnames,Ls)):
                 run.losses[ln]=loss
             run.traindata[i]={ln:loss for ln,loss in zip(P.lossnames,Ls)}
             grad=sumgrads(rescale(P.lossweights,Gs))
 
-            updates,state=opt.update(grad,state,run.learner.weights)
-            run.learner.weights=optax.apply_updates(run.learner.weights,updates)
+            updates,state=opt.update(grad,state,P.learner.weights)
+            P.learner.weights=optax.apply_updates(P.learner.weights,updates)
 
             run.its=i
             if regsched.activate(i):
-                run.traindata[i]['weights']=run.learner.weights
-                sysutil.save(run.learner.compress(),path=path.join(run.outpath,'data','learner'))
+                run.traindata[i]['weights']=P.learner.weights
+                sysutil.save(P.learner.compress(),path=path.join(run.outpath,'data','learner'))
                 sysutil.save(run.traindata,path.join(run.outpath,'data','traindata'),echo=False)
                 #sysutil.write('loss={:.2E} iterations={} n={} d={}'.format(loss,i,P.n,P.d),path.join(run.outpath,'metadata.txt'),mode='w')    
 
@@ -95,7 +78,7 @@ class Run(_display_.Process):
 
     def act_on_input(self,key):
         if key=='q': quit()
-        if key=='p': self.allplots()
+        if key=='p': self.plot()
         if key=='o': sysutil.showfile(self.outpath)
         return key
 
@@ -132,7 +115,7 @@ class Run(_display_.Process):
         self.T.draw()
 
     def addlearningdisplay(self):
-        k=10
+        k=100
         lossnames=self.losses.keys()
         smoothers={ln:numutil.RunningAvg(k=k) for ln in lossnames}
         display=self.learningdisplay.add(0,0,_display_._Display_())
@@ -146,9 +129,41 @@ class Run(_display_.Process):
 
     @classmethod
     def getprofiles(cls):
-        default=cls.getdefaultprofile()
-        return {'default':default}
+        return {'default':cls.getdefaultprofile}
 
+    @staticmethod
+    def getdefaultprofile(**kwargs):
+        profile=tracking.Profile()
+        profile.info=''
+        profile.n=5
+        profile.d=2
+        profile.update(**kwargs)
+
+        # training params
+
+        profile.weight_decay=0.0
+        profile.iterations=25000
+        profile.batchsize=100
+
+        profile.samples_train=10**5
+        profile.samples_test=1000
+        profile.evalblocksize=10**4
+
+        profile._var_X_distr_=1
+        profile._genX_=lambda key,samples,n,d:rnd.normal(key,(samples,n,d))*jnp.sqrt(profile._var_X_distr_)
+        profile.X_density=numutil.gen_nd_gaussian_density(var=profile._var_X_distr_)
+        profile.X=profile._genX_(rnd.PRNGKey(0),profile.samples_train,profile.n,profile.d)
+        samplespipe=sampling.SamplesPipe(profile.X,minibatchsize=profile.batchsize)
+        profile.Xsampler=samplespipe.step
+
+        def getXYsampler(Xsampler,target):
+            def newsampler():
+                (X,)=Xsampler()
+                return X,target.eval(X)
+            return newsampler
+
+        profile.getXYsampler=getXYsampler
+        return profile
 
 def rescale(cs,Gs):
     return [tree_map(lambda A:c*A,G) for c,G in zip(cs,Gs)]
@@ -157,3 +172,22 @@ def sumgrads(Gs):
     add=lambda *As: reduce(jnp.add,As)
     return tree_map(add,*Gs)
     
+
+
+###### example ######
+
+def getlearner_example(profile):
+
+    P=profile
+    profile.learnerparams=tracking.dotdict(\
+        SPNN=dotdict(widths=[profile.d,25,25],activation='sp'),\
+        backflow=dotdict(widths=[25,25,25],activation='sp'),\
+        dets=dotdict(d=25,ndets=P.ndets),)
+        #'OddNN':dict(widths=[25,1],activation='sp')
+
+    return Product(_functions_.IsoGaussian(1.0),ComposedFunction(\
+        SingleparticleNN(**profile.learnerparams['SPNN']),\
+        _functions_.Backflow(**profile.learnerparams['backflow']),\
+        _functions_.Dets(n=profile.n,**profile.learnerparams['dets']),\
+        _functions_.Sum()\
+        ))

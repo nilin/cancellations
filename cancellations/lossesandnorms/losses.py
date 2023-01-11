@@ -16,25 +16,23 @@ from cancellations.utilities.numutil import make_single_x
 
 ####################################################################################################
 
-class Lossgrad:
-    pass
+def get_lossgrad_SI(f,profile):
+    density=profile.X_density
+    lossfn=lambda params,X,Y: numutil.weighted_SI_loss(f(params,X),Y,relweights=1/density(X))
+    return jax.jit(jax.value_and_grad(lossfn))
 
-class Lossgrad_SI(Lossgrad):
-    def __init__(self,fd,density):
-        f=fd._eval_
-        self.lossfn=lambda params,X,Y: numutil.weighted_SI_loss(f(params,X),Y,relweights=1/density(X))
-        self._eval_=jax.jit(jax.value_and_grad(self.lossfn))
+def norm(rho,f,params,X):
+    sqdist=f(params,X)**2
+    return jnp.sqrt(jnp.average(sqdist/rho(X)))
 
-class Lossgrad_nonSI(Lossgrad):
-    def __init__(self,fd,density):
-        f=fd._eval_
-        def lossfn(params,X,Y):
-            rho=density(X)
-            sqdist=(f(params,X)-Y)**2
-            assert(sqdist.shape==rho.shape)
-            return jnp.average(sqdist/rho)
-        self.lossfn=lossfn
-        self._eval_=jax.jit(jax.value_and_grad(self.lossfn))
+def get_lossgrad_normalization(f,profile):
+    norm=partial(norm,profile.X_density,f)
+    lossfn=lambda params,X:jnp.abs(jnp.log(norm(params,X)))
+    def lossgrad(params,X,*Y):
+        return norm(params,X),jax.grad(lossfn)(params,X)
+    return jax.jit(lossgrad)
+
+
 
 
 #class Lossgrad_sum(Lossgrad):
@@ -50,7 +48,7 @@ class Lossgrad_nonSI(Lossgrad):
 
 ####################################################################################################
 
-class Lossgrad_memory(Lossgrad):
+class Lossgrad_memory:
     def __init__(self,period,microbatchsize,gd,rho,batchmode='batch',**kw):
         g=gd._eval_
         g_=make_single_x(g)
@@ -153,7 +151,7 @@ class Lossgrad_balanced(Lossgrad_memory):
 ####################################################################################################
 
 
-class Lossgrad_normratio(Lossgrad):
+class Lossgrad_normratio():
     def __init__(self,learnerdescr,density,fpow=2,Afpow=-2):
 
         Af=learnerdescr._eval_

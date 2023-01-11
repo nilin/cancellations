@@ -13,29 +13,22 @@ from jax.tree_util import tree_map
 from cancellations.functions import _functions_
 from cancellations.functions._functions_ import Product
 from cancellations.lossesandnorms import losses,energy
-from cancellations.examples import harmonicoscillator2d
+from cancellations.examples import examples
 
 from cancellations.config.tracking import dotdict
-from cancellations.run import supervised
-
-
-####################################################################################################
-#
-# Barron norm Ansatz
-#
-####################################################################################################
+from cancellations.run import unsupervised
 
 
 
 
 
-class Run(supervised.Run):
-    processname='Barron_norm'
+class Run(unsupervised.Run):
+    processname='energy'
 
     @classmethod
     def getdefaultprofile(cls):
         profile=super().getdefaultprofile().butwith(\
-            gettarget=harmonicoscillator2d.gettarget,\
+            getlearner=examples.get_harmonic_oscillator2d,\
             samples_train=10**5,\
             weight_decay=0.1)
 

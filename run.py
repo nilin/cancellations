@@ -14,12 +14,14 @@ class Run(batchjob.Batchjob):
     def runbatch(self):
 
         fullpaths=[\
-            'cancellations/examples/harmonicoscillator2d.py',\
+            #'cancellations/examples/harmonicoscillator2d.py',\
             #'cancellations/examples/harmonicoscillator2d_2.py',\
             'cancellations/examples/Barronnorm.py',\
             'cancellations/examples/detnorm.py',\
-            'cancellations/run/unsupervised.py',\
-            'cancellations/plotting/plotmultiple.py']
+            'cancellations/examples/game.py',\
+            #'cancellations/run/unsupervised.py',\
+            #'cancellations/plotting/plotmultiple.py'\
+            ]
 
         bprofile1=browse.Browse.getdefaultprofile().butwith(\
             onlyone=True,\
@@ -41,7 +43,8 @@ class Run(batchjob.Batchjob):
         runprofiles=m.Run.getprofiles()
         profilenamestack=[]
 
-        while not isinstance(runprofiles,tracking.Profile):
+        #while not isinstance(runprofiles,tracking.Profile):
+        while not callable(runprofiles):
             bprofile2=browse.Browse.getdefaultprofile().butwith(\
                 onlyone=True,\
                 options=list(runprofiles.keys()),\
@@ -52,8 +55,8 @@ class Run(batchjob.Batchjob):
             runprofiles=runprofiles[profilename]
             profilenamestack.append(profilename)
 
-        runprofile=runprofiles
-        runprofile['profilename']='/'.join(profilenamestack)
+        runprofile=runprofiles()
+        runprofile['profilename']='.'.join(profilenamestack)
 
         self.run=m.Run(runprofile)
 

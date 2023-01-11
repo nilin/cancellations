@@ -13,10 +13,11 @@ from jax.tree_util import tree_map
 from cancellations.functions import _functions_
 from cancellations.functions._functions_ import Product
 from cancellations.lossesandnorms import losses,losses2
-from cancellations.examples import harmonicoscillator2d
+from cancellations.examples import examples
 
 from cancellations.config.tracking import log
-from cancellations.run import supervised
+from cancellations.run import supervised,runtemplate
+from cancellations.config.tracking import Profile
 
 
 ####################################################################################################
@@ -26,19 +27,45 @@ from cancellations.run import supervised
 ####################################################################################################
 
 
-def getlearner(profile):
+def getBarronfn(profile):
     return Product(_functions_.IsoGaussian(1.0),\
-        _functions_.ASBarron(n=profile.n,d=profile.d,m=100))
+        _functions_.ASBarron(n=profile.n,d=profile.d,m=profile.m))
         #_functions_.ASBarron(**profile.learnerparams['ASNN']))
 
-class Barronweight(losses.Lossgrad):
-    def __init__(self,p,fd,density):
-        self.p=p
-        lossfn=lambda params, X, fX: self.loss(p,params)
-        #self._eval_=jax.jit(jax.value_and_grad(lossfn))
-        self._eval_=jax.jit(jax.value_and_grad(lossfn))
 
-    @staticmethod
+class Run(runtemplate.Run):
+    processname='Barron_norm'
+
+    @classmethod
+    def getdefaultprofile(cls,**kwargs):
+        P=profile=super().getdefaultprofile(**kwargs)
+        Barron=getBarronfn(profile)
+        profile.learner=Barron
+        profile.target=runtemplate.getlearner_example(Profile(n=P.n,d=P.d,ndets=P.mtarget))
+        #profile.target=examples.get_harmonic_oscillator2d(profile)
+        profile.lossgrads=[\
+            get_threshold_lg(losses.get_lossgrad_SI(Barron._eval_,profile),.001),\
+            get_barronweight(1.0,Barron._eval_,profile),\
+            #losses.get_lossgrad_normalization(profile.learner._eval_,profile)
+        ]
+        profile.lossnames=['eps','Barron norm estimate']
+        profile.lossweights=[100.0,0.1]
+        profile.sampler=profile.getXYsampler(profile.Xsampler,profile.target)
+        return profile
+
+    @classmethod
+    def getprofiles(cls):
+        return {\
+            'm=1': partial(cls.getdefaultprofile,n=5,d=2,m=100,mtarget=1),
+            'm=2': partial(cls.getdefaultprofile,n=5,d=2,m=100,mtarget=2),
+            'm=4': partial(cls.getdefaultprofile,n=5,d=2,m=100,mtarget=4),
+            'm=8': partial(cls.getdefaultprofile,n=5,d=2,m=100,mtarget=8),\
+        }
+
+
+
+def get_barronweight(p,Barronfn,profile):
+    norm=partial(losses.norm,profile.X_density,Barronfn)
     def loss(p,prodparams):
         _,params=prodparams
         (W,b),a=params
@@ -49,30 +76,12 @@ class Barronweight(losses.Lossgrad):
             return jnp.max(w1*w2)
         else:
             return jnp.average((w1*w2)**p)**(1/p)
+    lossfn=lambda params,X,*Y: loss(p,params)/norm(params,X)
+    return jax.jit(jax.value_and_grad(lossfn))
 
-class ThresholdLG(losses.Lossgrad):
-    def __init__(self,LG,delta,*a,**kw):
-        self.delta=delta
-        self.lg=LG(*a,**kw)
-
-    def _eval_(self,params,X,Y):
-        v,g=self.lg._eval_(params,X,Y)
-        if v<self.delta: g=tree_map(lambda A:0*A,g)
-        return v,g
-
-class Run(supervised.Run):
-    processname='Barron_norm'
-
-    @classmethod
-    def getdefaultprofile(cls):
-        profile=super().getdefaultprofile().butwith(\
-            getlearner=getlearner,\
-            gettarget=harmonicoscillator2d.gettarget,\
-            samples_train=10**5,\
-            weight_decay=0.0)
-
-        profile.initlossgrads=[partial(ThresholdLG,losses.Lossgrad_SI,.001),partial(Barronweight,1.0)]
-        profile.lossnames=['eps','Barron norm estimate']
-        profile.lossweights=[100.0,1.0]
-
-        return profile
+def get_threshold_lg(lg,delta):
+    def _eval_(params,*X):
+        val,grad=lg(params,*X)
+        weight=jax.nn.sigmoid(val/delta-1)
+        return val,tree_map(lambda A:weight*A,grad)
+    return jax.jit(_eval_)

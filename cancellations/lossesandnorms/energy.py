@@ -11,10 +11,10 @@ def genlocalkinetic(psi):
         return jnp.sum(grad**2)/(2*val**2)
     return jax.jit(jax.vmap(E_singlesample,in_axes=(None,0)))
 
-def genlocalenergy(psi,potential):
-    K_local=genlocalkinetic(psi)
-    return jax.jit(lambda params,X: K_local(params,X)+potential(X))
-
+# def genlocalenergy(psi,potential):
+#     K_local=genlocalkinetic(psi)
+#     return jax.jit(lambda params,X: K_local(params,X)+potential(X))
+# 
 def samplewise_value_and_grad(_psi_):
     singlesamplepsi=jax.jit(lambda params,X: jnp.squeeze(_psi_(params,jnp.expand_dims(X,axis=0))))
     return jax.vmap(jax.value_and_grad(singlesamplepsi),in_axes=(None,0))
@@ -23,10 +23,11 @@ def samplewise_grad(_psi_):
     singlesamplepsi=jax.jit(lambda params,X: jnp.squeeze(_psi_(params,jnp.expand_dims(X,axis=0))))
     return jax.vmap(jax.grad(singlesamplepsi),in_axes=(None,0))
 
-class Energy_val_and_grad:
-    def __init__(self,psi_descr,potential):
-        psi=psi_descr._eval_
-        self.le=genlocalenergy(psi,potential)
+class Kinetic_energy_val_and_grad:
+    def __init__(self,run):
+        psi=run.learner._eval_
+        self.le=genlocalkinetic(psi)
+        #self.le=genlocalenergy(psi,run.profile.potential)
         self.Lq=lambda params,X: jnp.log(psi(params,X)**2)
         self.DLq=samplewise_grad(self.Lq)
 
