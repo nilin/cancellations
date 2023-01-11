@@ -180,9 +180,9 @@ def getlearner_example(profile):
 
     P=profile
     profile.learnerparams=tracking.dotdict(\
-        SPNN=dotdict(widths=[profile.d,25,25],activation='sp'),\
-        backflow=dotdict(widths=[25,25,25],activation='sp'),\
-        dets=dotdict(d=25,ndets=P.ndets),)
+        SPNN=dotdict(widths=[profile.d,100,100],activation='sp'),\
+        backflow=dotdict(widths=[100,100,100],activation='sp'),\
+        dets=dotdict(d=100,ndets=P.ndets),)
         #'OddNN':dict(widths=[25,1],activation='sp')
 
     return Product(_functions_.IsoGaussian(1.0),ComposedFunction(\
