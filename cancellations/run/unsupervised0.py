@@ -10,14 +10,17 @@ import jax
 import jax.numpy as jnp
 import jax.random as rnd
 
+from ..lossesandnorms import energy
+
+from . import sampling
+
 from ..config import config as cfg, sysutil, tracking
 from ..functions import _functions_, examplefunctions as ef
-from ..learning import learning
 from ..functions._functions_ import ComposedFunction,SingleparticleNN,Product
-from ..utilities import numutil, textutil, sampling, energy
+from ..utilities import numutil, textutil
 import optax
 from ..plotting import plottools as pt
-from . import exampleutil
+from ..examples import exampleutil
 
 
 
@@ -40,7 +43,6 @@ def getdefaultprofile():
     profile._var_X0_distr_=4
     profile._X0_distr_=lambda key,samples,n,d:rnd.normal(key,(samples,n,d))*jnp.sqrt(profile._var_X0_distr_)
     profile._X0_distr_density_=lambda X:jnp.exp(-jnp.sum(X**2/(2*profile._var_X_distr_),axis=(-2,-1)))
-
     profile.proposalfn=sampling.gaussianstepproposal(.1)
 
     # training params
@@ -104,15 +106,11 @@ class Run(cdisplay.Process):
 
 
         X0=run._X0_distr_(tracking.nextkey(),run.nrunners,run.n,run.d)
-
         run._density_=lambda params,X: run.learner._eval_(params,X)**2
         sampler=sampling.DynamicSampler(run._density_,run.proposalfn,X0)
-
-
         tracking.log('burning')
         for i in range(run.burnsteps):
             sampler.step(run.learner.weights)
-
         tracking.log('burning done')
         #train
         run.lossgrad=gen_lossgrad(run.learner._eval_)

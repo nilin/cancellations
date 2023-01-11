@@ -10,13 +10,13 @@ from ..functions import _functions_
 from ..functions._functions_ import Product
 from functools import partial
 from ..lossesandnorms import losses,losses2
-from . import runtemplate
+from . import runtemplate0
 
 
 
 #dontpick
 
-class Run(runtemplate.Run):
+class Run(runtemplate0.Run):
     processname='harmonicoscillator2d'
 
     @classmethod

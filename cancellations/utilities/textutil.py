@@ -2,6 +2,7 @@ import re
 from collections import deque
 import jax.numpy as jnp
 import math
+from jax.tree_util import tree_map
 
 
 BOX='\u2588'
@@ -83,6 +84,9 @@ def drawtree(tree,parseleaf=None):
     else:
         leaf=parseleaf(tree)
         return len(leaf)*BOX+'\n'+leaf
+
+def printtree(tree):
+    print(tree_map(lambda A:A.shape,tree))
 
 
 def midpoints(s,style=BOX):

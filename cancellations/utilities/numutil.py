@@ -529,3 +529,7 @@ def forcurrentparams(op):
 
 def make_single_x(F):
     return lambda *x: jnp.squeeze(F(*x[:-1],jnp.expand_dims(x[-1],axis=0)))
+
+
+
+

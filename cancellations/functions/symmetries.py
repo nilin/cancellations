@@ -39,10 +39,10 @@ def gen_EV_layer(phi,pool=jnp.sum):
 #
 # where P' applies P on dimension -2
 """
-def gen_backflow(ac):
+def gen_backflow(activation):
 
-    NN_layer=mv.gen_NN_layer(ac)
-    phi=jax.jit(lambda Wb,x,y:NN_layer(Wb,jnp.concatenate([x,y],axis=-1)))
+    ac=numutil.activations[activation]
+    phi=jax.jit(lambda Wb,x,y:ac(mv.NN_layer(Wb,jnp.concatenate([x,y],axis=-1))))
     layer=gen_EV_layer(phi)
     
     def F(params,Y):

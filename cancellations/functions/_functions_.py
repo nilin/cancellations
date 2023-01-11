@@ -180,11 +180,11 @@ class SingleparticleNN(NNfunction,Equivariant):
 
 class Backflow(NNfunction,Equivariant):
     def compile(self):    
-        return bf.gen_backflow(self.activation)
+        return symmetries.gen_backflow(self.activation)
 
     @staticmethod
     def _initweights_(widths,**kw):
-        return bf.initweights_Backflow(widths)
+        return symmetries.initweights_Backflow(widths)
 
 
 

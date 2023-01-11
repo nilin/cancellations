@@ -7,7 +7,7 @@ import jax.random as rnd
 import re
 import os
 import math
-from . import numutil
+from ..utilities import numutil
 from collections import deque
 import time
 
@@ -42,7 +42,6 @@ class DynamicSampler:
         return self.proposalfn(tracking.nextkey(),X)
 
 class Sampler(DynamicSampler):
-    
     def __init__(self,p,proposalfn,X0):
         _p_=numutil.dummyparams(p)
         super().__init__(_p_,proposalfn,X0)
@@ -64,7 +63,7 @@ class SamplesPipe(Sampler):
         self.minibatches=deque([])
         self.minibatchsize=minibatchsize
 
-    def step(self):
+    def step(self,*a):
         if len(self.minibatches)==0:
             cfg.timedistribution.starttask('prep next epoch')
             self.prepnextepoch()

@@ -3,7 +3,6 @@ import jax
 import matplotlib.pyplot as plt
 import os
 from cancellations.config import config as cfg, sysutil, tracking
-from cancellations.learning import learning
 from cancellations.utilities import numutil as mathutil, textutil, numutil
 from cancellations.functions import _functions_
 from cancellations.testing import testing
@@ -37,7 +36,6 @@ def adjustnorms(Afdescr,X,iterations=500,**learningparams):
         ratioloss=jnp.log(f_norm/Af_norm)
         return normloss+ratioloss
 
-    trainer=learning.Trainer(jax.value_and_grad(directloss),Afdescr,X,**learningparams)
 
     _,key1=run.display.column1.add(disp.NumberPrint('target |f|/|Af|',msg='\n\n|f|/|Af|={:.3f} (objective: decrease)'))
     _,key2=run.display.column1.add(disp.RplusBar('target |f|/|Af|'))

@@ -17,6 +17,8 @@ class Run(batchjob.Batchjob):
             'cancellations/examples/harmonicoscillator2d.py',\
             #'cancellations/examples/harmonicoscillator2d_2.py',\
             'cancellations/examples/Barronnorm.py',\
+            'cancellations/examples/detnorm.py',\
+            'cancellations/run/unsupervised.py',\
             'cancellations/plotting/plotmultiple.py']
 
         bprofile1=browse.Browse.getdefaultprofile().butwith(\
@@ -74,16 +76,20 @@ def main():
     Run().run_as_main()
     cfg.run_afterdisplayclosed()
 
-def debug():
+def debug(disable_jit=True):
     from cancellations.config import sysutil
     import jax
     sysutil.clearscreen()
     cfg.debug=True
-    with jax.disable_jit():
-        main()
+    if disable_jit:
+        with jax.disable_jit():
+            main()
+    else: main()
 
 if __name__=='__main__':
     if 'd' in sys.argv:
         debug()
+    elif 'd2' in sys.argv:
+        debug(disable_jit=False)
     else:
         main()

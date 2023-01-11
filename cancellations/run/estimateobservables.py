@@ -7,7 +7,8 @@ import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import math
 from cancellations.config import sysutil, tracking
-from cancellations.utilities import numutil, sampling
+from cancellations.run import sampling
+from cancellations.utilities import numutil
 
 
 
