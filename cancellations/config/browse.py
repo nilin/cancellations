@@ -116,12 +116,12 @@ def squash(string):
     else:
         return string[:a]+'...'+string[3-b:]
 
-msg='\n\n'\
+msg=''\
     +'Move with arrow keys:\n{}: up\n{}: down\n{}: fast up\n{}: fast down'.format(up,down,left,right)\
     +'\nYou may be able to scroll with the touchpad.'\
     +'\n\nPress ENTER to select.'
 
-msg2='\n\n'\
+msg2=''\
     +'Move with arrow keys:\n{}: up\n{}: down\n{}: fast up\n{}: fast down'.format(up,down,left,right)\
     +'\nYou may be able to scroll with the touchpad.'\
     +'\n\n\n'\
@@ -144,7 +144,7 @@ class Browse(_display_.Process):
         profile.readinfo=lambda selection: str(selection) #sysutil.readtextfile(path+'info.txt')
         profile.msg=msg
         profile.displayoption=lambda option:squash(option)
-        return profile
+        return profile.butwith(**kw)
 
 
 

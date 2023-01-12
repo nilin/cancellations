@@ -64,6 +64,7 @@ class Batchjob(_display_.Process):
         genprofile=profiles
         profile=self.run_dummyprocess(genprofile,'generating profile')
         #profile=genprofile()
+
         profile['profilename']='.'.join(profilenamestack)
         self.profile=profile
         return profile

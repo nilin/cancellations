@@ -10,10 +10,9 @@ from functools import partial
 import jax
 from jax.tree_util import tree_map
 
-from cancellations.functions import _functions_
+from cancellations.functions import _functions_, examplefunctions as examples
 from cancellations.functions._functions_ import Product
 from cancellations.lossesandnorms import losses,losses2
-from cancellations.examples import examples
 
 from cancellations.config import config as cfg
 from cancellations.run import template_run

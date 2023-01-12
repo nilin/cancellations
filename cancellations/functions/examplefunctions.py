@@ -2,6 +2,8 @@ import jax, jax.numpy as jnp
 import itertools
 from cancellations.functions import _functions_
 from cancellations.utilities import numutil as mathutil
+from cancellations.config import tracking
+from cancellations.config.tracking import dotdict
 
 
 
@@ -40,7 +42,7 @@ def H_coefficients(n):
         return A
 
 
-H_coefficients_list=[jnp.array(p) for p in H_coefficients(10)]
+H_coefficients_list=[jnp.array(p) for p in H_coefficients(25)]
 
 
 #----------------------------------------------------------------------------------------------------
@@ -123,6 +125,25 @@ for d in [1,2,3]:
 #----------------------------------------------------------------------------------------------------
 
 
+def get_harmonic_oscillator2d(P,excitation=0):
+    e=excitation
+    return _functions_.Slater(*['psi{}_{}d'.format(i,P.d) for i in range(1+e,P.n+1+e)])
+
+
+def getlearner_example(profile):
+    P=profile
+    profile.learnerparams=tracking.dotdict(\
+        SPNN=dotdict(widths=[profile.d,100,100],activation='sp'),\
+        backflow=dotdict(widths=[100,100,100],activation='sp'),\
+        dets=dotdict(d=100,ndets=P.ndets),)
+        #'OddNN':dict(widths=[25,1],activation='sp')
+
+    return _functions_.Product(_functions_.IsoGaussian(1.0),_functions_.ComposedFunction(\
+        _functions_.SingleparticleNN(**profile.learnerparams['SPNN']),\
+        _functions_.Backflow(**profile.learnerparams['backflow']),\
+        _functions_.Dets(n=profile.n,**profile.learnerparams['dets']),\
+        _functions_.Sum()\
+        ))
 
 def test():
     for p in H_coefficients_list: print(p)

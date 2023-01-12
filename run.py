@@ -11,23 +11,14 @@ class Run(batchjob.Batchjob):
 
         tasks=[\
             ('cancellations.examples.Barronnorm','Run'),\
-            ('cancellations.examples.comparenorms','Run'),\
             ('cancellations.examples.comparenorms','Genfns'),\
+            ('cancellations.examples.comparenorms','Compare'),\
             ('cancellations.examples.game','Run'),\
             #'cancellations/run/unsupervised.py',\
             #'cancellations/plotting/plotmultiple.py'\
             ]
 
-        bprofile1=browse.Browse.getdefaultprofile().butwith(\
-            onlyone=True,\
-            options=tasks,\
-            #displayoption=lambda option :str(option)#path+'.'+fn
-            displayoption=lambda o : o[0]+'.'+o[1]
-            )
-        bprofile1.msg='select a file to run Run(profile).execprocess().\n\n'\
-            +150*textutil.dash\
-            +bprofile1.msg
-        mname,classname=self.run_subprocess(browse.Browse(bprofile1))
+        mname,classname=self.run_subprocess(browse.Browse(options=tasks,displayoption=lambda o : o[0]+'.'+o[1]))
         m = importlib.import_module(mname)
         cls = getattr(m,classname)
         self.run=cls()
