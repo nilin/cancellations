@@ -49,7 +49,7 @@ def trainplots(process,profile):
 
 class Run(batchjob.Batchjob):
     processname='plot multiple'
-    def runbatch(self):
+    def execprocess(self):
 
         P=tracking.Profile()
 

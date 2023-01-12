@@ -5,6 +5,7 @@ from collections import deque
 import datetime
 import os
 import copy
+from functools import partial
 from cancellations.config import sysutil, config as cfg
 from cancellations.utilities import textutil
 import jax.numpy as jnp
@@ -133,34 +134,30 @@ class Process(Memory):
     processname='process'
     processtype='processes'
 
-    def __init__(self,profile=None,**kw):
+    def __init__(self,*a,**kw):
         super().__init__()
 
-        assert(profile is None or len(kw)==0)
-        if profile is None:
-            try: profile=self.getdefaultprofile(**kw)
-            except: profile=self.getdefaultprofile().butwith(**kw)
+        if len(a)==1 and isinstance(a[0],Profile):
+            (self.profile,)=a
+        elif len(kw)>0:
+            self.profile=self.getdefaultprofile(**kw)
 
         self.keychain=Keychain()
-        self.profile=profile
         self.setID()
         self.outpath=os.path.join('outputs',self.processtype,self.ID)
         self.continueprocess=self.execprocess
 
     def setID(self):
         self.ID=cfg.session.ID
-        #self.ID=nowstr()
-        #self.ID='{}/{}/{}'.format(self.processname,self.profile.profilename,cfg.session.ID)
 
-    def log(self,msg):
-        msg=str(msg)
+    def log(self,*msg):
+        msg=' '.join([str(s) for s in msg])
         tmsg=textutil.appendright(self.timeprint()+' | ',msg)
         self.remember('recentlog',tmsg,membound=100)
         sysutil.write(tmsg+'\n',os.path.join(self.outpath,'log.txt'),mode='a')
-
         self.refresh()
-
         if cfg.display_on==False: print(msg)
+
 
     def nextkey(self):
         return self.keychain.nextkey()
@@ -173,8 +170,7 @@ class Process(Memory):
 
     @classmethod
     def getprofiles(cls,**kw):
-        return cls.getdefaultprofile(**kw)
-
+        return {'default':partial(cls.getdefaultprofile,**kw)}
 
 
 
@@ -186,13 +182,17 @@ class Session(Process):
     def setID(self):
         self.ID=nowstr()
 
-
 cfg.session=Session()
-cfg.log=cfg.session.log
-
 
 def log(msg):
-    currentprocess().log(msg)
+    #breakpoint()
+    cfg.session.log(msg)
+    try:
+        #breakpoint()
+        cfg.currentlogdisplay.draw()
+        cfg.getch()
+        cfg.screen.refresh()
+    except: pass
 
 def getlog():
     return cfg.session.gethist('recentlog')

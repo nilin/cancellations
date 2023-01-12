@@ -15,9 +15,9 @@ from cancellations.functions._functions_ import Product
 from cancellations.lossesandnorms import losses,losses2
 from cancellations.examples import examples
 
-from cancellations.config.tracking import log
-from cancellations.run import supervised,runtemplate
-from cancellations.config.tracking import Profile
+from cancellations.config import config as cfg
+from cancellations.run import template_run
+from cancellations.config.tracking import Profile, log
 
 
 ####################################################################################################
@@ -30,27 +30,30 @@ from cancellations.config.tracking import Profile
 def getBarronfn(profile):
     return Product(_functions_.IsoGaussian(1.0),\
         _functions_.ASBarron(n=profile.n,d=profile.d,m=profile.m))
-        #_functions_.ASBarron(**profile.learnerparams['ASNN']))
 
 
-class Run(runtemplate.Run):
+class Run(template_run.Run_statictarget):
     processname='Barron_norm'
+
+    @staticmethod
+    def getlearner(profile):
+        return getBarronfn(profile)
+
+    @staticmethod
+    def gettarget(P):
+        P.target=examples.getlearner_example(Profile(n=P.n,d=P.d,ndets=P.mtarget))
 
     @classmethod
     def getdefaultprofile(cls,**kwargs):
         P=profile=super().getdefaultprofile(**kwargs)
-        Barron=getBarronfn(profile)
-        profile.learner=Barron
-        profile.target=runtemplate.getlearner_example(Profile(n=P.n,d=P.d,ndets=P.mtarget))
-        #profile.target=examples.get_harmonic_oscillator2d(profile)
+        Barron=P.learner
+        log('generating lossgrad')
         profile.lossgrads=[\
-            get_threshold_lg(losses.get_lossgrad_SI(Barron._eval_,profile),.001),\
-            get_barronweight(1.0,Barron._eval_,profile),\
-            #losses.get_lossgrad_normalization(profile.learner._eval_,profile)
+            get_threshold_lg(losses.get_lossgrad_SI(Barron._eval_),.001),\
+            get_barronweight(1.0,Barron._eval_),\
         ]
         profile.lossnames=['eps','Barron norm estimate']
         profile.lossweights=[100.0,0.1]
-        profile.sampler=profile.getXYsampler(profile.Xsampler,profile.target)
         return profile
 
     @classmethod
@@ -62,10 +65,8 @@ class Run(runtemplate.Run):
             'm=8': partial(cls.getdefaultprofile,n=5,d=2,m=100,mtarget=8),\
         }
 
-
-
-def get_barronweight(p,Barronfn,profile):
-    norm=partial(losses.norm,profile.X_density,Barronfn)
+def get_barronweight(p,Barronfn):
+    norm=partial(losses.norm,Barronfn)
     def loss(p,prodparams):
         _,params=prodparams
         (W,b),a=params
@@ -76,7 +77,7 @@ def get_barronweight(p,Barronfn,profile):
             return jnp.max(w1*w2)
         else:
             return jnp.average((w1*w2)**p)**(1/p)
-    lossfn=lambda params,X,*Y: loss(p,params)/norm(params,X)
+    lossfn=lambda params,X,Y,rho: loss(p,params)/norm(params,X,rho)
     return jax.jit(jax.value_and_grad(lossfn))
 
 def get_threshold_lg(lg,delta):

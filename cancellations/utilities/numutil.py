@@ -218,8 +218,7 @@ def randperm(*Xs):
     X=Xs[0]
     n=X.shape[0]
     p=np.random.permutation(n)
-    PXs=[np.array(X)[p] for X in Xs]
-    #return [jnp.stack([Y[p_i] for p_i in p]) for Y in args]
+    PXs=[X[p] for X in Xs]
     return [jnp.array(PX) for PX in PXs]
     
 

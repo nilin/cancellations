@@ -16,20 +16,19 @@ from cancellations.utilities.numutil import make_single_x
 
 ####################################################################################################
 
-def get_lossgrad_SI(f,profile):
-    density=profile.X_density
-    lossfn=lambda params,X,Y: numutil.weighted_SI_loss(f(params,X),Y,relweights=1/density(X))
+def get_lossgrad_SI(f):
+    lossfn=lambda params,X,Y,rho: numutil.weighted_SI_loss(f(params,X),Y,relweights=1/rho)
     return jax.jit(jax.value_and_grad(lossfn))
 
-def norm(rho,f,params,X):
+def norm(f,params,X,rho):
     sqdist=f(params,X)**2
-    return jnp.sqrt(jnp.average(sqdist/rho(X)))
+    return jnp.sqrt(jnp.average(sqdist/rho))
 
-def get_lossgrad_normalization(f,profile):
-    norm=partial(norm,profile.X_density,f)
-    lossfn=lambda params,X:jnp.abs(jnp.log(norm(params,X)))
-    def lossgrad(params,X,*Y):
-        return norm(params,X),jax.grad(lossfn)(params,X)
+def get_lossgrad_normalization(f):
+    norm=partial(norm,f)
+    lossfn=lambda params,X,rho:jnp.abs(jnp.log(norm(params,X,rho)))
+    def lossgrad(params,X,Y,rho):
+        return norm(params,X,rho),jax.grad(lossfn)(params,X)
     return jax.jit(lossgrad)
 
 

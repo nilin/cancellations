@@ -1,66 +1,36 @@
 from cancellations.config import batchjob, browse, config as cfg, sysutil, tracking
 from cancellations.utilities import textutil
-import re
-import os
-import pathlib
-import importlib
-import sys
+import re, os, importlib, sys
 
 
 
 
 class Run(batchjob.Batchjob):
 
-    def runbatch(self):
+    def execprocess(self):
 
-        fullpaths=[\
-            #'cancellations/examples/harmonicoscillator2d.py',\
-            #'cancellations/examples/harmonicoscillator2d_2.py',\
-            'cancellations/examples/Barronnorm.py',\
-            'cancellations/examples/detnorm.py',\
-            'cancellations/examples/game.py',\
+        tasks=[\
+            ('cancellations.examples.Barronnorm','Run'),\
+            ('cancellations.examples.comparenorms','Run'),\
+            ('cancellations.examples.comparenorms','Genfns'),\
+            ('cancellations.examples.game','Run'),\
             #'cancellations/run/unsupervised.py',\
             #'cancellations/plotting/plotmultiple.py'\
             ]
 
         bprofile1=browse.Browse.getdefaultprofile().butwith(\
             onlyone=True,\
-            readinfo=lambda path: textutil.findblock(sysutil.readtextfile(path),'class Run')[-1],\
-            options=fullpaths,\
-            displayoption=lambda full:os.path.basename(full)
+            options=tasks,\
+            #displayoption=lambda option :str(option)#path+'.'+fn
+            displayoption=lambda o : o[0]+'.'+o[1]
             )
         bprofile1.msg='select a file to run Run(profile).execprocess().\n\n'\
             +150*textutil.dash\
             +bprofile1.msg
-
-
-        path=self.run_subprocess(browse.Browse(bprofile1),taskname='pick script')
-
-        path=re.search('([a-z].*)',path).group()
-        mname = path.replace('/', '.')[:-3]
+        mname,classname=self.run_subprocess(browse.Browse(bprofile1))
         m = importlib.import_module(mname)
-
-        runprofiles=m.Run.getprofiles()
-        profilenamestack=[]
-
-        #while not isinstance(runprofiles,tracking.Profile):
-        while not callable(runprofiles):
-            bprofile2=browse.Browse.getdefaultprofile().butwith(\
-                onlyone=True,\
-                options=list(runprofiles.keys()),\
-                readinfo=lambda profilename:runprofiles[profilename].__str__()
-                )
-            bprofile2.msg='select a profile\n'+bprofile2.msg
-            profilename=self.run_subprocess(browse.Browse(bprofile2),taskname='pick profile')
-            runprofiles=runprofiles[profilename]
-            profilenamestack.append(profilename)
-
-        runprofile=runprofiles()
-        runprofile['profilename']='.'.join(profilenamestack)
-
-        self.run=m.Run(runprofile)
-
-        # task 3
+        cls = getattr(m,classname)
+        self.run=cls()
 
         if cfg.debug:
             cfg.postprocesses.append(self.run)

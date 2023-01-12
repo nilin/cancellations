@@ -10,17 +10,17 @@ import jax
 import jax.numpy as jnp
 import jax.random as rnd
 
-from ..lossesandnorms import energy
+from ...lossesandnorms import energy
 
-from . import sampling
+from .. import sampling
 
-from ..config import config as cfg, sysutil, tracking
-from ..functions import _functions_, examplefunctions as ef
-from ..functions._functions_ import ComposedFunction,SingleparticleNN,Product
-from ..utilities import numutil, textutil
+from ...config import config as cfg, sysutil, tracking
+from ...functions import _functions_, examplefunctions as ef
+from ...functions._functions_ import ComposedFunction,SingleparticleNN,Product
+from ...utilities import numutil, textutil
 import optax
-from ..plotting import plottools as pt
-from ..examples import exampleutil
+from ...plotting import plottools as pt
+from ...examples import exampleutil
 
 
 

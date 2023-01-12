@@ -17,7 +17,7 @@ from cancellations.examples import examples, Barronnorm
 from cancellations.examples.Barronnorm import get_barronweight,get_threshold_lg,getBarronfn
 
 from cancellations.config.tracking import log,Profile
-from cancellations.run import supervised,gametemplate, sampling,runtemplate
+from cancellations.run import sampling, template_run
 
 
 ####################################################################################################
@@ -28,16 +28,16 @@ from cancellations.run import supervised,gametemplate, sampling,runtemplate
 
 
 
-class Run(gametemplate.Run):
+class Run(template_run.Game):
     processname='Barron_norm'
 
     @classmethod
     def getdefaultprofile(cls,**kwargs):
         P=profile=super().getdefaultprofile(**kwargs)
         Barron=Barronnorm.getBarronfn(profile)
-        detplayer=runtemplate.getlearner_example(Profile(n=P.n,d=P.d,ndets=P.mdet))
+        detplayer=examples.getlearner_example(Profile(n=P.n,d=P.d,ndets=P.mdet))
         profile.players={\
-            'Ansatz':runtemplate.getlearner_example(Profile(n=P.n,d=P.d,ndets=P.mtarget)),\
+            'Ansatz':examples.getlearner_example(Profile(n=P.n,d=P.d,ndets=P.mtarget)),\
             #'Ansatz':harmonicoscillator2d.gettarget(profile),\
             'Barron':Barron,\
             'det':detplayer
@@ -59,7 +59,7 @@ class Run(gametemplate.Run):
     def getdefaultprofile2(cls,**kwargs):
         P=profile=super().getdefaultprofile(**kwargs)
         Barron=Barronnorm.getBarronfn(profile)
-        detplayer=runtemplate.getlearner_example(Profile(n=P.n,d=P.d,ndets=P.mdet))
+        detplayer=examples.getlearner_example(Profile(n=P.n,d=P.d,ndets=P.mdet))
         profile.players={\
             'Ansatz':getBarronfn(Profile(n=P.n,d=P.d,m=P.mtarget)),\
             'Barron':Barron,\

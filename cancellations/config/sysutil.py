@@ -16,7 +16,7 @@ def save(data,path,echo=True):
     makedirs(path)
     with open(path,'wb') as file:
         pickle.dump(data,file)
-    if echo: cfg.session.log('Saved data to {}'.format(path))
+    if echo: tracking.log('Saved data to {}'.format(path))
 
 def savefig(*paths,fig=None):
     for path in paths:

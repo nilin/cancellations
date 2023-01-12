@@ -16,18 +16,14 @@ from cancellations.lossesandnorms import energy
 from cancellations.examples import examples
 
 from cancellations.config.tracking import dotdict
-from cancellations.run import supervised, runtemplate, sampling
+from cancellations.run import supervised, sampling, template_run
 
 
 ####################################################################################################
 #
-# Barron norm Ansatz
-#
-####################################################################################################
 
 
-
-class Run(runtemplate.Run):
+class Run_VMC(template_run.Run):
     processname=''
 
     @classmethod

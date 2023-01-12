@@ -10,6 +10,13 @@ import math
 
 class Process(tracking.Process):
 
+    def execprocess(self):
+        ld=_LogDisplay_(cfg.session,self.display.width,20,balign=False)
+        self.display.add(0,0,ld)
+        self.display.arm()
+        #breakpoint()
+        cfg.currentlogdisplay=self.display
+
     def run_in_display(self,display):
         tracking.loadprocess(self)
         self.display=display
@@ -21,6 +28,7 @@ class Process(tracking.Process):
 
     def run_as_main(self):
         def wrapped(screen):
+            cfg.screen=screen
             screen.refresh()
 
             def getch(*a,**kw):
@@ -70,7 +78,7 @@ def leavedisplay(process,continueprocess):
     process.continueprocess=continueprocess
     raise LeaveDisplay
 
-
+#class Logprocess(Process):
 
 #----------------------------------------------------------------------------------------------------
 
@@ -179,13 +187,13 @@ class _TextDisplay_(_LinesDisplay_):
         return self.gettext().splitlines()
 
 class _LogDisplay_(_Frame_,_TextDisplay_):
-    def __init__(self,process,width,height):
+    def __init__(self,process,width,height,balign=True):
         super().__init__(width,height,name='log')
         self.process=process
-        self.balign()
+        if balign:self.balign()
 
     def gettext(self):
-        return '\n'.join(self.process.gethist('recentlog'))
+        return '\n'.join(self.process.gethist('recentlog')[-max(0,self.height-5):])
 
 
 #----------------------------------------------------------------------------------------------------
