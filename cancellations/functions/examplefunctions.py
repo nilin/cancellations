@@ -85,7 +85,7 @@ def sumsto(k,S):
 def gen_n_dtuples(n,d):
     s=0
     out=[]
-    while len(out)<n:
+    while len(out)<=n:
         out=out+sumsto(d,s)
         s+=1
         
@@ -98,7 +98,7 @@ def n_dtuples_maxdegree(n,d):
 #----------------------------------------------------------------------------------------------------
 #----------------------------------------------------------------------------------------------------
 
-psis=[psi(i) for i in range(1,11)]
+psis=[psi(i) for i in range(1,25)]
 
 def genpsi(d,ijk):
     #psis=[getattr(examplefunctions,'psi{}'.format(i)) for i in range(1,11)]
@@ -110,7 +110,7 @@ def genpsi(d,ijk):
     return psi_ijk
 
 for d in [1,2,3]:
-    for i,ijk in enumerate(gen_n_dtuples(10,d)):
+    for i,ijk in enumerate(gen_n_dtuples(30,d)):
         psi=genpsi(d,ijk)
         setattr(_functions_,'psi{}_{}d'.format(i+1,d),psi)
 
@@ -126,8 +126,11 @@ for d in [1,2,3]:
 
 
 def get_harmonic_oscillator2d(P,excitation=0):
-    e=excitation
-    return _functions_.Slater(*['psi{}_{}d'.format(i,P.d) for i in range(1+e,P.n+1+e)])
+    I=list(range(1,P.n+1))
+    for t in range(excitation):
+        for s in range(t+1):
+            I[-s-1]
+    return _functions_.Slater(*['psi{}_{}d'.format(i,P.d) for i in I])
 
 
 def getlearner_example(profile):

@@ -6,13 +6,18 @@ warnings.filterwarnings('ignore')
 from cancellations.utilities import numutil as mathutil
 
 
+def slicethrough(x,I):
+    S,T=np.meshgrid(I,I)
+    X=np.array(x)[None,None,:,:]+np.zeros_like(S)[:,:,None,None]
+    X[:,:,0,0]=S
+    X[:,:,0,1]=T
+    return X
 
 def samplepoints(X,Y,nsamples):
     p=Y**2
     p=p/jnp.sum(p)
     I=rnd.choice(tracking.currentprocess().nextkey(),jnp.arange(len(p)),(nsamples,),p=p)
     return X[I]
-    
 
 def linethrough(x,interval):
     corner=np.zeros_like(x)

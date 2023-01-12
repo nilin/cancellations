@@ -52,7 +52,7 @@ class Run(template_run.Run_statictarget):
             get_barronweight(1.0,Barron._eval_),\
         ]
         profile.lossnames=['eps','Barron norm estimate']
-        profile.lossweights=[100.0,0.1]
+        profile.lossweights=[100.0,0.01]
         return profile
 
     @classmethod

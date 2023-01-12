@@ -18,14 +18,11 @@ def save(data,path,echo=True):
         pickle.dump(data,file)
     if echo: tracking.log('Saved data to {}'.format(path))
 
-def savefig(*paths,fig=None):
-    for path in paths:
-        makedirs(path)
-        if fig is None:
-            plt.savefig(path)
-        else:
-            fig.savefig(path)
-    tracking.log('Saved figure to {}'.format(paths))
+def savefig(path,fig=None):
+    makedirs(path)
+    if fig is None: plt.savefig(path)
+    else: fig.savefig(path)
+    tracking.log('Saved figure to {}'.format(path))
 
 
 def write(msg,path,mode='a'):

@@ -10,6 +10,7 @@ from cancellations.utilities import numutil
 from functools import partial
 from cancellations.config.browse import Browse
 import os
+import jax
 import jax.random as rnd, jax.numpy as jnp
 
 
@@ -63,16 +64,16 @@ class Compare(Batchjob):
         def pipe():
             for i,(p,rp) in enumerate(zip(paths,relpaths)):
                 try:
-                    X,Y,rho,info=sysutil.load(p)
-                    yield (X,Y,rho,info,rp)
+                    X,Y,rho,plotslice,info=sysutil.load(p)
+                    yield (X,Y,rho,plotslice,info,rp)
                 except:
                     pass
 
         P.pipe=pipe
-        for X,Y,rho,info,ID in P.pipe():
+        for X,Y,rho,plotslice,info,ID in P.pipe():
             #breakpoint()
-            lossesB=self.run_subprocess(Barron(X=X,Y=Y,rho=rho,m=100,iterations=1000,minibatchsize=25))
-            lossesD=self.run_subprocess(Detnorm(X=X,Y=Y,rho=rho,ndets=10,iterations=1000,minibatchsize=25))
+            lossesB=self.run_subprocess(Barron(X=X,Y=Y,rho=rho,m=250,iterations=10**4,batchsize=25,plotslice=plotslice))
+            lossesD=self.run_subprocess(Detnorm(X=X,Y=Y,rho=rho,ndets=10,iterations=10**4,batchsize=25,plotslice=plotslice))
             sysutil.write('{} ID={}\n'.format(lossesB,ID),P.outpath_B)
             sysutil.write('{} ID={}\n'.format(lossesD,ID),P.outpath_D)
 
@@ -87,13 +88,15 @@ class Genfns(Batchjob):
         for i in range(10):
             target=P.gentarget(i)
             Y=numutil.blockwise_eval(target,blocksize=1000)(P.X)
+            Xplot,I=template_run.Run.getslice(P.X,Y,P.rho)
+            Yplot=jax.vmap(target.eval)(Xplot)
             fname=os.path.join(outpath,'fn{}'.format(i))
-            sysutil.save((P.X,Y,P.rho,''),fname)
+            sysutil.save((P.X,Y,P.rho,(I,Xplot,Yplot),''),fname)
 
     @classmethod
     def getdefaultprofile(cls,n=5,d=3,datapath='outputs/fn_outputs'):
         P=profile=Profile(datapath=datapath)
-        P.samples_train,P.n,P.d=10**5,n,d
+        P.samples_train,P.n,P.d=10**6,n,d
         profile.targettype='random'
         profile._var_X_distr_=1
         profile._genX_=lambda key,samples,n,d:rnd.normal(key,(samples,n,d))*jnp.sqrt(profile._var_X_distr_)
@@ -105,15 +108,20 @@ class Genfns(Batchjob):
     @classmethod
     def getprofiles(cls):
         def getprofile(name):
-            P=cls.getdefaultprofile()
             match name:
-                case 'Harmonic':
-                    P.gentarget=lambda i:examples.get_harmonic_oscillator2d(P.butwith(excitation=i))
+                case 'Harmonic3d':
+                    P=cls.getdefaultprofile()
+                    P.gentarget=lambda i:examples.get_harmonic_oscillator2d(P,excitation=i)
+                case 'Harmonic2d':
+                    P=cls.getdefaultprofile(d=2)
+                    P.gentarget=lambda i:examples.get_harmonic_oscillator2d(P,excitation=i)
                 case 'twolayer':
+                    P=cls.getdefaultprofile().butwith(d=2)
                     P.gentarget=lambda i: Barronnorm.getBarronfn(P.butwith(m=10*(i+1)))
             P.datapath=os.path.join('outputs',name)
             return P
         return {
-            'Harmonic':partial(getprofile,'Harmonic'),\
+            'Harmonic3d':partial(getprofile,'Harmonic3d'),\
+            'Harmonic2d':partial(getprofile,'Harmonic2d'),\
             'twolayer':partial(getprofile,'twolayer'),\
         }
