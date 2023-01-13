@@ -16,9 +16,13 @@ from cancellations.utilities.numutil import make_single_x
 
 ####################################################################################################
 
-def get_lossgrad_SI(f):
+def get_lossgrad_SI(f,transform=None):
     lossfn=lambda params,X,Y,rho: numutil.weighted_SI_loss(f(params,X),Y,relweights=1/rho)
-    return jax.jit(jax.value_and_grad(lossfn))
+    if transform is None:
+        lossfn2=lossfn
+    else:
+        lossfn2=lambda params,X,Y,rho : transform(lossfn(params,X,Y,rho))
+    return jax.jit(jax.value_and_grad(lossfn2))
 
 def norm(f,params,X,rho):
     sqdist=f(params,X)**2

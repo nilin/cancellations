@@ -215,6 +215,24 @@ class NN(NNfunction,Nonsym):
         widths[0]=n*d
         return mv.initweights_NN(widths)
 
+class Barron(Nonsym):
+    antisymtype='ASBarron'
+    @staticmethod
+    def _initweights_(m,n,d,**kw):
+        W=numutil.initweights((m,n,d))
+        b=rnd.normal(tracking.nextkey(),(m,))*cfg.biasinitsize
+        a=numutil.initweights((1,m))
+        return [(W,b),a]
+
+    def compile(self):
+        ac=numutil.activations[self.ac]
+        @jax.jit
+        def f(params,X):     # w: n,d
+            (W,b),A=params
+            neuronoutputs=ac(jnp.tensordot(X,W,axes=([-2,-1],[-2,-1]))+b[None,:])
+            return jnp.squeeze(jnp.inner(neuronoutputs,A))
+        return jax.jit(f)
+
 class Prods(Nonsym):
     antisymtype='Dets'
     def compile(self): return symmetries.prods
@@ -267,16 +285,11 @@ class ASNN(Antisymmetric,NNfunction):
         NN_NS=mv.gen_NN_NS(self.activation)
         return symmetries.gen_Af(self.n,NN_NS)
 
-class ASBarron(FunctionDescription):
-    @staticmethod
-    def _initweights_(m,n,d):
-        W=numutil.initweights((m,n,d))
-        b=rnd.normal(tracking.nextkey(),(m,))*cfg.biasinitsize
-        a=numutil.initweights((1,m))
-        return [(W,b),a]
+class ASBarron(Antisymmetric):
+    nonsym=Barron
 
     def compile(self):
-        return symmetries.gen_singlelayer_Af(self.n,self.d,'softplus')
+        return symmetries.gen_singlelayer_Af(self.n,self.d,self.ac)
 
 class Dets(Antisymmetric):
     nonsym=Prods
