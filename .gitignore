@@ -12,5 +12,5 @@ outputs*
 beta/*
 testsingle*
 *venv*
-temp*
 runallprofiles.py
+**/prev/*
