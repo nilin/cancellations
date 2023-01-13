@@ -22,7 +22,7 @@ import copy
 from cancellations.config.tracking import log,Profile
 from cancellations.config import sysutil, tracking
 import cancellations.config as cfg
-from cancellations.run import sampling, template_run
+from cancellations.run import runtemplate, sampling
 
 
 ####################################################################################################
@@ -33,7 +33,7 @@ from cancellations.run import sampling, template_run
 
 
 
-class Run(template_run.Run):
+class Run(runtemplate.Run):
     processname='Barron_norm'
 
     def execprocess(run):
@@ -76,7 +76,7 @@ class Run(template_run.Run):
             for p,player in P.players.items():
                 if len(grads[p])==0: continue
                 opt,state=optimizers[p]
-                grad=template_run.sumgrads(grads[p])
+                grad=runtemplate.sumgrads(grads[p])
                 updates,state=opt.update(grad,state,player.weights)
                 player.weights=optax.apply_updates(player.weights,updates)
 

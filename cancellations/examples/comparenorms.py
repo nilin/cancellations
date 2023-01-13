@@ -1,6 +1,6 @@
 from cancellations.examples import Barronnorm
 from cancellations.lossesandnorms import losses
-from cancellations.run import template_run
+from cancellations.run import runtemplate
 import cancellations.functions.examplefunctions as examples
 from cancellations.config.batchjob import Batchjob
 from cancellations.config import sysutil,tracking
@@ -26,7 +26,7 @@ class Barron(Barronnorm.Run):
         P.finish=lambda run: run.losses
         return P
 
-class Detnorm(template_run.Run_statictarget):
+class Detnorm(runtemplate.Run_statictarget):
     @staticmethod
     def gettarget(P):
         pass
@@ -88,7 +88,7 @@ class Genfns(Batchjob):
         for i in range(10):
             target=P.gentarget(i)
             Y=numutil.blockwise_eval(target,blocksize=1000)(P.X)
-            Xplot,I=template_run.Run.getslice(P.X,Y,P.rho)
+            Xplot,I=runtemplate.Run.getslice(P.X,Y,P.rho)
             Yplot=jax.vmap(target.eval)(Xplot)
             fname=os.path.join(outpath,'fn{}'.format(i))
             sysutil.save((P.X,Y,P.rho,(I,Xplot,Yplot),''),fname)

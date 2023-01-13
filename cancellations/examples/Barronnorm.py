@@ -16,7 +16,7 @@ from cancellations.lossesandnorms import losses,losses2
 
 import math
 from cancellations.config import config as cfg
-from cancellations.run import template_run
+from cancellations.run import runtemplate
 from cancellations.config.tracking import Profile, log, sysutil
 import matplotlib.pyplot as plt
 import os
@@ -39,7 +39,7 @@ def getBarronfn(P):
                 _functions_.Barron(n=P.n,d=P.d,m=P.m,ac=P.ac))
 
 
-class Run(template_run.Run_statictarget):
+class Run(runtemplate.Run_statictarget):
     processname='Barron_norm'
 
     @staticmethod

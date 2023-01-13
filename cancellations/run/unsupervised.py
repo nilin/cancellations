@@ -16,14 +16,14 @@ from cancellations.lossesandnorms import energy
 from cancellations.examples import examples
 
 from cancellations.config.tracking import dotdict
-from cancellations.run import supervised, sampling, template_run
+from cancellations.run import runtemplate, supervised, sampling
 
 
 ####################################################################################################
 #
 
 
-class Run_VMC(template_run.Run):
+class Run_VMC(runtemplate.Run):
     processname=''
 
     @classmethod
