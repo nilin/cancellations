@@ -1,2 +1,2 @@
-#source .cancvenv/bin/activate
+source .cancvenv/bin/activate
 python run.py $@
