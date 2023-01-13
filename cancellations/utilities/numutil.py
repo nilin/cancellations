@@ -98,33 +98,24 @@ def sqloss(Y1,Y2):
     return jnp.average(jnp.square(Y1-Y2))
 
 
-@jax.jit
-def dot(Y1,Y2):
-    #Y1,Y2=[jnp.squeeze(_) for _ in (Y1,Y2)]
-    Y1,Y2=[jnp.atleast_1d(jnp.squeeze(_)) for _ in (Y1,Y2)]
-    n=Y1.shape[0]
-    return jnp.dot(Y1,Y2)/n
+#@jax.jit
+#def dot(Y1,Y2):
+#    #Y1,Y2=[jnp.squeeze(_) for _ in (Y1,Y2)]
+#    Y1,Y2=[jnp.atleast_1d(jnp.squeeze(_)) for _ in (Y1,Y2)]
+#    n=Y1.shape[0]
+#    return jnp.dot(Y1,Y2)/n
 
 
-@jax.jit
-def SI_loss(Y,Y_target):
-    return 1-dot(Y,Y_target)**2/(dot(Y,Y)*dot(Y_target,Y_target))
+#@jax.jit
+#def SI_loss(Y,Y_target):
+#    return 1-dot(Y,Y_target)**2/(dot(Y,Y)*dot(Y_target,Y_target))
+#
+#@jax.jit
+#def log_SI_loss(Y,Y_target):
+#    Y,Y_target=[jnp.squeeze(_) for _ in (Y,Y_target)]
+#    return jnp.log(dot(Y_target,Y_target))+jnp.log(dot(Y,Y))-2*jnp.log(dot(Y,Y_target))
 
-@jax.jit
-def log_SI_loss(Y,Y_target):
-    Y,Y_target=[jnp.squeeze(_) for _ in (Y,Y_target)]
-    return jnp.log(dot(Y_target,Y_target))+jnp.log(dot(Y,Y))-2*jnp.log(dot(Y,Y_target))
 
-
-def overlap(Y1,Y2,weights):
-    vec=weights*Y1*Y2
-    assert(weights.shape==Y1.shape)
-    assert(Y1.shape==Y2.shape)
-    return jnp.sum(vec)
-
-@jax.jit
-def weighted_SI_loss(Y,Y_target,relweights):
-    return 1-overlap(Y,Y_target,relweights)**2/(overlap(Y,Y,relweights)*overlap(Y_target,Y_target,relweights))
 
 
 @jax.jit

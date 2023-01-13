@@ -12,8 +12,7 @@ from jax.tree_util import tree_map
 
 from cancellations.functions import _functions_
 from cancellations.functions._functions_ import Product
-from cancellations.lossesandnorms import losses,losses2
-from cancellations.examples import examples, Barronnorm
+from cancellations.examples import examples, Barronnorm, losses
 from cancellations.examples.Barronnorm import get_barronweight,get_threshold_lg,getBarronfn
 
 from os import path

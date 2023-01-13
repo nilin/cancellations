@@ -5,6 +5,7 @@
 #
 
 
+from cancellations.examples import losses
 import jax.numpy as jnp
 from functools import partial
 import jax
@@ -12,7 +13,6 @@ from jax.tree_util import tree_map
 
 from cancellations.functions import _functions_, examplefunctions as examples
 from cancellations.functions._functions_ import Product
-from cancellations.lossesandnorms import losses,losses2
 
 import math
 from cancellations.config import config as cfg
@@ -111,8 +111,9 @@ class Run(runtemplate.Run_statictarget):
         sysutil.savefig(outpath)
         sysutil.showfile(outpath)
 
-def get_barronweight(p,Barronfn):
-    norm=partial(losses.norm,Barronfn)
+def get_barronweight(p,f):
+    def norm(params,X,rho):
+        return jnp.sqrt(jnp.average(f(params,X)**2/rho))
     def loss(p,prodparams):
         _,params=prodparams
         (W,b),a=params

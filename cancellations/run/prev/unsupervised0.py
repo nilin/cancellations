@@ -10,7 +10,7 @@ import jax
 import jax.numpy as jnp
 import jax.random as rnd
 
-from ...lossesandnorms import energy
+from ...examples import energy
 
 from .. import sampling
 

@@ -11,11 +11,11 @@ from cancellations.functions._functions_ import ComposedFunction,SingleparticleN
 from cancellations.run import sampling
 from cancellations.utilities import numutil, textutil
 import matplotlib.pyplot as plt
-from cancellations.config.tracking import dotdict
+from cancellations.config.tracking import dotdict, log
 from cancellations.config.batchjob import Batchjob
 from cancellations.plotting import plotting
 from cancellations.display import _display_
-from cancellations.lossesandnorms import losses
+from cancellations.examples import losses
 from jax.tree_util import tree_map
 import optax
 
@@ -31,7 +31,6 @@ class Run(Batchjob):
 
         run.prepdisplay()
         P=run.profile
-        #run.info+=4*'\n'+'learner\n\n{}'.format(textutil.indent(P.learner.getinfo()))#; run.infodisplay.msg=info
         run.info='runID: {}\n'.format(run.ID)+'\n'*4+P.parseinfo(P.info)
         run.infodisplay.msg=run.info
         sysutil.write(run.info,path.join(run.outpath,'info.txt'),mode='w')
@@ -48,6 +47,9 @@ class Run(Batchjob):
         state=opt.init(P.learner.weights)
         run.its=0
 
+        P.prep(run)
+        log('start training')
+
         for i in range(P.iterations+1):
             run.its=i
             X,*Ys=P.sampler()
@@ -60,7 +62,6 @@ class Run(Batchjob):
 
             updates,state=opt.update(grad,state,P.learner.weights)
             P.learner.weights=optax.apply_updates(P.learner.weights,updates)
-
             P.repeat(run,i)
 
             if stopwatch1.tick_after(.05):
@@ -120,10 +121,10 @@ class Run(Batchjob):
             'Press [o] to open output folder.'+\
             '\n\nPress [b] to break from current task.\nPress [q] to quit. '
 
-    def log(self,msg):
-        super().log(msg)
-        self.act_on_input(cfg.getch(log=msg))
-        self.T.draw()
+#    def log(self,msg):
+#        super().log(msg)
+#        self.act_on_input(cfg.getch(log=msg))
+#        self.T.draw()
 
     def prepdisplay(self):
         instructions=self.getinstructions()
@@ -202,16 +203,20 @@ class Run(Batchjob):
 
         def repeat(run,i):
             if i is None: return
-            run.traindata[i]['weights']=P.learner.weights
-            sysutil.save(P.learner.compress(),path=path.join(run.outpath,'data','learner'))
-            sysutil.save(run.traindata,path.join(run.outpath,'data','traindata'),echo=False)
+            if i%100==0:
+                log('{} iterations'.format(i))
+            #run.traindata[i]['weights']=P.learner.weights
+            #sysutil.save(P.learner.compress(),path=path.join(run.outpath,'data','learner'))
+            #sysutil.save(run.traindata,path.join(run.outpath,'data','traindata'),echo=False)
             #sysutil.write('loss={:.2E} iterations={} n={} d={}'.format(loss,i,P.n,P.d),path.join(run.outpath,'metadata.txt'),mode='w')    
         
         P.repeat=repeat
+        P.prep=lambda run:None
         P.finish=partial(repeat,i=None)
 
         P.parseinfo=lambda I:'\n'.join(['{}:{}'.format(k,v) for k,v in I.items()])
         P.info=dict(n=P.n,d=P.d)
+
         profile.update(**kwargs)
         return profile
 
@@ -259,7 +264,6 @@ class Run_statictarget(Run):
         tracking.log('get X,Y')
         cls.getXY(profile)
         samplespipe=sampling.SamplesPipe(profile.X,profile.Y,profile.rho,minibatchsize=profile.batchsize)
-        tracking.log('generating sampler')
         profile.sampler=samplespipe.step
         profile.learner=cls.getlearner(profile)
         profile.info.update(dict(learner=profile.learner.getinfo()))

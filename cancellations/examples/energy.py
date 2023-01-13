@@ -1,61 +1,40 @@
-#
-# nilin
-# 
-# 2022/7
-#
-
-
-import jax.numpy as jnp
-from functools import partial
 import jax
-from jax.tree_util import tree_map
-
-from cancellations.functions import _functions_
-from cancellations.functions._functions_ import Product
-from cancellations.lossesandnorms import losses,energy
-from cancellations.examples import examples
-
-from cancellations.config.tracking import dotdict
-from cancellations.run import unsupervised
+import jax.numpy as jnp
+from cancellations.utilities import numutil
 
 
 
+def genlocalkinetic(psi):
+    vg=jax.value_and_grad(lambda params,x:jnp.squeeze(psi(params,x)),argnums=1)
+    def E_singlesample(params,x):
+        val,grad=vg(params,jnp.expand_dims(x,axis=0))
+        return jnp.sum(grad**2)/(2*val**2)
+    return jax.jit(jax.vmap(E_singlesample,in_axes=(None,0)))
 
+# def genlocalenergy(psi,potential):
+#     K_local=genlocalkinetic(psi)
+#     return jax.jit(lambda params,X: K_local(params,X)+potential(X))
+# 
+def samplewise_value_and_grad(_psi_):
+    singlesamplepsi=jax.jit(lambda params,X: jnp.squeeze(_psi_(params,jnp.expand_dims(X,axis=0))))
+    return jax.vmap(jax.value_and_grad(singlesamplepsi),in_axes=(None,0))
 
-class Run(unsupervised.Run):
-    processname='energy'
+def samplewise_grad(_psi_):
+    singlesamplepsi=jax.jit(lambda params,X: jnp.squeeze(_psi_(params,jnp.expand_dims(X,axis=0))))
+    return jax.vmap(jax.grad(singlesamplepsi),in_axes=(None,0))
 
-    @classmethod
-    def getdefaultprofile(cls):
-        profile=super().getdefaultprofile().butwith(\
-            getlearner=examples.get_harmonic_oscillator2d,\
-            samples_train=10**5,\
-            weight_decay=0.1)
+class Kinetic_energy_val_and_grad:
+    def __init__(self,run):
+        psi=run.learner._eval_
+        self.le=genlocalkinetic(psi)
+        #self.le=genlocalenergy(psi,run.profile.potential)
+        self.Lq=lambda params,X: jnp.log(psi(params,X)**2)
+        self.DLq=samplewise_grad(self.Lq)
 
-        profile.initlossgrads=[losses.Lossgrad_SI,energy]
-        profile.lossnames=['SI','E']
-        profile.lossperiods=[1,1]
-
-        return profile
-
-    @classmethod
-    def getprofiles(cls):
-        default=cls.getdefaultprofile()
-        profiles={'default':default}
-
-        def getlearner2(profile):
-            return Product(_functions_.IsoGaussian(1.0),_functions_.ComposedFunction(\
-                _functions_.SingleparticleNN(**profile.learnerparams['SPNN']),\
-                _functions_.Backflow(**profile.learnerparams['backflow']),\
-                _functions_.Dets(n=profile.n,**profile.learnerparams['dets']),\
-                _functions_.Sum()\
-                ))
-        p2=default.butwith(getlearner=getlearner2)
-        p2.learnerparams=dotdict(\
-            SPNN=dotdict(widths=[p2.d,25,25],activation='sp'),\
-            backflow=dotdict(widths=[25,25,25],activation='sp'),\
-            dets=dotdict(d=25,ndets=25),)
-            #'OddNN':dict(widths=[25,1],activation='sp')
-        profiles['backflow']=p2
-
-        return profiles
+    def _eval_(self,params,X,*a):
+        LE=self.le(params,X)
+        L=jnp.average(LE)
+        coefficients=(LE-L)/len(LE)
+        DLq=self.DLq(params,X)
+        grad=numutil.applyonleaves(DLq,lambda T:jnp.tensordot(coefficients,T,axes=(0,0)))
+        return L,grad

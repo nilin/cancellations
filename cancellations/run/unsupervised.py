@@ -12,7 +12,7 @@ from jax.tree_util import tree_map
 
 from cancellations.functions import _functions_
 from cancellations.functions._functions_ import Product
-from cancellations.lossesandnorms import energy
+from cancellations.examples import energy
 from cancellations.examples import examples
 
 from cancellations.config.tracking import dotdict

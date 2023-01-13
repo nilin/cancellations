@@ -56,7 +56,7 @@ class Batchjob(_display_.Process):
                 options=list(profiles.keys()),\
                 readinfo=lambda profilename:profiles[profilename].__str__()
                 )
-            bprofile2.msg='select a profile\n'+bprofile2.msg
+            #bprofile2.msg='select a profile\n'+bprofile2.msg
             profilename=self.run_subprocess(browse.Browse(bprofile2),taskname='pick profile')
             profiles=profiles[profilename]
             profilenamestack.append(profilename)

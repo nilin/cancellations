@@ -9,8 +9,7 @@ import jax.numpy as jnp
 from ..functions import _functions_
 from ..functions._functions_ import Product
 from functools import partial
-from ..lossesandnorms import losses,losses2
-from . import runtemplate0
+from . import losses, runtemplate0
 
 
 

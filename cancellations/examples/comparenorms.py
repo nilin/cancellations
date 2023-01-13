@@ -1,5 +1,5 @@
 from cancellations.examples import Barronnorm
-from cancellations.lossesandnorms import losses
+from cancellations.examples import losses
 from cancellations.run import runtemplate
 import cancellations.functions.examplefunctions as examples
 from cancellations.config.batchjob import Batchjob

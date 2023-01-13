@@ -345,7 +345,8 @@ halfblocks=[' ',\
 
 def hiresbar(t,width):
     T=t*width
-    return BOX*math.floor(T)+halfblocks[math.floor(8*T)%8]
+    try: return BOX*math.floor(T)+halfblocks[math.floor(8*T)%8]
+    except Exception as e: return '////error//// {}'.format(e)
 
 def thinbar(t,width):
     return dash*math.floor(t*width)
