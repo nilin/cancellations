@@ -92,6 +92,7 @@ class Composite(FunctionDescription):
         elements=[cast(e).compress() for e in elements]
         super().__init__(elements=elements, initweights=False)
         self.weights=[e.weights for e in elements]
+        for e in elements: e.rinse()
 
     def getinfo(self):
         return '{}\n\n{}'.format('\n'.join(textwrap.wrap(self.richtypename(),width=100)),self.info())

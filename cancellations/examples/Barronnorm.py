@@ -113,8 +113,6 @@ class Run(runtemplate.Run_statictarget):
         sysutil.showfile(outpath)
 
 def get_barronweight(p,f):
-    def norm(params,X,rho):
-        return jnp.sqrt(jnp.average(f(params,X)**2/rho))
     def loss(p,prodparams):
         _,params=prodparams
         (W,b),a=params
@@ -125,7 +123,7 @@ def get_barronweight(p,f):
             return jnp.max(w1*w2)
         else:
             return jnp.sum((w1*w2)**p)**(1/p)
-    lossfn=lambda params,X,Y,rho: loss(p,params)/norm(params,X,rho)
+    lossfn=lambda params,X,Y,rho: loss(p,params)/losses.norm(f(params,X),rho)
     return jax.jit(jax.value_and_grad(lossfn))
 
 def get_threshold_lg(lg,delta):

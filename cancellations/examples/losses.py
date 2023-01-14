@@ -32,6 +32,28 @@ def get_lossgrad_NONSI(f):
     lossfn=lambda params,X,Y,rho: jnp.average((f(params,X)-Y)**2/rho)   #(f(params,X),Y,relweights=1/rho)
     return jax.jit(jax.value_and_grad(lossfn))
 
+@jax.jit
+def norm(Y,rho):
+    return jnp.sqrt(jnp.average(Y**2/rho))
+
+
+####################################################################################################
+
+def transform_grad(lossgrad,T,fromrawloss=False):
+
+    if fromrawloss: lossgrad=jax.value_and_grad(lossgrad)
+
+    def newlossgrad(params,*X):
+        val,grad=lossgrad(params,*X)
+        dT=jax.grad(T)(val)
+        return val,tree_map(lambda A:dT*A,grad)
+
+    return jax.jit(newlossgrad)
+
+
+
+
+
 
 ####################################################################################################
 #

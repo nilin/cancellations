@@ -118,9 +118,9 @@ class Keychain:
 
 def nowstr():
     date,time=str(datetime.datetime.now()).split('.')[0].split(' ')
-    date='-'.join(date.split('-')[1:])
-    time=''.join([x for pair in zip(time.split(':'),['h','m','s']) for x in pair])
-    return date+'|'+time
+    date=''.join(date.split('-')[1:])
+    time=''.join([x for pair in zip(time.split(':'),['','','']) for x in pair])
+    return date+'-'+time
 
 
 class Process(Memory):
@@ -163,13 +163,15 @@ def log(*msgs,multiline=False,**kw):
 
     if cfg.display_on==False: print(msg)
     try:
+        #breakpoint()
         currentlogdisplay.draw()
         getch()
         screen.refresh()
         #cfg.currentlogdisplay.draw()
         #cfg.getch()
         #cfg.screen.refresh()
-    except: pass
+    except Exception as e: 
+        pass
 
 
 
@@ -187,9 +189,9 @@ def loadprocess(process):
 
 def unloadprocess(process=None):
     if len(processes)>0 and (process is None or processes[-1]==process):
-        process=processes.pop()
         if cfg.display_on:
             clearcurrentdash()
+        process=processes.pop()
     return process
 
 def runprocess(process):

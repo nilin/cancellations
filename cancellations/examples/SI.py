@@ -31,27 +31,50 @@ class Run(runtemplate.Fixed_XY):
         n,d,samples_train,minibatchsize=5,3,10**5,25
         target=examples.get_harmonic_oscillator2d(n,d)
         P=super().getprofile(n,d,samples_train,minibatchsize,target)
-        P.Y=P.Y/jnp.sqrt(jnp.average(P.Y**2/P.rho))
+        P.Y=P.Y/losses.norm(P.Y[:1000],P.rho[:1000])
         self.initsampler(P)
-        checknorm=[]
-        for i in range(10):
-            X_,Y_,rho_=P.sampler.sample()
-            checknorm.append(jnp.average(Y_**2/rho_))
-        log('norm of target: {}'.format(jnp.average(jnp.array(checknorm))))
+
         log('generating learner and lossgrad')
-        P.learner=examples.getlearner_example(n,d)
+        P.learner=self.getlearner_example(n,d)
+        g=P.learner._eval_
+
+        log(losses.norm(P.Y,P.rho))
+        self.normalizelearner(P)
+        log(losses.norm(P.learner.eval(P.X),P.rho))
+
         P.lossgrads=[\
             #get_threshold_lg(losses.get_lossgrad_SI(Barron._eval_),.001),\
             #get_barronweight(1.0,Barron._eval_),\
-            losses.get_lossgrad_NONSI(P.learner._eval_),\
-            losses.get_lossgrad_SI(P.learner._eval_),\
+            losses.get_lossgrad_NONSI(g),\
+            losses.get_lossgrad_SI(g),\
+            losses.transform_grad(\
+                lambda params,X,Y,rho: losses.norm(g(params,X),rho),\
+                T=lambda x:jnp.abs(jnp.log(x)),\
+                fromrawloss=True)
             #losses.get_lossgrad_SI(P.learner._eval_)
         ]
-        P.lossnames=['non-SI','SI']
+        P.lossnames=['non-SI','SI','norm']
         match mode:
             case 'non-SI':
-                P.lossweights=[1.0,0.0]
+                P.lossweights=[1.0,0.0,1.0]
             case 'SI':
-                P.lossweights=[0.0,1.0]
+                P.lossweights=[0.0,1.0,1.0]
+        P.info['learner']=P.learner.getinfo()
         return P
 
+    @staticmethod
+    def getlearner_example(n,d):
+        lprofile=examples.getlearner_example_profile(n,d)
+        return _functions_.Product(_functions_.ScaleFactor(),_functions_.IsoGaussian(1.0),_functions_.ComposedFunction(\
+            _functions_.SingleparticleNN(**lprofile['SPNN']),\
+            _functions_.Backflow(**lprofile['backflow']),\
+            _functions_.Dets(n=n,**lprofile['dets']),\
+            _functions_.Sum()\
+            ))
+
+    @staticmethod
+    def normalizelearner(P,N=1000):
+        log('normalizing learner')
+        params=P.learner.weights
+        params[0]/=losses.norm(P.learner.eval(P.X[:N]),P.rho[:N])
+        

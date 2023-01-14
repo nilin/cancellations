@@ -135,9 +135,9 @@ def get_harmonic_oscillator2d(n,d,excitation=0):
 
 def getlearner_example_profile(n,d):
     learnerparams=tracking.dotdict(\
-        SPNN=dotdict(widths=[d,100,100],activation='sp'),\
-        backflow=dotdict(widths=[100,100,100],activation='sp'),\
-        dets=dotdict(d=100,ndets=100),)
+        SPNN=dotdict(widths=[d,25,25],activation='sp'),\
+        backflow=dotdict(widths=[25,25],activation='sp'),\
+        dets=dotdict(d=25,ndets=25),)
         #'OddNN':dict(widths=[25,1],activation='sp')
     return learnerparams
 

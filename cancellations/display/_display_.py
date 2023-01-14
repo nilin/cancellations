@@ -13,7 +13,7 @@ class Process(tracking.Process):
         ld=_LogDisplay_(self.dashboard.width,20,balign=False)
         self.dashboard.add(0,0,ld)
         self.dashboard.arm()
-        cfg.currentlogdisplay=self.dashboard
+        tracking.currentlogdisplay=self.dashboard
 
     def run_in_display(self,dashboard):
         tracking.loadprocess(self)

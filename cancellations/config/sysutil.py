@@ -16,13 +16,13 @@ def save(data,path,echo=True):
     makedirs(path)
     with open(path,'wb') as file:
         pickle.dump(data,file)
-    if echo: cfg.log('Saved data to {}'.format(path))
+    if echo: tracking.log('Saved data to {}'.format(path))
 
 def savefig(path,fig=None):
     makedirs(path)
     if fig is None: plt.savefig(path)
     else: fig.savefig(path)
-    cfg.log('Saved figure to {}'.format(path))
+    tracking.log('Saved figure to {}'.format(path))
 
 
 def write(msg,path,mode='a'):

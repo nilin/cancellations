@@ -56,7 +56,7 @@ class Run(_display_.Process):
                 updates,state=opt.update(grad,state,P.learner.weights)
                 P.learner.weights=optax.apply_updates(P.learner.weights,updates)
 
-                P.repeat(run,i)
+                run.repeat(i)
 
                 if stopwatch1.tick_after(.05):
                     if cfg.display_on: run.learningdisplay.draw()
@@ -70,8 +70,6 @@ class Run(_display_.Process):
 
         return P.finish(run)
 
-    def getits(run): return run.its
-
     def act_on_input(self,key):
         if key=='q': quit()
         if key=='p': self.plot(self.profile)
@@ -82,9 +80,10 @@ class Run(_display_.Process):
         return key
 
     def plot(self,P):
-        options=['loss','|f|','|Af|','|f|/|Af|','|weights|','heatmaps','contours']
-        plotoptions=self.run_subprocess(browse.Browse(onlyone=False,options=options))
-        self.T.draw()
+        options=['heatmaps','contours']
+        plotoptions=tracking.runprocess(browse.Browse(onlyone=False,options=options))
+        if cfg.display_on: self.T.draw()
+        return
         if 'heatmaps' in plotoptions or 'contours' in plotoptions:
             I,Xp,Yp=P.plotslice
             M=jnp.quantile(jnp.abs(Yp),.9)
@@ -114,7 +113,17 @@ class Run(_display_.Process):
             sysutil.savefig(outpath)
             sysutil.showfile(outpath)
 
-
+    def repeat(run,i):
+        if i is None: return
+        if i%100==0:
+            log('{} iterations'.format(i))
+        if i%25==0:
+            log(' '.join(['{}={:.3f}'.format(k,v[-1]) for k,v in run.losses.items()]))
+        if i%1000==0:
+            sysutil.save(run.losses,os.path.join(run.profile.outpath_data,'losses'))
+        if not cfg.display_on:
+            if i%1000==0:
+                print('\nnodisplay mode--raise KeyboardInterrupt (typically Ctrl-C) to pause and view options\n')
 
     @staticmethod
     def getinstructions():
@@ -151,7 +160,7 @@ class Run(_display_.Process):
             (0,3*pos+4,_display_.hiresbar(smoother.avg(),self.dashboard.width))]
             
         encode=lambda:[bar_at(ln,smoothers[ln],self.losses[ln][-1],k,pos=i) for i,ln in enumerate(lossnames)]
-        display.encode=lambda: [(0,0,'{:,d}/{:,d} iterations'.format(self.getits(),self.profile.iterations))]\
+        display.encode=lambda: [(0,0,'{:,d}/{:,d} iterations'.format(self.its,self.profile.iterations))]\
                                 +[s for l in encode() for s in l]+[(0,1,'')]
 
     @staticmethod
@@ -167,21 +176,11 @@ class Run(_display_.Process):
     @staticmethod
     def defaultbaseprofile():
         P=tracking.Profile()
-        def repeat(run,i):
-            if i is None: return
-            if i%100==0:
-                log('{} iterations'.format(i))
-            if i%25==0:
-                log(' '.join(['{}={:.3f}'.format(k,v[-1]) for k,v in run.losses.items()]))
-            if not cfg.display_on:
-                if i%1000==0:
-                    print('\nnodisplay mode--raise KeyboardInterrupt (typically Ctrl-C) to pause and view options\n')
 
 
         P.getinfo=lambda P:dict(n=P.n,d=P.d)
-        P.repeat=repeat
         P.prep=lambda run:None
-        P.finish=partial(repeat,i=None)
+        P.finish=lambda run:None
         P.parseinfo=lambda I:'\n'.join(['{}:{}'.format(k,v) for k,v in I.items()])
         P.outpath_data=os.path.join('outputs',tracking.sessionID)
         P.outpath_plot=os.path.join('outputs',tracking.sessionID)
@@ -192,7 +191,7 @@ class Run(_display_.Process):
         P.samples_test=1000
         P.evalblocksize=10**4
 
-        P.info={'profile':'runtemplate default base profile'}
+        P.info=P.getinfo(P)
         return P
 
 
