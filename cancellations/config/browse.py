@@ -25,9 +25,8 @@ class Browse(_display_.Process):
             out=self.browse_nodisplay()
         return out
 
-
-    def browse_in_display(process):
-        profile,display=process.profile,process.display
+    def browse_in_display(self):
+        profile,display=self.profile,self.dashboard
 
         if len(profile.options)==0: return None
 
@@ -39,11 +38,10 @@ class Browse(_display_.Process):
         L,C,R=display.hsplit(rlimits=[.33,.66])
         C0,C1,Cr=C.hsplit(limits=[2,4],sep=1)
 
-        pointer=tracking.Pointer(val=0)
+        pointer=tracking.dotdict(val=0)
         selections=[]
         selectionpositions=[[]]
 
-        profile.msg=profile.msg1 if profile.onlyone else profile.msg2
         Ltext=L.add(0,0,_display_._TextDisplay_(profile.msg))
         C0.add(0,0,_display_._Display_()).encode=lambda: [(0,pointer.val,'>')]
         C1.add(0,0,_display_._Display_()).encode=lambda: [(0,i,'*') for i in selectionpositions[0]]
@@ -69,7 +67,7 @@ class Browse(_display_.Process):
             matches=profile.options
 
             ls=pointer.val
-            c=cfg.getch(lambda: profile.msg)
+            c=tracking.getch(lambda: profile.msg)
 
             if c=='ENTER':
                 return matches[ls] if profile.onlyone else selections
@@ -133,37 +131,30 @@ class Browse(_display_.Process):
                 else: selections.append(int(i)-1)
 
     @staticmethod
-    def getdefaultprofile(**kw):
-        P=profile=tracking.Profile(profilename='browsing')
-        profile.onlyone=True
-        profile.readinfo=lambda selection: str(selection) #sysutil.readtextfile(path+'info.txt')
-        P.msg1=''\
-            +'Move with arrow keys.'\
-            +'\nYou may be able to scroll with the touchpad.'\
-            +'\n\nPress ENTER to select.'
+    def getprofile(**kw):
+        P=tracking.Profile()
+        P.onlyone=True
+        P.displayoption=lambda option: str(option)
+        P.readinfo=lambda selection: str(selection) 
+        P.update(**kw)
 
-        P.msg2=''\
-            +'Move with arrow keys.'\
-            +'\nYou may be able to scroll with the touchpad.'\
-            +'\n\n\n'\
-            +'\n'+50*'-'\
-            +'\nPress SPACE to select one of several items.'\
-            +'\n'+50*'-'\
-            +'\n\n\n\nPress ENTER to finish selection.'
-        def squash(string):
-            a=5
-            b=50
-            if len(string)<=a+b:
-                return string
-            else:
-                return string[:a]+'...'+string[3-b:]
-        profile.displayoption=lambda option:squash(option)
-        return profile.butwith(**kw)
+        if P.onlyone:
+            P.msg=''\
+                +'Move with arrow keys.'\
+                +'\nYou may be able to scroll with the touchpad.'\
+                +'\n\nPress ENTER to select.'
+        else:
+            P.msg=''\
+                +'Move with arrow keys.'\
+                +'\nYou may be able to scroll with the touchpad.'\
+                +'\n\n\n'\
+                +'\n'+50*'-'\
+                +'\nPress SPACE to select one of several items.'\
+                +'\n'+50*'-'\
+                +'\n\n\n\nPress ENTER to finish selection.'
 
-
-
-
-
+        P.update(**kw)
+        return P
 
 # for path browsing
 

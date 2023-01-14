@@ -2,7 +2,6 @@ from cancellations.examples import Barronnorm
 from cancellations.examples import losses
 from cancellations.run import runtemplate
 import cancellations.functions.examplefunctions as examples
-from cancellations.config.batchjob import Batchjob
 from cancellations.config import sysutil,tracking
 import cancellations.config as cfg
 from cancellations.config.tracking import Profile,log

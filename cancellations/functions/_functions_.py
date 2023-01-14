@@ -433,7 +433,7 @@ def formatinspection(L):
     info,steps=L
 
     try:
-        s='W.shape {}\n'.format(tracking.shapestr(info))
+        s='W.shape {}\n'.format(cfg.shapestr(info))
     except:
         s=info+'\n' if type(info)==str else ''
 
@@ -453,13 +453,13 @@ def formatinspection(L):
 
 def inspect(fd,X,formatarrays=None,msg=''):
 
-    tracking.logcurrenttask('inspect function '+msg)
+    cfg.logcurrenttask('inspect function '+msg)
 
     if formatarrays is None:
         def formatarrays(name,val):
             s=name+' '
             if name in ['weights','X']:
-                try: s+=tracking.shapestr(val)
+                try: s+=cfg.shapestr(val)
                 except Exception as e: s+='formatting error '+str(e)
             return s
 

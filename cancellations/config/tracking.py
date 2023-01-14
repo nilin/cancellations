@@ -12,6 +12,12 @@ import jax.numpy as jnp
 
 #----------------------------------------------------------------------------------------------------
 
+
+processes=[]
+
+
+#----------------------------------------------------------------------------------------------------
+
 class dotdict(dict):
     __getattr__=dict.get
     def __setattr__(self,k,v):
@@ -30,19 +36,6 @@ class Profile(dotdict):
         newself=Profile(**self)
         newself.update(defs)
         return newself
-
-
-#----------------------------------------------------------------------------------------------------
-
-
-def extracthist(snapshots,*varnames):
-    out=[[] for n in varnames]
-    for snapshot in snapshots:
-        if all([n in snapshot.keys() for n in varnames]):
-            for i,n in enumerate(varnames):
-                out[i].append(snapshot[n])
-    return out
-    #return zip(*[(snapshot[n] for n in varnames) for snapshot in snapshots if all([n in snapshot.keys() for n in varnames])])
 
 
 
@@ -134,111 +127,90 @@ class Process(Memory):
     processname='process'
     processtype='processes'
 
-    def __init__(self,*a,**kw):
+    def __init__(self,profile=None,**kw):
         super().__init__()
 
-        if len(a)==1 and isinstance(a[0],Profile):
-            (self.profile,)=a
-        elif len(kw)>0:
-            self.profile=self.getdefaultprofile(**kw)
+        if profile is not None:
+            self.profile=profile
+        else:
+            self.profile=self.getprofile(**kw)
 
         self.keychain=Keychain()
-        self.setID()
-        self.outpath=os.path.join('outputs',self.processtype,self.ID)
         self.continueprocess=self.execprocess
-
-    def setID(self):
-        self.ID=cfg.session.ID
-
-    def log(self,*msg):
-        msg=' '.join([str(s) for s in msg])
-        tmsg=textutil.appendright(self.timeprint()+' | ',msg)
-        self.remember('recentlog',tmsg,membound=100)
-        sysutil.write(tmsg+'\n',os.path.join(self.outpath,'log.txt'),mode='a')
-        self.refresh()
-        if cfg.display_on==False: print(msg)
-
+        self.weapons=dict()
 
     def nextkey(self):
         return self.keychain.nextkey()
 
     def refresh(self): pass
 
-    @staticmethod
-    def getdefaultprofile(**kw):
-        return Profile().butwith(**kw)
-
     @classmethod
-    def getprofiles(cls,**kw):
-        return {'default':partial(cls.getdefaultprofile,**kw)}
+    def getprofile(cls,**kw):
+        return Profile(**kw)
 
 
 
 
-class Session(Process):
-    processname='session'
-    processtype='sessions'
+def log(*msgs,multiline=False,**kw):
+    if multiline:
+        msg='\n\n'.join([str(s) for s in msgs])
+        tmsg=sessiontimer.timeprint()+'\n\n'+msg+'\n\n'
+    else:
+        msg=' '.join([str(s) for s in msgs])
+        tmsg=textutil.appendright(sessiontimer.timeprint()+' | ',msg)
 
-    def setID(self):
-        self.ID=nowstr()
+    sysutil.write(tmsg+'\n',logpath,mode='a')
 
-cfg.session=Session()
-
-def log(msg):
-    #breakpoint()
-    cfg.session.log(msg)
+    if cfg.display_on==False: print(msg)
     try:
-        #breakpoint()
-        cfg.currentlogdisplay.draw()
-        cfg.getch()
-        cfg.screen.refresh()
+        currentlogdisplay.draw()
+        getch()
+        screen.refresh()
+        #cfg.currentlogdisplay.draw()
+        #cfg.getch()
+        #cfg.screen.refresh()
     except: pass
-
-def getlog():
-    return cfg.session.gethist('recentlog')
 
 
 
 
 #====================================================================================================
 
-processes=[]
-dashboards=[]
 
 
 
 def loadprocess(process):
-    if len(processes)==0 or processes[-1]!=process:
-        processes.append(process)
-        dashboards.append(dict())
+    if cfg.display_on:
+        process.dashboard=currentprocess().dashboard.blankclone()
+    processes.append(process)
     return process
 
 def unloadprocess(process=None):
     if len(processes)>0 and (process is None or processes[-1]==process):
-        processes.pop()
-        dashboards.pop()
+        process=processes.pop()
+        if cfg.display_on:
+            clearcurrentdash()
     return process
+
+def runprocess(process):
+    loadprocess(process)
+    out=process.execprocess()
+    unloadprocess(process)
+    return out
 
 def swap_process(process):
     unloadprocess()
     return loadprocess(process)
 
-
 def currentprocess():
     return processes[-1]
-
-def currentdashboard():
-    return dashboards[-1]
-
 
 def act_on_input(inp,*args,**kw):
     return currentprocess().profile.act_on_input(inp,*args,**kw)
 
-
 def nextkey(): return currentprocess().nextkey()
 
 
-loadprocess(cfg.session)
 
 #----------------------------------------------------------------------------------------------------
 
@@ -246,9 +218,6 @@ loadprocess(cfg.session)
 
 
 
-
-class Pointer(dotdict): pass
-    
 
 
 class Stopwatch:
@@ -279,47 +248,9 @@ class Stopwatch:
 
 
 
-
-# start must be 10,25,50,100,250,500,1000,...
-def sparsesched(timebound,start=500,skipzero=False):
-    sched=[0]
-    t=start
-    while t<timebound:
-        sched.append(t)
-        t=intuitive_exp_increment(t)
-    sched.append(timebound)
-    return sched[1:] if skipzero else sched
-
-# start must be 10,25,50,100,250,500,1000,...
-def nonsparsesched(timebound,start=10,skipzero=False):
-    sched=[]
-    t=0
-    dt=start
-    while t<timebound:
-        sched.append(t)
-        t+=dt
-        if t>=10*dt:
-            dt=intuitive_exp_increment(dt)
-            
-    sched.append(timebound)
-    return sched[1:] if skipzero else sched
-
-
-# t must be 10,25,50,100,250,500,1000,...
-def intuitive_exp_increment(t):
-    if str(t)[0]=='1':
-        return int(t*2.5) if t>=10 else t*2.5
-    else:
-        return int(t*2)
-
-
 def periodicsched(step,timebound):
     s=list(np.arange(step,timebound,step))
     return s+[timebound] if len(s)==0 or s[-1]<timebound else s
-
-def stepwiseperiodicsched(stepsizes,transitions):
-    return jnp.concatenate([jnp.arange(transitions[i],transitions[i+1],step) for i,step in enumerate(stepsizes)]+[jnp.array([transitions[-1]])])
-
 
 
 class Scheduler(Timer):
@@ -379,20 +310,19 @@ class TimeDistribution:
         for task,time in zip(tasks,times):
             log('{:.0%} of time spent on {}'.format(time,task))
 
-cfg.timedistribution=TimeDistribution()
-cfg.stopwatch=Stopwatch()
 
-def debuglistcomp(x,msg):
-    log(msg)
-    return x
 
-def testX(n=5,d=2):
-    return rnd.normal(nextkey(),(100,n,d))
 
-BOX='\u2588'
-box='\u2592'
-dash='\u2015'
+session=Process()
+processes=[session]
+
+sessionID=nowstr()
+sessiontimer=Timer()
+logpath=os.path.join('logs',sessionID)
+
+timedistribution=TimeDistribution()
+stopwatch=Stopwatch()
+
 hour=3600
 day=24*hour
 week=7*day
-

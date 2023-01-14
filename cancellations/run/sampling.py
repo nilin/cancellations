@@ -19,7 +19,10 @@ from ..config import tracking
 scaleby=jax.vmap(jnp.multiply,in_axes=(0,0))
 
 
-class DynamicSampler:
+class Sampler():
+    pass
+
+class DynamicSampler(Sampler):
     
     def __init__(self,_p_,proposalfn,X0):
         self._p_=_p_
@@ -27,7 +30,7 @@ class DynamicSampler:
         self.X=X0
         self.proposalfn=proposalfn
         self.hist=[]
-        
+
     def step(self,p_params):
         X0=self.X
         X1=self.proposals(X0)
@@ -41,41 +44,28 @@ class DynamicSampler:
     def proposals(self,X):
         return self.proposalfn(tracking.nextkey(),X)
 
-class Sampler(DynamicSampler):
-    def __init__(self,p,proposalfn,X0):
-        _p_=numutil.dummyparams(p)
-        super().__init__(_p_,proposalfn,X0)
-        
-    def step(self):
-        return super().step(None)
-
-def gaussianstepproposal(var):
-    return lambda key,X: X+rnd.normal(key,X.shape)*math.sqrt(var)
-
-
-
+    @staticmethod
+    def gaussianstepproposal(var):
+        return lambda key,X: X+rnd.normal(key,X.shape)*math.sqrt(var)
 
 class SamplesPipe(Sampler):
 
-    def __init__(self,X,*Ys,minibatchsize):
-        self.X=X
-        self.Ys=Ys
+    def __init__(self,*Xs,minibatchsize):
+        self.Xs=Xs
         self.minibatches=deque([])
         self.minibatchsize=minibatchsize
 
-    def step(self,*a):
+    def sample(self):
         if len(self.minibatches)==0:
-            cfg.timedistribution.starttask('prep next epoch')
+            #tracking.timedistribution.starttask('prep next epoch')
             self.prepnextepoch()
-            cfg.timedistribution.endtask()
+            #tracking.timedistribution.endtask()
         return self.minibatches.popleft()
 
     def prepnextepoch(self):
         permute=True
-        if permute: self.X,*self.Ys=numutil.randperm(self.X,*self.Ys)
-        self.minibatches=deque(numutil.chop(self.X,*self.Ys,blocksize=self.minibatchsize))
-
-
+        if permute: self.Xs=numutil.randperm(*self.Xs)
+        self.minibatches=deque(numutil.chop(*self.Xs,blocksize=self.minibatchsize))
 
 
 

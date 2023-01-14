@@ -9,6 +9,7 @@ from cancellations.examples import losses
 import jax.numpy as jnp
 from functools import partial
 import jax
+from cancellations.config import tracking
 from jax.tree_util import tree_map
 
 from cancellations.functions import _functions_, examplefunctions as examples
@@ -107,7 +108,7 @@ class Run(runtemplate.Run_statictarget):
             ax0.plot(Bnorm*jnp.ones_like(Bnorms),'k:',label='$\epsilon$-smooth Barron norm estimate')
         ax1.set_yscale('log')
         ax1.legend()
-        outpath=os.path.join('plots','Bnorm_{}_n={}_{}___{}.pdf'.format(P.mode,P.n,P.ac,cfg.session.ID))
+        outpath=os.path.join('plots','Bnorm_{}_n={}_{}___{}.pdf'.format(P.mode,P.n,P.ac,cfg.sessionID))
         sysutil.savefig(outpath)
         sysutil.showfile(outpath)
 

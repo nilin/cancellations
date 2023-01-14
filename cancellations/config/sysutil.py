@@ -16,13 +16,13 @@ def save(data,path,echo=True):
     makedirs(path)
     with open(path,'wb') as file:
         pickle.dump(data,file)
-    if echo: tracking.log('Saved data to {}'.format(path))
+    if echo: cfg.log('Saved data to {}'.format(path))
 
 def savefig(path,fig=None):
     makedirs(path)
     if fig is None: plt.savefig(path)
     else: fig.savefig(path)
-    tracking.log('Saved figure to {}'.format(path))
+    cfg.log('Saved figure to {}'.format(path))
 
 
 def write(msg,path,mode='a'):
@@ -41,7 +41,7 @@ def read(path):
 def showfile(path):
     import os
     import subprocess
-    cfg.session.log('opening path '+path)
+    cfg.log('opening path '+path)
 
     try: subprocess.Popen(['open',path])
     except: pass

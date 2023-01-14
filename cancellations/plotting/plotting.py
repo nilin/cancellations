@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import jax
 import jax.numpy as jnp
 import jax.random as rnd
-from cancellations.config import batchjob, browse, config as cfg, sysutil, tracking
+from cancellations.config import browse, config as cfg, sysutil, tracking
 from os import path
 
 from cancellations.display import _display_
@@ -121,7 +121,7 @@ def allplots(process):
     sysutil.showfile(process.outpath)
 
 
-class Run(batchjob.Batchjob):
+class Run(_display_.Process):
     processname='plotting'
     def execprocess(self):
 
@@ -137,12 +137,6 @@ class Run(batchjob.Batchjob):
 
         _display_.leavedisplay(self,lambda: allplots(self))
 
-
-
-
-    @staticmethod
-    def getdefaultprofile(**kw):
-        return batchjob.Batchjob.getdefaultprofile(**kw).butwith(tasks=['choose run','plot'])
 
 
 

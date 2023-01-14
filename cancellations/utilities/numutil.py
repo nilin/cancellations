@@ -248,7 +248,7 @@ def normalize(f,X_,echo=False):
     scalesquared=sqloss(f(X_),0)
     C=1/math.sqrt(scalesquared)
     if echo:
-        tracking.log('normalized by factor {:.3}'.format(C))
+        cfg.log('normalized by factor {:.3}'.format(C))
     return scale(f,C)
 
 
@@ -453,7 +453,7 @@ def shapestr(l):
 
 
 def printshape(l,msg=''):
-    tracking.log(msg+shapestr(l))
+    cfg.log(msg+shapestr(l))
 
 
 def scalarfunction(f):

@@ -10,22 +10,22 @@ from cancellations.testing import testing
 
 
 def testantisymmetry(target,learner,X):
-    tracking.logcurrenttask('verifying antisymmetry of target')
+    cfg.logcurrenttask('verifying antisymmetry of target')
     testing.verify_antisymmetric(target.eval,X[:100])
-    tracking.logcurrenttask('verifying antisymmetry of learner')
+    cfg.logcurrenttask('verifying antisymmetry of learner')
     testing.verify_antisymmetric(learner.eval,X[:100])
-    tracking.clearcurrenttask()
+    cfg.clearcurrenttask()
     return True
 
 
 def adjustnorms(Afdescr,X,iterations=500,**learningparams):
-    run=tracking.currentprocess()
+    run=cfg.currentprocess()
     Af=Afdescr._eval_
     f=_functions_.switchtype(Afdescr)._eval_
     normratio=jax.jit(lambda weights,X:mathutil.norm(f(weights,X))/mathutil.norm(Af(weights,X)))
     weights=Afdescr.weights
 
-    tracking.log('|f|/|Af|={:.3f}, |Af|={:.3f} before adjustment'.format(\
+    cfg.log('|f|/|Af|={:.3f}, |Af|={:.3f} before adjustment'.format(\
         normratio(weights,X[:1000]),mathutil.norm(Af(weights,X[:1000]))))
 
     @jax.jit
@@ -46,12 +46,12 @@ def adjustnorms(Afdescr,X,iterations=500,**learningparams):
         trainer.step()
         run.trackcurrent('target |Af|',mathutil.norm(Af(trainer.learner.weights,X[:100])))
         run.trackcurrent('target |f|/|Af|',normratio(trainer.learner.weights,X[:100]))
-        if tracking.stopwatch.tick_after(.05) and tracking.act_on_input(tracking.checkforinput())=='b':break
+        if tracking.stopwatch.tick_after(.05) and cfg.act_on_input(cfg.checkforinput())=='b':break
 
     run.display.column1.delkeys(key1,key2,key3,key4)
 
     weights=trainer.learner.weights
-    tracking.log('|f|/|Af|={:.3f}, |Af|={:.3f} after adjustment'.format(\
+    cfg.log('|f|/|Af|={:.3f}, |Af|={:.3f} after adjustment'.format(\
         normratio(weights,X[:1000]),mathutil.norm(Af(weights,X[:1000]))))
     #Afdescr.weights=weights
     #return weights
@@ -62,13 +62,13 @@ def adjustnorms(Afdescr,X,iterations=500,**learningparams):
 
 
 def info(separator=' | '):
-    run=tracking.currentprocess()
+    run=cfg.currentprocess()
     P=run.profile
     return 'n={}, target: {}{}learner: {}'.format(P.n,\
         run.target.richtypename(),separator,run.learner.richtypename())
 
 def INFO(separator='\n\n',width=100):
-    run=tracking.currentprocess()
+    run=cfg.currentprocess()
     targetinfo='target\n\n{}'.format(textutil.indent(run.target.getinfo()))
     learnerinfo='learner\n\n{}'.format(textutil.indent(run.learner.getinfo()))
     return disp.wraptext(targetinfo+'\n'*4+learnerinfo)
@@ -126,20 +126,20 @@ def processandplot(unprocessed,pfunc,X,Y,process_snapshot_fn=None,plotexample_fn
     pfunc=pfunc.getemptyclone()
     if process_snapshot_fn is None: process_snapshot_fn=process_snapshot
     if plotexample_fn is None: plotexample_fn=plotexample
-    processed=tracking.Memory()
+    processed=cfg.Memory()
 
     weightslist,i_s=unprocessed.gethist('weights','minibatchnumber')
     for imgnum,(weights,i) in enumerate(zip(weightslist,i_s)):
 
-        if tracking.trackcurrenttask('processing snapshots for learning plot',(imgnum+1)/len(weightslist))=='b': break
+        if cfg.trackcurrenttask('processing snapshots for learning plot',(imgnum+1)/len(weightslist))=='b': break
         process_snapshot(processed,mathutil.fixparams(pfunc._eval_,weights),X,Y,i)        
 
     plotexample(unprocessed,processed)
-    tracking.clearcurrenttask()
+    cfg.clearcurrenttask()
     return processed
 
 def lplot():
-    run=tracking.currentprocess()
+    run=cfg.currentprocess()
     processandplot(run.unprocessed,run.learner,run.X_test,run.Y_test)
 
 
@@ -149,13 +149,13 @@ def plotfunctions(sections,f,figtitle,path):
     plt.close('all')
     for fignum,section in enumerate(sections):
         fig=section.plot(f)
-        if tracking.trackcurrenttask('generating function plots',(fignum+1)/len(sections))=='b': break
+        if cfg.trackcurrenttask('generating function plots',(fignum+1)/len(sections))=='b': break
         fig.suptitle(figtitle+'\n\n'+section.info)
         sysutil.savefig('{} {}.pdf'.format(path,fignum),fig=fig)
-    tracking.clearcurrenttask()
+    cfg.clearcurrenttask()
 
 def fplot():
-    run=tracking.currentprocess()
+    run=cfg.currentprocess()
     figtitle=info(separator='\n')
     figpath=os.path.join(run.outpath,int(run.unprocessed.getval('minibatchnumber'))+' minibatches')
 
@@ -176,7 +176,7 @@ def act_on_input(key):
     #if key=='b': tracking.breaker.breaknow()
     if key=='l': lplot()
     if key=='f': fplot()
-    if key=='o': sysutil.showfile(tracking.currentprocess().outpath)
+    if key=='o': sysutil.showfile(cfg.currentprocess().outpath)
     return key
 
 

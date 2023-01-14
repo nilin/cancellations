@@ -1,11 +1,12 @@
-from cancellations.config import batchjob, browse, config as cfg, sysutil, tracking
+from cancellations.config import browse, config as cfg, sysutil, tracking
+from cancellations.display import _display_
 from cancellations.utilities import textutil
 import re, os, importlib, sys
 
 
 
 
-class Run(batchjob.Batchjob):
+class Run(_display_.Process):
 
     def execprocess(self):
 
@@ -19,33 +20,24 @@ class Run(batchjob.Batchjob):
             #'cancellations/plotting/plotmultiple.py'\
             ]
 
-        mname,classname=self.run_subprocess(browse.Browse(options=tasks,displayoption=lambda o : o[0]+'.'+o[1]))
+        mname,classname=tracking.runprocess(browse.Browse(options=tasks,displayoption=lambda o : o[0]+'.'+o[1]))
         m = importlib.import_module(mname)
         cls = getattr(m,classname)
         self.run=cls()
-        self.run_subprocess(self.run,taskname='run script')
+        tracking.runprocess(self.run)
 
-
-    @staticmethod
-    def getdefaultprofile(**kw):
-        return batchjob.Batchjob.getdefaultprofile().butwith(tasks=['pick script','pick profile','run script'],**kw)
-
-
-def debug(disable_jit=True):
-    from cancellations.config import sysutil
-    import jax
-    #sysutil.clearscreen()
-    cfg.debug=True
-    cfg.display_on=False
-    if disable_jit:
-        with jax.disable_jit(): Run().run_as_NODISPLAY()
-    else:
-        Run().run_as_NODISPLAY()
 
 if __name__=='__main__':
+
     if 'd' in sys.argv:
-        debug()
-    elif 'd2' in sys.argv:
-        debug(disable_jit=False)
+        import jax
+        cfg.debug=True
+        cfg.display_on=False
+        with jax.disable_jit(): Run().run_as_NODISPLAY()
+
+    elif 'n' in sys.argv:
+        cfg.display_on=False
+        Run().run_as_NODISPLAY()
+
     else:
         Run().run_as_main()

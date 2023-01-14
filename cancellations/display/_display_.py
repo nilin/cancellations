@@ -7,19 +7,17 @@ import math
 #----------------------------------------------------------------------------------------------------
 
 
-
 class Process(tracking.Process):
 
     def execprocess(self):
-        ld=_LogDisplay_(cfg.session,self.display.width,20,balign=False)
-        self.display.add(0,0,ld)
-        self.display.arm()
-        #breakpoint()
-        cfg.currentlogdisplay=self.display
+        ld=_LogDisplay_(self.dashboard.width,20,balign=False)
+        self.dashboard.add(0,0,ld)
+        self.dashboard.arm()
+        cfg.currentlogdisplay=self.dashboard
 
-    def run_in_display(self,display):
+    def run_in_display(self,dashboard):
         tracking.loadprocess(self)
-        self.display=display
+        self.dashboard=dashboard
         output=self.execprocess()
 
         tracking.unloadprocess(self)
@@ -39,46 +37,54 @@ class Process(tracking.Process):
                 screen.clear()
                 screen.refresh()
 
-            cfg.getch=getch
-            cfg.clearscreen=clearscreen
+            tracking.getch=getch
+            tracking.clearscreen=clearscreen
 
             screen.nodelay(True)
             cs.use_default_colors()
-            cfg.session.dashboard=_Dashboard_(cs.COLS,cs.LINES)
+            tracking.session.dashboard=_Dashboard_(cs.COLS,cs.LINES)
 
-            output=self.run_in_display(cfg.session.dashboard)
+            output=self.run_in_display(tracking.session.dashboard)
 
             globals()['screen']=None
             return output
 
-        try:
-            return cs.wrapper(wrapped)
-        except LeaveDisplay:
-            cfg.display_on=False
-            tracking.currentprocess().run_as_NODISPLAY()
+        return cs.wrapper(wrapped)
 
     def run_as_NODISPLAY(self):
         def getch(*a,**kw):
             return ''
 
-        cfg.getch=getch
-        cfg.clearscreen=sysutil.clearscreen
+        tracking.getch=getch
+        tracking.clearscreen=sysutil.clearscreen
         tracking.loadprocess(self)
         dummydisplay=_Dashboard_(100,50)
-        self.display=dummydisplay
+        self.dashboard=dummydisplay
         self.stopwatch=tracking.Stopwatch()
-
-        #self.refresh=lambda *a,**kw:self.stopwatch.do_after(.2,lambda *a_,**kw_: print(time.time(),end='\r'))
-        #self.refresh=lambda *a,**kw:print(time.time(),end='\r')
         self.continueprocess()
 
-class LeaveDisplay(Exception): pass
+    def run_dummyprocess(self,function,msg=None):
+        class Temp(Process):
+            def execprocess(self):
+                super().execprocess()
+                if msg is not None: tracking.log(msg)
+                return function()
+        temp=Temp(Temp.getdefaultprofile())
+        return self.run_subprocess(temp)
 
-def leavedisplay(process,continueprocess):
-    process.continueprocess=continueprocess
-    raise LeaveDisplay
 
-#class Logprocess(Process):
+def clearcurrentdash():
+    currentdash=tracking.currentprocess().weapons
+    for k,window in currentdash.items():
+        window.erase()
+        window.clear()
+        window.refresh()
+
+    keys=list(currentdash.keys())
+    for k in keys:
+        del currentdash[k]
+
+tracking.clearcurrentdash=clearcurrentdash
 
 #----------------------------------------------------------------------------------------------------
 
@@ -177,7 +183,7 @@ class _LinesDisplay_(_Display_):
         return [(0,i,l) for i,l in enumerate(self.getlines())]
 
 class _TextDisplay_(_LinesDisplay_):
-    def __init__(self,msg,name=None):
+    def __init__(self,msg='',name=None):
         self.msg=msg
         self.name=name
 
@@ -187,13 +193,14 @@ class _TextDisplay_(_LinesDisplay_):
         return self.gettext().splitlines()
 
 class _LogDisplay_(_Frame_,_TextDisplay_):
-    def __init__(self,process,width,height,balign=True):
+    def __init__(self,width,height,balign=True):
         super().__init__(width,height,name='log')
-        self.process=process
         if balign:self.balign()
 
     def gettext(self):
-        return '\n'.join(self.process.gethist('recentlog')[-max(0,self.height-5):])
+        with open(tracking.logpath,'r') as logfile:
+            return ''.join(logfile.readlines()[-max(0,self.height-2):])
+        #return '\n'.join(self.process.gethist('recentlog')[-max(0,self.height-5):])
 
 
 #----------------------------------------------------------------------------------------------------
@@ -277,16 +284,15 @@ class _Dashboard_(_Frame_,_CompositeDisplay_):
 #----------------------------------------------------------------------------------------------------
     def arm(self):
         if not cfg.display_on: return
-
         x,y=self.x0,self.y0
-        tracking.currentdashboard()[self.name]=cs.newwin(self.getheight()+1,self.getwidth()+1,y,x)
+        tracking.currentprocess().weapons[self.name]=cs.newwin(self.getheight()+1,self.getwidth()+1,y,x)
 
     def draw(self):
         if not cfg.display_on:
             #print('display update')
             return
 
-        window=tracking.currentdashboard()[self.name]
+        window=tracking.currentprocess().weapons[self.name]
         window.refresh()
 
         window.erase()
@@ -296,16 +302,6 @@ class _Dashboard_(_Frame_,_CompositeDisplay_):
 
 
 #----------------------------------------------------------------------------------------------------
-def clearcurrentdash():
-    currentdash=tracking.currentdashboard()
-    for k,window in currentdash.items():
-        window.erase()
-        window.clear()
-        window.refresh()
-
-    keys=list(currentdash.keys())
-    for k in keys:
-        del currentdash[k]
 
 
 
@@ -344,7 +340,7 @@ halfblocks=[' ',\
 
 
 def hiresbar(t,width):
-    T=t*width
+    T=min(t,1.0)*width
     try: return BOX*math.floor(T)+halfblocks[math.floor(8*T)%8]
     except Exception as e: return '////error//// {}'.format(e)
 

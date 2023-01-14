@@ -125,26 +125,28 @@ for d in [1,2,3]:
 #----------------------------------------------------------------------------------------------------
 
 
-def get_harmonic_oscillator2d(P,excitation=0):
-    I=list(range(1,P.n+1))
+def get_harmonic_oscillator2d(n,d,excitation=0):
+    I=list(range(1,n+1))
     for t in range(excitation):
         for s in range(t+1):
             I[-s-1]
-    return _functions_.Slater(*['psi{}_{}d'.format(i,P.d) for i in I])
+    return _functions_.Slater(*['psi{}_{}d'.format(i,d) for i in I])
 
 
-def getlearner_example(profile):
-    P=profile
-    profile.learnerparams=tracking.dotdict(\
-        SPNN=dotdict(widths=[profile.d,100,100],activation='sp'),\
+def getlearner_example_profile(n,d):
+    learnerparams=tracking.dotdict(\
+        SPNN=dotdict(widths=[d,100,100],activation='sp'),\
         backflow=dotdict(widths=[100,100,100],activation='sp'),\
-        dets=dotdict(d=100,ndets=P.ndets),)
+        dets=dotdict(d=100,ndets=100),)
         #'OddNN':dict(widths=[25,1],activation='sp')
+    return learnerparams
 
+def getlearner_example(n,d,profile=None):
+    if profile is None: profile=getlearner_example_profile(n,d)
     return _functions_.Product(_functions_.IsoGaussian(1.0),_functions_.ComposedFunction(\
-        _functions_.SingleparticleNN(**profile.learnerparams['SPNN']),\
-        _functions_.Backflow(**profile.learnerparams['backflow']),\
-        _functions_.Dets(n=profile.n,**profile.learnerparams['dets']),\
+        _functions_.SingleparticleNN(**profile['SPNN']),\
+        _functions_.Backflow(**profile['backflow']),\
+        _functions_.Dets(n=n,**profile['dets']),\
         _functions_.Sum()\
         ))
 

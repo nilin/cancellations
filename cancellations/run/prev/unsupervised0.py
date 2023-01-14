@@ -26,7 +26,7 @@ from ...examples import exampleutil
 
 
 def getdefaultprofile():
-    profile=tracking.Profile(name='unsupervised')
+    profile=cfg.Profile(name='unsupervised')
     profile.exname='example'
     profile.instructions=''
 
@@ -85,7 +85,7 @@ class Run(cdisplay.Process):
 
         run.outpath='outputs/{}/'.format(run.ID)
         cfg.outpath='outputs/{}/'.format(run.ID)
-        tracking.log('imports done')
+        cfg.log('imports done')
 
         
         info='runID: {}\n'.format(run.ID)+'\n'*4; run.infodisplay.msg=info
@@ -99,19 +99,19 @@ class Run(cdisplay.Process):
             sections=run.sections)
         sysutil.save(setupdata,run.outpath+'data/setup')
 
-        run.unprocessed=tracking.Memory()
+        run.unprocessed=cfg.Memory()
 
         run.trackcurrent('runinfo',info)
         sysutil.write(info,run.outpath+'info.txt',mode='w')
 
 
-        X0=run._X0_distr_(tracking.nextkey(),run.nrunners,run.n,run.d)
+        X0=run._X0_distr_(cfg.nextkey(),run.nrunners,run.n,run.d)
         run._density_=lambda params,X: run.learner._eval_(params,X)**2
         sampler=sampling.DynamicSampler(run._density_,run.proposalfn,X0)
-        tracking.log('burning')
+        cfg.log('burning')
         for i in range(run.burnsteps):
             sampler.step(run.learner.weights)
-        tracking.log('burning done')
+        cfg.log('burning done')
         #train
         run.lossgrad=gen_lossgrad(run.learner._eval_)
 
@@ -121,12 +121,12 @@ class Run(cdisplay.Process):
         run.trainer.thinning=run.thinning
         run.trainer.learningrate=run.learningrate
 
-        regsched=tracking.Scheduler(tracking.nonsparsesched(run.iterations,start=100))
-        plotsched=tracking.Scheduler(tracking.sparsesched(run.iterations,start=1000))
-        ld,_=addlearningdisplay(run,tracking.currentprocess().display)
+        regsched=cfg.Scheduler(cfg.nonsparsesched(run.iterations,start=100))
+        plotsched=cfg.Scheduler(cfg.sparsesched(run.iterations,start=1000))
+        ld,_=addlearningdisplay(run,cfg.currentprocess().display)
 
-        stopwatch1=tracking.Stopwatch()
-        stopwatch2=tracking.Stopwatch()
+        stopwatch1=cfg.Stopwatch()
+        stopwatch2=cfg.Stopwatch()
 
         for i in range(run.iterations+1):
 
@@ -150,7 +150,7 @@ class Run(cdisplay.Process):
                 ld.draw()
 
             if stopwatch2.tick_after(.5):
-                if tracking.act_on_input(tracking.checkforinput())=='b': break
+                if cfg.act_on_input(cfg.checkforinput())=='b': break
 
         return run.learner
 

@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import os
 from pathlib import Path
-from cancellations.config import batchjob, browse, config as cfg, tracking
+from cancellations.config import browse, config as cfg, tracking
 
 from cancellations.display import _display_
 from cancellations.config import sysutil
@@ -47,11 +47,11 @@ def trainplots(process,profile):
     sysutil.savefig(outpath,fig=fig)
     sysutil.showfile(outpath)
 
-class Run(batchjob.Batchjob):
+class Run(_display_.Process):
     processname='plot multiple'
     def execprocess(self):
 
-        P=tracking.Profile()
+        P=cfg.Profile()
 
 
         rdir='outputs/runs'
@@ -73,13 +73,6 @@ class Run(batchjob.Batchjob):
         P.plotoptions=self.run_subprocess(browsingprocess2,taskname='choose plot options')
 
         _display_.leavedisplay(self,lambda: trainplots(self,P))
-
-
-
-
-    @staticmethod
-    def getdefaultprofile(**kw):
-        return batchjob.Batchjob.getdefaultprofile(**kw).butwith(tasks=['choose run','plot'])
 
 
 
