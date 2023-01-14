@@ -9,13 +9,15 @@ from cancellations.examples import losses
 import jax.numpy as jnp
 from functools import partial
 import jax
+import os
 from jax.tree_util import tree_map
+import matplotlib.pyplot as plt
 
 from cancellations.functions import _functions_, examplefunctions as examples
 from cancellations.functions._functions_ import Product
 from cancellations.config.browse import Browse
 
-from cancellations.config import config as cfg, tracking
+from cancellations.config import config as cfg, tracking, sysutil
 from cancellations.run import runtemplate, sampling
 from cancellations.config.tracking import Profile, log
 
@@ -23,7 +25,7 @@ from cancellations.config.tracking import Profile, log
 
 
 class Run(runtemplate.Fixed_XY):
-    processname='Barron_norm'
+    lossnames=['non-SI','SI','norm']
     
     def getprofile(self):
         mode=tracking.runprocess(Browse(options=['non-SI','SI']))
@@ -53,13 +55,14 @@ class Run(runtemplate.Fixed_XY):
                 fromrawloss=True)
             #losses.get_lossgrad_SI(P.learner._eval_)
         ]
-        P.lossnames=['non-SI','SI','norm']
+        P.lossnames=self.lossnames #['non-SI','SI','norm']
         match mode:
             case 'non-SI':
                 P.lossweights=[1.0,0.0,1.0]
             case 'SI':
                 P.lossweights=[0.0,1.0,1.0]
         P.info['learner']=P.learner.getinfo()
+        P.name=mode
         return P
 
     @staticmethod
@@ -78,3 +81,9 @@ class Run(runtemplate.Fixed_XY):
         params=P.learner.weights
         params[0]/=losses.norm(P.learner.eval(P.X[:N]),P.rho[:N])
         
+class Plot(Run):
+    def execprocess(self):
+        super().plot(None,False)
+    @staticmethod
+    def getprofile(*a,**kw): return tracking.Profile()
+    

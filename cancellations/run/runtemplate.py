@@ -6,6 +6,7 @@ from os import path
 import numpy as np
 from functools import partial, reduce
 from cancellations.config import config as cfg, sysutil, tracking, browse
+from cancellations.config.browse import Browse
 from cancellations.functions import _functions_
 from cancellations.functions._functions_ import ComposedFunction,SingleparticleNN,Product
 from cancellations.run import sampling
@@ -25,10 +26,11 @@ class Run(_display_.Process):
 
     def execprocess(run):
         P=run.profile
-        run.info='runID: {}\n'.format(run.ID)+'\n'*4+P.parseinfo(P.info)
+        run.info='runID: {}\n'.format(run.ID)+'\n'*4+run.parseinfo(P.info)
         if cfg.display_on: run.prepdisplay()
         for path in [P.outpath_data,P.outpath_plot]:
             sysutil.write(run.info,os.path.join(path,'info.txt'),mode='w')
+            sysutil.write(P.name,os.path.join(path,'profilename.txt'),mode='w')
 
         run.losses={ln:[] for ln in P.lossnames}
         if cfg.display_on: run.addlearningdisplay()
@@ -39,7 +41,7 @@ class Run(_display_.Process):
         state=opt.init(P.learner.weights)
         run.its=0
 
-        P.prep(run)
+        run.prep(P)
         log('start training')
 
         for i in range(P.iterations+1):
@@ -67,7 +69,7 @@ class Run(_display_.Process):
                 print()
                 run.act_on_input(input())
 
-        return P.finish(run)
+        return run.finish(P)
 
     def act_on_input(self,key):
         if key=='q': quit()
@@ -78,39 +80,86 @@ class Run(_display_.Process):
             sysutil.showfile(self.profile.outpath_plot)
         return key
 
-    def plot(self,P):
-        options=['heatmaps','contours']
-        plotoptions=tracking.runprocess(browse.Browse(onlyone=False,options=options))
-        if cfg.display_on: self.T.draw()
-        return
-        if 'heatmaps' in plotoptions or 'contours' in plotoptions:
-            I,Xp,Yp=P.plotslice
-            M=jnp.quantile(jnp.abs(Yp),.9)
-            fp=P.learner.eval(Xp)
-            fp=fp*jnp.dot(fp,Yp)/jnp.dot(fp,fp)
-            P.plotslice_=(I,Xp,Yp,fp)
-        for o in ['heatmaps','contours']:
-            match o:
-                case 'heatmaps':
-                    I,Xp,Yp,fp=P.plotslice_
-                    M=jnp.quantile(jnp.abs(Yp),.9)
-                    fig,(ax0,ax1)=plt.subplots(1,2,figsize=(15,6))
-                    handle0=ax0.pcolormesh(I,I,Yp,cmap='seismic',vmin=-M,vmax=M)
-                    handle1=ax1.pcolormesh(I,I,fp,cmap='seismic',vmin=-M,vmax=M)
-                    for m in [handle0,handle1]: m.set_edgecolor('face')
-                    ct0=ax0.contour(I,I,Yp,levels=[-10,-1,-.1,0,.1,1,10],colors='k',linewidths=1)
-                    ct1=ax1.contour(I,I,fp,levels=[-10,-1,-.1,0,.1,1,10],colors='k',linewidths=1)
-                    for ax in [ax0,ax1]: ax.set_aspect('equal')
-                case 'contours':
-                    I,Xp,Yp,fp=P.plotslice_
-                    fig,(ax)=plt.subplots(1,1,figsize=(6,6))
-                    ct0=ax.contour(I,I,Yp,levels=[-10,-1,-.1,0,.1,1,10],colors='b',linewidths=2)
-                    ct1=ax.contour(I,I,fp,levels=[-10,-1,-.1,0,.1,1,10],colors='r',linewidths=1)
-                    ax.set_aspect('equal')
+    def subprocess(self,process):
+        out=tracking.runprocess(process)
+        try: self.T.draw()
+        except: pass
+        return out
 
-            outpath=os.path.join(P.outpath_plot,'{}.pdf'.format(o))
-            sysutil.savefig(outpath)
-            sysutil.showfile(outpath)
+    def plot(self,P,currentrun=True,parsefigname=lambda a:'{} loss'.format(a),parselinename=lambda a:'{} profile'.format(a)):
+        plotoptions=self.subprocess(Browse(options=self.lossnames,onlyone=False))
+        nplots=len(plotoptions)
+        fig,axs=plt.subplots(nplots,1,figsize=(8,5*nplots))
+        if nplots==1: axs=[axs]
+
+        if currentrun:
+            losses_=[self.losses]
+            profiles=[P.name]
+            outpaths=[P.outpath_plot]
+        else:
+            paths,pathstrings=[],[]
+            for relpath in sorted(os.listdir('outputs')):
+                try:
+                    path=os.path.join('outputs',relpath)
+                    pathstring=path+' '+open(os.path.join(path,'profilename.txt')).readline()
+                except:
+                    continue
+                paths.append(path)
+                pathstrings.append(pathstring)
+            runs=self.subprocess(Browse(options=paths,onlyone=False,optionstrings=pathstrings))
+            profiles=[open(os.path.join(path,'profilename.txt')).readline() for path in runs]
+            losses_=[sysutil.load(os.path.join(path,'losses')) for path in runs]
+            outpaths=[path.replace('outputs','plots') for path in paths]
+
+        fig.suptitle(' vs '.join(profiles))
+
+        colors=['b','r','b--','r--']
+        colors_=[self.subprocess(Browse(options=colors)) for I in profiles]
+        for ax,po in zip(axs,plotoptions):
+            ax.set_title(parsefigname(po))
+            ax.set_yscale('log')
+            ax.grid(True,which='major',axis='y')
+            for i,(I_f,c) in enumerate(zip(profiles,colors_)):
+                ax.plot(losses_[i][po],c,label=parselinename(I_f))
+                ax.legend()
+
+        for outpath in outpaths:
+            outpath=os.path.join(outpath,'training_comp.pdf')
+            sysutil.savefig(outpath,fig=fig)
+        sysutil.showfile(outpath)
+
+#    def plot(self,P):
+#        options=['heatmaps','contours']
+#        plotoptions=tracking.runprocess(browse.Browse(onlyone=False,options=options))
+#        return
+#        if 'heatmaps' in plotoptions or 'contours' in plotoptions:
+#            I,Xp,Yp=P.plotslice
+#            M=jnp.quantile(jnp.abs(Yp),.9)
+#            fp=P.learner.eval(Xp)
+#            fp=fp*jnp.dot(fp,Yp)/jnp.dot(fp,fp)
+#            P.plotslice_=(I,Xp,Yp,fp)
+#        for o in ['heatmaps','contours']:
+#            match o:
+#                case 'heatmaps':
+#                    I,Xp,Yp,fp=P.plotslice_
+#                    M=jnp.quantile(jnp.abs(Yp),.9)
+#                    fig,(ax0,ax1)=plt.subplots(1,2,figsize=(15,6))
+#                    handle0=ax0.pcolormesh(I,I,Yp,cmap='seismic',vmin=-M,vmax=M)
+#                    handle1=ax1.pcolormesh(I,I,fp,cmap='seismic',vmin=-M,vmax=M)
+#                    for m in [handle0,handle1]: m.set_edgecolor('face')
+#                    ct0=ax0.contour(I,I,Yp,levels=[-10,-1,-.1,0,.1,1,10],colors='k',linewidths=1)
+#                    ct1=ax1.contour(I,I,fp,levels=[-10,-1,-.1,0,.1,1,10],colors='k',linewidths=1)
+#                    for ax in [ax0,ax1]: ax.set_aspect('equal')
+#                case 'contours':
+#                    I,Xp,Yp,fp=P.plotslice_
+#                    fig,(ax)=plt.subplots(1,1,figsize=(6,6))
+#                    ct0=ax.contour(I,I,Yp,levels=[-10,-1,-.1,0,.1,1,10],colors='b',linewidths=2)
+#                    ct1=ax.contour(I,I,fp,levels=[-10,-1,-.1,0,.1,1,10],colors='r',linewidths=1)
+#                    ax.set_aspect('equal')
+#
+#            outpath=os.path.join(P.outpath_plot,'{}.pdf'.format(o))
+#            sysutil.savefig(outpath)
+#            sysutil.showfile(outpath)
 
     def repeat(run,i):
         if i is None: return
@@ -123,6 +172,14 @@ class Run(_display_.Process):
         if not cfg.display_on:
             if i%1000==0:
                 print('\nnodisplay mode--raise KeyboardInterrupt (typically Ctrl-C) to pause and view options\n')
+
+    @staticmethod
+    def prep(P):
+        pass
+
+    @staticmethod
+    def finish(P):
+        pass
 
     @staticmethod
     def getinstructions():
@@ -168,6 +225,10 @@ class Run(_display_.Process):
         I=jnp.arange(-3,3.03,.03)
         return slicethrough(x,I),I
 
+    @staticmethod
+    def parseinfo(I):
+        return '\n'.join(['{}:{}'.format(k,v) for k,v in I.items()])
+
     @classmethod
     def getprofiles(cls):
         return {'default':cls.getdefaultprofile}
@@ -176,10 +237,6 @@ class Run(_display_.Process):
     def defaultbaseprofile():
         P=tracking.Profile()
 
-        P.getinfo=lambda P:dict(n=P.n,d=P.d)
-        P.prep=lambda run:None
-        P.finish=lambda run:None
-        P.parseinfo=lambda I:'\n'.join(['{}:{}'.format(k,v) for k,v in I.items()])
         P.outpath_data=os.path.join('outputs',tracking.sessionID)
         P.outpath_plot=os.path.join('outputs',tracking.sessionID)
 
@@ -189,7 +246,8 @@ class Run(_display_.Process):
         P.samples_test=1000
         P.evalblocksize=10**4
 
-        P.info=P.getinfo(P)
+        P.info=dict()
+        P.name='base profile'
         return P
 
 

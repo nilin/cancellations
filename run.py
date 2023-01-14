@@ -13,6 +13,7 @@ class Run(_display_.Process):
         tasks=[\
             ('cancellations.examples.Barronnorm','Run'),\
             ('cancellations.examples.SI','Run'),\
+            ('cancellations.examples.SI','Plot'),\
             ('cancellations.examples.comparenorms','Genfns'),\
             ('cancellations.examples.comparenorms','Compare'),\
             ('cancellations.examples.game','Run'),\

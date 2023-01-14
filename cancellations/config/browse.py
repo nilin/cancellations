@@ -27,6 +27,9 @@ class Browse(_display_.Process):
 
     def browse_in_display(self):
         profile,display=self.profile,self.dashboard
+        P=profile
+        options=profile.options
+        optionstrings=[P.displayoption(o) for o in options] if P.optionstrings is None else P.optionstrings
 
         if len(profile.options)==0: return None
 
@@ -64,13 +67,15 @@ class Browse(_display_.Process):
         inputtext=''
 
         while True:
-            matches=profile.options
 
             ls=pointer.val
             c=tracking.getch(lambda: profile.msg)
 
             if c=='ENTER':
-                return matches[ls] if profile.onlyone else selections
+                if profile.onlyone:
+                    return options[ls]
+                elif len(selections)>0:
+                    return selections
 
             if c!=-1:
                 match mode:
@@ -78,10 +83,10 @@ class Browse(_display_.Process):
                         match c:
                             case 'SPACE':
                                 if not profile.onlyone:
-                                    selections.append(matches[ls])
-                                    selectionpositions[0]=[i for i,m in enumerate(matches) if m in selections]
+                                    selections.append(options[ls])
+                                    selectionpositions[0]=[i for i,m in enumerate(options) if m in selections]
                             case 'd':
-                                if (not profile.onlyone) and matches[ls] in selections: selections.remove(matches[ls])
+                                if (not profile.onlyone) and options[ls] in selections: selections.remove(options[ls])
                             case 'UP': ls-=1
                             case 'DOWN': ls+=1
                             case 'LEFT': ls-=5
@@ -105,11 +110,11 @@ class Browse(_display_.Process):
                             try: inputtext+=c
                             except: mode='browse'
 
-            ls=ls%len(matches)
+            ls=ls%len(options)
             
             Ltext.msg=profile.msg
-            optionsdisplay.msg='\n'.join([profile.displayoption(o) for o in matches])
-            Rtext.msg=getinfo(profile.readinfo,profile.options[ls])
+            optionsdisplay.msg='\n'.join(optionstrings)
+            Rtext.msg=optionstrings[ls]
             pointer.val=ls
             display.draw()
 
@@ -134,8 +139,8 @@ class Browse(_display_.Process):
     def getprofile(**kw):
         P=tracking.Profile()
         P.onlyone=True
-        P.displayoption=lambda option: str(option)
-        P.readinfo=lambda selection: str(selection) 
+        P.optionstrings=None
+        P.displayoption=lambda o:str(o)
         P.update(**kw)
 
         if P.onlyone:
@@ -157,36 +162,37 @@ class Browse(_display_.Process):
         return P
 
 # for path browsing
-
-
-def allpaths(root):
-    scan=os.scandir(root)
-    out=[]
-    for d in scan:
-        if d.is_file(): out.append(d.name)
-        if d.is_dir():
-            out.append(d.name+'/')
-            out+=[d.name+'/'+branch for branch in allpaths(root+'/'+d.name)]
-    return out
-
-def getmetadata(folder):
-    try:
-        with open(folder+'metadata.txt','r') as f: return ' - '+f.readline()
-    except Exception as e: return ''
-
-def getinfo(readinfo,path):
-    try: return readinfo(path)
-    except: return 'no info'
-
-
-def getpaths(parentfolder='outputs/', regex='.*', condition=None):
-    if condition is None: condition=lambda path: True
-    paths=allpaths(parentfolder)
-    pattern=re.compile(regex)
-    paths=list(filter(pattern.fullmatch,paths))
-    paths=list(filter(condition,paths))
-    paths.sort(reverse=True,key=lambda path:os.path.getmtime(os.path.join(parentfolder,path)))
-    return paths
-
-
-
+#
+#
+#def allpaths(root):
+#    scan=os.scandir(root)
+#    out=[]
+#    for d in scan:
+#        if d.is_file(): out.append(d.name)
+#        if d.is_dir():
+#            out.append(d.name+'/')
+#            out+=[d.name+'/'+branch for branch in allpaths(root+'/'+d.name)]
+#    return out
+#
+#def getmetadata(folder):
+#    try:
+#        with open(folder+'metadata.txt','r') as f: return ' - '+f.readline()
+#    except Exception as e: return ''
+#
+#def getinfo(readinfo,path):
+#    try: return readinfo(path)
+#    except: return 'no info'
+#
+#
+#def getpaths(parentfolder='outputs/', regex='.*', condition=None):
+#    if condition is None: condition=lambda path: True
+#    paths=allpaths(parentfolder)
+#    pattern=re.compile(regex)
+#    paths=list(filter(pattern.fullmatch,paths))
+#    paths=list(filter(condition,paths))
+#    paths.sort(reverse=True,key=lambda path:os.path.getmtime(os.path.join(parentfolder,path)))
+#    return paths
+#
+#
+#
+#
