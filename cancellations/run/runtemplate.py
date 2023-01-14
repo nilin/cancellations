@@ -12,7 +12,6 @@ from cancellations.run import sampling
 from cancellations.utilities import numutil, textutil
 import matplotlib.pyplot as plt
 from cancellations.config.tracking import dotdict, log
-from cancellations.plotting import plotting
 from cancellations.display import _display_
 from cancellations.examples import losses
 from jax.tree_util import tree_map
@@ -176,7 +175,6 @@ class Run(_display_.Process):
     @staticmethod
     def defaultbaseprofile():
         P=tracking.Profile()
-
 
         P.getinfo=lambda P:dict(n=P.n,d=P.d)
         P.prep=lambda run:None
