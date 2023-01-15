@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 from cancellations.functions import _functions_, examplefunctions as examples
 from cancellations.functions._functions_ import Product
 from cancellations.config.browse import Browse
+from cancellations.config.tracking import dotdict
 
 from cancellations.config import config as cfg, tracking, sysutil
 from cancellations.run import runtemplate, sampling
@@ -67,7 +68,11 @@ class Run(runtemplate.Fixed_XY):
 
     @staticmethod
     def getlearner_example(n,d):
-        lprofile=examples.getlearner_example_profile(n,d)
+        lprofile=tracking.dotdict(\
+            SPNN=dotdict(widths=[d,50,50],activation='sp'),\
+            backflow=dotdict(widths=[50,50],activation='sp'),\
+            dets=dotdict(d=50,ndets=25),)
+
         return _functions_.Product(_functions_.ScaleFactor(),_functions_.IsoGaussian(1.0),_functions_.ComposedFunction(\
             _functions_.SingleparticleNN(**lprofile['SPNN']),\
             _functions_.Backflow(**lprofile['backflow']),\

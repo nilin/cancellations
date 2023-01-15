@@ -87,7 +87,7 @@ class Run(_display_.Process):
         return out
 
     def plot(self,P,currentrun=True,parsefigname=lambda a:'{} loss'.format(a),parselinename=lambda a:'{} profile'.format(a)):
-        plotoptions=self.subprocess(Browse(options=self.lossnames,onlyone=False))
+        plotoptions=self.subprocess(Browse(options=self.lossnames,onlyone=False,msg='Select statistics to be plotted'))
         nplots=len(plotoptions)
         fig,axs=plt.subplots(nplots,1,figsize=(8,5*nplots))
         if nplots==1: axs=[axs]
@@ -95,37 +95,44 @@ class Run(_display_.Process):
         if currentrun:
             losses_=[self.losses]
             profiles=[P.name]
-            outpaths=[P.outpath_plot]
         else:
-            paths,pathstrings=[],[]
+            paths,pathstrings,allprofiles=[],[],[]
             for relpath in sorted(os.listdir('outputs')):
                 try:
                     path=os.path.join('outputs',relpath)
-                    pathstring=path+' '+open(os.path.join(path,'profilename.txt')).readline()
+                    pname=open(os.path.join(path,'profilename.txt')).readline()
+                    pathstring=path+' '+pname
                 except:
                     continue
                 paths.append(path)
                 pathstrings.append(pathstring)
-            runs=self.subprocess(Browse(options=paths,onlyone=False,optionstrings=pathstrings))
-            profiles=[open(os.path.join(path,'profilename.txt')).readline() for path in runs]
-            losses_=[sysutil.load(os.path.join(path,'losses')) for path in runs]
-            outpaths=[path.replace('outputs','plots') for path in paths]
+                allprofiles.append(pname)
 
-        fig.suptitle(' vs '.join(profiles))
+            runs=self.subprocess(Browse(options=list(zip(paths,allprofiles)),onlyone=False,optionstrings=pathstrings,msg='Select runs'))
+            runs,profiles=zip(*runs)
+            losses_=[sysutil.load(os.path.join(path,'losses')) for path in runs]
+
+        fig.suptitle(' vs '.join([parselinename(p) for p in profiles]))
 
         colors=['b','r','b--','r--']
-        colors_=[self.subprocess(Browse(options=colors)) for I in profiles]
+        colors_=[self.subprocess(Browse(options=colors,msg='pick color for {}'.format(I))) for I in profiles]
+        smoothing=self.subprocess(Browse(options=[1,10,100],msg='pick smoothing'))
+        T0=max([len(l[po]) for l in losses_ for po in plotoptions])
+        T1=min([len(l[po]) for l in losses_ for po in plotoptions])
+        T=self.subprocess(Browse(msg='pick duration',options=\
+            sorted([T0,T1]+[a*x for x in [1000,10000,100000] for a in range(2,20) if a*x<T1])))
+
         for ax,po in zip(axs,plotoptions):
             ax.set_title(parsefigname(po))
             ax.set_yscale('log')
             ax.grid(True,which='major',axis='y')
             for i,(I_f,c) in enumerate(zip(profiles,colors_)):
-                ax.plot(losses_[i][po],c,label=parselinename(I_f))
+                smoother=numutil.RunningAvg(k=smoothing)
+                ax.plot([smoother.update(l) for l in losses_[i][po][:T]],c,label=parselinename(I_f))
                 ax.legend()
 
-        for outpath in outpaths:
-            outpath=os.path.join(outpath,'training_comp.pdf')
-            sysutil.savefig(outpath,fig=fig)
+        outpath=os.path.join('plots','training_comp_{}.pdf'.format(tracking.nowstr()))
+        sysutil.savefig(outpath,fig=fig)
         sysutil.showfile(outpath)
 
 #    def plot(self,P):
@@ -300,12 +307,3 @@ def sumgrads(Gs):
     add=lambda *As: reduce(jnp.add,As)
     return tree_map(add,*Gs)
     
-
-
-
-
-
-####################################################################################################
-# variations
-####################################################################################################
-

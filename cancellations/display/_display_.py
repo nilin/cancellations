@@ -21,7 +21,7 @@ class Process(tracking.Process):
         output=self.execprocess()
 
         tracking.unloadprocess(self)
-        cfg.clearscreen()
+        tracking.clearscreen()
         return output
 
     def run_as_main(self):
