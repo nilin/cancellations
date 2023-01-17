@@ -125,11 +125,8 @@ for d in [1,2,3]:
 #----------------------------------------------------------------------------------------------------
 
 
-def get_harmonic_oscillator2d(n,d,excitation=0):
+def get_harmonic_oscillator2d(n,d):
     I=list(range(1,n+1))
-    for t in range(excitation):
-        for s in range(t+1):
-            I[-s-1]
     return _functions_.Slater(*['psi{}_{}d'.format(i,d) for i in I])
 
 

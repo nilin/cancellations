@@ -198,8 +198,11 @@ class _LogDisplay_(_Frame_,_TextDisplay_):
         if balign:self.balign()
 
     def gettext(self):
-        with open(tracking.logpath,'r') as logfile:
-            return ''.join(logfile.readlines()[-max(0,self.height-2):])
+        try:
+            with open(tracking.logpath,'r') as logfile:
+                return ''.join(logfile.readlines()[-max(0,self.height-2):])
+        except:
+            return 'no log found'
         #return '\n'.join(self.process.gethist('recentlog')[-max(0,self.height-5):])
 
 
@@ -294,10 +297,11 @@ class _Dashboard_(_Frame_,_CompositeDisplay_):
 
         window=tracking.currentprocess().weapons[self.name]
         window.refresh()
-
         window.erase()
-        for x,y,s in self.render():
-            window.addstr(y,x,s)
+        try:
+            for x,y,s in self.render(): window.addstr(y,x,s)
+        except Exception as e:
+            window.addstr(0,0,'//// rendering error //// '+str(e))
         window.refresh()
 
 

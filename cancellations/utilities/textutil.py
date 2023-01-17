@@ -88,6 +88,12 @@ def drawtree(tree,parseleaf=None):
 def printtree(tree):
     print(tree_map(lambda A:A.shape,tree))
 
+def tryformat(s,*a,**kw):
+    try:
+        return s.format(*a,**kw)
+    except:
+        return ' '.join([str(c) for c in a])
+
 
 def midpoints(s,style=BOX):
     def midpoint(B):

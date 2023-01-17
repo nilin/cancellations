@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 from cancellations.config.tracking import dotdict, log
 from cancellations.display import _display_
 from cancellations.examples import losses
+from cancellations.utilities.textutil import printtree
 from jax.tree_util import tree_map
 import optax
 
@@ -26,14 +27,16 @@ class Run(_display_.Process):
 
     def execprocess(run):
         P=run.profile
+        run.losses={ln:[] for ln in P.lossnames}
         run.info='runID: {}\n'.format(run.ID)+'\n'*4+run.parseinfo(P.info)
-        if cfg.display_on: run.prepdisplay()
+        run.prepdisplay()
+
+        #run.prepdisplay()
         for path in [P.outpath_data,P.outpath_plot]:
             sysutil.write(run.info,os.path.join(path,'info.txt'),mode='w')
             sysutil.write(P.name,os.path.join(path,'profilename.txt'),mode='w')
 
-        run.losses={ln:[] for ln in P.lossnames}
-        if cfg.display_on: run.addlearningdisplay()
+        #run.prepdisplay()
 
         stopwatch1=tracking.Stopwatch()
 
@@ -74,7 +77,8 @@ class Run(_display_.Process):
     def act_on_input(self,key):
         if key=='q': quit()
         if key=='p': self.plot(self.profile)
-        if key=='d': breakpoint()
+        if key=='d':
+            breakpoint()
         if key=='o':
             sysutil.showfile(self.profile.outpath_data)
             sysutil.showfile(self.profile.outpath_plot)
@@ -85,6 +89,9 @@ class Run(_display_.Process):
         try: self.T.draw()
         except: pass
         return out
+
+    def browse(self,*a,**kw):
+        return self.subprocess(Browse(*a,**kw))
 
     def plot(self,P,currentrun=True,parsefigname=lambda a:'{} loss'.format(a),parselinename=lambda a:'{} profile'.format(a)):
         plotoptions=self.subprocess(Browse(options=self.lossnames,onlyone=False,msg='Select statistics to be plotted'))
@@ -135,6 +142,7 @@ class Run(_display_.Process):
         sysutil.savefig(outpath,fig=fig)
         sysutil.showfile(outpath)
 
+
 #    def plot(self,P):
 #        options=['heatmaps','contours']
 #        plotoptions=tracking.runprocess(browse.Browse(onlyone=False,options=options))
@@ -173,7 +181,7 @@ class Run(_display_.Process):
         if i%100==0:
             log('{} iterations'.format(i))
         if i%25==0:
-            log(' '.join(['{}={:.3f}'.format(k,v[-1]) for k,v in run.losses.items()]))
+            log(' '.join([textutil.tryformat('{}={:.3f}',k,v[-1]) for k,v in run.losses.items()]))
         if i%1000==0:
             sysutil.save(run.losses,os.path.join(run.profile.outpath_data,'losses'))
         if not cfg.display_on:
@@ -188,17 +196,16 @@ class Run(_display_.Process):
     def finish(P):
         pass
 
-    @staticmethod
-    def getinstructions():
-        return 'Press:'+\
+    def prepdisplay(self):
+        if not cfg.display_on:
+            return
+
+        instructions='Press:'+\
             '\n[p] to generate plots.'+\
             '\n[o] to open output folder.'+\
             '\n[b] to break from current task.'+\
             '\n[d] to enter pdb'+\
             '\n[q] to quit.'
-
-    def prepdisplay(self):
-        instructions=self.getinstructions()
 
         self.T,self.learningdisplay=self.dashboard.vsplit(rlimits=[.8])
         self.L,self.R=self.T.hsplit()
@@ -207,19 +214,22 @@ class Run(_display_.Process):
         self.L.add(0,20,_display_._LogDisplay_(self.L.width,25,balign=False))
         self.L.vstack()
 
+        #yield None
+
         self.infodisplay=self.R.add(0,0,_display_._TextDisplay_(self.info))
 
         self.T.arm()
         self.learningdisplay.arm()
         self.T.draw()
 
-    def addlearningdisplay(self):
+        #yield None
+
         k=10
         lossnames=self.losses.keys()
         smoothers={ln:numutil.RunningAvg(k=k) for ln in lossnames}
         display=self.learningdisplay.add(0,0,_display_._Display_())
         def bar_at(lossname,smoother,loss,k,pos):
-            return [(0,3*pos+3,'{} (smoothed over {} iterations) {:.2E}'.format(lossname,k,smoother.update(loss))),\
+            return [(0,3*pos+3,textutil.tryformat('{} (smoothed over {} iterations) {:.2E}',lossname,k,smoother.update(loss))),\
             (0,3*pos+4,_display_.hiresbar(smoother.avg(),self.dashboard.width))]
             
         encode=lambda:[bar_at(ln,smoothers[ln],self.losses[ln][-1],k,pos=i) for i,ln in enumerate(lossnames)]
@@ -235,10 +245,6 @@ class Run(_display_.Process):
     @staticmethod
     def parseinfo(I):
         return '\n'.join(['{}:{}'.format(k,v) for k,v in I.items()])
-
-    @classmethod
-    def getprofiles(cls):
-        return {'default':cls.getdefaultprofile}
 
     @staticmethod
     def defaultbaseprofile():
@@ -282,6 +288,7 @@ class Fixed_XY(Fixed_X):
     def getprofile(cls,n,d,samples_train,minibatchsize,target):
         P=super().getprofile(n,d,samples_train,minibatchsize)
         P.Y=numutil.blockwise_eval(target,blocksize=P.evalblocksize,msg='preparing training data')(P.X)
+        cls.initsampler(P)
         return P
 
 class Loaded_XY(Run):
@@ -291,6 +298,7 @@ class Loaded_XY(Run):
         P=cls.defaultbaseprofile().butwith(\
             n=n,d=d,samples_train=samples_train,minibatchsize=minibatchsize,\
             X=X,Y=Y,rho=rho)
+        cls.initsampler(P)
         return P
 
 def slicethrough(x,I):

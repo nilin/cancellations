@@ -127,13 +127,13 @@ class Process(Memory):
     processname='process'
     processtype='processes'
 
-    def __init__(self,profile=None,**kw):
+    def __init__(self,*a,profile=None,**kw):
         super().__init__()
 
         if profile is not None:
             self.profile=profile
         else:
-            self.profile=self.getprofile(**kw)
+            self.profile=self.getprofile(*a,**kw)
 
         self.keychain=Keychain()
         self.continueprocess=self.execprocess
@@ -164,6 +164,7 @@ def log(*msgs,multiline=False,**kw):
     if cfg.display_on==False: print(msg)
     try:
         #breakpoint()
+        global currentlogdisplay
         currentlogdisplay.draw()
         getch()
         screen.refresh()
@@ -172,8 +173,6 @@ def log(*msgs,multiline=False,**kw):
         #cfg.screen.refresh()
     except Exception as e: 
         pass
-
-
 
 
 #====================================================================================================

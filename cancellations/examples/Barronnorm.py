@@ -40,53 +40,28 @@ def getBarronfn(P):
                 _functions_.Barron(n=P.n,d=P.d,m=P.m,ac=P.ac))
 
 
-class Run(runtemplate.Run_statictarget):
+class Run(runtemplate.Fixed_XY):
     processname='Barron_norm'
 
-    @staticmethod
-    def getlearner(profile):
-        return getBarronfn(profile)
-
-    @staticmethod
-    def gettarget(P):
-        #P.target=examples.getlearner_example(Profile(n=P.n,d=P.d,ndets=P.mtarget))
-        P.target=examples.get_harmonic_oscillator2d(P)
-
-    @classmethod
-    def getdefaultprofile(cls,ac='softplus',**kwargs):
-        P=profile=super().getdefaultprofile(ac=ac,**kwargs)
-        Barron=P.learner
-        log('generating lossgrad')
+    def getprofile(self):
+        n=self.browse(options=[2,3,4,5,6],msg='Select n')
+        d=self.browse(options=[1,2,3],msg='Select d')
+        samples_train=10**5
+        minibatchsize=100
+        target=examples.get_harmonic_oscillator2d(n,d)
+        P=profile=super().getprofile(n,d,samples_train,minibatchsize,target)
+        P.m=self.browse(options=[2**k for k in range(6,12)],msg='Select Barron layer count')
+        P.ac='softplus'
+        P.mode=self.browse(options=['ANTISYM','RAW'],msg='Select Barron norm type')
+        Barron=getBarronfn(P)
+        P.learner=Barron
         profile.lossgrads=[\
-            #get_threshold_lg(losses.get_lossgrad_SI(Barron._eval_,lambda x:jnp.tan((math.pi/2)*x)),.00001),\
             get_threshold_lg(losses.get_lossgrad_SI(Barron._eval_),.00001),\
             get_barronweight(1.0,Barron._eval_),\
         ]
         profile.lossnames=['eps','Barron norm estimate']
         profile.lossweights=[100.0,0.01]
-        return profile
-
-    @classmethod
-    def getprofiles(cls):
-        return {\
-            #'m=1': partial(cls.getdefaultprofile,n=5,d=2,m=100,mtarget=1),
-            #'m=2': partial(cls.getdefaultprofile,n=5,d=2,m=100,mtarget=2),
-            #'m=4': partial(cls.getdefaultprofile,n=5,d=2,m=100,mtarget=4),
-            'ANTISYM n=5': partial(cls.getdefaultprofile,n=5,d=2,m=200,mode='ANTISYM',batchsize=25),\
-            'ANTISYM relu n=5': partial(cls.getdefaultprofile,n=5,d=2,m=200,mode='ANTISYM',ac='relu',batchsize=25),\
-            'RAW n=5': partial(cls.getdefaultprofile,n=5,d=2,m=10*math.factorial(5),mode='RAW'),\
-            'RAW relu n=5': partial(cls.getdefaultprofile,n=5,d=2,m=10*math.factorial(5),mode='RAW',ac='relu'),\
-            'ANTISYM n=4': partial(cls.getdefaultprofile,n=4,d=2,m=500,mode='ANTISYM'),\
-            'ANTISYM relu n=4': partial(cls.getdefaultprofile,n=4,d=2,m=1000,mode='ANTISYM',ac='relu'),\
-            'RAW relu n=4': partial(cls.getdefaultprofile,n=4,d=2,m=1000*math.factorial(5),mode='RAW',ac='relu'),\
-            'RAW relu n=4 small': partial(cls.getdefaultprofile,n=4,d=2,m=10*math.factorial(5),mode='RAW',ac='relu'),\
-            'RAW n=4 small': partial(cls.getdefaultprofile,n=4,d=2,m=10*math.factorial(5),mode='RAW'),\
-            'RAW relu n=4 medium': partial(cls.getdefaultprofile,n=4,d=2,m=100*math.factorial(5),mode='RAW',ac='relu'),\
-            'ANTISYM n=3': partial(cls.getdefaultprofile,n=3,d=2,m=1000,mode='ANTISYM'),\
-            'RAW n=3': partial(cls.getdefaultprofile,n=3,d=2,m=1000*math.factorial(3),mode='RAW'),\
-            'ANTISYM relu n=3': partial(cls.getdefaultprofile,n=3,d=2,m=1000,mode='ANTISYM',ac='relu'),\
-            'RAW relu n=3': partial(cls.getdefaultprofile,n=3,d=2,m=1000*math.factorial(3),mode='RAW',ac='relu'),\
-        }
+        return P
 
     def plot(self,P):
         #fig,(ax0,ax1)=plt.subplots(2,1,figsize=(7,15))
@@ -103,14 +78,19 @@ class Run(runtemplate.Run_statictarget):
         epss=jnp.array(self.losses['eps'])
         eps=jnp.quantile(epss[-1000:],.5)
         ax1.plot(epss,'r',label='$\epsilon$')
-        ax1.plot(eps*jnp.ones_like(epss),'k:')
+        #ax1.plot(eps*jnp.ones_like(epss),'k:')
+        ax1.axhline(y=eps,ls='--',color='r')
         if eps<.1:
-            ax0.plot(Bnorm*jnp.ones_like(Bnorms),'k:',label='$\epsilon$-smooth Barron norm estimate')
+            #ax0.plot(Bnorm*jnp.ones_like(Bnorms),'k:',label='$\epsilon$-smooth Barron norm estimate')
+            ax0.axhline(y=Bnorm,ls='--',color='b',label='$\epsilon$-smooth Barron norm estimate')
         ax1.set_yscale('log')
         ax1.legend()
-        outpath=os.path.join('plots','Bnorm_{}_n={}_{}___{}.pdf'.format(P.mode,P.n,P.ac,cfg.sessionID))
+        outpath=os.path.join('plots','Bnorm_{}_n={}_{}___{}.pdf'.format(P.mode,P.n,P.ac,tracking.sessionID))
         sysutil.savefig(outpath)
         sysutil.showfile(outpath)
+
+
+### loss functions ###
 
 def get_barronweight(p,f):
     def loss(p,prodparams):
