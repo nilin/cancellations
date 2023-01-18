@@ -6,7 +6,7 @@ import re, os, importlib, sys
 
 
 
-class Run(_display_.Process):
+class Run(browse.Process):
 
     def execprocess(self):
 
@@ -24,7 +24,7 @@ class Run(_display_.Process):
         mname,classname=tracking.runprocess(browse.Browse(options=tasks,displayoption=lambda o : o[0]+'.'+o[1]))
         m = importlib.import_module(mname)
         cls = getattr(m,classname)
-        self.run=cls()
+        self.run=cls(profile=cls.getprofile(self))
         tracking.runprocess(self.run)
 
 

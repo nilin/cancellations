@@ -164,9 +164,9 @@ def log(*msgs,multiline=False,**kw):
     if cfg.display_on==False: print(msg)
     try:
         #breakpoint()
-        global currentlogdisplay
-        currentlogdisplay.draw()
-        getch()
+        #global maindash
+        #maindash.draw()
+        #getch()
         screen.refresh()
         #cfg.currentlogdisplay.draw()
         #cfg.getch()

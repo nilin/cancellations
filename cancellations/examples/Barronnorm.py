@@ -43,16 +43,17 @@ def getBarronfn(P):
 class Run(runtemplate.Fixed_XY):
     processname='Barron_norm'
 
-    def getprofile(self):
-        n=self.browse(options=[2,3,4,5,6],msg='Select n')
-        d=self.browse(options=[1,2,3],msg='Select d')
+    @classmethod
+    def getprofile(cls,parentprocess):
+        n=parentprocess.browse(options=[2,3,4,5,6],msg='Select n')
+        d=parentprocess.browse(options=[1,2,3],msg='Select d')
         samples_train=10**5
         minibatchsize=100
         target=examples.get_harmonic_oscillator2d(n,d)
         P=profile=super().getprofile(n,d,samples_train,minibatchsize,target)
-        P.m=self.browse(options=[2**k for k in range(6,12)],msg='Select Barron layer count')
+        P.m=parentprocess.browse(options=[2**k for k in range(6,12)],msg='Select Barron layer count')
         P.ac='softplus'
-        P.mode=self.browse(options=['ANTISYM','RAW'],msg='Select Barron norm type')
+        P.mode=parentprocess.browse(options=['ANTISYM','RAW'],msg='Select Barron norm type')
         Barron=getBarronfn(P)
         P.learner=Barron
         profile.lossgrads=[\

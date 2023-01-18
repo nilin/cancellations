@@ -84,11 +84,9 @@ class Run(_display_.Process):
             sysutil.showfile(self.profile.outpath_plot)
         return key
 
-    def subprocess(self,process):
-        out=tracking.runprocess(process)
+    def drawall(self):
         try: self.T.draw()
         except: pass
-        return out
 
     def browse(self,*a,**kw):
         return self.subprocess(Browse(*a,**kw))
@@ -207,8 +205,8 @@ class Run(_display_.Process):
             '\n[d] to enter pdb'+\
             '\n[q] to quit.'
 
-        self.T,self.learningdisplay=self.dashboard.vsplit(rlimits=[.8])
-        self.L,self.R=self.T.hsplit()
+        self.T,self.learningdisplay=self.dashboard.vsplit(rlimits=[.7])
+        self.L,self.R=self.T.hsplit(rlimits=[.4])
 
         self.L.add(0,0,_display_._TextDisplay_(instructions))
         self.L.add(0,20,_display_._LogDisplay_(self.L.width,25,balign=False))

@@ -166,6 +166,12 @@ class Browse(_display_.Process):
         P.update(**kw)
         return P
 
+
+class Process(_display_.Process):
+
+    def browse(self,*a,**kw):
+        return self.subprocess(Browse(*a,**kw))
+
 # for path browsing
 #
 #

@@ -9,11 +9,6 @@ import math
 
 class Process(tracking.Process):
 
-    def execprocess(self):
-        ld=_LogDisplay_(self.dashboard.width,20,balign=False)
-        self.dashboard.add(0,0,ld)
-        self.dashboard.arm()
-        tracking.currentlogdisplay=self.dashboard
 
     def run_in_display(self,dashboard):
         tracking.loadprocess(self)
@@ -43,7 +38,6 @@ class Process(tracking.Process):
             screen.nodelay(True)
             cs.use_default_colors()
             tracking.session.dashboard=_Dashboard_(cs.COLS,cs.LINES)
-
             output=self.run_in_display(tracking.session.dashboard)
 
             globals()['screen']=None
@@ -63,14 +57,21 @@ class Process(tracking.Process):
         self.stopwatch=tracking.Stopwatch()
         self.continueprocess()
 
-    def run_dummyprocess(self,function,msg=None):
-        class Temp(Process):
-            def execprocess(self):
-                super().execprocess()
-                if msg is not None: tracking.log(msg)
-                return function()
-        temp=Temp(Temp.getdefaultprofile())
-        return self.run_subprocess(temp)
+    def subprocess(self,process):
+        out=tracking.runprocess(process)
+        try: self.drawall()
+        except: pass
+        return out
+
+#    def run_dummyprocess(self,function,msg=None):
+#        class Temp(Process):
+#            def execprocess(self):
+#                super().execprocess()
+#                if msg is not None: tracking.log(msg)
+#                return function()
+#        temp=Temp(Temp.getdefaultprofile())
+#        return self.run_subprocess(temp)
+
 
 
 def clearcurrentdash():
