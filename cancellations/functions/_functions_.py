@@ -220,8 +220,14 @@ class Barron(Nonsym):
     antisymtype='ASBarron'
     @staticmethod
     def _initweights_(m,n,d,**kw):
-        W=numutil.initweights((m,n,d))*100
-        b=rnd.normal(tracking.nextkey(),(m,))*cfg.biasinitsize
+        step=2*jnp.log(100)/m
+        start=-jnp.log(100)
+        inhomogeneous_scaling=jnp.exp(jnp.arange(m)*step+start)
+        tracking.log(jnp.min(inhomogeneous_scaling),jnp.max(inhomogeneous_scaling))
+        W=numutil.initweights((m,n,d))*inhomogeneous_scaling[:,None,None]
+        b=rnd.normal(tracking.nextkey(),(m,))*.1*inhomogeneous_scaling
+        tracking.log(W.shape)
+        tracking.log(b.shape)
         a=numutil.initweights((1,m))
         return [(W,b),a]
 

@@ -12,6 +12,8 @@ class Run(browse.Process):
 
         tasks=[\
             ('cancellations.examples.Barronnorm','Run'),\
+            ('cancellations.examples.Barronnorm','Runthrough'),\
+            ('cancellations.examples.Barronnorm','Plot'),\
             ('cancellations.examples.SI','Run'),\
             ('cancellations.examples.SI','Plot'),\
             ('cancellations.examples.comparenorms','Genfns'),\

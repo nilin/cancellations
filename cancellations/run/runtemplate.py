@@ -72,7 +72,7 @@ class Run(_display_.Process):
                 print()
                 run.act_on_input(input())
 
-        return run.finish(P)
+        return run.finish()
 
     def act_on_input(self,key):
         if key=='q': quit()
@@ -92,13 +92,8 @@ class Run(_display_.Process):
         return self.subprocess(Browse(*a,**kw))
 
     def plot(self,P,currentrun=True,parsefigname=lambda a:'{} loss'.format(a),parselinename=lambda a:'{} profile'.format(a)):
-        plotoptions=self.subprocess(Browse(options=self.lossnames,onlyone=False,msg='Select statistics to be plotted'))
-        nplots=len(plotoptions)
-        fig,axs=plt.subplots(nplots,1,figsize=(8,5*nplots))
-        if nplots==1: axs=[axs]
 
         if currentrun:
-            losses_=[self.losses]
             profiles=[P.name]
         else:
             paths,pathstrings,allprofiles=[],[],[]
@@ -114,29 +109,46 @@ class Run(_display_.Process):
                 allprofiles.append(pname)
 
             runs=self.subprocess(Browse(options=list(zip(paths,allprofiles)),onlyone=False,optionstrings=pathstrings,msg='Select runs'))
-            runs,profiles=zip(*runs)
-            losses_=[sysutil.load(os.path.join(path,'losses')) for path in runs]
+            runs,profiles=tuple(zip(*runs))
 
-        fig.suptitle(' vs '.join([parselinename(p) for p in profiles]))
+        if len(profiles)>1:
+            lossname=self.subprocess(Browse(options=self.lossnames,onlyone=True,msg='Select statistic(s) to be plotted'))
+            stats=[sysutil.load(os.path.join(path,'losses'))[lossname] for path in runs]
+            statnames=profiles
+            figtitle=lossname
+        else:
+            lossnames=self.subprocess(Browse(options=self.losses.keys(),onlyone=False,msg='Select statistic(s) to be plotted'))
+            stats=[self.losses[ln] for ln in lossnames]
+            statnames=lossnames
+            (figtitle,)=profiles
+            #figtitle=' vs '.join([parselinename(p) for p in profiles])
 
         colors=['b','r','b--','r--']
-        colors_=[self.subprocess(Browse(options=colors,msg='pick color for {}'.format(I))) for I in profiles]
+        colors_=[self.subprocess(Browse(options=colors,msg='pick color for {}'.format(I))) for I in statnames]
         smoothing=self.subprocess(Browse(options=[1,10,100],msg='pick smoothing'))
-        T0=max([len(l[po]) for l in losses_ for po in plotoptions])
-        T1=min([len(l[po]) for l in losses_ for po in plotoptions])
+        T0=min([len(stat) for stat in stats])
+        T1=max([len(stat) for stat in stats])
         T=self.subprocess(Browse(msg='pick duration',options=\
-            sorted([T0,T1]+[a*x for x in [1000,10000,100000] for a in range(2,20) if a*x<T1])))
+            list(reversed(sorted([T0,T1]+[a*x for x in [1000,10000,100000] for a in range(2,20) if a*x<T1])))))
 
-        for ax,po in zip(axs,plotoptions):
-            ax.set_title(parsefigname(po))
-            ax.set_yscale('log')
-            ax.grid(True,which='major',axis='y')
-            for i,(I_f,c) in enumerate(zip(profiles,colors_)):
-                smoother=numutil.RunningAvg(k=smoothing)
-                ax.plot([smoother.update(l) for l in losses_[i][po][:T]],c,label=parselinename(I_f))
-                ax.legend()
+#        nplots=len(stats)
+#        fig,axs=plt.subplots(nplots,1,figsize=(8,5*nplots))
+#        if nplots==1: axs=[axs]
+#        for ax,po in zip(axs,stats):
+#            ax.set_title(parsefigname(po))
+#            ax.set_yscale('log')
+#            ax.grid(True,which='major',axis='y')
 
-        outpath=os.path.join('plots','training_comp_{}.pdf'.format(tracking.nowstr()))
+        fig,ax=plt.subplots(1,1,figsize=(8,5))
+        fig.suptitle(figtitle)
+        ax.set_yscale('log')
+        ax.grid(True,which='major',axis='y')
+        for i,(statname,stat,c) in enumerate(zip(statnames,stats,colors_)):
+            smoother=numutil.RunningAvg(k=smoothing)
+            ax.plot([smoother.update(l) for l in stat[:T]],c,label=statname)
+            ax.legend()
+
+        outpath=os.path.join('plots','{}_{}.pdf'.format(figtitle,tracking.nowstr()))
         sysutil.savefig(outpath,fig=fig)
         sysutil.showfile(outpath)
 
@@ -190,8 +202,7 @@ class Run(_display_.Process):
     def prep(P):
         pass
 
-    @staticmethod
-    def finish(P):
+    def finish(self):
         pass
 
     def prepdisplay(self):

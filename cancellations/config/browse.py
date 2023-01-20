@@ -28,8 +28,12 @@ class Browse(_display_.Process):
     def browse_in_display(self):
         profile,display=self.profile,self.dashboard
         P=profile
-        options=profile.options
-        optionstrings=[P.displayoption(o) for o in options] if P.optionstrings is None else P.optionstrings
+
+        if 'vetodict' in P and 'vetokey' in P and P.vetokey in P.vetodict:
+            return P.vetodict[P.vetokey]
+
+        options=list(profile.options)
+        optionstrings=[P.displayoption(o) for o in options] if P.optionstrings is None else list(P.optionstrings)
 
         if len(profile.options)==0: return None
 

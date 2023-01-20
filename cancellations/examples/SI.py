@@ -27,7 +27,7 @@ from cancellations.config.tracking import Profile, log
 
 
 class Run(runtemplate.Fixed_XY):
-    lossnames=['SI','norm','custom','second_derivative']
+    lossnames=['SI','norm','custom','second_derivative','L2']
     
     @classmethod
     def getprofile(cls,parentprocess):
@@ -35,12 +35,17 @@ class Run(runtemplate.Fixed_XY):
 
         n,d,samples_train,minibatchsize=4,2,10**5,100
         target=examples.get_harmonic_oscillator2d(n,d)
-        P=super().getprofile(n,d,samples_train,minibatchsize,target)
+        learner=cls.getlearner_example(n,d)
+
+        symmode=parentprocess.browse(options=['antisym','nonsym'])
+        if symmode=='nonsym':
+            target,_=_functions_.switchtype(target)
+            learner,_=_functions_.switchtype(learner)
+
+        P=super().getprofile(n,d,samples_train,minibatchsize,target).butwith(learner=learner)
         P.Y=P.Y/losses.norm(P.Y[:1000],P.rho[:1000])
         cls.initsampler(P)
 
-        log('generating learner and lossgrad')
-        P.learner=cls.getlearner_example(n,d)
         g=P.learner._eval_
 
         log(losses.norm(P.Y,P.rho))
@@ -48,7 +53,7 @@ class Run(runtemplate.Fixed_XY):
         log(losses.norm(P.learner.eval(P.X),P.rho))
 
         match mode:
-            case 'non-SI':
+            case 'L2':
                 lossgrad=losses.get_lossgrad_NONSI(g)
             case 'SI':
                 lossgrad=losses.get_lossgrad_SI(g)
@@ -59,30 +64,21 @@ class Run(runtemplate.Fixed_XY):
             case 'SI_4':
                 lossgrad=SI(g,timescale=10,normpow=0,olpow=0).lossgrad
 
+        T=lambda x:jnp.log(x)**2
+        #T=lambda x:jnp.exp(jax.nn.relu(jnp.abs(jnp.log(x))-7.0)),\
+        #T=lambda x:abs(x)**(1/7),\
+
+        P.lossweights=[1.0,1.0]
         P.lossgrads=[\
-            #get_threshold_lg(losses.get_lossgrad_SI(Barron._eval_),.001),\
-            #get_barronweight(1.0,Barron._eval_),\
-            #losses.get_lossgrad_NONSI(g),\
             lossgrad,\
+            losses.transform_grad(lambda params,X,Y,rho: losses.norm(g(params,X),rho),T=T,fromrawloss=True),\
             losses.get_lossgrad_SI(g),\
-            losses.transform_grad(\
-                lambda params,X,Y,rho: losses.norm(g(params,X),rho),\
-                #T=lambda x:jnp.exp(jax.nn.relu(jnp.abs(jnp.log(x))-7.0)),\
-                T=lambda x:jnp.log(x)**2,\
-                #T=lambda x:abs(x)**(1/7),\
-                fromrawloss=True)
-            #losses.get_lossgrad_SI(P.learner._eval_)
+            losses.get_lossgrad_NONSI(g),\
+            Hloss(g).lossgrad\
         ]
-        P.lossnames=['custom','SI','norm']
+        P.lossnames=[mode,'norm','SI','L2','second_derivative']
 
-        #
-
-        P.lossnames.append('second_derivative')
-        P.lossgrads.append(Hloss(g).lossgrad)
-
-        #
-
-        P.lossweights=[1.0,0.0,1.0,0.0]
+        P.info['mode']=mode
         P.info['learner']=P.learner.getinfo()
         P.name=mode
         return P
@@ -109,7 +105,7 @@ class Run(runtemplate.Fixed_XY):
         
 class Plot(Run):
     def execprocess(self):
-        super().plot(None,False)
+        super().plot(None,currentrun=False)
     @staticmethod
     def getprofile(*a,**kw): return tracking.Profile()
     

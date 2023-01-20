@@ -4,6 +4,7 @@ from cancellations.functions import _functions_
 from cancellations.utilities import numutil as mathutil
 from cancellations.config import tracking
 from cancellations.config.tracking import dotdict
+import numpy as np
 
 
 
@@ -125,8 +126,11 @@ for d in [1,2,3]:
 #----------------------------------------------------------------------------------------------------
 
 
-def get_harmonic_oscillator2d(n,d):
-    I=list(range(1,n+1))
+def get_harmonic_oscillator2d(n,d,upshift=0,imax=None):
+    if imax is not None:
+        assert(imax>=n)
+        upshift=imax-n
+    I=list(np.arange(1,n+1)+upshift)
     return _functions_.Slater(*['psi{}_{}d'.format(i,d) for i in I])
 
 
