@@ -193,9 +193,9 @@ def unloadprocess(process=None):
         process=processes.pop()
     return process
 
-def runprocess(process):
+def runprocess(process,*a,**kw):
     loadprocess(process)
-    out=process.execprocess()
+    out=process.execprocess(*a,**kw)
     unloadprocess(process)
     return out
 

@@ -46,7 +46,8 @@ class Run(runtemplate.Fixed_XY):
     processname='Barron_norm'
 
     @classmethod
-    def getprofile(cls,parentprocess,**kw):
+    def getprofile(cls,parentprocess,Barron=None,**kw):
+
 
         n=parentprocess.browse(options=[1,2,3,4,5,6],msg='Select n')\
             if 'n' not in kw else kw['n']
@@ -75,7 +76,8 @@ class Run(runtemplate.Fixed_XY):
         # temporary test
 
         P.ac='softplus'
-        Barron=getBarronfn(P)
+        if Barron is None:
+            Barron=getBarronfn(P)
         P.learner=Barron
         profile.lossgrads=[\
             get_threshold_lg(losses.get_lossgrad_SI(Barron._eval_),1/10.0**4),\
@@ -91,6 +93,8 @@ class Run(runtemplate.Fixed_XY):
         super().repeat(i)
         if i%1000==0:
             self.saveBnorm()
+        if i%100==0:
+            sysutil.save(self.profile.learner.compress(),os.path.join('outputs',tracking.sessionID,'learner'))
 
     def saveBnorm(self):
         Bnorms=jnp.array(self.losses['Barron norm estimate'])
@@ -105,7 +109,7 @@ class Run(runtemplate.Fixed_XY):
 
     def finish(self):
         self.saveBnorm()
-        self.plot(self.profile)
+        #self.plot(self.profile)
 
     def plot(self,P):
         self.saveBnorm()
@@ -152,7 +156,7 @@ class Plot(Run):
 
         minstats={key:min(Bs) for key,Bs in stats.items()}
 
-        for mode_,c in zip(['ANTISYM','RAW'],['b','r']):
+        for mode_,c in zip(['RAW','ANTISYM'],['r','b']):
             stats_={int(n):B for (mode,n),B in minstats.items() if mode==mode_}
             plt.scatter(list(stats_.keys()),list(stats_.values()),color=c)
             plt.yscale('log')
@@ -200,17 +204,19 @@ def get_threshold_lg(lg,delta,**kw):
 class Runthrough(_display_.Process):
     def execprocess(self):
         P=self.profile
-        for n in range(1,P.nmax+1):
-            for mode in ['ANTISYM','RAW']:
-                try:
-                    P=Run.getprofile(self,n=n,d=P.d,m=1024,mode=mode,imax=P.nmax).butwith(iterations=10**4)
-                    self.subprocess(Run(profile=P))
-                except Exception as e:
-                    tracking.log(str(e))
+        imax=max(P.ns)
+        for n in P.ns:
+            P=Run.getprofile(self,n=n,d=P.d,m=1024,mode='RAW',imax=imax).butwith(iterations=10**4)
+            self.subprocess(Run(profile=P))
+
+            newBarron,_=_functions_.switchtype(P.learner)
+
+            P=Run.getprofile(self,n=n,d=P.d,m=1024,mode='ANTISYM',imax=imax,Barron=newBarron).butwith(iterations=10**4)
+            self.subprocess(Run(profile=P))
 
     @classmethod
     def getprofile(cls,parentprocess):
         P=tracking.Profile()
         P.d=parentprocess.browse(options=[1,2,3],msg='Pick d')
-        P.nmax=parentprocess.browse(options=[4,5,6],msg='Pick nmax')
+        P.ns=parentprocess.browse(options=[1,2,3,4,5,6],onlyone=False,msg='Pick ns')
         return P

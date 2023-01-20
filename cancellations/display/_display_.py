@@ -57,8 +57,8 @@ class Process(tracking.Process):
         self.stopwatch=tracking.Stopwatch()
         self.continueprocess()
 
-    def subprocess(self,process):
-        out=tracking.runprocess(process)
+    def subprocess(self,process,*a,**kw):
+        out=tracking.runprocess(process,*a,**kw)
         try: self.drawall()
         except: pass
         return out

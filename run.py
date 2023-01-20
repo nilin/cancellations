@@ -16,9 +16,9 @@ class Run(browse.Process):
             ('cancellations.examples.Barronnorm','Plot'),\
             ('cancellations.examples.SI','Run'),\
             ('cancellations.examples.SI','Plot'),\
-            ('cancellations.examples.comparenorms','Genfns'),\
-            ('cancellations.examples.comparenorms','Compare'),\
-            ('cancellations.examples.game','Run'),\
+            #('cancellations.examples.comparenorms','Genfns'),\
+            #('cancellations.examples.comparenorms','Compare'),\
+            #('cancellations.examples.game','Run'),\
             #'cancellations/run/unsupervised.py',\
             #'cancellations/plotting/plotmultiple.py'\
             ]

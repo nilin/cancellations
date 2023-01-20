@@ -98,7 +98,6 @@ def gen_singlelayer_Af(n,d,activation,compatibilitymode=False):
     Ps,signs=ps.allpermtuples(n)                    # Ps:    n!,n,n
     I=jnp.repeat(jnp.expand_dims(jnp.arange(n),axis=0),len(signs),axis=0)
     scale=1/jnp.sqrt(len(signs))
-    #scale=1
 
     @jax.jit
     def Af_singleneuron(w,b,X):     # w: n,d

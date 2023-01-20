@@ -228,7 +228,7 @@ class Barron(Nonsym):
         b=rnd.normal(tracking.nextkey(),(m,))*.1*inhomogeneous_scaling
         tracking.log(W.shape)
         tracking.log(b.shape)
-        a=numutil.initweights((1,m))
+        a=numutil.initweights((1,m))/inhomogeneous_scaling
         return [(W,b),a]
 
     def compile(self):
