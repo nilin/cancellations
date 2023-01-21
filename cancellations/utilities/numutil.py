@@ -125,10 +125,8 @@ def prod(L):
         out*=array
     return out
 
-
 def swap(x,y):
     return (y,x)
-
 
 def gen_nd_gaussian_density(var):
     def density(X):
@@ -138,6 +136,12 @@ def gen_nd_gaussian_density(var):
         return normalization*jnp.exp(-jnp.sum(X**2,axis=(-2,-1))/(2*var))
     return density
 
+def gen_nd_uniform_density():
+    def density(X):
+        samples,n,d=X.shape
+        V=2**(n*d)
+        return jnp.ones((samples,))/V
+    return density
 
 
 @jax.jit

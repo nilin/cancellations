@@ -60,15 +60,15 @@ class Run(_display_.Process):
                 updates,state=opt.update(grad,state,P.learner.weights)
                 P.learner.weights=optax.apply_updates(P.learner.weights,updates)
 
-                run.repeat(i)
+                if run.repeat(i)=='break': break
 
                 if stopwatch1.tick_after(.05):
                     if cfg.display_on: run.learningdisplay.draw()
-                    if run.act_on_input(tracking.getch(run.getinstructions))=='b': break
+                    if run.act_on_input(tracking.getch(lambda :run.instructions))=='b': break
 
             except KeyboardInterrupt:
                 print()
-                print(run.getinstructions())
+                print(run.instructions)
                 print()
                 run.act_on_input(input())
 
@@ -206,20 +206,20 @@ class Run(_display_.Process):
         pass
 
     def prepdisplay(self):
-        if not cfg.display_on:
-            return
-
-        instructions='Press:'+\
+        self.instructions='Press:'+\
             '\n[p] to generate plots.'+\
             '\n[o] to open output folder.'+\
             '\n[b] to break from current task.'+\
             '\n[d] to enter pdb'+\
             '\n[q] to quit.'
 
+        if not cfg.display_on:
+            return
+
         self.T,self.learningdisplay=self.dashboard.vsplit(rlimits=[.7])
         self.L,self.R=self.T.hsplit(rlimits=[.4])
 
-        self.L.add(0,0,_display_._TextDisplay_(instructions))
+        self.L.add(0,0,_display_._TextDisplay_(self.instructions))
         self.L.add(0,20,_display_._LogDisplay_(self.L.width,25,balign=False))
         self.L.vstack()
 
@@ -277,14 +277,17 @@ class Fixed_X(Run):
     @classmethod
     def getprofile(cls,n,d,samples_train,minibatchsize):
         P=cls.defaultbaseprofile()
-        cls.prep_X(P,n,d,samples_train,minibatchsize)
+        cls.prep_X(P,n,d,samples_train)
         return P.butwith(n=n,d=d,samples_train=samples_train,minibatchsize=minibatchsize)
 
     @staticmethod
-    def prep_X(P,n,d,samples_train,minibatchsize):
-        P._var_X_distr_=1
-        P._genX_=lambda key,samples,n,d:rnd.normal(key,(samples,n,d))*jnp.sqrt(P._var_X_distr_)
-        P.X_density=numutil.gen_nd_gaussian_density(var=P._var_X_distr_)
+    def prep_X(P,n,d,samples_train):
+        #P._var_X_distr_=4
+        #P._genX_=lambda key,samples,n,d:rnd.normal(key,(samples,n,d))*jnp.sqrt(P._var_X_distr_)
+        #P.X_density=numutil.gen_nd_gaussian_density(var=P._var_X_distr_)
+        P._genX_=lambda key,samples,n,d:rnd.uniform(key,(samples,n,d),minval=-1,maxval=1)
+        P.X_density=numutil.gen_nd_uniform_density()
+
         P.X=P._genX_(rnd.PRNGKey(0),samples_train,n,d)
         P.rho=P.X_density(P.X)
         

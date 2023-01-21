@@ -29,9 +29,6 @@ class Browse(_display_.Process):
         profile,display=self.profile,self.dashboard
         P=profile
 
-        if 'vetodict' in P and 'vetokey' in P and P.vetokey in P.vetodict:
-            return P.vetodict[P.vetokey]
-
         options=list(profile.options)
         optionstrings=[P.displayoption(o) for o in options] if P.optionstrings is None else list(P.optionstrings)
 

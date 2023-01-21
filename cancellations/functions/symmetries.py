@@ -107,9 +107,9 @@ def gen_singlelayer_Af(n,d,activation,compatibilitymode=False):
 
     @jax.jit
     def Af(params,X):     # w: n,d
-        (W,b),A=params
+        (W,b),a=params
         AS_neuronoutputs=jax.vmap(Af_singleneuron,in_axes=(0,0,None),out_axes=-1)(W,b,X)
-        return jnp.squeeze(jnp.inner(AS_neuronoutputs,A)*scale)
+        return jnp.squeeze(jnp.dot(AS_neuronoutputs,a)*scale)
 
     return Af
 

@@ -55,7 +55,8 @@ class Process(tracking.Process):
         dummydisplay=_Dashboard_(100,50)
         self.dashboard=dummydisplay
         self.stopwatch=tracking.Stopwatch()
-        self.continueprocess()
+        #self.continueprocess()
+        self.execprocess()
 
     def subprocess(self,process,*a,**kw):
         out=tracking.runprocess(process,*a,**kw)

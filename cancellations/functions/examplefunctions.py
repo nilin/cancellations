@@ -4,7 +4,8 @@ from cancellations.functions import _functions_
 from cancellations.utilities import numutil as mathutil
 from cancellations.config import tracking
 from cancellations.config.tracking import dotdict
-import numpy as np
+import numpy as np, math
+from jax.lax import complex
 
 
 
@@ -122,8 +123,6 @@ for d in [1,2,3]:
 
 
 #----------------------------------------------------------------------------------------------------
-# test
-#----------------------------------------------------------------------------------------------------
 
 
 def get_harmonic_oscillator2d(n,d,upshift=0,imax=None):
@@ -132,7 +131,6 @@ def get_harmonic_oscillator2d(n,d,upshift=0,imax=None):
         upshift=imax-n
     I=list(np.arange(1,n+1)+upshift)
     return _functions_.Slater(*['psi{}_{}d'.format(i,d) for i in I])
-
 
 def getlearner_example_profile(n,d):
     learnerparams=tracking.dotdict(\
@@ -151,12 +149,48 @@ def getlearner_example(n,d,profile=None):
         _functions_.Sum()\
         ))
 
-def test():
-    for p in H_coefficients_list: print(p)
+
+#----------------------------------------------------------------------------------------------------
+
+class ExpSlater(_functions_.FunctionDescription):
+
+    @staticmethod
+    def _initweights_(m,n,d,**kw):
+        return _functions_.Barron._initweights_(m,n,d,**kw)
+
+    def compile(self):
+        def f(weights,X):
+            (Ws,bs),a=weights
+            Ms=jnp.exp(complex(0.0,1.0)*(jnp.swapaxes(jnp.inner(X,Ws),1,2)+bs[None,:,None,None]))
+            out=jnp.dot(jnp.real(jnp.linalg.det(Ms)),jnp.squeeze(a))
+
+            n,d=X.shape[-2:]
+            return out/jnp.sqrt(math.factorial(n))
+        return f
 
     
 
+class QuadrantSlater(_functions_.FunctionDescription):
+    def compile(self):
+        if self.d==1:
+            signs=[[1],[-1]]
+        if self.d==2:
+            signs=[[1,1],[1,-1],[-1,1],[-1,-1]]
+        if self.d==3:
+            signs=[[1,1,1],[1,1,-1],[1,-1,1],[1,-1,-1],\
+                  [-1,1,1],[-1,1,-1],[-1,-1,1],[-1,-1,-1]]
+        signs=jnp.array(signs)
+        def f(t,X):
+            Ms=jax.nn.sigmoid(t*jnp.inner(X,signs[:self.n,:]))
+            out=jnp.linalg.det(Ms)
 
+            n,d=X.shape[-2:]
+            return out/jnp.sqrt(math.factorial(n))
+        return f
+
+    @staticmethod
+    def _initweights_(**kw):
+        return 1.0
 
 
 

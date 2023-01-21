@@ -220,24 +220,24 @@ class Barron(Nonsym):
     antisymtype='ASBarron'
     @staticmethod
     def _initweights_(m,n,d,**kw):
-        step=2*jnp.log(100)/m
-        start=-jnp.log(100)
-        inhomogeneous_scaling=jnp.exp(jnp.arange(m)*step+start)
+        step=jnp.log(100)/m
+        inhomogeneous_scaling=jnp.exp(jnp.arange(m)*step)
         tracking.log(jnp.min(inhomogeneous_scaling),jnp.max(inhomogeneous_scaling))
         W=numutil.initweights((m,n,d))*inhomogeneous_scaling[:,None,None]
         b=rnd.normal(tracking.nextkey(),(m,))*.1*inhomogeneous_scaling
         tracking.log(W.shape)
         tracking.log(b.shape)
-        a=numutil.initweights((1,m))/inhomogeneous_scaling
+        #a=numutil.initweights((1,m))/inhomogeneous_scaling
+        a=numutil.initweights((m,))/inhomogeneous_scaling
         return [(W,b),a]
 
     def compile(self):
         ac=numutil.activations[self.ac]
         @jax.jit
         def f(params,X):     # w: n,d
-            (W,b),A=params
+            (W,b),a=params
             neuronoutputs=ac(jnp.tensordot(X,W,axes=([-2,-1],[-2,-1]))+b[None,:])
-            return jnp.squeeze(jnp.inner(neuronoutputs,A))
+            return jnp.squeeze(jnp.dot(neuronoutputs,a))
         return jax.jit(f)
 
 class Prods(Nonsym):

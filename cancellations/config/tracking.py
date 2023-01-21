@@ -136,7 +136,6 @@ class Process(Memory):
             self.profile=self.getprofile(*a,**kw)
 
         self.keychain=Keychain()
-        self.continueprocess=self.execprocess
         self.weapons=dict()
 
     def nextkey(self):

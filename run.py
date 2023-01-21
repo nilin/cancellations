@@ -14,6 +14,10 @@ class Run(browse.Process):
             ('cancellations.examples.Barronnorm','Run'),\
             ('cancellations.examples.Barronnorm','Runthrough'),\
             ('cancellations.examples.Barronnorm','Plot'),\
+            ('',''),\
+            ('cancellations.examples.expslater','Run'),\
+            ('cancellations.examples.expslater','Runthrough'),\
+            ('',''),\
             ('cancellations.examples.SI','Run'),\
             ('cancellations.examples.SI','Plot'),\
             #('cancellations.examples.comparenorms','Genfns'),\

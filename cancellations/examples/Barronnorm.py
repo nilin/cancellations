@@ -16,6 +16,8 @@ from cancellations.display import _display_
 from cancellations.functions import _functions_, examplefunctions as examples
 from cancellations.functions._functions_ import Product
 
+from cancellations.utilities.permutations import allpermtuples
+from cancellations.config.browse import Browse
 import math
 from cancellations.config import config as cfg
 from cancellations.run import runtemplate
@@ -32,39 +34,29 @@ import os
 ####################################################################################################
 
 
-def getBarronfn(P):
-    match P.mode:
-        case 'ANTISYM':
-            return Product(_functions_.IsoGaussian(1.0),\
-                _functions_.ASBarron(n=P.n,d=P.d,m=P.m,ac=P.ac))
-        case 'RAW':
-            return Product(_functions_.IsoGaussian(1.0),\
-                _functions_.Barron(n=P.n,d=P.d,m=P.m,ac=P.ac))
-
 
 class Run(runtemplate.Fixed_XY):
     processname='Barron_norm'
+    Ansatzoptions=('ANTISYM','RAW')
 
     @classmethod
-    def getprofile(cls,parentprocess,Barron=None,**kw):
+    def getprofile(cls,parentprocess,Ansatz=None,delta=1/10.0**4,**kw):
 
+        tracking.log('32 or 64: {}'.format(jnp.array([1.0]).dtype))
 
         n=parentprocess.browse(options=[1,2,3,4,5,6],msg='Select n')\
             if 'n' not in kw else kw['n']
         d=parentprocess.browse(options=[1,2,3],msg='Select d')\
             if 'd' not in kw else kw['d']
-        m=parentprocess.browse(options=[2**k for k in range(6,12)],msg='Select Barron layer count')\
+        m=parentprocess.browse(options=[2**k for k in range(6,12)],msg='Select Ansatz layer count')\
             if 'm' not in kw else kw['m']
-        mode=parentprocess.browse(options=['ANTISYM','RAW'],msg='Select Barron norm type')\
+        mode=parentprocess.browse(options=cls.Ansatzoptions,msg='Select Ansatz norm type')\
             if 'mode' not in kw else kw['mode']
 
         samples_train=10**5
         minibatchsize=100
 
-        if 'imax' in kw:
-            target=examples.get_harmonic_oscillator2d(n,d,imax=kw['imax'])
-        else:
-            target=examples.get_harmonic_oscillator2d(n,d)
+        target=cls.gettarget(n,d)
 
         P=profile=super().getprofile(n,d,samples_train,minibatchsize,target).butwith(m=m,mode=mode)
         P.Y=P.Y/losses.norm(P.Y[:1000],P.rho[:1000])
@@ -76,18 +68,26 @@ class Run(runtemplate.Fixed_XY):
         # temporary test
 
         P.ac='softplus'
-        if Barron is None:
-            Barron=getBarronfn(P)
-        P.learner=Barron
+        if Ansatz is None:
+            Ansatz=cls.get_Ansatz(P)
+        P.learner=Ansatz
         profile.lossgrads=[\
-            get_threshold_lg(losses.get_lossgrad_SI(Barron._eval_),1/10.0**4),\
-            get_barronweight(1.0,Barron._eval_),\
+            cls.get_threshold_lg(losses.get_lossgrad_SI(Ansatz._eval_),delta),\
+            cls.get_learnerweightnorm(1.0,Ansatz._eval_),\
         ]
         P.lossnames=['eps','Barron norm estimate']
         P.lossweights=[100.0,0.01]
         P.name='{} n={} d={}'.format(P.mode,n,d)
-        P.info={'target':target.getinfo(),'Barron':Barron.getinfo()}
+        P.info={'target':target.getinfo(),'Barron':Ansatz.getinfo()}
         return P
+
+    @staticmethod
+    def gettarget(n,d):
+        return examples.QuadrantSlater(n=n,d=d)
+        #if 'imax' in kw:
+        #    return examples.get_harmonic_oscillator2d(n,d,imax=kw['imax'])
+        #else:
+        #    return examples.get_harmonic_oscillator2d(n,d)
 
     def repeat(self,i):
         super().repeat(i)
@@ -131,6 +131,40 @@ class Run(runtemplate.Fixed_XY):
         sysutil.savefig(outpath)
         sysutil.showfile(outpath)
 
+    @staticmethod
+    def get_Ansatz(P):
+        match P.mode:
+            case 'ANTISYM':
+                #return Product(_functions_.IsoGaussian(1.0),_functions_.ASBarron(n=P.n,d=P.d,m=P.m,ac=P.ac))
+                return _functions_.ASBarron(n=P.n,d=P.d,m=P.m,ac=P.ac)
+            case 'RAW':
+                #return Product(_functions_.IsoGaussian(1.0),_functions_.Barron(n=P.n,d=P.d,m=P.m,ac=P.ac))
+                return _functions_.Barron(n=P.n,d=P.d,m=P.m,ac=P.ac)
+
+    @staticmethod
+    def get_learnerweightnorm(p,f):
+        def loss(p,prodparams):
+            #_,params=prodparams
+            params=prodparams
+            (W,b),a=params
+            w1=jnp.squeeze(abs(a))
+            w2=jnp.sum(jnp.abs(W),axis=(-2,-1))+jnp.abs(b)
+            assert(w1.shape==w2.shape)
+            if p==float('inf'):
+                return jnp.max(w1*w2)
+            else:
+                return jnp.sum((w1*w2)**p)**(1/p)
+        lossfn=lambda params,X,Y,rho: loss(p,params)/losses.norm(f(params,X),rho)
+        return jax.jit(jax.value_and_grad(lossfn))
+
+    @staticmethod
+    def get_threshold_lg(lg,delta,**kw):
+        delta10ths=delta/10.0
+        def _eval_(params,*X):
+            val,grad=lg(params,*X)
+            weight=jax.nn.sigmoid(val/delta10ths-10.0)
+            return val,tree_map(lambda A:weight*A,grad)
+        return jax.jit(_eval_)
 
 ### plots ###
 
@@ -143,7 +177,7 @@ class Plot(Run):
         Barrons=[float(re.findall('Barron=([^\s]*)',l)[0]) for l in lines]
         epss=[float(re.findall('eps=([^\s]*)',l)[0]) for l in lines]
 
-        delta=self.browse(options=[1/10,1/100,1/1000,1/10000],msg='Pick threshold')
+        delta=self.browse(options=[.5,1/10,1/100,1/1000,1/10000],msg='Pick threshold')
         d_=self.browse(options=[1,2,3],msg='Pick dimension d to plot')
 
         stats=dict()
@@ -159,6 +193,7 @@ class Plot(Run):
         for mode_,c in zip(['RAW','ANTISYM'],['r','b']):
             stats_={int(n):B for (mode,n),B in minstats.items() if mode==mode_}
             plt.scatter(list(stats_.keys()),list(stats_.values()),color=c)
+            plt.plot(list(stats_.keys()),list(stats_.values()),color=c)
             plt.yscale('log')
 
         outpath='plots/Barronplot.pdf'
@@ -170,53 +205,51 @@ class Plot(Run):
 
 ### plots ###
 
-### loss functions ###
-
-def get_barronweight(p,f):
-    def loss(p,prodparams):
-        _,params=prodparams
-        (W,b),a=params
-        w1=jnp.squeeze(abs(a))
-        w2=jnp.sum(jnp.abs(W),axis=(-2,-1))+jnp.abs(b)
-        assert(w1.shape==w2.shape)
-        if p==float('inf'):
-            return jnp.max(w1*w2)
-        else:
-            return jnp.sum((w1*w2)**p)**(1/p)
-    lossfn=lambda params,X,Y,rho: loss(p,params)/losses.norm(f(params,X),rho)
-    return jax.jit(jax.value_and_grad(lossfn))
-
-#def get_threshold_lg(lg,delta,**kw):
-#    return losses.transform_grad(losses.get_lossgrad_SI(lg,**kw),lambda l: jax.nn.softplus(l/delta-1)*delta)
-
-def get_threshold_lg(lg,delta,**kw):
-    delta10ths=delta/10.0
-    def _eval_(params,*X):
-        val,grad=lg(params,*X)
-        weight=jax.nn.sigmoid(val/delta10ths-10.0)
-        return val,tree_map(lambda A:weight*A,grad)
-    return jax.jit(_eval_)
-
-### loss functions ###
-
 ### batch runs ###
 
 class Runthrough(_display_.Process):
     def execprocess(self):
         P=self.profile
-        imax=max(P.ns)
+        mode=self.subprocess(Browse(options=['ANTISYM','RAW']))
+
         for n in P.ns:
-            P=Run.getprofile(self,n=n,d=P.d,m=1024,mode='RAW',imax=imax).butwith(iterations=10**4)
-            self.subprocess(Run(profile=P))
+            if mode=='ANTISYM':
+                m=1024
+                P2=Run.getprofile(self,n=n,d=P.d,m=m,mode='ANTISYM',delta=.01).butwith(iterations=10**4)
+                self.subprocess(Run(profile=P2))
 
-            newBarron,_=_functions_.switchtype(P.learner)
+            if mode=='RAW':
+                m=32
+                P1=Run.getprofile(self,n=n,d=P.d,m=m,mode='ANTISYM').butwith(iterations=10**4)
+                self.subprocess(Run(profile=P1))
 
-            P=Run.getprofile(self,n=n,d=P.d,m=1024,mode='ANTISYM',imax=imax,Barron=newBarron).butwith(iterations=10**4)
-            self.subprocess(Run(profile=P))
+                Barron=Run.get_Ansatz(P1.butwith(m=math.factorial(n)*m))
+                Barron.weights=self.expandweights(P1.learner.weights)
+
+                P4=Run.getprofile(self,n=n,d=P.d,m=m,mode='RAW',Ansatz=Barron).butwith(iterations=10**4)
+                self.subprocess(Run(profile=P4))
+
+
+    # m blocks of n! permutations 
+    @staticmethod
+    def expandweights(params):
+
+        (W,b),a=params
+        m,n,d=W.shape
+        perms,signs=allpermtuples(n)
+        
+        W_=W[:,perms,:].reshape(-1,n,d)
+        b_=jnp.repeat(b,len(signs))
+        a_=jnp.kron(a,signs)
+
+        return [(W_,b_),a_]
 
     @classmethod
     def getprofile(cls,parentprocess):
         P=tracking.Profile()
-        P.d=parentprocess.browse(options=[1,2,3],msg='Pick d')
-        P.ns=parentprocess.browse(options=[1,2,3,4,5,6],onlyone=False,msg='Pick ns')
+        #P.d=parentprocess.browse(options=[1,2,3],msg='Pick d')
+        P.d=3
+        n_options=list(range(1,9))
+        P.ns=parentprocess.browse(options=n_options,optionstrings=['n={}'.format(n) for n in n_options],\
+            onlyone=False,msg='Pick ns')
         return P
