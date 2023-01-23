@@ -5,10 +5,12 @@
 #
 
 
-from cancellations.examples import losses, Barronnorm
+from cancellations.examples import losses, Barronnorm as BN
 import jax.numpy as jnp
 from functools import partial
 import jax
+from cancellations.functions.symmetries import gen_Af
+import jax.random as rnd
 from cancellations.config import tracking
 from jax.tree_util import tree_map
 from cancellations.display import _display_
@@ -32,52 +34,148 @@ import os
 ####################################################################################################
 
 
-
-class Run(Barronnorm.Run):
-    processname='expnorm'
-    Ansatzoptions=('envelope_on','envelope_off')
+class ExpFit(runtemplate.Fixed_XY):
+    processname='expfit'
 
     @classmethod
-    def get_Ansatz(cls,P):
-        match P.mode:
-            case 'envelope_on':
-                return Product(_functions_.IsoGaussian(1.0),\
-                    examplefunctions.ExpSlater(n=P.n,d=P.d,m=P.m))
-            case 'envelope_off':
-                return examplefunctions.ExpSlater(n=P.n,d=P.d,m=P.m)
+    def getprofile(cls,parentprocess,n,d,m,target,samples_train,minibatchsize):
+        tracking.log('32 or 64: {}'.format(jnp.array([1.0]).dtype))
 
-    @classmethod
-    def get_Ansatzweightnorm(cls,p,f):
-        def loss(p,prodparams):
-            _,params=prodparams
-            (W,b),a=params
-            w1=jnp.squeeze(abs(a))
-            w2=jnp.sum(jnp.abs(W),axis=(-2,-1))+jnp.abs(b)
-            assert(w1.shape==w2.shape)
-            if p==float('inf'):
-                return jnp.max(w1*w2)
-            else:
-                return jnp.sum((w1*w2)**p)**(1/p)
-        lossfn=lambda params,X,Y,rho: loss(p,params)/losses.norm(f(params,X),rho)
-        return jax.jit(jax.value_and_grad(lossfn))
+        P=profile=super().getprofile(n,d,samples_train,minibatchsize,target)
+        P.Y=P.Y/losses.norm(P.Y[:1000],P.rho[:1000])
+        cls.initsampler(P)
 
+        P.learner=examplefunctions.ExpSlater(n=n,d=d,m=m)
+        profile.lossgrads=[losses.get_lossgrad_SI(P.learner._eval_)]
+        P.lossnames=['SI']
+        P.lossweights=[100.0,0.01]
+        P.name='{} n={} d={}'.format(P.learner.typename(),n,d)
+        P.info={'target':target.getinfo(),'Ansatz':P.learner.getinfo()}
+        return P
 
-### batch runs ###
+    def repeat(self,i):
+        super().repeat(i)
+        if i%1000==0:
+            self.saveBnorm()
+        if i%100==0:
+            sysutil.save(self.profile.learner.compress(),os.path.join('outputs',tracking.sessionID,'learner'))
 
-class Runthrough(_display_.Process):
-    def execprocess(self):
-        P=self.profile
-        imax=max(P.ns)
-        for n in P.ns:
-            P=Barronnorm.Run.getprofile(self,n=n,d=P.d,m=1024,mode='ANTISYM',imax=imax).butwith(iterations=10**4)
-            self.subprocess(Run(profile=P))
+    def saveBnorm(self):
+        epss=jnp.array(self.losses['SI'])
+        i=len(epss)
+        l=i//10
+        self.eps=jnp.quantile(epss[-l:],.5)
+        sysutil.write('{} | eps={}\n'.format(\
+            self.profile.name,self.eps),\
+            'outputs/expAnsatzloss.txt')
 
-            P=Run.getprofile(self,n=n,d=P.d,m=1024,mode='envelope_on',imax=imax).butwith(iterations=10**4)
-            self.subprocess(Run(profile=P))
+    def finish(self):
+        self.saveBnorm()
+        return self.eps
+        #self.plot(self.profile)
+
+    def plot(self,P):
+        self.saveBnorm()
+        fig,(ax1)=plt.subplots(1,1)
+        plt.rcParams['text.usetex']
+        fig.suptitle('{} Barron norm, n={}, m={}, {}'.format(P.mode,P.n,P.m,P.ac))
+        epss=jnp.array(self.losses['SI'])
+        ax1.plot(epss,'r',label='$\epsilon$')
+        ax1.axhline(y=self.eps,ls='--',color='r')
+        ax1.set_yscale('log')
+        ax1.legend()
+        outpath=os.path.join('plots','expAnsatzloss_{}_n={}_{}___{}.pdf'.format(P.mode,P.n,P.ac,tracking.sessionID))
+        sysutil.savefig(outpath)
+        sysutil.showfile(outpath)
+
+class Run(ExpFit):
 
     @classmethod
     def getprofile(cls,parentprocess):
-        P=tracking.Profile()
-        P.d=parentprocess.browse(options=[1,2,3],msg='Pick d')
-        P.ns=parentprocess.browse(options=[1,2,3,4,5,6],onlyone=False,msg='Pick ns')
+        n=parentprocess.browse(options=[1,2,3,4,5,6],displayoption=lambda o:'n={}'.format(o),msg='Select n')
+        d=parentprocess.browse(options=[1,2,3],displayoption=lambda o:'d={}'.format(o),msg='Select d')
+        m=parentprocess.browse(options=[2**k for k in range(6,12)],msg='Select Ansatz layer count')
+        target=examplefunctions.QuadrantSlater(n=n,d=d)
+        return ExpFit.getprofile(parentprocess,n,d,m,target,samples_train=10000,minibatchsize=100)
+
+class ExpFitLoaded(ExpFit):
+    @classmethod
+    def getprofile(cls,parentprocess,X,Y,rho,m,minibatchsize):
+
+        P=profile=runtemplate.Loaded_XY.getprofile(X,Y,rho,minibatchsize)
+        P.Y=P.Y/losses.norm(P.Y[:1000],P.rho[:1000])
+        cls.initsampler(P)
+
+        P.learner=examplefunctions.ExpSlater(n=P.n,d=P.d,m=m)
+        profile.lossgrads=[losses.get_lossgrad_SI(P.learner._eval_)]
+        P.lossnames=['SI']
+        P.lossweights=[100.0,0.01]
+        P.name='{} n={} d={}'.format(P.learner.typename(),P.n,P.d)
+        P.info={'Ansatz':P.learner.getinfo()}
         return P
+
+### batch runs ###
+
+class Runthrough(runtemplate.Run):
+    def execprocess(self):
+        
+        n=self.browse(options=[1,2,3,4,5,6],displayoption=lambda o:'n={}'.format(o),msg='Select n')
+        d=self.browse(options=[1,2,3],displayoption=lambda o:'d={}'.format(o),msg='Select d')
+        #m_max=self.browse(options=[1024,2048,4096,8],displayoption=lambda o:'m=1,2,4,..,{}'.format(o),msg='Select m')
+        #plotBarron=self.browse(options=[True,False],optionstrings=['estimate Barron norm','skip Barron norm'],msg='Compare with Barron norm?')
+
+        X=rnd.uniform(rnd.PRNGKey(0),(10**5,n,d))
+        rho=jnp.ones((X.shape[0],))/2**(n*d)
+
+        #M=rnd.uniform(rnd.PRNGKey(0),(n,d,n*d))
+        #f=lambda y:jnp.sin(50*y)
+        #Af=gen_Af(n,lambda params,X_: f(jnp.sum(jnp.tensordot(X_,M,axes=2)**2,axis=-1)))
+        #Y=Af(None,X)
+
+        #ms=jnp.array([2**k for k in range(0,15) if 2**k<=m_max])
+        explosses=[]
+        Barronnorms=[]
+        Barroneps=[]
+
+        for t in jnp.arange(.5,2,.2):
+            for s in jnp.arange(-1,1,.2):
+                Y=examplefunctions.get_harmonic_oscillator2d(n,d).eval(t*X-s)
+                P=ExpFitLoaded.getprofile(self,X,Y,rho,1024,minibatchsize=100).butwith(iterations=5000)
+                explosses.append(self.subprocess(ExpFit(profile=P)))
+
+                bP=BN.BarronLossLoaded.getprofile(self,X,Y,rho,1024).butwith(iterations=5000)
+                Barronnorm,eps=self.subprocess(BN.Run(profile=bP))
+                Barronnorms.append(Barronnorm)
+                Barroneps.append(eps)
+
+        outpath_data1=os.path.join('temp',tracking.sessionID,'expAnsatzlosses_n={}_{}___{}'.format(n,d,tracking.sessionID))
+        outpath_data2=os.path.join('temp',tracking.sessionID,'expAnsatzlosses_n={}_{}___{}'.format(n,d,tracking.sessionID))
+        sysutil.save([explosses,Barronnorms,Barroneps],outpath_data1)
+        sysutil.save([P.learner.getinfo(),bP.learner.getinfo()],outpath_data2)
+#        for m in ms:
+#            P=ExpFitLoaded.getprofile(self,X,Y,rho,m,minibatchsize=100).butwith(iterations=10000)
+#            eps=self.subprocess(ExpFit(profile=P))
+#            losses.append(eps)
+
+#        bP=BN.BarronLossLoaded.getprofile(self,X,Y,rho,1024).butwith(iterations=10000)
+#        Barronnorm,eps=self.subprocess(BN.Run(profile=bP))
+#
+#        fig,(ax1)=plt.subplots(1,1)
+#        plt.rcParams['text.usetex']
+#        fig.suptitle('Normalized loss, n={}, d={}'.format(n,d))
+#        ax1.plot(ms,losses,'bo-',label='$\epsilon$')
+#        if plotBarron and eps<.1:
+#        #if plotBarron:
+#            ax1.plot(ms,Barronnorm**2/ms,'r:',label='$|\psi|_A^2/m$')
+#        ax1.set_xscale('log')
+#        ax1.set_yscale('log')
+#        ax1.legend()
+#        outpath=os.path.join('plots','expAnsatzlosses_n={}_{}___{}.pdf'.format(n,d,tracking.sessionID))
+#        outpath_data=os.path.join('plots','expAnsatzlosses_n={}_{}___{}'.format(n,d,tracking.sessionID))
+#        sysutil.savefig(outpath)
+#        sysutil.showfile(outpath)
+#        #sysutil.save([ms,losses,target.getinfo()],outpath_data)
+        
+
+    @classmethod
+    def getprofile(cls,parentprocess): return tracking.Profile()

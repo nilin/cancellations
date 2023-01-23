@@ -45,6 +45,24 @@ class RunningAvg:
     def sum(self): return self._sum_
     def sqsum(self): return self._sqsum_
 
+class RunningMax:
+    def __init__(self):
+        self._max_=None
+
+    def update(self,val):
+        if self._max_ is None or val>self._max_:
+            self._max_=val
+        return self._max_
+
+class RunningMin:
+    def __init__(self):
+        self._min=None
+
+    def update(self,val):
+        if self._min is None or val<self._min:
+            self._min=val
+        return self._min
+
 class InfiniteRunningAvg(RunningAvg):
     def __init__(self):
         self._sum_=0

@@ -190,6 +190,7 @@ class QuadrantSlater(_functions_.FunctionDescription):
 
     @staticmethod
     def _initweights_(**kw):
+        if 'w' in kw: return kw['w']
         return 1.0
 
 

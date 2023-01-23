@@ -27,20 +27,19 @@ from cancellations.config.tracking import Profile, log
 
 
 class Run(runtemplate.Fixed_XY):
-    lossnames=['SI','norm','custom','second_derivative','L2']
     
     @classmethod
     def getprofile(cls,parentprocess):
-        mode=parentprocess.browse(options=['non-SI','SI','SI_2','SI_3','SI_4'])
+        #mode=parentprocess.browse(options=['non-SI','SI loss','SI_2','SI_3','SI_4'])
 
         n,d,samples_train,minibatchsize=4,2,10**5,100
         target=examples.get_harmonic_oscillator2d(n,d)
         learner=cls.getlearner_example(n,d)
 
-        symmode=parentprocess.browse(options=['antisym','nonsym'])
-        if symmode=='nonsym':
-            target,_=_functions_.switchtype(target)
-            learner,_=_functions_.switchtype(learner)
+        #symmode=parentprocess.browse(options=['antisym','nonsym'])
+        #if symmode=='nonsym':
+        #    target,_=_functions_.switchtype(target)
+        #    learner,_=_functions_.switchtype(learner)
 
         P=super().getprofile(n,d,samples_train,minibatchsize,target).butwith(learner=learner)
         P.Y=P.Y/losses.norm(P.Y[:1000],P.rho[:1000])
@@ -52,17 +51,17 @@ class Run(runtemplate.Fixed_XY):
         cls.normalizelearner(P)
         log(losses.norm(P.learner.eval(P.X),P.rho))
 
-        match mode:
-            case 'L2':
-                lossgrad=losses.get_lossgrad_NONSI(g)
-            case 'SI':
-                lossgrad=losses.get_lossgrad_SI(g)
-            case 'SI_2':
-                lossgrad=SI(g,timescale=10,normpow=2).lossgrad
-            case 'SI_3':
-                lossgrad=SI(g,timescale=10,normpow=3).lossgrad
-            case 'SI_4':
-                lossgrad=SI(g,timescale=10,normpow=0,olpow=0).lossgrad
+        #match mode:
+        #    case 'L2':
+        #        lossgrad=losses.get_lossgrad_NONSI(g)
+        #    case 'SI loss':
+        #        lossgrad=losses.get_lossgrad_SI(g)
+        #    case 'SI_2':
+        #        lossgrad=SI(g,timescale=10,normpow=2).lossgrad
+        #    case 'SI_3':
+        #        lossgrad=SI(g,timescale=10,normpow=3).lossgrad
+        #    case 'SI_4':
+        #        lossgrad=SI(g,timescale=10,normpow=0,olpow=0).lossgrad
 
         T=lambda x:jnp.log(x)**2
         #T=lambda x:jnp.exp(jax.nn.relu(jnp.abs(jnp.log(x))-7.0)),\
@@ -70,17 +69,15 @@ class Run(runtemplate.Fixed_XY):
 
         P.lossweights=[1.0,1.0]
         P.lossgrads=[\
-            lossgrad,\
             losses.transform_grad(lambda params,X,Y,rho: losses.norm(g(params,X),rho),T=T,fromrawloss=True),\
             losses.get_lossgrad_SI(g),\
             losses.get_lossgrad_NONSI(g),\
             Hloss(g).lossgrad\
         ]
-        P.lossnames=[mode,'norm','SI','L2','second_derivative']
+        P.lossnames=['norm','SI loss','L2','second derivative estimate']
 
-        P.info['mode']=mode
         P.info['learner']=P.learner.getinfo()
-        P.name=mode
+        #P.name=mode
         return P
 
     @staticmethod

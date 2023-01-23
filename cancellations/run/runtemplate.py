@@ -112,7 +112,7 @@ class Run(_display_.Process):
             runs,profiles=tuple(zip(*runs))
 
         if len(profiles)>1:
-            lossname=self.subprocess(Browse(options=self.lossnames,onlyone=True,msg='Select statistic(s) to be plotted'))
+            lossname=self.subprocess(Browse(options=P.lossnames,onlyone=True,msg='Select statistic(s) to be plotted'))
             stats=[sysutil.load(os.path.join(path,'losses'))[lossname] for path in runs]
             statnames=profiles
             figtitle=lossname
@@ -125,7 +125,7 @@ class Run(_display_.Process):
 
         colors=['b','r','b--','r--']
         colors_=[self.subprocess(Browse(options=colors,msg='pick color for {}'.format(I))) for I in statnames]
-        smoothing=self.subprocess(Browse(options=[1,10,100],msg='pick smoothing'))
+        smoothings=[self.subprocess(Browse(options=[1,10,100,'max','min'],msg='pick color for {}'.format(I))) for I in statnames]
         T0=min([len(stat) for stat in stats])
         T1=max([len(stat) for stat in stats])
         T=self.subprocess(Browse(msg='pick duration',options=\
@@ -143,8 +143,13 @@ class Run(_display_.Process):
         fig.suptitle(figtitle)
         ax.set_yscale('log')
         ax.grid(True,which='major',axis='y')
-        for i,(statname,stat,c) in enumerate(zip(statnames,stats,colors_)):
-            smoother=numutil.RunningAvg(k=smoothing)
+        for i,(statname,stat,c,smoothing) in enumerate(zip(statnames,stats,colors_,smoothings)):
+            if smoothing=='max':
+                smoother=numutil.RunningMax()
+            if smoothing=='min':
+                smoother=numutil.RunningMin()
+            else:
+                smoother=numutil.RunningAvg(k=smoothing)
             ax.plot([smoother.update(l) for l in stat[:T]],c,label=statname)
             ax.legend()
 
@@ -303,7 +308,7 @@ class Fixed_XY(Fixed_X):
         cls.initsampler(P)
         return P
 
-class Loaded_XY(Run):
+class Loaded_XY(Fixed_X):
     @classmethod
     def getprofile(cls,X,Y,rho,minibatchsize):
         samples_train,n,d=X.shape

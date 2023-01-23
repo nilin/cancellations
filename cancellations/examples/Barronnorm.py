@@ -35,41 +35,25 @@ import os
 
 
 
-class Run(runtemplate.Fixed_XY):
+class BarronLoss(runtemplate.Fixed_XY):
     processname='Barron_norm'
-    Ansatzoptions=('ANTISYM','RAW')
 
     @classmethod
-    def getprofile(cls,parentprocess,Ansatz=None,delta=1/10.0**4,**kw):
+    def getprofile(cls,parentprocess,target,n,d,m,delta=1/10.0**4,minibatchsize=100):
 
         tracking.log('32 or 64: {}'.format(jnp.array([1.0]).dtype))
 
-        n=parentprocess.browse(options=[1,2,3,4,5,6],msg='Select n')\
-            if 'n' not in kw else kw['n']
-        d=parentprocess.browse(options=[1,2,3],msg='Select d')\
-            if 'd' not in kw else kw['d']
-        m=parentprocess.browse(options=[2**k for k in range(6,12)],msg='Select Ansatz layer count')\
-            if 'm' not in kw else kw['m']
-        mode=parentprocess.browse(options=cls.Ansatzoptions,msg='Select Ansatz norm type')\
-            if 'mode' not in kw else kw['mode']
-
         samples_train=10**5
-        minibatchsize=100
-
-        target=cls.gettarget(n,d)
-
-        P=profile=super().getprofile(n,d,samples_train,minibatchsize,target).butwith(m=m,mode=mode)
+        P=profile=super().getprofile(n,d,samples_train,minibatchsize,target)
         P.Y=P.Y/losses.norm(P.Y[:1000],P.rho[:1000])
         cls.initsampler(P)
 
-        # temporary test
-        x_,y_,r_=P.sampler.sample()
-        log(losses.norm(y_,r_))
-        # temporary test
+        ac='softplus'
+        P.mode='ANTISYM'
 
-        P.ac='softplus'
-        if Ansatz is None:
-            Ansatz=cls.get_Ansatz(P)
+        match P.mode:
+            case 'ANTISYM': Ansatz=_functions_.ASBarron(n=n,d=d,m=m,ac=ac)
+            case 'RAW': Ansatz=_functions_.Barron(n=n,d=d,m=m,ac=ac)
         P.learner=Ansatz
         profile.lossgrads=[\
             cls.get_threshold_lg(losses.get_lossgrad_SI(Ansatz._eval_),delta),\
@@ -77,17 +61,9 @@ class Run(runtemplate.Fixed_XY):
         ]
         P.lossnames=['eps','Barron norm estimate']
         P.lossweights=[100.0,0.01]
-        P.name='{} n={} d={}'.format(P.mode,n,d)
+        P.name='{} n={} d={}'.format(P.learner.typename(),n,d)
         P.info={'target':target.getinfo(),'Barron':Ansatz.getinfo()}
         return P
-
-    @staticmethod
-    def gettarget(n,d):
-        return examples.QuadrantSlater(n=n,d=d)
-        #if 'imax' in kw:
-        #    return examples.get_harmonic_oscillator2d(n,d,imax=kw['imax'])
-        #else:
-        #    return examples.get_harmonic_oscillator2d(n,d)
 
     def repeat(self,i):
         super().repeat(i)
@@ -110,6 +86,7 @@ class Run(runtemplate.Fixed_XY):
     def finish(self):
         self.saveBnorm()
         #self.plot(self.profile)
+        return (self.Bnorm,self.eps)
 
     def plot(self,P):
         self.saveBnorm()
@@ -130,16 +107,6 @@ class Run(runtemplate.Fixed_XY):
         outpath=os.path.join('plots','Bnorm_{}_n={}_{}___{}.pdf'.format(P.mode,P.n,P.ac,tracking.sessionID))
         sysutil.savefig(outpath)
         sysutil.showfile(outpath)
-
-    @staticmethod
-    def get_Ansatz(P):
-        match P.mode:
-            case 'ANTISYM':
-                #return Product(_functions_.IsoGaussian(1.0),_functions_.ASBarron(n=P.n,d=P.d,m=P.m,ac=P.ac))
-                return _functions_.ASBarron(n=P.n,d=P.d,m=P.m,ac=P.ac)
-            case 'RAW':
-                #return Product(_functions_.IsoGaussian(1.0),_functions_.Barron(n=P.n,d=P.d,m=P.m,ac=P.ac))
-                return _functions_.Barron(n=P.n,d=P.d,m=P.m,ac=P.ac)
 
     @staticmethod
     def get_learnerweightnorm(p,f):
@@ -165,6 +132,47 @@ class Run(runtemplate.Fixed_XY):
             weight=jax.nn.sigmoid(val/delta10ths-10.0)
             return val,tree_map(lambda A:weight*A,grad)
         return jax.jit(_eval_)
+
+class Run(BarronLoss):
+    processname='Barron_norm'
+
+    @classmethod
+    def getprofile(cls, parentprocess,n=None,d=None,m=None,target=None):
+        if n is None:
+            n=parentprocess.browse(options=[1,2,3,4,5,6],displayoption=lambda o:'n={}'.format(o),msg='Select n')
+        if d is None:
+            d=parentprocess.browse(options=[1,2,3],displayoption=lambda o:'d={}'.format(o),msg='Select d')
+        if m is None:
+            m=parentprocess.browse(options=[2**k for k in range(6,12)],msg='Select Ansatz layer count')
+        if target is None:
+            #target=examples.QuadrantSlater(n=n,d=d)
+            target=examples.get_harmonic_oscillator2d(n,d)
+        P=super().getprofile(parentprocess, target, n, d, m, minibatchsize=10)
+        return P
+    
+class BarronLossLoaded(BarronLoss):
+    @classmethod
+    def getprofile(cls,parentprocess,X,Y,rho,m,delta=1/10.0**4,minibatchsize=100):
+
+        tracking.log('32 or 64: {}'.format(jnp.array([1.0]).dtype))
+
+        P=profile=runtemplate.Loaded_XY.getprofile(X,Y,rho,minibatchsize)
+        P.Y=P.Y/losses.norm(P.Y[:1000],P.rho[:1000])
+        cls.initsampler(P)
+
+        ac='softplus'
+
+        Ansatz=_functions_.ASBarron(n=P.n,d=P.d,m=m,ac=ac)
+        P.learner=Ansatz
+        profile.lossgrads=[\
+            cls.get_threshold_lg(losses.get_lossgrad_SI(Ansatz._eval_),delta),\
+            cls.get_learnerweightnorm(1.0,Ansatz._eval_),\
+        ]
+        P.lossnames=['eps','Barron norm estimate']
+        P.lossweights=[100.0,0.01]
+        P.name='{} n={} d={}'.format(P.learner.typename(),P.n,P.d)
+        P.info={'Barron':Ansatz.getinfo()}
+        return P
 
 ### plots ###
 
