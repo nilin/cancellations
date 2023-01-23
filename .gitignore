@@ -9,6 +9,7 @@ stash*
 venv*
 **/scratch*
 outputs*
+temp/*
 beta/*
 testsingle*
 *venv*
