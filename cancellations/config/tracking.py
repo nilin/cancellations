@@ -26,16 +26,11 @@ class dotdict(dict):
     def __str__(self):
         return '\n'.join([textutil.appendright(k+' = ',str(v)) for k,v in self.items()])
 
-class Profile(dotdict):
-    def __init__(self,*a,**kw):
-        super().__init__(*a,**kw)
-        if not hasattr(self,'profilename'):
-            self.profilename='default'
-
     def butwith(self,**defs):
-        newself=Profile(**self)
+        newself=dotdict(**self)
         newself.update(defs)
         return newself
+
 
 
 
@@ -145,7 +140,7 @@ class Process(Memory):
 
     @classmethod
     def getprofile(cls,**kw):
-        return Profile(**kw)
+        return dotdict(**kw)
 
 
 

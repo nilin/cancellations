@@ -5,6 +5,7 @@
 !/.gitignore
 log*
 plots*
+batchoutputs/*
 stash*
 venv*
 **/scratch*

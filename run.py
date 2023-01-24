@@ -1,9 +1,8 @@
-from cancellations.config import browse, config as cfg, sysutil, tracking
-from cancellations.display import _display_
-from cancellations.utilities import textutil
-import re, os, importlib, sys
+import jax, sys
+if not '32' in sys.argv: jax.config.update("jax_enable_x64", True)
 
-
+from cancellations.config import browse, config as cfg, tracking
+import importlib
 
 
 class Run(browse.Process):
@@ -35,16 +34,18 @@ class Run(browse.Process):
 
 
 if __name__=='__main__':
-
+        
     cfg.istest=('t' in sys.argv)
+    cfg.debug=('d' in sys.argv)
+    cfg.display_on=('n' not in sys.argv)
+    cfg.dump=('dump' in sys.argv or 'D' in sys.argv)
 
-    if 'd' in sys.argv:
+    if cfg.debug:
         import jax
-        cfg.debug=True
         cfg.display_on=False
         with jax.disable_jit(): Run().run_as_NODISPLAY()
 
-    elif 'n' in sys.argv:
+    elif not cfg.display_on:
         cfg.display_on=False
         Run().run_as_NODISPLAY()
 

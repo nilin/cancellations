@@ -18,7 +18,7 @@ from cancellations.examples.Barronnorm import get_barronweight,get_threshold_lg,
 from os import path
 import optax
 import copy
-from cancellations.config.tracking import log,Profile
+from cancellations.config.tracking import log,dotdict
 from cancellations.config import sysutil, tracking
 import cancellations.config as cfg
 from cancellations.run import runtemplate, sampling
@@ -90,9 +90,9 @@ class Run(runtemplate.Run):
     def getdefaultprofile(cls,**kwargs):
         P=profile=super().getdefaultprofile(**kwargs)
         Barron=Barronnorm.getBarronfn(profile)
-        detplayer=examples.getlearner_example(Profile(n=P.n,d=P.d,ndets=P.mdet))
+        detplayer=examples.getlearner_example(dotdict(n=P.n,d=P.d,ndets=P.mdet))
         profile.players={\
-            'Ansatz':examples.getlearner_example(Profile(n=P.n,d=P.d,ndets=P.mtarget)),\
+            'Ansatz':examples.getlearner_example(dotdict(n=P.n,d=P.d,ndets=P.mtarget)),\
             #'Ansatz':harmonicoscillator2d.gettarget(profile),\
             'Barron':Barron,\
             'det':detplayer
@@ -114,9 +114,9 @@ class Run(runtemplate.Run):
     def getdefaultprofile2(cls,**kwargs):
         P=profile=super().getdefaultprofile(**kwargs)
         Barron=Barronnorm.getBarronfn(profile)
-        detplayer=examples.getlearner_example(Profile(n=P.n,d=P.d,ndets=P.mdet))
+        detplayer=examples.getlearner_example(dotdict(n=P.n,d=P.d,ndets=P.mdet))
         profile.players={\
-            'Ansatz':getBarronfn(Profile(n=P.n,d=P.d,m=P.mtarget)),\
+            'Ansatz':getBarronfn(dotdict(n=P.n,d=P.d,m=P.mtarget)),\
             'Barron':Barron,\
             'det':detplayer
             }

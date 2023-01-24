@@ -262,7 +262,7 @@ class Run(_display_.Process):
 
     @staticmethod
     def defaultbaseprofile():
-        P=tracking.Profile()
+        P=tracking.dotdict()
 
         P.outpath_data=os.path.join('outputs',tracking.sessionID)
         P.outpath_plot=os.path.join('outputs',tracking.sessionID)

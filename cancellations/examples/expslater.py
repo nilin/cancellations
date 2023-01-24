@@ -22,7 +22,7 @@ import sys
 import math
 from cancellations.config import config as cfg
 from cancellations.run import runtemplate
-from cancellations.config.tracking import Profile, log, sysutil
+from cancellations.config.tracking import dotdict, log, sysutil
 import matplotlib.pyplot as plt
 import re
 import os
@@ -125,18 +125,10 @@ class Runthrough(runtemplate.Run):
         else:
             n=self.browse(options=[1,2,3,4,5,6],displayoption=lambda o:'n={}'.format(o),msg='Select n')
             d=self.browse(options=[1,2,3],displayoption=lambda o:'d={}'.format(o),msg='Select d')
-        #m_max=self.browse(options=[1024,2048,4096,8],displayoption=lambda o:'m=1,2,4,..,{}'.format(o),msg='Select m')
-        #plotBarron=self.browse(options=[True,False],optionstrings=['estimate Barron norm','skip Barron norm'],msg='Compare with Barron norm?')
 
         X=rnd.uniform(rnd.PRNGKey(0),(10**5,n,d))
         rho=jnp.ones((X.shape[0],))/2**(n*d)
 
-        #M=rnd.uniform(rnd.PRNGKey(0),(n,d,n*d))
-        #f=lambda y:jnp.sin(50*y)
-        #Af=gen_Af(n,lambda params,X_: f(jnp.sum(jnp.tensordot(X_,M,axes=2)**2,axis=-1)))
-        #Y=Af(None,X)
-
-        #ms=jnp.array([2**k for k in range(0,15) if 2**k<=m_max])
         explosses=[]
         Barronnorms=[]
         Barroneps=[]
@@ -144,9 +136,9 @@ class Runthrough(runtemplate.Run):
 
         t_=jnp.arange(.5,2,.2)
         s_=jnp.arange(-1,1,.2)
-        m_e=2048
-        m_B=1024
-        its=5000
+        m_e=1024
+        m_B=256
+        its=10000
 
         if cfg.istest:
             t_=[.5]
@@ -155,24 +147,40 @@ class Runthrough(runtemplate.Run):
             m_B=32
             its=100
 
+        folder='batchoutputs'
+
+        def save_some(**kw):
+            out=dict(\
+                explosses=explosses,\
+                Barronnorms=Barronnorms,\
+                Barroneps=Barroneps,\
+                t_s=t_s)
+            out.update(kw)
+            sysutil.save(out,\
+                path=os.path.join(folder,tracking.sessionID,'compare_n={}_d={}___{}'.format(n,d,tracking.sessionID)))
+
+        if cfg.dump:
+            sysutil.savewhatyoucan([globals(),locals()],os.path.join(folder,tracking.sessionID,'datadump0'))
+
         for t in t_:
             for s in s_:
                 t_s.append((t,s))
                 Y=examplefunctions.get_harmonic_oscillator2d(n,d).eval(t*X-s)
-                P=ExpFitLoaded.getprofile(self,X,Y,rho,m_e,minibatchsize=100).butwith(iterations=its)
-                explosses.append(self.subprocess(ExpFit(profile=P)))
 
-                bP=BN.BarronLossLoaded.getprofile(self,X,Y,rho,m_B).butwith(iterations=its)
-                Barronnorm,eps=self.subprocess(BN.Run(profile=bP))
+                BP=BN.BarronLossLoaded.getprofile(self,X,Y,rho,m_B,minibatchsize=25).butwith(iterations=its)
+                Barronnorm,eps=self.subprocess(BN.Run(profile=BP))
                 Barronnorms.append(Barronnorm)
                 Barroneps.append(eps)
 
-        folder='temp'
-        outpath_data1=os.path.join(folder,tracking.sessionID,'expAnsatzlosses_n={}_d={}___{}'.format(n,d,tracking.sessionID))
-        outpath_data2=os.path.join(folder,tracking.sessionID,'expAnsatzlosses_n={}_d={}___{}'.format(n,d,tracking.sessionID))
-        sysutil.save([explosses,Barronnorms,Barroneps],outpath_data1)
-        sysutil.save([P.learner.getinfo(),bP.learner.getinfo(),t_s],outpath_data2)
-        sysutil.savewhatyoucan([globals(),locals()],os.path.join(folder,tracking.sessionID,'datadump'))
+                EP=ExpFitLoaded.getprofile(self,X,Y,rho,m_e,minibatchsize=25).butwith(iterations=its)
+                explosses.append(self.subprocess(ExpFit(profile=EP)))
+
+                save_some(E_info=EP.learner.getinfo(),B_info=BP.learner.getinfo())
+
+        if cfg.dump:
+            sysutil.savewhatyoucan(locals(),os.path.join(folder,tracking.sessionID,'datadump1'))
+
+
 #        for m in ms:
 #            P=ExpFitLoaded.getprofile(self,X,Y,rho,m,minibatchsize=100).butwith(iterations=10000)
 #            eps=self.subprocess(ExpFit(profile=P))
@@ -199,4 +207,4 @@ class Runthrough(runtemplate.Run):
         
 
     @classmethod
-    def getprofile(cls,parentprocess): return tracking.Profile()
+    def getprofile(cls,parentprocess): return tracking.dotdict()

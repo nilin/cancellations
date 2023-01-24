@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from cancellations.config import browse
 #import code
 
-folder='temp'
+folder='batchoutputs'
 
 while os.path.isdir(folder):
     fns=os.listdir(folder)

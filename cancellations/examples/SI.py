@@ -21,7 +21,7 @@ from cancellations.utilities.textutil import printtree
 
 from cancellations.config import config as cfg, tracking, sysutil
 from cancellations.run import runtemplate, sampling
-from cancellations.config.tracking import Profile, log
+from cancellations.config.tracking import dotdict, log
 
 
 
@@ -104,7 +104,7 @@ class Plot(Run):
     def execprocess(self):
         super().plot(None,currentrun=False)
     @staticmethod
-    def getprofile(*a,**kw): return tracking.Profile()
+    def getprofile(*a,**kw): return tracking.dotdict()
     
 
 

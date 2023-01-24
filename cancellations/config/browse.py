@@ -142,7 +142,7 @@ class Browse(_display_.Process):
 
     @staticmethod
     def getprofile(**kw):
-        P=tracking.Profile()
+        P=tracking.dotdict()
         P.onlyone=True
         P.optionstrings=None
         P.displayoption=lambda o:str(o)

@@ -4,7 +4,7 @@ from cancellations.run import runtemplate
 import cancellations.functions.examplefunctions as examples
 from cancellations.config import sysutil,tracking
 import cancellations.config as cfg
-from cancellations.config.tracking import Profile,log
+from cancellations.config.tracking import dotdict,log
 from cancellations.utilities import numutil
 from functools import partial
 from cancellations.config.browse import Browse
@@ -94,7 +94,7 @@ class Genfns(Batchjob):
 
     @classmethod
     def getdefaultprofile(cls,n=5,d=3,datapath='outputs/fn_outputs'):
-        P=profile=Profile(datapath=datapath)
+        P=profile=dotdict(datapath=datapath)
         P.samples_train,P.n,P.d=10**6,n,d
         profile.targettype='random'
         profile._var_X_distr_=1

@@ -21,7 +21,7 @@ from cancellations.config.browse import Browse
 import math
 from cancellations.config import config as cfg
 from cancellations.run import runtemplate
-from cancellations.config.tracking import Profile, log, sysutil
+from cancellations.config.tracking import dotdict, log, sysutil
 import matplotlib.pyplot as plt
 import re
 import os
@@ -209,7 +209,7 @@ class Plot(Run):
         sysutil.showfile(outpath)
 
     @staticmethod
-    def getprofile(*a,**kw): return tracking.Profile()
+    def getprofile(*a,**kw): return tracking.dotdict()
 
 ### plots ###
 
@@ -254,7 +254,7 @@ class Runthrough(_display_.Process):
 
     @classmethod
     def getprofile(cls,parentprocess):
-        P=tracking.Profile()
+        P=tracking.dotdict()
         #P.d=parentprocess.browse(options=[1,2,3],msg='Pick d')
         P.d=3
         n_options=list(range(1,9))

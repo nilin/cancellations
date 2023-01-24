@@ -67,7 +67,7 @@ def filebrowserlog(path,msg):
 
 def cansave(item):
     try:
-        save(item,'outputs/tempsavetest')
+        save(item,'outputs/tempsavetest',echo=False)
         return True
     except:
         return False
