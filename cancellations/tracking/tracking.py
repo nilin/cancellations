@@ -6,7 +6,7 @@ import datetime
 import os
 import copy
 from functools import partial
-from cancellations.config import sysutil, config as cfg
+from cancellations.tracking import runconfig as cfg, sysutil
 from cancellations.utilities import textutil
 import jax.numpy as jnp
 
@@ -147,8 +147,8 @@ class Process(Memory):
 
 def log(*msgs,multiline=False,**kw):
     if multiline:
-        msg='\n\n'.join([str(s) for s in msgs])
-        tmsg=sessiontimer.timeprint()+'\n\n'+msg+'\n\n'
+        msg='\n'.join([str(s) for s in msgs])
+        tmsg='\n'+sessiontimer.timeprint()+' |\n'+msg+'\n'
     else:
         msg=' '.join([str(s) for s in msgs])
         tmsg=textutil.appendright(sessiontimer.timeprint()+' | ',msg)

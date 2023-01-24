@@ -2,12 +2,12 @@ from cancellations.examples import Barronnorm
 from cancellations.examples import losses
 from cancellations.run import runtemplate
 import cancellations.functions.examplefunctions as examples
-from cancellations.config import sysutil,tracking
-import cancellations.config as cfg
-from cancellations.config.tracking import dotdict,log
+from cancellations.tracking import sysutil,tracking
+import cancellations.tracking as cfg
+from cancellations.tracking.tracking import dotdict,log
 from cancellations.utilities import numutil
 from functools import partial
-from cancellations.config.browse import Browse
+from cancellations.tracking.browse import Browse
 import os
 import jax
 import jax.random as rnd, jax.numpy as jnp

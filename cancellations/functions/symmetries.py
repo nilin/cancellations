@@ -1,5 +1,5 @@
 import jax, jax.random as rnd, jax.numpy as jnp
-from cancellations.config import config as cfg, tracking
+from cancellations.tracking import runconfig as cfg, tracking
 from cancellations.utilities import numutil
 from cancellations.utilities import permutations as ps
 from cancellations.functions import NN as mv

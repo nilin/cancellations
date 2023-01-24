@@ -2,8 +2,8 @@ import jax, jax.numpy as jnp
 import itertools
 from cancellations.functions import _functions_
 from cancellations.utilities import numutil as mathutil
-from cancellations.config import tracking
-from cancellations.config.tracking import dotdict
+from cancellations.tracking import tracking
+from cancellations.tracking.tracking import dotdict
 import numpy as np, math
 from jax.lax import complex
 

@@ -2,12 +2,14 @@
 **/.DS_Store
 **/scratchwork
 .*
+config/config*
 !/.gitignore
 log*
 plots*
 batchoutputs/*
 stash*
 venv*
+.venv/*
 **/scratch*
 outputs*
 temp/*

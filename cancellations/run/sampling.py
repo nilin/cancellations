@@ -11,9 +11,9 @@ from ..utilities import numutil
 from collections import deque
 import time
 
-from cancellations.config import sysutil
-from ..config import config as cfg
-from ..config import tracking
+from cancellations.tracking import sysutil
+from ..tracking import runconfig as cfg
+from ..tracking import tracking
 
 
 scaleby=jax.vmap(jnp.multiply,in_axes=(0,0))

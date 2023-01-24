@@ -2,7 +2,7 @@
 
 import jax, jax.numpy as jnp, jax.random as rnd
 import textwrap, math, copy
-from cancellations.config import config as cfg, tracking
+from cancellations.tracking import runconfig as cfg, tracking
 
 from cancellations.utilities import numutil, numutil as mathutil, textutil
 from cancellations.functions import NN as mv, symmetries, symmetries

@@ -18,9 +18,9 @@ from cancellations.examples.Barronnorm import get_barronweight,get_threshold_lg,
 from os import path
 import optax
 import copy
-from cancellations.config.tracking import log,dotdict
-from cancellations.config import sysutil, tracking
-import cancellations.config as cfg
+from cancellations.tracking.tracking import log,dotdict
+from cancellations.tracking import sysutil, tracking
+import cancellations.tracking as cfg
 from cancellations.run import runtemplate, sampling
 
 

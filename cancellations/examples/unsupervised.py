@@ -15,7 +15,7 @@ from cancellations.functions._functions_ import Product
 from cancellations.examples import energy
 from cancellations.examples import examples, losses
 
-from cancellations.config.tracking import dotdict
+from cancellations.tracking.tracking import dotdict
 from cancellations.run import unsupervised
 
 

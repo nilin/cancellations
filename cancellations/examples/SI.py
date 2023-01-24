@@ -15,13 +15,13 @@ import matplotlib.pyplot as plt
 
 from cancellations.functions import _functions_, examplefunctions as examples
 from cancellations.functions._functions_ import Product
-from cancellations.config.browse import Browse
-from cancellations.config.tracking import dotdict
+from cancellations.tracking.browse import Browse
+from cancellations.tracking.tracking import dotdict
 from cancellations.utilities.textutil import printtree
 
-from cancellations.config import config as cfg, tracking, sysutil
+from cancellations.tracking import runconfig as cfg, tracking, sysutil
 from cancellations.run import runtemplate, sampling
-from cancellations.config.tracking import dotdict, log
+from cancellations.tracking.tracking import dotdict, log
 
 
 

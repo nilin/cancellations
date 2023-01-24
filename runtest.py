@@ -1,4 +1,4 @@
-from cancellations.config import config
+from cancellations.tracking import runconfig
 import jax
 with jax.disable_jit():
     pass

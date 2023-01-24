@@ -1,8 +1,9 @@
 import jax, sys
-if not '32' in sys.argv: jax.config.update("jax_enable_x64", True)
+if '64' in sys.argv: jax.config.update("jax_enable_x64", True)
 
-from cancellations.config import browse, config as cfg, tracking
-import importlib
+from cancellations.tracking import browse, runconfig as cfg, tracking, sysutil
+import importlib, os
+
 
 
 class Run(browse.Process):
@@ -10,13 +11,11 @@ class Run(browse.Process):
     def execprocess(self):
 
         tasks=[\
-            ('cancellations.examples.Barronnorm','Run'),\
-            ('cancellations.examples.Barronnorm','Runthrough'),\
-            ('cancellations.examples.Barronnorm','Plot'),\
-            ('',''),\
-            ('cancellations.examples.expslater','Run'),\
+            #('cancellations.examples.Barronnorm','Run'),\
+            #('cancellations.examples.Barronnorm','Runthrough'),\
+            #('cancellations.examples.Barronnorm','Plot'),\
+            #('cancellations.examples.expslater','Run'),\
             ('cancellations.examples.expslater','Runthrough'),\
-            ('',''),\
             ('cancellations.examples.SI','Run'),\
             ('cancellations.examples.SI','Plot'),\
             #('cancellations.examples.comparenorms','Genfns'),\
@@ -34,7 +33,7 @@ class Run(browse.Process):
 
 
 if __name__=='__main__':
-        
+
     cfg.istest=('t' in sys.argv)
     cfg.debug=('d' in sys.argv)
     cfg.display_on=('n' not in sys.argv)

@@ -1,7 +1,7 @@
 import jax, jax.numpy as jnp
 import jax.random as rnd
 import math
-from cancellations.config import config as cfg, tracking
+from cancellations.tracking import runconfig as cfg, tracking
 
 from cancellations.utilities import numutil
 from cancellations.utilities.numutil import activations

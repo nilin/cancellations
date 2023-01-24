@@ -1,5 +1,5 @@
-from cancellations.config import config as cfg, tracking
-from cancellations.config import sysutil
+from cancellations.tracking import runconfig as cfg, tracking
+from cancellations.tracking import sysutil
 from cancellations.utilities.textutil import BOX,box,dash
 import curses as cs
 import math

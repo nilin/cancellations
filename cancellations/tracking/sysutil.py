@@ -3,9 +3,7 @@ import pickle
 from collections import deque
 import matplotlib.pyplot as plt
 import sys
-from cancellations.config import config as cfg, tracking
-from cancellations.utilities import textutil
-import copy
+from cancellations.tracking import tracking
 
 
 def makedirs(filepath):
@@ -17,13 +15,13 @@ def save(data,path,echo=True):
     makedirs(path)
     with open(path,'wb') as file:
         pickle.dump(data,file)
-    if echo: tracking.log('Saved data to {}'.format(path))
+    if echo: tracking.log('Saved data to',path,multiline=True)
 
 def savefig(path,fig=None):
     makedirs(path)
     if fig is None: plt.savefig(path)
     else: fig.savefig(path)
-    tracking.log('Saved figure to {}'.format(path))
+    tracking.log('Saved figure to',path,multiline=True)
 
 
 def write(msg,path,mode='a'):
@@ -56,12 +54,6 @@ def removetemplog(path):
     for delpath in delpaths:
         assert(readtextfile(delpath)=='temporary log')
         os.remove(delpath)
-
-
-def filebrowserlog(path,msg):
-    removetemplog(path)
-    write('temporary log',os.path.join(path,'___log_'+textutil.cleanstring(msg)[:25]+'___.templog'),mode='w')
-    cfg.postcommands.append(lambda: removetemplog(path))
 
 
 

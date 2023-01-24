@@ -3,7 +3,7 @@ import jax.numpy as jnp
 import jax.random as rnd
 from functools import partial
 from jax.tree_util import tree_map
-from cancellations.config import tracking
+from cancellations.tracking import tracking
 from cancellations.functions import _functions_
 from cancellations.utilities import numutil
 from cancellations.utilities.numutil import make_single_x

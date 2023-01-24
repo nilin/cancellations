@@ -5,18 +5,19 @@ import copy
 from os import path
 import numpy as np
 from functools import partial, reduce
-from cancellations.config import config as cfg, sysutil, tracking, browse
-from cancellations.config.browse import Browse
+from cancellations.tracking import runconfig as cfg, sysutil, tracking, browse
+from cancellations.tracking.browse import Browse
 from cancellations.functions import _functions_
 from cancellations.functions._functions_ import ComposedFunction,SingleparticleNN,Product
 from cancellations.run import sampling
 from cancellations.utilities import numutil, textutil
 import matplotlib.pyplot as plt
-from cancellations.config.tracking import dotdict, log
+from cancellations.tracking.tracking import dotdict, log
 from cancellations.display import _display_
 from cancellations.examples import losses
 from cancellations.utilities.textutil import printtree
 from jax.tree_util import tree_map
+import jax
 import optax
 
 
@@ -27,6 +28,11 @@ class Run(_display_.Process):
 
     def execprocess(run):
         P=run.profile
+
+        log('runID:',P.runID)
+        log('data type:',jnp.array([1.0]).dtype)
+        log('CPU or GPU:',jax.devices())
+
         run.losses={ln:[] for ln in P.lossnames}
         run.info='runID: {}\n'.format(run.ID)+'\n'*4+run.parseinfo(P.info)
         run.prepdisplay()
@@ -39,6 +45,7 @@ class Run(_display_.Process):
         #run.prepdisplay()
 
         stopwatch1=tracking.Stopwatch()
+        stopwatch2=tracking.Stopwatch()
 
         opt=optax.adamw(learning_rate=.01,weight_decay=P.weight_decay)
         state=opt.init(P.learner.weights)
@@ -66,6 +73,11 @@ class Run(_display_.Process):
                     if cfg.display_on: run.learningdisplay.draw()
                     if run.act_on_input(tracking.getch(lambda :run.instructions))=='b': break
 
+                if stopwatch2.tick_after(.5):
+                    if cfg.display_on:
+                        try: run.T.draw()
+                        except: pass
+
             except KeyboardInterrupt:
                 print()
                 print(run.instructions)
@@ -80,7 +92,7 @@ class Run(_display_.Process):
         if key=='d':
             breakpoint()
         if key=='o':
-            sysutil.showfile(self.profile.outpath_data)
+            #sysutil.showfile(self.profile.outpath_data)
             sysutil.showfile(self.profile.outpath_plot)
         return key
 
@@ -153,9 +165,9 @@ class Run(_display_.Process):
             ax.plot([smoother.update(l) for l in stat[:T]],c,label=statname)
             ax.legend()
 
-        outpath=os.path.join('plots','{}_{}.pdf'.format(figtitle,tracking.nowstr()))
+        outpath=os.path.join('plots','{}_{}.pdf'.format(figtitle,P.runID))
         sysutil.savefig(outpath,fig=fig)
-        sysutil.showfile(outpath)
+        #sysutil.showfile(outpath)
 
 
 #    def plot(self,P):
@@ -193,15 +205,17 @@ class Run(_display_.Process):
 
     def repeat(run,i):
         if i is None: return
-        if i%100==0:
-            log('{} iterations'.format(i))
-        if i%25==0:
-            log(' '.join([textutil.tryformat('{}={:.3f}',k,v[-1]) for k,v in run.losses.items()]))
+
         if i%1000==0:
             sysutil.save(run.losses,os.path.join(run.profile.outpath_data,'losses'))
+
         if not cfg.display_on:
             if i%1000==0:
                 print('\nnodisplay mode--raise KeyboardInterrupt (typically Ctrl-C) to pause and view options\n')
+            if i%100==0:
+                print('{} iterations'.format(i))
+            if i%25==0:
+                print(' '.join([textutil.tryformat('{}={:.3f}',k,v[-1]) for k,v in run.losses.items()]))
 
     @staticmethod
     def prep(P):
@@ -264,8 +278,10 @@ class Run(_display_.Process):
     def defaultbaseprofile():
         P=tracking.dotdict()
 
-        P.outpath_data=os.path.join('outputs',tracking.sessionID)
-        P.outpath_plot=os.path.join('outputs',tracking.sessionID)
+        P.runID=tracking.nowstr()
+
+        P.outpath_data=os.path.join('outputs',P.runID)
+        P.outpath_plot=os.path.join('plots',P.runID)
 
         P.weight_decay=0.0
         P.iterations=10**5

@@ -9,7 +9,7 @@ from cancellations.examples import losses
 import jax.numpy as jnp
 from functools import partial
 import jax
-from cancellations.config import tracking
+from cancellations.tracking import tracking
 from jax.tree_util import tree_map
 from cancellations.display import _display_
 
@@ -17,11 +17,11 @@ from cancellations.functions import _functions_, examplefunctions as examples
 from cancellations.functions._functions_ import Product
 
 from cancellations.utilities.permutations import allpermtuples
-from cancellations.config.browse import Browse
+from cancellations.tracking.browse import Browse
 import math
-from cancellations.config import config as cfg
+from cancellations.tracking import runconfig as cfg
 from cancellations.run import runtemplate
-from cancellations.config.tracking import dotdict, log, sysutil
+from cancellations.tracking.tracking import dotdict, log, sysutil
 import matplotlib.pyplot as plt
 import re
 import os
@@ -40,8 +40,6 @@ class BarronLoss(runtemplate.Fixed_XY):
 
     @classmethod
     def getprofile(cls,parentprocess,target,n,d,m,delta=1/10.0**4,minibatchsize=100):
-
-        tracking.log('32 or 64: {}'.format(jnp.array([1.0]).dtype))
 
         samples_train=10**5
         P=profile=super().getprofile(n,d,samples_train,minibatchsize,target)
@@ -69,7 +67,7 @@ class BarronLoss(runtemplate.Fixed_XY):
         super().repeat(i)
         if i%1000==0:
             self.saveBnorm()
-        if i%100==0:
+        if i%1000==0:
             sysutil.save(self.profile.learner.compress(),os.path.join('outputs',tracking.sessionID,'learner'))
 
     def saveBnorm(self):
@@ -89,6 +87,7 @@ class BarronLoss(runtemplate.Fixed_XY):
         return (self.Bnorm,self.eps)
 
     def plot(self,P):
+
         self.saveBnorm()
         fig,(ax0,ax1)=plt.subplots(2,1)
         plt.rcParams['text.usetex']
@@ -104,9 +103,13 @@ class BarronLoss(runtemplate.Fixed_XY):
             ax0.axhline(y=self.Bnorm,ls='--',color='b',label='$\epsilon$-smooth Barron norm estimate')
         ax1.set_yscale('log')
         ax1.legend()
-        outpath=os.path.join('plots','Bnorm_{}_n={}_{}___{}.pdf'.format(P.mode,P.n,P.ac,tracking.sessionID))
-        sysutil.savefig(outpath)
-        sysutil.showfile(outpath)
+
+        if cfg.debug:
+            breakpoint()
+        for path in ['plots',P.outpath_plot]:
+            outpath=os.path.join(path,'Bnorm_n={}_d={}___{}.pdf'.format(P.n,P.d,P.runID))
+            sysutil.savefig(outpath)
+        #sysutil.showfile(outpath)
 
     @staticmethod
     def get_learnerweightnorm(p,f):
@@ -153,8 +156,6 @@ class Run(BarronLoss):
 class BarronLossLoaded(BarronLoss):
     @classmethod
     def getprofile(cls,parentprocess,X,Y,rho,m,delta=1/10.0**4,minibatchsize=100):
-
-        tracking.log('32 or 64: {}'.format(jnp.array([1.0]).dtype))
 
         P=profile=runtemplate.Loaded_XY.getprofile(X,Y,rho,minibatchsize)
         P.Y=P.Y/losses.norm(P.Y[:1000],P.rho[:1000])

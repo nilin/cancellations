@@ -1,7 +1,7 @@
 import os
 import pickle
 import matplotlib.pyplot as plt
-from cancellations.config import browse
+from cancellations.tracking import browse
 #import code
 
 folder='batchoutputs'

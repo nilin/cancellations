@@ -3,8 +3,8 @@ import math
 import jax.numpy as jnp
 import jax
 import jax.random as rnd
-from cancellations.config import config as cfg
-from cancellations.config import tracking
+from cancellations.tracking import runconfig as cfg
+from cancellations.tracking import tracking
 from collections import deque
 from inspect import signature
 from jax.numpy import tanh

@@ -1,12 +1,12 @@
 import os
 import re
-from cancellations.config import config as cfg, tracking
+from cancellations.tracking import runconfig as cfg, tracking
 
 from cancellations.utilities import textutil
 
-from cancellations.config import tracking
+from cancellations.tracking import tracking
 from cancellations.display import _display_
-from cancellations.config import sysutil
+from cancellations.tracking import sysutil
 
 
 up='\u2191'

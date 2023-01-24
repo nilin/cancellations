@@ -11,7 +11,7 @@ from functools import partial
 import jax
 from cancellations.functions.symmetries import gen_Af
 import jax.random as rnd
-from cancellations.config import tracking
+from cancellations.tracking import tracking
 from jax.tree_util import tree_map
 from cancellations.display import _display_
 
@@ -20,9 +20,9 @@ from cancellations.functions._functions_ import Product
 import sys
 
 import math
-from cancellations.config import config as cfg
+from cancellations.tracking import runconfig as cfg
 from cancellations.run import runtemplate
-from cancellations.config.tracking import dotdict, log, sysutil
+from cancellations.tracking.tracking import dotdict, log, sysutil
 import matplotlib.pyplot as plt
 import re
 import os
@@ -79,15 +79,16 @@ class ExpFit(runtemplate.Fixed_XY):
         self.saveBnorm()
         fig,(ax1)=plt.subplots(1,1)
         plt.rcParams['text.usetex']
-        fig.suptitle('{} Barron norm, n={}, m={}, {}'.format(P.mode,P.n,P.m,P.ac))
+        fig.suptitle('Barron norm, n={}, m={}, {}'.format(P.n,P.m,P.ac))
         epss=jnp.array(self.losses['SI'])
         ax1.plot(epss,'r',label='$\epsilon$')
         ax1.axhline(y=self.eps,ls='--',color='r')
         ax1.set_yscale('log')
         ax1.legend()
-        outpath=os.path.join('plots','expAnsatzloss_{}_n={}_{}___{}.pdf'.format(P.mode,P.n,P.ac,tracking.sessionID))
-        sysutil.savefig(outpath)
-        sysutil.showfile(outpath)
+        for path in ['plots',P.outpath_plot]:
+            outpath=os.path.join(path,'expAnsatzloss_n={}_d={}___{}.pdf'.format(P.n,P.d,P.runID))
+            sysutil.savefig(outpath)
+            tracking.log(outpath)
 
 class Run(ExpFit):
 
@@ -122,9 +123,13 @@ class Runthrough(runtemplate.Run):
         if cfg.istest:
             n=4
             d=2
+            minibatchsize=5
+            its=250
         else:
             n=self.browse(options=[1,2,3,4,5,6],displayoption=lambda o:'n={}'.format(o),msg='Select n')
             d=self.browse(options=[1,2,3],displayoption=lambda o:'d={}'.format(o),msg='Select d')
+            minibatchsize=100 #self.browse(options=[100,50,25,10,250],displayoption=lambda o:'minibatchsize={}'.format(o),msg='Select minibatchsize')
+            its=self.browse(options=[10**4,5000,2500,1000],displayoption=lambda o:'{} iterations'.format(o),msg='Select iterations')
 
         X=rnd.uniform(rnd.PRNGKey(0),(10**5,n,d))
         rho=jnp.ones((X.shape[0],))/2**(n*d)
@@ -136,16 +141,14 @@ class Runthrough(runtemplate.Run):
 
         t_=jnp.arange(.5,2,.2)
         s_=jnp.arange(-1,1,.2)
-        m_e=1024
-        m_B=256
-        its=10000
+        m_e=4096
+        m_B=1024
 
         if cfg.istest:
             t_=[.5]
             s_=[-1]
             m_e=64
             m_B=32
-            its=100
 
         folder='batchoutputs'
 
@@ -167,12 +170,12 @@ class Runthrough(runtemplate.Run):
                 t_s.append((t,s))
                 Y=examplefunctions.get_harmonic_oscillator2d(n,d).eval(t*X-s)
 
-                BP=BN.BarronLossLoaded.getprofile(self,X,Y,rho,m_B,minibatchsize=25).butwith(iterations=its)
+                BP=BN.BarronLossLoaded.getprofile(self,X,Y,rho,m_B,minibatchsize=minibatchsize).butwith(iterations=its)
                 Barronnorm,eps=self.subprocess(BN.Run(profile=BP))
                 Barronnorms.append(Barronnorm)
                 Barroneps.append(eps)
 
-                EP=ExpFitLoaded.getprofile(self,X,Y,rho,m_e,minibatchsize=25).butwith(iterations=its)
+                EP=ExpFitLoaded.getprofile(self,X,Y,rho,m_e,minibatchsize=minibatchsize).butwith(iterations=its)
                 explosses.append(self.subprocess(ExpFit(profile=EP)))
 
                 save_some(E_info=EP.learner.getinfo(),B_info=BP.learner.getinfo())
