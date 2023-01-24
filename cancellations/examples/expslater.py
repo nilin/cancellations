@@ -17,6 +17,7 @@ from cancellations.display import _display_
 
 from cancellations.functions import _functions_, examplefunctions as examples, examplefunctions
 from cancellations.functions._functions_ import Product
+import sys
 
 import math
 from cancellations.config import config as cfg
@@ -118,9 +119,12 @@ class ExpFitLoaded(ExpFit):
 
 class Runthrough(runtemplate.Run):
     def execprocess(self):
-        
-        n=self.browse(options=[1,2,3,4,5,6],displayoption=lambda o:'n={}'.format(o),msg='Select n')
-        d=self.browse(options=[1,2,3],displayoption=lambda o:'d={}'.format(o),msg='Select d')
+        if cfg.istest:
+            n=4
+            d=2
+        else:
+            n=self.browse(options=[1,2,3,4,5,6],displayoption=lambda o:'n={}'.format(o),msg='Select n')
+            d=self.browse(options=[1,2,3],displayoption=lambda o:'d={}'.format(o),msg='Select d')
         #m_max=self.browse(options=[1024,2048,4096,8],displayoption=lambda o:'m=1,2,4,..,{}'.format(o),msg='Select m')
         #plotBarron=self.browse(options=[True,False],optionstrings=['estimate Barron norm','skip Barron norm'],msg='Compare with Barron norm?')
 
@@ -136,22 +140,39 @@ class Runthrough(runtemplate.Run):
         explosses=[]
         Barronnorms=[]
         Barroneps=[]
+        t_s=[]
 
-        for t in jnp.arange(.5,2,.2):
-            for s in jnp.arange(-1,1,.2):
+        t_=jnp.arange(.5,2,.2)
+        s_=jnp.arange(-1,1,.2)
+        m_e=2048
+        m_B=1024
+        its=5000
+
+        if cfg.istest:
+            t_=[.5]
+            s_=[-1]
+            m_e=64
+            m_B=32
+            its=100
+
+        for t in t_:
+            for s in s_:
+                t_s.append((t,s))
                 Y=examplefunctions.get_harmonic_oscillator2d(n,d).eval(t*X-s)
-                P=ExpFitLoaded.getprofile(self,X,Y,rho,1024,minibatchsize=100).butwith(iterations=5000)
+                P=ExpFitLoaded.getprofile(self,X,Y,rho,m_e,minibatchsize=100).butwith(iterations=its)
                 explosses.append(self.subprocess(ExpFit(profile=P)))
 
-                bP=BN.BarronLossLoaded.getprofile(self,X,Y,rho,1024).butwith(iterations=5000)
+                bP=BN.BarronLossLoaded.getprofile(self,X,Y,rho,m_B).butwith(iterations=its)
                 Barronnorm,eps=self.subprocess(BN.Run(profile=bP))
                 Barronnorms.append(Barronnorm)
                 Barroneps.append(eps)
 
-        outpath_data1=os.path.join('temp',tracking.sessionID,'expAnsatzlosses_n={}_{}___{}'.format(n,d,tracking.sessionID))
-        outpath_data2=os.path.join('temp',tracking.sessionID,'expAnsatzlosses_n={}_{}___{}'.format(n,d,tracking.sessionID))
+        folder='temp'
+        outpath_data1=os.path.join(folder,tracking.sessionID,'expAnsatzlosses_n={}_d={}___{}'.format(n,d,tracking.sessionID))
+        outpath_data2=os.path.join(folder,tracking.sessionID,'expAnsatzlosses_n={}_d={}___{}'.format(n,d,tracking.sessionID))
         sysutil.save([explosses,Barronnorms,Barroneps],outpath_data1)
-        sysutil.save([P.learner.getinfo(),bP.learner.getinfo()],outpath_data2)
+        sysutil.save([P.learner.getinfo(),bP.learner.getinfo(),t_s],outpath_data2)
+        sysutil.savewhatyoucan([globals(),locals()],os.path.join(folder,tracking.sessionID,'datadump'))
 #        for m in ms:
 #            P=ExpFitLoaded.getprofile(self,X,Y,rho,m,minibatchsize=100).butwith(iterations=10000)
 #            eps=self.subprocess(ExpFit(profile=P))

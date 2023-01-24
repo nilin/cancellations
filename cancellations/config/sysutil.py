@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import sys
 from cancellations.config import config as cfg, tracking
 from cancellations.utilities import textutil
+import copy
 
 
 def makedirs(filepath):
@@ -61,6 +62,44 @@ def filebrowserlog(path,msg):
     removetemplog(path)
     write('temporary log',os.path.join(path,'___log_'+textutil.cleanstring(msg)[:25]+'___.templog'),mode='w')
     cfg.postcommands.append(lambda: removetemplog(path))
+
+
+
+def cansave(item):
+    try:
+        save(item,'outputs/tempsavetest')
+        return True
+    except:
+        return False
+
+def keepwhatcansave(col,depth=3):
+    if depth==0: return None
+
+    # compress if it's a _functions_.FunctionDescription
+    try: col=col.compress()
+    except: pass
+
+    if cansave(col):
+        return col
+    else:
+        if isinstance(col,list):
+            col=[v if cansave(v) else keepwhatcansave(v,depth-1) for v in col]
+        elif isinstance(col,dict):
+            col={k:(v if cansave(v) else keepwhatcansave(v,depth-1)) for k,v in col.items()}
+        if cansave(col):
+            return col
+    return None
+
+def savewhatyoucan(col,path):
+    data=keepwhatcansave(col)
+    save(data,path)
+            
+
+
+
+
+
+
 
 
 #====================================================================================================

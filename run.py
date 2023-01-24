@@ -36,6 +36,8 @@ class Run(browse.Process):
 
 if __name__=='__main__':
 
+    cfg.istest=('t' in sys.argv)
+
     if 'd' in sys.argv:
         import jax
         cfg.debug=True
