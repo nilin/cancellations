@@ -34,7 +34,7 @@ class Run(_display_.Process):
         log('CPU or GPU:',jax.devices())
 
         run.losses={ln:[] for ln in P.lossnames}
-        run.info='runID: {}\n'.format(run.ID)+'\n'*4+run.parseinfo(P.info)
+        run.info='runID: {}\n'.format(P.runID)+'\n'*4+run.parseinfo(P.info)
         run.prepdisplay()
 
         #run.prepdisplay()

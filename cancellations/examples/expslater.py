@@ -169,6 +169,7 @@ class Runthrough(runtemplate.Run):
             for s in s_:
                 t_s.append((t,s))
                 Y=examplefunctions.get_harmonic_oscillator2d(n,d).eval(t*X-s)
+                Y=Y/losses.norm(Y,rho)
 
                 BP=BN.BarronLossLoaded.getprofile(self,X,Y,rho,m_B,minibatchsize=minibatchsize).butwith(iterations=its)
                 Barronnorm,eps=self.subprocess(BN.Run(profile=BP))
