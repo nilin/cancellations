@@ -12,8 +12,8 @@ from jax.tree_util import tree_map
 
 from cancellations.functions import _functions_
 from cancellations.functions._functions_ import Product
-from cancellations.examples import examples, Barronnorm, losses
-from cancellations.examples.Barronnorm import get_barronweight,get_threshold_lg,getBarronfn
+from cancellations.examples import Ansatznorms, examples, losses
+from cancellations.examples.Ansatznorms import get_barronweight,get_threshold_lg,getBarronfn
 
 from os import path
 import optax
@@ -89,7 +89,7 @@ class Run(runtemplate.Run):
     @classmethod
     def getdefaultprofile(cls,**kwargs):
         P=profile=super().getdefaultprofile(**kwargs)
-        Barron=Barronnorm.getBarronfn(profile)
+        Barron=Ansatznorms.getBarronfn(profile)
         detplayer=examples.getlearner_example(dotdict(n=P.n,d=P.d,ndets=P.mdet))
         profile.players={\
             'Ansatz':examples.getlearner_example(dotdict(n=P.n,d=P.d,ndets=P.mtarget)),\
@@ -113,7 +113,7 @@ class Run(runtemplate.Run):
     @classmethod
     def getdefaultprofile2(cls,**kwargs):
         P=profile=super().getdefaultprofile(**kwargs)
-        Barron=Barronnorm.getBarronfn(profile)
+        Barron=Ansatznorms.getBarronfn(profile)
         detplayer=examples.getlearner_example(dotdict(n=P.n,d=P.d,ndets=P.mdet))
         profile.players={\
             'Ansatz':getBarronfn(dotdict(n=P.n,d=P.d,m=P.mtarget)),\

@@ -13,7 +13,7 @@ from cancellations.tracking import tracking
 from jax.tree_util import tree_map
 from cancellations.display import _display_
 
-from cancellations.functions import _functions_, examplefunctions as examples
+from cancellations.functions import _functions_, examplefunctions as examples, examplefunctions
 from cancellations.functions._functions_ import Product
 
 from cancellations.utilities.permutations import allpermtuples
@@ -118,7 +118,7 @@ class BarronLoss(runtemplate.Fixed_XY):
             params=prodparams
             (W,b),a=params
             w1=jnp.squeeze(abs(a))
-            w2=jnp.sum(jnp.abs(W),axis=(-2,-1))+jnp.abs(b)
+            w2=jnp.sum(jnp.abs(W),axis=(-2,-1)) #+jnp.abs(b)
             assert(w1.shape==w2.shape)
             if p==float('inf'):
                 return jnp.max(w1*w2)
@@ -135,6 +135,66 @@ class BarronLoss(runtemplate.Fixed_XY):
             weight=jax.nn.sigmoid(val/delta10ths-10.0)
             return val,tree_map(lambda A:weight*A,grad)
         return jax.jit(_eval_)
+
+
+class ExpFit(runtemplate.Fixed_XY):
+    processname='expfit'
+
+    @classmethod
+    def getprofile(cls,parentprocess,n,d,m,target,samples_train,minibatchsize):
+        tracking.log('32 or 64: {}'.format(jnp.array([1.0]).dtype))
+
+        P=profile=super().getprofile(n,d,samples_train,minibatchsize,target)
+        P.Y=P.Y/losses.norm(P.Y[:1000],P.rho[:1000])
+        cls.initsampler(P)
+
+        P.learner=examplefunctions.ExpSlater(n=n,d=d,m=m)
+        profile.lossgrads=[losses.get_lossgrad_SI(P.learner._eval_)]
+        P.lossnames=['SI']
+        P.lossweights=[100.0,0.01]
+        P.name='{} n={} d={}'.format(P.learner.typename(),n,d)
+        P.info={'target':target.getinfo(),'Ansatz':P.learner.getinfo()}
+        return P
+
+    def repeat(self,i):
+        super().repeat(i)
+        if i%1000==0:
+            self.saveBnorm()
+        if i%100==0:
+            sysutil.save(self.profile.learner.compress(),os.path.join('outputs',tracking.sessionID,'learner'))
+
+    def saveBnorm(self):
+        epss=jnp.array(self.losses['SI'])
+        i=len(epss)
+        l=i//10
+        self.eps=jnp.quantile(epss[-l:],.5)
+        sysutil.write('{} | eps={}\n'.format(\
+            self.profile.name,self.eps),\
+            'outputs/expAnsatzloss.txt')
+
+    def finish(self):
+        self.saveBnorm()
+        return self.eps
+        #self.plot(self.profile)
+
+    def plot(self,P):
+        self.saveBnorm()
+        fig,(ax1)=plt.subplots(1,1)
+        plt.rcParams['text.usetex']
+        fig.suptitle('Barron norm, n={}, m={}, {}'.format(P.n,P.m,P.ac))
+        epss=jnp.array(self.losses['SI'])
+        ax1.plot(epss,'r',label='$\epsilon$')
+        ax1.axhline(y=self.eps,ls='--',color='r')
+        ax1.set_yscale('log')
+        ax1.legend()
+        for path in ['plots',P.outpath_plot]:
+            outpath=os.path.join(path,'expAnsatzloss_n={}_d={}___{}.pdf'.format(P.n,P.d,P.runID))
+            sysutil.savefig(outpath)
+            tracking.log(outpath)
+
+
+
+
 
 class Run(BarronLoss):
     processname='Barron_norm'
@@ -153,27 +213,6 @@ class Run(BarronLoss):
         P=super().getprofile(parentprocess, target, n, d, m, minibatchsize=10)
         return P
     
-class BarronLossLoaded(BarronLoss):
-    @classmethod
-    def getprofile(cls,parentprocess,X,Y,rho,m,delta=1/10.0**4,minibatchsize=100):
-
-        P=profile=runtemplate.Loaded_XY.getprofile(X,Y,rho,minibatchsize)
-        P.Y=P.Y/losses.norm(P.Y[:1000],P.rho[:1000])
-        cls.initsampler(P)
-
-        ac='softplus'
-
-        Ansatz=_functions_.ASBarron(n=P.n,d=P.d,m=m,ac=ac)
-        P.learner=Ansatz
-        profile.lossgrads=[\
-            cls.get_threshold_lg(losses.get_lossgrad_SI(Ansatz._eval_),delta),\
-            cls.get_learnerweightnorm(1.0,Ansatz._eval_),\
-        ]
-        P.lossnames=['eps','Barron norm estimate']
-        P.lossweights=[100.0,0.01]
-        P.name='{} n={} d={}'.format(P.learner.typename(),P.n,P.d)
-        P.info={'Barron':Ansatz.getinfo()}
-        return P
 
 ### plots ###
 

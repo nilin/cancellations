@@ -104,7 +104,6 @@ class Run(_display_.Process):
         return self.subprocess(Browse(*a,**kw))
 
     def plot(self,P,currentrun=True,parsefigname=lambda a:'{} loss'.format(a),parselinename=lambda a:'{} profile'.format(a)):
-
         if currentrun:
             profiles=[P.name]
         else:

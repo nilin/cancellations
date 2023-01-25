@@ -2,9 +2,13 @@ import os
 import pickle
 import matplotlib.pyplot as plt
 from cancellations.tracking import browse
+import sys
 #import code
 
-folder='batchoutputs'
+if len(sys.argv)>1:
+    folder=sys.argv[1]
+else:
+    folder='batchoutputs'
 
 while os.path.isdir(folder):
     fns=os.listdir(folder)
