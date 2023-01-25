@@ -6,7 +6,7 @@ import json
 #import jax
 #display_on=True
 #debug=False
-#biasinitsize=.1
+biasinitsize=.1
 
 initweight_coefficient=2
 
