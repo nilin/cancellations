@@ -171,8 +171,8 @@ class Runthrough(runtemplate.Run):
 
                 explosses.append(self.subprocess(Ansatznorms.ExpFit(profile=EP)))
 
-                if skipBarron: save_some(E_info=EP.learner.getinfo(),B_info=BP.learner.getinfo())
-                else: save_some(E_info=EP.learner.getinfo())
+                if skipBarron: save_some(E_info=EP.learner.getinfo())
+                else: save_some(E_info=EP.learner.getinfo(),B_info=BP.learner.getinfo())
 
                 done+=1
                 tracking.log('{}/{} done'.format(done,len(t_)*len(s_)))
