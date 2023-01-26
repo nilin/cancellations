@@ -110,7 +110,7 @@ class Runthrough(runtemplate.Run):
             minibatchsize=100 #self.browse(options=[100,50,25,10,250],displayoption=lambda o:'minibatchsize={}'.format(o),msg='Select minibatchsize')
             its=self.browse(options=[10**4,5000,2500,1000],displayoption=lambda o:'{} iterations'.format(o),msg='Select iterations')
             general=self.browse(options=[True,False],msg='general or not')
-            skipBarron=True
+            skipBarron=self.browse(options=[True,False],msg='skip Barron or not')
 
 
         X=rnd.uniform(rnd.PRNGKey(0),(10**5,n,d))
