@@ -32,18 +32,17 @@ class Run(runtemplate.Fixed_XY):
     def getprofile(cls,parentprocess):
         #mode=parentprocess.browse(options=['non-SI','SI loss','SI_2','SI_3','SI_4'])
 
-        n,d,samples_train,minibatchsize=3,2,10**5,2
+
+        n,d,samples_train,minibatchsize=3,2,10000, 100
         target=examples.get_harmonic_oscillator2d(n,d)
         learner=cls.getlearner_example(n,d)
-
-        balanced=parentprocess.browse(options=[True,False])
 
         #symmode=parentprocess.browse(options=['antisym','nonsym'])
         #if symmode=='nonsym':
         #    target,_=_functions_.switchtype(target)
         #    learner,_=_functions_.switchtype(learner)
 
-        P=super().getprofile(n,d,samples_train,minibatchsize,target).butwith(learner=learner,balanced=balanced)
+        P=super().getprofile(n,d,samples_train,minibatchsize,target).butwith(learner=learner,iterations=5000)
         P.Y=P.Y/losses.norm(P.Y[:1000],P.rho[:1000])
         cls.initsampler(P)
 
@@ -69,19 +68,36 @@ class Run(runtemplate.Fixed_XY):
         #T=lambda x:jnp.exp(jax.nn.relu(jnp.abs(jnp.log(x))-7.0)),\
         #T=lambda x:abs(x)**(1/7),\
 
+        P.lgtype=parentprocess.browse(options=['SI','L2','SGD'])
+        P.info['lossgrad']=P.lgtype
+        if P.lgtype=='SGD': 
+            P.balanced=parentprocess.browse(options=[True,False],msg='balanced or not')
+            P.info['balanced']=P.balanced
+            #P.minibatchsize=2
+            P.iterations=50000
+
+        cls.initsampler(P)
+
+        if P.lgtype=='SGD':
+            LG=SGD(g,P.balanced,10).norm_gradL
+        if P.lgtype=='SI':
+            LG=losses.get_lossgrad_SI(g)
+        if P.lgtype=='L2':
+            LG=losses.get_lossgrad_NONSI(g)
 
         P.lossweights=[1.0]
         P.lossgrads=[\
             #losses.transform_grad(lambda params,X,Y,rho: losses.norm(g(params,X),rho),T=T,fromrawloss=True),\
-            SGD(g,P.balanced,10).norm_gradL,\
+            #SGD(g,P.balanced,10).norm_gradL,\
+            LG,\
             losses.get_lossgrad_SI(g),\
-            losses.get_lossgrad_NONSI(g),\
+            jax.jit(lambda params,X,Y,rho: (losses.norm(g(params,X),rho),None)),\
             Hloss(g).lossgrad\
         ]
-        P.lossnames=['norm','SI loss','L2','second derivative estimate']
+        P.lossnames=['train','SI loss','norm','second derivative estimate']
+        #P.lossnames=['norm','SI loss','second derivative estimate']
 
         P.info['learner']=P.learner.getinfo()
-        P.info['balanced']=P.balanced
         #P.name=mode
         return P
 
@@ -139,7 +155,7 @@ class SGD:
         if balanced:
             G=(f1**2*g2-f1*g1*f2)/Z**3
         else:
-            G=(g2/Z-f1*g1*f2/Z**3)
+            G=g2/Z-f1*g1*f2/Z**3
 
         return (f1**2+f2**2)/2,tree_map(lambda A:G*A,Df2)
         

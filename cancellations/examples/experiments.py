@@ -75,6 +75,21 @@ class ExpFitLoaded(Ansatznorms.ExpFit):
         return P
 
 
+class General(ExpFitLoaded):
+    @classmethod
+    def getprofile(cls,parentprocess,X,Y,rho,m,minibatchsize):
+
+        P=profile=runtemplate.Loaded_XY.getprofile(X,Y,rho,minibatchsize)
+        P.Y=P.Y/losses.norm(P.Y[:1000],P.rho[:1000])
+        cls.initsampler(P)
+
+        P.learner=examplefunctions.getlearner_example(P.n,P.d)
+        profile.lossgrads=[losses.get_lossgrad_SI(P.learner._eval_)]
+        P.lossnames=['SI']
+        P.lossweights=[100.0,0.01]
+        P.name='{} n={} d={}'.format(P.learner.typename(),P.n,P.d)
+        P.info={'Ansatz':P.learner.getinfo()}
+        return P
 
 
 
@@ -87,11 +102,16 @@ class Runthrough(runtemplate.Run):
             d=2
             minibatchsize=5
             its=250
+            general=True
+            skipBarron=True
         else:
             n=self.browse(options=[1,2,3,4,5,6],displayoption=lambda o:'n={}'.format(o),msg='Select n')
             d=self.browse(options=[1,2,3],displayoption=lambda o:'d={}'.format(o),msg='Select d')
             minibatchsize=100 #self.browse(options=[100,50,25,10,250],displayoption=lambda o:'minibatchsize={}'.format(o),msg='Select minibatchsize')
             its=self.browse(options=[10**4,5000,2500,1000],displayoption=lambda o:'{} iterations'.format(o),msg='Select iterations')
+            general=self.browse(options=[True,False],msg='general or not')
+            skipBarron=True
+
 
         X=rnd.uniform(rnd.PRNGKey(0),(10**5,n,d))
         rho=jnp.ones((X.shape[0],))/2**(n*d)
@@ -119,10 +139,14 @@ class Runthrough(runtemplate.Run):
                 explosses=explosses,\
                 Barronnorms=Barronnorms,\
                 Barroneps=Barroneps,\
-                t_s=t_s)
+                t_s=t_s,\
+                general=general)
             out.update(kw)
             sysutil.save(out,\
                 path=os.path.join(folder,tracking.sessionID,'compare_n={}_d={}___{}'.format(n,d,tracking.sessionID)))
+
+        #sysutil.save(out,\
+        #    path=os.path.join(folder,tracking.sessionID,'compare_n={}_d={}___{}'.format(n,d,tracking.sessionID)))
 
         if cfg.dump:
             sysutil.savewhatyoucan([globals(),locals()],os.path.join(folder,tracking.sessionID,'datadump0'))
@@ -134,15 +158,22 @@ class Runthrough(runtemplate.Run):
                 Y=examplefunctions.get_harmonic_oscillator2d(n,d).eval(t*X-s)
                 Y=Y/losses.norm(Y,rho)
 
-                BP=BarronLossLoaded.getprofile(self,X,Y,rho,m_B,minibatchsize=minibatchsize).butwith(iterations=its)
-                Barronnorm,eps=self.subprocess(Ansatznorms.Run(profile=BP))
-                Barronnorms.append(Barronnorm)
-                Barroneps.append(eps)
+                if not skipBarron:
+                    BP=BarronLossLoaded.getprofile(self,X,Y,rho,m_B,minibatchsize=minibatchsize).butwith(iterations=its)
+                    Barronnorm,eps=self.subprocess(Ansatznorms.Run(profile=BP))
+                    Barronnorms.append(Barronnorm)
+                    Barroneps.append(eps)
 
-                EP=ExpFitLoaded.getprofile(self,X,Y,rho,m_e,minibatchsize=minibatchsize).butwith(iterations=its)
+                if general:
+                    EP=General.getprofile(self,X,Y,rho,m_e,minibatchsize=minibatchsize).butwith(iterations=its)
+                else:
+                    EP=ExpFitLoaded.getprofile(self,X,Y,rho,m_e,minibatchsize=minibatchsize).butwith(iterations=its)
+
                 explosses.append(self.subprocess(Ansatznorms.ExpFit(profile=EP)))
 
-                save_some(E_info=EP.learner.getinfo(),B_info=BP.learner.getinfo())
+                if skipBarron: save_some(E_info=EP.learner.getinfo(),B_info=BP.learner.getinfo())
+                else: save_some(E_info=EP.learner.getinfo())
+
                 done+=1
                 tracking.log('{}/{} done'.format(done,len(t_)*len(s_)))
 
